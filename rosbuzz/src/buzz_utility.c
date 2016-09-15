@@ -394,6 +394,8 @@ void check_swarm_members(const void* key, void* data, void* params) {
 }
 
 void buzz_script_step() {
+
+   
    /*
     * Process incoming messages
     */
@@ -401,55 +403,55 @@ void buzz_script_step() {
    buzzneighbors_reset(VM);
    /* Lock mutex */
    /* fprintf(stderr, "[DEBUG] Processing incoming packets...\n"); */
-   pthread_mutex_lock(&INCOMING_PACKET_MUTEX);
+   //pthread_mutex_lock(&INCOMING_PACKET_MUTEX);
    /* Go through messages and add them to the FIFO */
-   struct incoming_packet_s* n;
-   while(PACKETS_FIRST) {
+   //struct incoming_packet_s* n;
+   //while(PACKETS_FIRST) {
       /* Save next packet */
-      n = PACKETS_FIRST->next;
+    //  n = PACKETS_FIRST->next;
       /* Update Buzz neighbors information */
-      buzzneighbors_add(VM, PACKETS_FIRST->id, 0.0, 0.0, 0.0);
+    //  buzzneighbors_add(VM, PACKETS_FIRST->id, 0.0, 0.0, 0.0);
       /* Go through the payload and extract the messages */
-      uint8_t* pl = PACKETS_FIRST->payload;
-      size_t tot = 0;
+    //  uint8_t* pl = PACKETS_FIRST->payload;
+      //size_t tot = 0;
       uint16_t msgsz;
       /* fprintf(stderr, "[DEBUG] Processing packet %p from %d\n", */
       /*         PACKETS_FIRST, */
       /*         PACKETS_FIRST->id); */
       /* fprintf(stderr, "[DEBUG] recv sz = %u\n", */
       /*         *(uint16_t*)pl); */
-      do {
+      //do {
          /* Get payload size */
-         msgsz = *(uint16_t*)(pl + tot);
-         tot += sizeof(uint16_t);
+         //msgsz = *(uint16_t*)(pl + tot);
+         //tot += sizeof(uint16_t);
          /* fprintf(stderr, "[DEBUG]    msg size = %u, tot = %zu\n", msgsz, tot); */
          /* Make sure the message payload can be read */
-         if(msgsz > 0 && msgsz <= MSG_SIZE - tot) {
+        // if(msgsz > 0 && msgsz <= MSG_SIZE - tot) {
             /* Append message to the Buzz input message queue */
-            buzzinmsg_queue_append(
-               VM->inmsgs,
-               buzzmsg_payload_frombuffer(pl + tot, msgsz));
-            tot += msgsz;
+            // buzzinmsg_queue_append(
+             //  VM->inmsgs,
+            //   buzzmsg_payload_frombuffer(pl + tot, msgsz));
+          //  tot += msgsz;
             /* fprintf(stderr, "[DEBUG]    appended message, tot = %zu\n", tot); */
-         }
-      }
-      while(MSG_SIZE - tot > sizeof(uint16_t) && msgsz > 0);
+        // }
+      //}
+      //while(MSG_SIZE - tot > sizeof(uint16_t) && msgsz > 0);
       /* Erase packet */
       /* fprintf(stderr, "[DEBUG] Done processing packet %p from %d\n", */
       /*         PACKETS_FIRST, */
       /*         PACKETS_FIRST->id); */
-      free(PACKETS_FIRST->payload);
-      free(PACKETS_FIRST);
+      //free(PACKETS_FIRST->payload);
+      //free(PACKETS_FIRST);
       /* Go to next packet */
-      PACKETS_FIRST = n;
-   }
+     // PACKETS_FIRST = n;
+   //}
    /* The packet list is now empty */
-   PACKETS_LAST = NULL;
+   //PACKETS_LAST = NULL;
    /* Unlock mutex */
-   pthread_mutex_unlock(&INCOMING_PACKET_MUTEX);
+   //pthread_mutex_unlock(&INCOMING_PACKET_MUTEX);
    /* fprintf(stderr, "[DEBUG] Done processing incoming packets.\n"); */
    /* Process messages */
-   buzzvm_process_inmsgs(VM);
+   //buzzvm_process_inmsgs(VM);
    /*
     * Update sensors
     */
@@ -468,43 +470,44 @@ void buzz_script_step() {
     * Broadcast messages
     */
    /* Prepare buffer */
-   memset(STREAM_SEND_BUF, 0, MSG_SIZE);
-   *(uint16_t*)STREAM_SEND_BUF = VM->robot;
-   ssize_t tot = sizeof(uint16_t);
-   do {
+  // memset(STREAM_SEND_BUF, 0, MSG_SIZE);
+  // *(uint16_t*)STREAM_SEND_BUF = VM->robot;
+  // ssize_t tot = sizeof(uint16_t);
+   //do {
       /* Are there more messages? */
-      if(buzzoutmsg_queue_isempty(VM->outmsgs)) break;
+    //  if(buzzoutmsg_queue_isempty(VM->outmsgs)) break;
       /* Get first message */
-      buzzmsg_payload_t m = buzzoutmsg_queue_first(VM->outmsgs);
+    //  buzzmsg_payload_t m = buzzoutmsg_queue_first(VM->outmsgs);
       /* Make sure it fits the data buffer */
-      if(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)
-         >
-         MSG_SIZE) {
-         buzzmsg_payload_destroy(&m);
-         break;
-      }
+    //  if(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)
+    //     >
+    //     MSG_SIZE) {
+    //     buzzmsg_payload_destroy(&m);
+    //     break;
+    //  }
       /* Add message length to data buffer */
       /* fprintf(stderr, "[DEBUG] send before sz = %u\n", */
       /*         *(uint16_t*)(STREAM_SEND_BUF + 2)); */
-      *(uint16_t*)(STREAM_SEND_BUF + tot) = (uint16_t)buzzmsg_payload_size(m);
-      tot += sizeof(uint16_t);
+    //  *(uint16_t*)(STREAM_SEND_BUF + tot) = (uint16_t)buzzmsg_payload_size(m);
+    //  tot += sizeof(uint16_t);
       /* fprintf(stderr, "[DEBUG] send after sz = %u\n", */
       /*         *(uint16_t*)(STREAM_SEND_BUF + 2)); */
       /* Add payload to data buffer */
-      memcpy(STREAM_SEND_BUF + tot, m->data, buzzmsg_payload_size(m));
-      tot += buzzmsg_payload_size(m);
+    //  memcpy(STREAM_SEND_BUF + tot, m->data, buzzmsg_payload_size(m));
+    //  tot += buzzmsg_payload_size(m);
       /* Get rid of message */
-      buzzoutmsg_queue_next(VM->outmsgs);
-      buzzmsg_payload_destroy(&m);
-   } while(1);
+    //  buzzoutmsg_queue_next(VM->outmsgs);
+    //  buzzmsg_payload_destroy(&m);
+  // } while(1);
+
    /* fprintf(stderr, "[DEBUG] send id = %u, sz = %u\n", */
    /*         *(uint16_t*)STREAM_SEND_BUF, */
    /*         *(uint16_t*)(STREAM_SEND_BUF + 2)); */
    /* Send messages */
-   buzzvm_process_outmsgs(VM);
-   STREAM_SEND();
+  // buzzvm_process_outmsgs(VM);
+  // STREAM_SEND();
    /* Sleep */
-   usleep(100000);
+  // usleep(100000);
    /* Print swarm */
    buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
    /* Check swarm state */

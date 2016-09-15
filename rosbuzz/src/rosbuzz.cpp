@@ -1,29 +1,7 @@
 /*
 
- * Copyright (C) 2008, Morgan Quigley and Willow Garage, Inc.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *   * Redistributions of source code must retain the above copyright notice,
- *     this list of conditions and the following disclaimer.
- *   * Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *   * Neither the names of Stanford University or Willow Garage, Inc. nor the names of its
- *     contributors may be used to endorse or promote products derived from
- *     this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Header
+
  */
 // %Tag(FULLTEXT)%
 // %Tag(ROS_HEADER)%
@@ -64,6 +42,14 @@ void usage(const char* path, int status) {
    exit(status);
 }
 
+// %Tag(CALLBACK)%
+void chatterCallback(const std_msgs::String::ConstPtr& msg)
+{
+  ROS_INFO("I heard: [%s]", msg->data.c_str());
+}
+// %EndTag(CALLBACK)%
+
+
 static void ctrlc_handler(int sig) {
    done = 1;
 }
@@ -81,7 +67,8 @@ int main(int argc, char **argv)
    * part of the ROS system.
    */
 // %Tag(INIT)%
-  ros::init(argc, argv, "talker");
+  ros::init(argc, argv, "outgoing");
+  ros::init(argc, argv, "incoming");
 // %EndTag(INIT)%
 
   /**
@@ -90,7 +77,8 @@ int main(int argc, char **argv)
    * NodeHandle destructed will close down the node.
    */
 // %Tag(NODEHANDLE)%
-  ros::NodeHandle n;
+  ros::NodeHandle n_outgoing;
+  ros::NodeHandle n_incoming;
 // %EndTag(NODEHANDLE)%
 
   /**
@@ -111,11 +99,15 @@ int main(int argc, char **argv)
    * buffer up before throwing some away.
    */
 // %Tag(PUBLISHER)%
-  ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
+  ros::Publisher outgoing_pub = n_outgoing.advertise<std_msgs::String>("outgoing", 1000);
 // %EndTag(PUBLISHER)%
 
+// %Tag(SUBSCRIBER)%
+  ros::Subscriber sub = n_incoming.subscribe("incoming", 1000, chatterCallback);
+// %EndTag(SUBSCRIBER)%
+
 // %Tag(LOOP_RATE)%
-  ros::Rate loop_rate(10);
+  ros::Rate loop_rate(2);
 // %EndTag(LOOP_RATE)%
 
   /**
@@ -125,10 +117,7 @@ int main(int argc, char **argv)
 // %Tag(ROS_OK)%
 
 
-  int count = 0;
-  while (ros::ok())
-  {
-
+// buzz setting
 
 // Buzz stuff
 //
@@ -140,16 +129,16 @@ int main(int argc, char **argv)
 
 //
 /* Parse command line */
-   if(argc != 5) usage(argv[0], 0);
+ /*  if(argc != 5) usage(argv[0], 0); */
    /* The stream type */
-   char* stream = argv[1];
+ /*  char* stream = argv[1];
    if(strcmp(stream, "tcp") != 0 &&
       strcmp(stream, "bt") != 0) {
       fprintf(stderr, "%s: unknown stream type '%s'\n", argv[0], stream);
       usage(argv[0], 0);
    }
    /* The message size */
-   char* endptr;
+   /*char* endptr;
    int msg_sz = strtol(argv[2], &endptr, 10);
    if(endptr == argv[2] || *endptr != '\0') {
       fprintf(stderr, "%s: can't parse '%s' into a number\n", argv[0], argv[2]);
@@ -158,44 +147,35 @@ int main(int argc, char **argv)
    if(msg_sz <= 0) {
       fprintf(stderr, "%s: invalid value %d for message size\n", argv[0], msg_sz);
       return 0;
-   }
+   } */
    /* The bytecode filename */
-   char* bcfname = argv[3];
+   char* bcfname = "/home/vivek/catkin_ws/src/rosbuzz/src/out.bo"; //argv[1];
    /* The debugging information file name */
-   char* dbgfname = argv[4];
+   char* dbgfname = "/home/vivek/catkin_ws/src/rosbuzz/src/out.bdbg"; //argv[2];
    /* Wait for connection */
-   if(!buzz_listen(stream, msg_sz)) return 1;
+   //if(!buzz_listen(stream, msg_sz)) return 1;
    /* Set CTRL-C handler */
    signal(SIGTERM, ctrlc_handler);
    signal(SIGINT, ctrlc_handler);
    /* Initialize the robot */
-   kh4_setup();
+   //kh4_setup();
    /* Set the Buzz bytecode */
    if(buzz_script_set(bcfname, dbgfname)) {
+   fprintf(stdout, "Bytecode file found and set\n");
+
+// buzz setting
+
+  int count = 0;
+  while (ros::ok() && !done && !buzz_script_done())
+  {
+
+
+   // while(!done && !buzz_script_done())
       /* Main loop */
-      while(!done && !buzz_script_done())
          buzz_script_step();
       /* Cleanup */
-      buzz_script_destroy();
-   }
+    //  buzz_script_destroy();
    
-   /* Stop the robot */
-   kh4_done();
-   /* All done */
-   return 0;
-
-//
-
-
-
-
-
-
-
-
-
-
-// Buzz stuff
 
 
 // %EndTag(ROS_OK)%
@@ -220,22 +200,27 @@ int main(int argc, char **argv)
      * given as a template parameter to the advertise<>() call, as was done
      * in the constructor above.
      */
+
 // %Tag(PUBLISH)%
-    chatter_pub.publish(msg);
+    outgoing_pub.publish(msg);
 // %EndTag(PUBLISH)%
+
 
 // %Tag(SPINONCE)%
     ros::spinOnce();
 // %EndTag(SPINONCE)%
-
 // %Tag(RATE_SLEEP)%
     loop_rate.sleep();
 // %EndTag(RATE_SLEEP)%
     ++count;
   }
+ /* Stop the robot */
+   kh4_done();
+   /* All done */
+   return 0;
+}
+  
 
-
-  return 0;
 }
 // %EndTag(FULLTEXT)%
 
