@@ -1,0 +1,36 @@
+!4
+'init
+'step
+'reset
+'destroy
+
+	pushs 0
+	pushcn @__label_1
+	gstore
+	pushs 1
+	pushcn @__label_2
+	gstore
+	pushs 2
+	pushcn @__label_3
+	gstore
+	pushs 3
+	pushcn @__label_4
+	gstore
+	nop
+
+@__label_0
+
+@__exitpoint
+	done
+
+@__label_1
+	ret0	|3,1,/home/vivek/BuzzKH4/build/test.bzz
+
+@__label_2
+	ret0	|7,1,/home/vivek/BuzzKH4/build/test.bzz
+
+@__label_3
+	ret0	|11,1,/home/vivek/BuzzKH4/build/test.bzz
+
+@__label_4
+	ret0	|15,1,/home/vivek/BuzzKH4/build/test.bzz
