@@ -1,9 +1,28 @@
 # Executed once at init time.
 function init() {
+if(id == 0) {
+    # Source robot
+    mydist = 0.
+  }
+  else {
+    # Other robots
+    mydist = 1000.
+    # Listen to other robots' distances
+    neighbors.listen("dist_to_source",
+      function(value_id, value, robot_id) {
+        mydist = math.min(
+          mydist,
+          neighbors.get(robot_id).distance + value)
+      })
+  }
 }
  
 # Executed at each time step.
 function step() {
+neighbors.broadcast("dist_to_source", mydist)
+print(mydist)
+
+
 }
  
 # Executed once when the robot (or the simulator) is reset.
@@ -13,3 +32,4 @@ function reset() {
 # Executed once at the end of experiment.
 function destroy() {
 }
+

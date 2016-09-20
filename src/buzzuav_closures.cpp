@@ -25,10 +25,10 @@ int buzzros_print(buzzvm_t vm) {
 	    ROS_INFO("BUZZ - [nil]");
             break;
          case BUZZTYPE_INT:
-            //fprintf(stdout, "%d", o->i.value);
+            fprintf(stdout, "%d", o->i.value);
             break;
          case BUZZTYPE_FLOAT:
-            //fprintf(stdout, "%f", o->f.value);
+            fprintf(stdout, "%f", o->f.value);
             break;
          case BUZZTYPE_TABLE:
             //fprintf(stdout, "[table with %d elems]", (buzzdict_size(o->t.value)));
@@ -42,7 +42,7 @@ int buzzros_print(buzzvm_t vm) {
                //fprintf(stdout, "[c-closure @%d]", o->c.value.ref);
             break;
          case BUZZTYPE_STRING:
-            //fprintf(stdout, "%s", o->s.value.str);
+            fprintf(stdout, "%s", o->s.value.str);
             break;
          case BUZZTYPE_USERDATA:
             //fprintf(stdout, "[userdata @%p]", o->u.value);

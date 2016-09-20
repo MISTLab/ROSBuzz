@@ -28,12 +28,17 @@
 #include <math.h>
 #include <signal.h>
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 static int done = 0;
 
 static double cur_pos [3];
 double distance;
 double azimuth;
 double elevation; 
+
 
 /**
  * This tutorial demonstrates simple sending of messages over the ROS system.
@@ -121,7 +126,11 @@ static void ctrlc_handler(int sig) {
 
 int main(int argc, char **argv)
 {
- 
+
+
+   system("bzzparse /home/vivek/catkin_ws/src/rosbuzz/src/test.bzz /home/vivek/catkin_ws/src/rosbuzz/src/out.basm");
+   system("bzzasm /home/vivek/catkin_ws/src/rosbuzz/src/out.basm /home/vivek/catkin_ws/src/rosbuzz/src/out.bo /home/vivek/catkin_ws/src/rosbuzz/src/out.bdbg");
+  
 // %Tag(INIT)%
   ros::init(argc, argv, "rosBuzz"); 
 // %EndTag(INIT)%
@@ -175,6 +184,7 @@ int main(int argc, char **argv)
       fprintf(stderr, "%s: invalid value %d for message size\n", argv[0], msg_sz);
       return 0;
    } */
+   
    /* The bytecode filename */
    char* bcfname = "/home/vivek/catkin_ws/src/rosbuzz/src/out.bo"; //argv[1];
    /* The debugging information file name */
