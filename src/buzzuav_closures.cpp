@@ -3,12 +3,10 @@
 #include "buzzuav_closures.h"
 #include "uav_utility.h"
 #include "mavros_msgs/CommandCode.h"
-
-// %Tag(ROS_HEADER)%
 #include "ros/ros.h"
-// %EndTag(ROS_HEADER)%
 
 double goto_pos[3];
+float batt[3];
 int cur_cmd;
 /****************************************/
 /****************************************/
@@ -21,31 +19,29 @@ int buzzros_print(buzzvm_t vm) {
       buzzvm_pop(vm);
       switch(o->o.type) {
          case BUZZTYPE_NIL:
-            //fprintf(stdout, "[nil]");
 	    ROS_INFO("BUZZ - [nil]");
             break;
          case BUZZTYPE_INT:
-            fprintf(stdout, "%d", o->i.value);
+	    ROS_INFO("%d", o->i.value);
+            //fprintf(stdout, "%d", o->i.value);
             break;
          case BUZZTYPE_FLOAT:
-            fprintf(stdout, "%f", o->f.value);
+	    ROS_INFO("%f", o->f.value);
             break;
          case BUZZTYPE_TABLE:
-            //fprintf(stdout, "[table with %d elems]", (buzzdict_size(o->t.value)));
+            ROS_INFO("[table with %d elems]", (buzzdict_size(o->t.value)));
             break;
          case BUZZTYPE_CLOSURE:
             if(o->c.value.isnative)
-		ROS_INFO("BUZZ - [nil]");
-               //fprintf(stdout, "[n-closure @%d]", o->c.value.ref);
+		ROS_INFO("[n-closure @%d]", o->c.value.ref);
             else
-		ROS_INFO("BUZZ - [nil]");
-               //fprintf(stdout, "[c-closure @%d]", o->c.value.ref);
+		ROS_INFO("[c-closure @%d]", o->c.value.ref);
             break;
          case BUZZTYPE_STRING:
-            fprintf(stdout, "%s", o->s.value.str);
+	    ROS_INFO("%s", o->s.value.str);
             break;
          case BUZZTYPE_USERDATA:
-            //fprintf(stdout, "[userdata @%p]", o->u.value);
+            ROS_INFO("[userdata @%p]", o->u.value);
             break;
          default:
             break;
@@ -66,16 +62,18 @@ int buzzuav_goto(buzzvm_t vm) {
    buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-goto_pos[0]=buzzvm_stack_at(vm, 1)->f.value * 10.0f;
+goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value * 10.0f;
 goto_pos[1]=buzzvm_stack_at(vm, 2)->f.value * 10.0f;
-goto_pos[2]=buzzvm_stack_at(vm, 3)->f.value * 10.0f;
+goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value * 10.0f;
    return buzzvm_ret0(vm);
 }
+
+/******************************/
 
 double* getgoto(){
 return goto_pos;
 }
-
+/******************************/
 int getcmd(){
 return cur_cmd;
 }
@@ -99,7 +97,6 @@ int buzzuav_gohome(buzzvm_t vm) {
 }
 
 /****************************************/
-float batt[3];
 void set_battery(float voltage,float current,float remaining){
 batt[0]=voltage;
 batt[1]=current;
@@ -109,7 +106,6 @@ batt[2]=remaining;
 
 int buzzuav_update_battery(buzzvm_t vm) {
    static char BATTERY_BUF[256];
- //  kh4_battery_status(BATTERY_BUF, DSPIC);
    buzzvm_pushs(vm, buzzvm_string_register(vm, "battery", 1));
    buzzvm_pusht(vm);
    buzzvm_dup(vm);

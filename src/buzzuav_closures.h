@@ -5,37 +5,33 @@
 
 /*
  * prextern int() function in Buzz
+ * This function is used to print data from buzz
+ * The command to use in Buzz is buzzros_print takes any available datatype in Buzz
  */
 int buzzros_print(buzzvm_t vm);
 
 /*
- * set_wheels(ls,rs) function in Buzz
- * Sets the wheel speeds to ls (left) and rs (right)
- * speeds are expressed in cm/s
+ * buzzuav_goto(latitude,longitude,altitude) function in Buzz
+ * commands the UAV to go to a position supplied
  */
 int buzzuav_goto(buzzvm_t vm);
-
+/* Returns the current command from local variable*/
 int getcmd();
+/* sets the battery state to the local variable
+ */
 void set_battery(float voltage,float current,float remaining);
+/*retuns the current go to position from local variable*/
 double* getgoto();
 /*
- * set_leds(r,g,b) function in Buzz
- * Sets the color of the 3 leds to (r,g,b)
- * speeds are expressed in cm/s
+ * Commands the UAV to takeoff
  */
 int buzzuav_takeoff(buzzvm_t vm);
 
-/*
- * set_leds(r,g,b) function in Buzz
- * Sets the color of the 3 leds to (r,g,b)
- * speeds are expressed in cm/s
+/* Commands the UAV to land
  */
 int buzzuav_land(buzzvm_t vm);
 
-/*
- * set_leds(r,g,b) function in Buzz
- * Sets the color of the 3 leds to (r,g,b)
- * speeds are expressed in cm/s
+/* Command the UAV to go to home location
  */
 int buzzuav_gohome(buzzvm_t vm);
 
