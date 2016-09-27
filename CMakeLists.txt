@@ -16,7 +16,6 @@ find_package(catkin REQUIRED COMPONENTS
 # find_package(Boost REQUIRED COMPONENTS system)
 
 
-
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
