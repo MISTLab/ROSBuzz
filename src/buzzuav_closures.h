@@ -17,6 +17,11 @@ int buzzros_print(buzzvm_t vm);
 int buzzuav_goto(buzzvm_t vm);
 /* Returns the current command from local variable*/
 int getcmd();
+
+void set_goto(double pos[]);
+
+void rc_call(int rc_cmd);
+
 /* sets the battery state to the local variable
  */
 void set_battery(float voltage,float current,float remaining);

@@ -65,6 +65,7 @@ int buzzuav_goto(buzzvm_t vm) {
 goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value * 10.0f;
 goto_pos[1]=buzzvm_stack_at(vm, 2)->f.value * 10.0f;
 goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value * 10.0f;
+cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    return buzzvm_ret0(vm);
 }
 
@@ -76,6 +77,17 @@ return goto_pos;
 /******************************/
 int getcmd(){
 return cur_cmd;
+}
+
+void set_goto(double pos[]){
+goto_pos[0]=pos[0];
+goto_pos[1]=pos[1];
+goto_pos[2]=pos[2];
+    
+}
+
+void rc_call(int rc_cmd){
+cur_cmd=rc_cmd;
 }
 
 /****************************************/

@@ -1,13 +1,15 @@
-/*
-
- * Header
-
+/** @file      rosbuzz.cpp
+ *  @version   1 
+ *  @date      27.09.2016
+ *  @brief     Buzz Implementation as a node in ROS. 
+ *  @copyright 2016 MistLab. All rights reserved.
  */
 
 #include "ros/ros.h"
 #include "sensor_msgs/NavSatFix.h"
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/CommandCode.h"
+#include "mavros_msgs/CommandInt.h"
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
@@ -117,6 +119,54 @@ cvt_spherical_coordinates(latitude,longitude,altitude);
 //neighbour_location_handler( distance, azimuth, elevation, 01);
 
 }
+int oldcmdID=0;
+int rc_cmd;
+bool rc_callback(mavros_msgs::CommandInt::Request  &req,
+         mavros_msgs::CommandInt::Response &res){
+
+if(req.command==oldcmdID)
+	return true;
+   else
+	oldcmdID=req.command;
+   switch(req.command)
+   {
+	case mavros_msgs::CommandCode::NAV_TAKEOFF:
+   		ROS_INFO("RC_call: TAKE OFF!!!!");
+		rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
+		rc_call(rc_cmd);
+		res.success = true;
+		break;
+	case mavros_msgs::CommandCode::NAV_LAND:
+   		ROS_INFO("RC_Call: LAND!!!!");
+		rc_cmd=mavros_msgs::CommandCode::NAV_LAND;
+		rc_call(rc_cmd);
+		res.success = true;
+		break;
+	case mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH:
+   		ROS_INFO("GO HOME!!!!");
+		rc_cmd=mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
+		rc_call(rc_cmd);
+		res.success = true;
+		break;
+	case mavros_msgs::CommandCode::NAV_WAYPOINT:
+   		ROS_INFO("GO TO!!!!");
+		double rc_goto[3];
+   		rc_goto[0]=req.param1;
+		rc_goto[1]=req.param2;
+		rc_goto[2]=req.param3;
+                
+		set_goto(rc_goto);
+		rc_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
+		rc_call(rc_cmd);
+		res.success = true;
+		break;
+	default:
+		res.success = false;
+		break;
+   }
+   return true;
+}
+
 
 /*controlc handler callback*/
 static void ctrlc_handler(int sig) {
@@ -129,12 +179,13 @@ int main(int argc, char **argv)
 {
 
    /*Compile the buzz code .bzz to .bo*/
-   system("bzzparse /home/vivek/catkin_ws/src/rosbuzz/src/test.bzz /home/vivek/catkin_ws/src/rosbuzz/src/out.basm");
-   system("bzzasm /home/vivek/catkin_ws/src/rosbuzz/src/out.basm /home/vivek/catkin_ws/src/rosbuzz/src/out.bo /home/vivek/catkin_ws/src/rosbuzz/src/out.bdbg");
+   system("rm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
+   system("bzzparse ../catkin_ws/src/rosbuzz/src/test.bzz ../catkin_ws/src/rosbuzz/src/out.basm");
+   system("bzzasm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
   
   /*initiate rosBuzz*/
   ros::init(argc, argv, "rosBuzz"); 
-
+  ROS_INFO("Buzz_node");
 
   /*Create node Handler*/
   ros::NodeHandle n_c;
@@ -151,20 +202,26 @@ int main(int argc, char **argv)
 
 
   /*publishers*/
-  ros::Publisher goto_pub = n_c.advertise<mavros_msgs::GlobalPositionTarget>("go_to", 1000);
+  //ros::Publisher goto_pub = n_c.advertise<mavros_msgs::GlobalPositionTarget>("go_to", 1000);
   
-  ros::Publisher cmds_pub = n_c.advertise<mavros_msgs::State>("newstate", 1000);
+  //ros::Publisher cmds_pub = n_c.advertise<mavros_msgs::State>("newstate", 1000);
 
   ros::Publisher payload_pub = n_c.advertise<mavros_msgs::Mavlink>("pay_load_out", 1000);
 
+  /* Clients*/
+  ros::ServiceClient mav_client = n_c.serviceClient<mavros_msgs::CommandInt>("djicmd");
+  
+  /*Services*/
+  ros::ServiceServer service = n_c.advertiseService("djicmd_rc", rc_callback);
+  ROS_INFO("Ready to receive Mav Commands from dji RC client");
   /*loop rate of ros*/
   ros::Rate loop_rate(1);
 
    
    /* The bytecode filename */
-   char* bcfname = "/home/vivek/catkin_ws/src/rosbuzz/src/out.bo"; //argv[1];
+   char* bcfname = "../catkin_ws/src/rosbuzz/src/out.bo"; //argv[1];
    /* The debugging information file name */
-   char* dbgfname = "/home/vivek/catkin_ws/src/rosbuzz/src/out.bdbg"; //argv[2];
+   char* dbgfname = "../catkin_ws/src/rosbuzz/src/out.bdbg"; //argv[2];
    /* Set CTRL-C handler */
    signal(SIGTERM, ctrlc_handler);
    signal(SIGINT, ctrlc_handler);
@@ -175,47 +232,43 @@ int main(int argc, char **argv)
    fprintf(stdout, "Bytecode file found and set\n");
 
 // buzz setting
-
+  mavros_msgs::CommandInt cmd_srv;
   int count = 0;
   while (ros::ok() && !done && !buzz_script_done())
   {
-   
-
  
       /* Main loop */
          buzz_script_step();
-         
-      /* Cleanup */
-        // buzz_script_destroy();
-   
-
+ 
     /*prepare the goto publish message */
-    mavros_msgs::GlobalPositionTarget goto_set;
-   double* goto_pos = getgoto();
     
-    goto_set.latitude = goto_pos[0];
-    goto_set.longitude=goto_pos[1];
-    goto_set.altitude=goto_pos[2];
+    double* goto_pos = getgoto();
+    cmd_srv.request.param1 = goto_pos[0];
+    cmd_srv.request.param2 = goto_pos[1];
+    cmd_srv.request.param3 = goto_pos[2];
+    ROS_INFO("set value X = %f, Y =%f, Z= %f ",cmd_srv.request.param1,cmd_srv.request.param2,cmd_srv.request.param3);
     /*prepare commands for takeoff,land and gohome*/
-    mavros_msgs::State cmds_set;
-    char tmp[20];
-    sprintf(tmp,"%i",getcmd());
-    cmds_set.mode =  tmp;
+    //char tmp[20];
+    //sprintf(tmp,"%i",getcmd());
+    cmd_srv.request.command =  getcmd();
+    /* diji client call*/
+    if (mav_client.call(cmd_srv)){ ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
+    else{ ROS_ERROR("Failed to call service 'djicmd'"); }
     /*Prepare Pay load to be sent*/  
     unsigned long int* payload_out_ptr= out_msg_process();  
     mavros_msgs::Mavlink payload_out;
     payload_out.payload64.push_back(*payload_out_ptr);
     /*publish prepared messages in respective topic*/
-    goto_pub.publish(goto_set);
-    cmds_pub.publish(cmds_set);
     payload_pub.publish(payload_out);
-
+    
     /*run once*/
     ros::spinOnce();
     /*sleep for the mentioned loop rate*/
     loop_rate.sleep();
     ++count;
   }
+  /* Cleanup */
+   buzz_script_destroy();
 
  /* Stop the robot */
    uav_done();

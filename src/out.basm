@@ -1,4 +1,4 @@
-!15
+!16
 'init
 'id
 'mydist
@@ -9,6 +9,7 @@
 'min
 'get
 'distance
+'a
 'step
 'broadcast
 'print
@@ -18,13 +19,13 @@
 	pushs 0
 	pushcn @__label_1
 	gstore
-	pushs 10
+	pushs 11
 	pushcn @__label_5
 	gstore
-	pushs 13
+	pushs 14
 	pushcn @__label_6
 	gstore
-	pushs 14
+	pushs 15
 	pushcn @__label_7
 	gstore
 	nop
@@ -57,7 +58,10 @@
 	pushi 2	|16,8,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
 	callc	|16,8,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
 @__label_3	|17,3,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	ret0	|18,1,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushs 10	|18,1,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushi 1	|18,2,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	gstore	|18,3,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	ret0	|19,1,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
 
 @__label_4
 	pushs 2	|13,15,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
@@ -84,25 +88,25 @@
 	ret0	|16,7,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
 
 @__label_5
-	pushs 3	|22,9,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	gload	|22,9,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	pushs 11	|22,10,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	tget	|22,19,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	pushs 5	|22,20,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	pushs 2	|22,44,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	gload	|22,44,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	pushi 2	|22,45,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	callc	|22,45,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	pushs 12	|23,5,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	gload	|23,5,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	pushs 2	|23,12,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	gload	|23,12,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	pushi 1	|23,13,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	callc	|23,13,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
-	ret0	|26,1,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushs 3	|23,9,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	gload	|23,9,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushs 12	|23,10,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	tget	|23,19,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushs 5	|23,20,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushs 2	|23,44,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	gload	|23,44,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushi 2	|23,45,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	callc	|23,45,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushs 13	|24,5,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	gload	|24,5,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushs 2	|24,12,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	gload	|24,12,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	pushi 1	|24,13,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	callc	|24,13,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	ret0	|35,1,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
 
 @__label_6
-	ret0	|30,1,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	ret0	|39,1,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
 
 @__label_7
-	ret0	|34,1,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz
+	ret0	|43,1,/home/vivek/catkin_ws/src/rosbuzz/src/test.bzz

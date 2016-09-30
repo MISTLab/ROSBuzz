@@ -15,12 +15,21 @@ if(id == 0) {
           neighbors.get(robot_id).distance + value)
       })
   }
+a=1
 }
  
 # Executed at each time step.
 function step() {
 neighbors.broadcast("dist_to_source", mydist)
 print(mydist)
+#if(a==1){ uav_takeoff()
+#       a=0
+#       print("Buzz: take off")
+#     }
+#else {uav_land()
+#       a=1
+#       print("Buzz: land")
+#      }
 
 
 }
