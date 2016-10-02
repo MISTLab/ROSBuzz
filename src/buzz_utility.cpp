@@ -14,8 +14,8 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-
 #include <pthread.h>
+#include <vector>
 
 /****************************************/
 /****************************************/
@@ -35,21 +35,23 @@ static uint8_t*    STREAM_SEND_BUF = NULL;
 /****************************************/
 
 
-void in_msg_process(unsigned long int payload[],double neighbour[]){
+void in_msg_process(unsigned long int payload[], std::vector<pos_struct> pos_vect){
    /* Reset neighbor information */
    buzzneighbors_reset(VM);
   /* Get robot id and update neighbor information */
+for(int i=0;i<pos_vect.size();i++){
       buzzneighbors_add(VM,
-                        neighbour[0],
-                        neighbour[1],
-                        neighbour[2],
-                        neighbour[3]);
+                        pos_vect[i].id,
+                        pos_vect[i].x,
+                        pos_vect[i].y,
+                        pos_vect[i].z);
+}
    /* Go through messages and add them to the FIFO */
    for(size_t i = 0; i < sizeof(payload)/sizeof(payload[0]); ++i) {
       /* Copy packet into temporary buffer */
       long unsigned int* pl = (long unsigned int*) &payload[i];
       size_t tot = 0;
-       fprintf(stderr, "[DEBUG] Processing packet %p from %f\n", pl, neighbour[0]);
+       //fprintf(stderr, "[DEBUG] Processing packet %p from %f\n", pl, neighbour[0]);
       
       /* Go through the messages until there's nothing else to read */
       uint16_t unMsgSize;

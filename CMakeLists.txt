@@ -9,6 +9,9 @@ project(rosbuzz)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  genmsg
+  mavros_msgs
+  sensor_msgs
 )
 
 
@@ -41,11 +44,12 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+ add_message_files(
+   DIRECTORY msg
+   FILES
+   neighbour_pos.msg
 #   Message2.msg
-# )
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -62,10 +66,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   st_msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   sensor_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -97,6 +101,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
+CATKIN_DEPENDS message_runtime
 #  INCLUDE_DIRS include
 #  LIBRARIES buzzros
 #  CATKIN_DEPENDS Buzz roscpp st_msgs
@@ -141,7 +146,7 @@ add_executable(rosbuzz_node src/rosbuzz.cpp
   src/buzzuav_closures.cpp
   src/uav_utility.cpp)
 target_link_libraries(rosbuzz_node ${catkin_LIBRARIES} /usr/local/lib/libbuzz.so /usr/local/lib/libbuzzdbg.so -lpthread)
-
+add_dependencies(rosbuzz_node rosbuzz_generate_messages_cpp)
 #############
 ## Install ##
 #############

@@ -13,6 +13,8 @@
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
+#include "sensor_msgs/NavSatStatus.h"
+#include "rosbuzz/neighbour_pos.h"
 #include <sstream>
 #include <buzz/buzzasm.h>
 #include "buzzuav_closures.h"
@@ -24,10 +26,9 @@
 #include <signal.h>
 
 
+std::vector<pos_struct> pos_vect; // vector of struct to store neighbours position 
 static int done = 0;
-
 static double cur_pos[3];
-double neighbor_pos[4]; 
 uint64_t payload;
 
 /**
@@ -59,19 +60,19 @@ cur_pos [2] =altitude;
 }
 
 /*convert from catresian to spherical coordinate system callback */
-void cvt_spherical_coordinates(double latitude,
- 		  double longitude,
-		  double altitude){
-/** convert the current position coordination system from cartetion system (gps) to sperical system (Buzz) type **/ 
- 
- neighbor_pos[0] = 01;
- neighbor_pos[1]  = sqrt(pow(latitude,2.0)+pow(longitude,2.0)+pow(altitude,2.0));
- neighbor_pos[2] = atan(longitude/latitude);
- neighbor_pos[3] = atan((sqrt(pow(latitude,2.0)+pow(longitude,2.0)))/altitude);
-fprintf(stdout, "%.15f :distance value\n", neighbor_pos[1]);
-fprintf(stdout, "%.15f :elevation\n", neighbor_pos[2]);
-fprintf(stdout, "%.15f :azimuth\n", neighbor_pos[3]);
-
+void cvt_spherical_coordinates(){
+double latitude,longitude,altitude;
+for(int i=0;i<pos_vect.size();i++){
+latitude=pos_vect[i].x;
+longitude = pos_vect[i].y;
+altitude=pos_vect[i].z;
+pos_vect[i].x=sqrt(pow(latitude,2.0)+pow(longitude,2.0)+pow(altitude,2.0));
+pos_vect[i].y=atan(longitude/latitude);
+pos_vect[i].z=atan((sqrt(pow(latitude,2.0)+pow(longitude,2.0)))/altitude);
+    ROS_INFO("[Debug] Converted for neighbour : %d radius    : [%15f]",pos_vect[i].id, pos_vect[i].x);
+    ROS_INFO("[Debug] Converted for neighbour : %d azimuth   : [%15f]",pos_vect[i].id, pos_vect[i].y);
+    ROS_INFO("[Debug] Converted for neighbour : %d elevation : [%15f]",pos_vect[i].id, pos_vect[i].z);
+}
 }
 
 /*battery status callback*/ 
@@ -97,28 +98,30 @@ int i = 0;
 		message_obt[i] = *it;
 		i++;
         }
-in_msg_process(message_obt, neighbor_pos);
+in_msg_process(message_obt, pos_vect);
 
 }
 
 /*neighbours position call back */
-void neighbour_pos(const sensor_msgs::NavSatFix::ConstPtr& msg)
+ 
+void neighbour_pos(const rosbuzz::neighbour_pos::ConstPtr& msg)
 {
-  
-/*obtain the neigbours position*/
-
-double latitude =(msg->latitude-cur_pos[0]);
-double longitude =(msg->longitude-cur_pos[1]);
-double altitude =(msg->altitude-cur_pos[2]);
-
-  ROS_INFO("I heard neighbour latitude: [%15f]", latitude);
-  ROS_INFO("I heard neighbour longitude: [%15f]", longitude);
-  ROS_INFO("I heard neighbour altitude: [%15f]", altitude);
-
-cvt_spherical_coordinates(latitude,longitude,altitude);
-//neighbour_location_handler( distance, azimuth, elevation, 01);
-
+/*obtain the neighbours position*/
+int i=0;
+/*clear all the previous neighbour position*/
+pos_vect.clear();
+for (std::vector<sensor_msgs::NavSatFix>::const_iterator it = msg->pos_neigh.begin(); it != msg->pos_neigh.end(); ++it){
+sensor_msgs::NavSatFix cur_neigh = *it;
+sensor_msgs::NavSatStatus stats = cur_neigh.status;
+pos_vect.push_back(pos_struct(stats.status,(cur_neigh.latitude-cur_pos[0]),(cur_neigh.longitude-cur_pos[1]),(cur_neigh.altitude-cur_pos[2])));
+    ROS_INFO("[Debug]I heard neighbour: %d from latitude: [%15f]",pos_vect[i].id, pos_vect[i].x);
+    ROS_INFO("[Debug]I heard neighbour: %d from longitude: [%15f]",pos_vect[i].id, pos_vect[i].y);
+    ROS_INFO("[Debug]I heard neighbour: %d from altitude: [%15f]",pos_vect[i].id, pos_vect[i].z);
+i++;
+} 
+cvt_spherical_coordinates();
 }
+
 int oldcmdID=0;
 int rc_cmd;
 bool rc_callback(mavros_msgs::CommandInt::Request  &req,
@@ -143,13 +146,13 @@ if(req.command==oldcmdID)
 		res.success = true;
 		break;
 	case mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH:
-   		ROS_INFO("GO HOME!!!!");
+   		ROS_INFO("RC_Call: GO HOME!!!!");
 		rc_cmd=mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
 		rc_call(rc_cmd);
 		res.success = true;
 		break;
 	case mavros_msgs::CommandCode::NAV_WAYPOINT:
-   		ROS_INFO("GO TO!!!!");
+   		ROS_INFO("RC_Call: GO TO!!!! x = %f , y = %f , Z = %f",req.param1,req.param2,req.param3);
 		double rc_goto[3];
    		rc_goto[0]=req.param1;
 		rc_goto[1]=req.param2;
@@ -246,7 +249,7 @@ int main(int argc, char **argv)
     cmd_srv.request.param1 = goto_pos[0];
     cmd_srv.request.param2 = goto_pos[1];
     cmd_srv.request.param3 = goto_pos[2];
-    ROS_INFO("set value X = %f, Y =%f, Z= %f ",cmd_srv.request.param1,cmd_srv.request.param2,cmd_srv.request.param3);
+    //ROS_INFO("set value X = %f, Y =%f, Z= %f ",cmd_srv.request.param1,cmd_srv.request.param2,cmd_srv.request.param3);
     /*prepare commands for takeoff,land and gohome*/
     //char tmp[20];
     //sprintf(tmp,"%i",getcmd());

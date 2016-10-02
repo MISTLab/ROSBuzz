@@ -1,10 +1,10 @@
 # Executed once at init time.
 function init() {
-if(id == 0) {
+#if(id == 0) {
     # Source robot
-    mydist = 0.
-  }
-  else {
+#    mydist = 0.
+#  }
+ # else {
     # Other robots
     mydist = 1000.
     # Listen to other robots' distances
@@ -14,22 +14,13 @@ if(id == 0) {
           mydist,
           neighbors.get(robot_id).distance + value)
       })
-  }
-a=1
+ # }
 }
  
 # Executed at each time step.
 function step() {
 neighbors.broadcast("dist_to_source", mydist)
-print(mydist)
-#if(a==1){ uav_takeoff()
-#       a=0
-#       print("Buzz: take off")
-#     }
-#else {uav_land()
-#       a=1
-#       print("Buzz: land")
-#      }
+print("Distance to source:", mydist, neighbors.count())
 
 
 }
