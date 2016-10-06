@@ -24,8 +24,8 @@
 #include <string.h>
 #include <math.h>
 #include <signal.h>
-
-
+#include <ostream>
+using namespace std;
 std::vector<pos_struct> pos_vect; // vector of struct to store neighbours position 
 static int done = 0;
 static double cur_pos[3];
@@ -69,10 +69,11 @@ altitude=pos_vect[i].z;
 pos_vect[i].x=sqrt(pow(latitude,2.0)+pow(longitude,2.0)+pow(altitude,2.0));
 pos_vect[i].y=atan(longitude/latitude);
 pos_vect[i].z=atan((sqrt(pow(latitude,2.0)+pow(longitude,2.0)))/altitude);
-    ROS_INFO("[Debug] Converted for neighbour : %d radius    : [%15f]",pos_vect[i].id, pos_vect[i].x);
-    ROS_INFO("[Debug] Converted for neighbour : %d azimuth   : [%15f]",pos_vect[i].id, pos_vect[i].y);
-    ROS_INFO("[Debug] Converted for neighbour : %d elevation : [%15f]",pos_vect[i].id, pos_vect[i].z);
+  //  ROS_INFO("[Debug] Converted for neighbour : %d radius    : [%15f]",pos_vect[i].id, pos_vect[i].x);
+  //  ROS_INFO("[Debug] Converted for neighbour : %d azimuth   : [%15f]",pos_vect[i].id, pos_vect[i].y);
+  //  ROS_INFO("[Debug] Converted for neighbour : %d elevation : [%15f]",pos_vect[i].id, pos_vect[i].z);
 }
+neighbour_pos_callback(pos_vect);
 }
 
 /*battery status callback*/ 
@@ -98,8 +99,9 @@ int i = 0;
 		message_obt[i] = *it;
 		i++;
         }
-in_msg_process(message_obt, pos_vect);
-
+in_msg_process(message_obt);
+      
+    
 }
 
 /*neighbours position call back */
@@ -114,9 +116,9 @@ for (std::vector<sensor_msgs::NavSatFix>::const_iterator it = msg->pos_neigh.beg
 sensor_msgs::NavSatFix cur_neigh = *it;
 sensor_msgs::NavSatStatus stats = cur_neigh.status;
 pos_vect.push_back(pos_struct(stats.status,(cur_neigh.latitude-cur_pos[0]),(cur_neigh.longitude-cur_pos[1]),(cur_neigh.altitude-cur_pos[2])));
-    ROS_INFO("[Debug]I heard neighbour: %d from latitude: [%15f]",pos_vect[i].id, pos_vect[i].x);
-    ROS_INFO("[Debug]I heard neighbour: %d from longitude: [%15f]",pos_vect[i].id, pos_vect[i].y);
-    ROS_INFO("[Debug]I heard neighbour: %d from altitude: [%15f]",pos_vect[i].id, pos_vect[i].z);
+  //  ROS_INFO("[Debug]I heard neighbour: %d from latitude: [%15f]",pos_vect[i].id, pos_vect[i].x);
+  //  ROS_INFO("[Debug]I heard neighbour: %d from longitude: [%15f]",pos_vect[i].id, pos_vect[i].y);
+  //  ROS_INFO("[Debug]I heard neighbour: %d from altitude: [%15f]",pos_vect[i].id, pos_vect[i].z);
 i++;
 } 
 cvt_spherical_coordinates();
@@ -258,12 +260,28 @@ int main(int argc, char **argv)
     if (mav_client.call(cmd_srv)){ ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
     else{ ROS_ERROR("Failed to call service 'djicmd'"); }
     /*Prepare Pay load to be sent*/  
-    unsigned long int* payload_out_ptr= out_msg_process();  
+    uint64_t* payload_out_ptr= out_msg_process();
+    uint16_t* out = u64_cvt_u16(payload_out_ptr[0]);  
     mavros_msgs::Mavlink payload_out;
-    payload_out.payload64.push_back(*payload_out_ptr);
-    /*publish prepared messages in respective topic*/
-    payload_pub.publish(payload_out);
+    for(int i=0;i<out[0];i++){
+    payload_out.payload64.push_back(payload_out_ptr[i]);
+    }
     
+    for (std::vector<long unsigned int>::iterator it = payload_out.payload64.begin() ; it != payload_out.payload64.end(); ++it){
+     out = u64_cvt_u16((uint64_t)*it);
+      for(int i=0; i<4;i++){
+      cout<< "[ROS BUZZ] cvt value"<<out[i]<<endl;
+      }
+     }
+   // delete[] out;
+    /*publish prepared messages in respective topic*/
+    //char tmp[100];
+    //sprintf(tmp,"%d",payload_out_ptr);
+    //ROS_INFO("%p",payload_out_ptr);
+    //cout << (*payload_out_ptr) <<endl;
+    payload_pub.publish(payload_out);
+    delete[] out;
+    delete[] payload_out_ptr;
     /*run once*/
     ros::spinOnce();
     /*sleep for the mentioned loop rate*/

@@ -1,26 +1,21 @@
 # Executed once at init time.
 function init() {
-#if(id == 0) {
-    # Source robot
-#    mydist = 0.
-#  }
- # else {
-    # Other robots
-    mydist = 1000.
-    # Listen to other robots' distances
-    neighbors.listen("dist_to_source",
-      function(value_id, value, robot_id) {
-        mydist = math.min(
-          mydist,
-          neighbors.get(robot_id).distance + value)
-      })
- # }
+i=0
 }
  
 # Executed at each time step.
 function step() {
-neighbors.broadcast("dist_to_source", mydist)
-print("Distance to source:", mydist, neighbors.count())
+#s = swarm.create(10)
+#s.join()
+#if(i==1){
+#s.leave()
+#i=0
+#}
+#else{
+#i=1
+#}
+#s.select(uav_takeoff)
+#print("Distance to source:", mydist, neighbors.count())
 
 
 }

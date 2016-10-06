@@ -16,7 +16,9 @@
 #include <sys/socket.h>
 #include <pthread.h>
 #include <vector>
-
+#include <iostream>
+#include <bitset>
+using namespace std;
 /****************************************/
 /****************************************/
 
@@ -24,7 +26,7 @@ static buzzvm_t    VM              = 0;
 static char*       BO_FNAME        = 0;
 static uint8_t*    BO_BUF          = 0;
 static buzzdebug_t DBG_INFO        = 0;
-static int         MSG_SIZE        = 8;
+static int         MSG_SIZE        = 32;
 static int         TCP_LIST_STREAM = -1;
 static int         TCP_COMM_STREAM = -1;
 static uint8_t*    STREAM_SEND_BUF = NULL;
@@ -34,9 +36,8 @@ static uint8_t*    STREAM_SEND_BUF = NULL;
 
 /****************************************/
 
-
-void in_msg_process(unsigned long int payload[], std::vector<pos_struct> pos_vect){
-   /* Reset neighbor information */
+void neighbour_pos_callback(std::vector<pos_struct> pos_vect){
+ /* Reset neighbor information */
    buzzneighbors_reset(VM);
   /* Get robot id and update neighbor information */
 for(int i=0;i<pos_vect.size();i++){
@@ -46,6 +47,25 @@ for(int i=0;i<pos_vect.size();i++){
                         pos_vect[i].y,
                         pos_vect[i].z);
 }
+
+}
+
+uint16_t* u64_cvt_u16(uint64_t u64){
+   uint16_t* out = new uint16_t[4];
+   uint32_t int32_1 = u64 & 0xFFFFFFFF;
+   uint32_t int32_2 = (u64 & 0xFFFFFFFF00000000 ) >> 32;
+    out[0] = int32_1 & 0xFFFF;
+    out[1] = (int32_1 & (0xFFFF0000) ) >> 16;
+    out[2] = int32_2 & 0xFFFF;
+    out[3] = (int32_2 & (0xFFFF0000) ) >> 16;
+   //cout << " values " <<out[0] <<"  "<<out[1] <<"  "<<out[2] <<"  "<<out[3] <<"  ";
+return out;
+
+} 
+
+void in_msg_process(unsigned long int payload[]){
+
+   printf("inside payload");  
    /* Go through messages and add them to the FIFO */
    for(size_t i = 0; i < sizeof(payload)/sizeof(payload[0]); ++i) {
       /* Copy packet into temporary buffer */
@@ -73,14 +93,15 @@ buzzvm_process_inmsgs(VM);
 
 }
 
-unsigned long int* out_msg_process(){
+uint64_t* out_msg_process(){
    // buzzvm_process_outmsgs(VM);
    buzzvm_process_outmsgs(VM);
-   unsigned long int* buff_send =(unsigned long int*)malloc(MSG_SIZE);
+   uint8_t* buff_send =(uint8_t*)malloc(MSG_SIZE);
    memset(buff_send, 0, MSG_SIZE);
    ssize_t tot = sizeof(uint16_t);
-   /* Send robot id */
-   *(uint16_t*)buff_send = VM->robot;
+    /* Send robot id */
+   *(uint16_t*)(buff_send+tot) = (uint16_t) VM->robot;
+    tot += sizeof(uint16_t);
    /* Send messages from FIFO */
    do {
       /* Are there more messages? */
@@ -91,22 +112,59 @@ unsigned long int* out_msg_process(){
       if(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)
          >
          MSG_SIZE) {
+         printf("buzz payload does not fit");
          buzzmsg_payload_destroy(&m);
          break;
       }
+       
       /* Add message length to data buffer */
       *(uint16_t*)(buff_send + tot) = (uint16_t)buzzmsg_payload_size(m);
       tot += sizeof(uint16_t);
+   
       /* Add payload to data buffer */
       memcpy(buff_send + tot, m->data, buzzmsg_payload_size(m));
       tot += buzzmsg_payload_size(m);
+   
+      //fprintf(stderr, "[DEBUG] coppied  = %u\n",
+      //         *(uint64_t*)(buff_send+tot));	   
       /* Get rid of message */
       buzzoutmsg_queue_next(VM->outmsgs);
       buzzmsg_payload_destroy(&m);
    } while(1);
+
+   int total_size =(ceil((float)tot/(float)sizeof(uint64_t))); 
+   *(uint16_t*)buff_send = (uint16_t) total_size;   
    
+  for(int i=0;i<16;i++){
+   uint16_t* temp_buff =(uint16_t*)(buff_send+(i*2));
+   cout << "buff_send address :" << (uint16_t*) buff_send+(i*2);
+   uint16_t *p = reinterpret_cast<uint16_t*>(temp_buff);
+      cout <<"   buff_send data " << *p <<endl;
+  } 
+  //uint16_t temp_buff1[4]; //=32;
+  uint64_t* payload_64 = new uint64_t[total_size];
+  //payload_64= temp_buff1 | (temp_buff1 << 16) | (temp_buff1 << 32) | (temp_buff1 << 48) ;
+ 
+ memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
+ //cout << "payload64 "<<payload_64[0];
+ //   std::string binary = std::bitset<64>(payload_64[0]).to_string(); //to binary
+ //   std::cout<<"payload_64 binary " <<binary<<"\n";
+
+ //   unsigned long decimal = std::bitset<64>(binary).to_ulong();
+ //   std::cout<< " decimal "<<decimal<<"\n";
+    
+/*
+     uint16_t* out;
+    for(int dumb =0;dumb<total_size;dumb++){
+     out = u64_cvt_u16(payload_64[dumb]);
+      for(int i=0; i<4;i++){
+      cout<< " cvt value"<<out[i]<<endl;
+      }
+     }
+  delete[] out;
+ /*
    /* Send message */
-return buff_send;
+return payload_64;
 }
 /****************************************/
 
@@ -325,3 +383,5 @@ int buzz_script_done() {
 
 /****************************************/
 /****************************************/
+
+
