@@ -14,7 +14,6 @@
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
 #include "sensor_msgs/NavSatStatus.h"
-#include "rosbuzz/neighbour_pos.h"
 #include <sstream>
 #include <buzz/buzzasm.h>
 #include "buzzuav_closures.h"
