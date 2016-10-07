@@ -210,11 +210,11 @@ int main(int argc, char **argv)
 
   ros::Subscriber battery_sub = n_c.subscribe("battery_state", 1000, battery);
 
-  ros::Subscriber payload_sub = n_c.subscribe("payload_in", 1000, payload_obt);
+  ros::Subscriber payload_sub = n_c.subscribe("inMavlink", 1000, payload_obt);
 
 
   /*publishers*/
-  ros::Publisher payload_pub = n_c.advertise<mavros_msgs::Mavlink>("payload_out", 1000);
+  ros::Publisher payload_pub = n_c.advertise<mavros_msgs::Mavlink>("outMavlink", 1000);
 
   /* Clients*/
   ros::ServiceClient mav_client = n_c.serviceClient<mavros_msgs::CommandInt>("djicmd");
