@@ -1,12 +1,21 @@
 # Executed once at init time.
 function init() {
 i=0
+v = stigmergy.create(1)
+#v.put("a", 6)
 }
  
 # Executed at each time step.
 function step() {
-#s = swarm.create(10)
-#s.join()
+s = swarm.create(10)
+s.join()
+
+neighbors.foreach(
+  function(rid, data) {
+    print("robot ", rid, ": ",
+        "distance  = ", data.distance, ", ",
+        "azimuth   = ", data.azimuth, ", ",
+        "elevation = ", data.elevation) })
 #if(i==1){
 #s.leave()
 #i=0

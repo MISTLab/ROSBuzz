@@ -18,6 +18,7 @@
 #include <vector>
 #include <iostream>
 #include <bitset>
+#include <map>
 using namespace std;
 /****************************************/
 /****************************************/
@@ -36,17 +37,19 @@ static uint8_t*    STREAM_SEND_BUF = NULL;
 
 /****************************************/
 
-void neighbour_pos_callback(std::vector<pos_struct> pos_vect){
+void neighbour_pos_callback(std::map< int,  Pos_struct> neighbours_pos_map){
  /* Reset neighbor information */
    buzzneighbors_reset(VM);
   /* Get robot id and update neighbor information */
-for(int i=0;i<pos_vect.size();i++){
-      buzzneighbors_add(VM,
-                        pos_vect[i].id,
-                        pos_vect[i].x,
-                        pos_vect[i].y,
-                        pos_vect[i].z);
-}
+map< int, Pos_struct >::iterator it;
+    for (it=neighbours_pos_map.begin(); it!=neighbours_pos_map.end(); ++it){
+    buzzneighbors_add(VM,
+                        it->first,
+                        (it->second).x,
+                        (it->second).y,
+                        (it->second).z);
+    }
+
 
 }
 
@@ -63,38 +66,38 @@ return out;
 
 } 
 
-void in_msg_process(unsigned long int payload[]){
+void in_msg_process(uint64_t* payload){
 
-   printf("inside payload");  
    /* Go through messages and add them to the FIFO */
-   for(size_t i = 0; i < sizeof(payload)/sizeof(payload[0]); ++i) {
+   uint16_t* data= u64_cvt_u16((uint64_t)payload[0]);
+   uint16_t size=data[0]*sizeof(uint64_t);
+   delete[] data;
+   uint8_t* pl =(uint8_t*)malloc(size);
+   memset(pl, 0,size);
       /* Copy packet into temporary buffer */
-      long unsigned int* pl = (long unsigned int*) &payload[i];
-      size_t tot = 0;
-       //fprintf(stderr, "[DEBUG] Processing packet %p from %f\n", pl, neighbour[0]);
+   memcpy(pl, payload ,size);
+
+    size_t tot = sizeof(uint32_t);
       
       /* Go through the messages until there's nothing else to read */
       uint16_t unMsgSize;
       do {
          /* Get payload size */
          unMsgSize = *(uint16_t*)(pl + tot);
-	 tot += sizeof(uint16_t);
+   	 tot += sizeof(uint16_t);
          /* Append message to the Buzz input message queue */
-         if(unMsgSize > 0 && unMsgSize <= MSG_SIZE - tot) {
+         if(unMsgSize > 0 && unMsgSize <= size*sizeof(uint64_t) - tot) {
             buzzinmsg_queue_append(VM->inmsgs,
                                    buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
             tot += unMsgSize;
-
          }
-      }while(MSG_SIZE - tot > sizeof(uint16_t) && unMsgSize > 0);
-   }
+      }while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
+  
    /* Process messages */
 buzzvm_process_inmsgs(VM);
-
 }
 
 uint64_t* out_msg_process(){
-   // buzzvm_process_outmsgs(VM);
    buzzvm_process_outmsgs(VM);
    uint8_t* buff_send =(uint8_t*)malloc(MSG_SIZE);
    memset(buff_send, 0, MSG_SIZE);
@@ -112,7 +115,6 @@ uint64_t* out_msg_process(){
       if(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)
          >
          MSG_SIZE) {
-         printf("buzz payload does not fit");
          buzzmsg_payload_destroy(&m);
          break;
       }
@@ -125,8 +127,6 @@ uint64_t* out_msg_process(){
       memcpy(buff_send + tot, m->data, buzzmsg_payload_size(m));
       tot += buzzmsg_payload_size(m);
    
-      //fprintf(stderr, "[DEBUG] coppied  = %u\n",
-      //         *(uint64_t*)(buff_send+tot));	   
       /* Get rid of message */
       buzzoutmsg_queue_next(VM->outmsgs);
       buzzmsg_payload_destroy(&m);
@@ -134,35 +134,12 @@ uint64_t* out_msg_process(){
 
    int total_size =(ceil((float)tot/(float)sizeof(uint64_t))); 
    *(uint16_t*)buff_send = (uint16_t) total_size;   
-   
-  for(int i=0;i<16;i++){
-   uint16_t* temp_buff =(uint16_t*)(buff_send+(i*2));
-   cout << "buff_send address :" << (uint16_t*) buff_send+(i*2);
-   uint16_t *p = reinterpret_cast<uint16_t*>(temp_buff);
-      cout <<"   buff_send data " << *p <<endl;
-  } 
-  //uint16_t temp_buff1[4]; //=32;
+  
+
   uint64_t* payload_64 = new uint64_t[total_size];
-  //payload_64= temp_buff1 | (temp_buff1 << 16) | (temp_buff1 << 32) | (temp_buff1 << 48) ;
  
  memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
- //cout << "payload64 "<<payload_64[0];
- //   std::string binary = std::bitset<64>(payload_64[0]).to_string(); //to binary
- //   std::cout<<"payload_64 binary " <<binary<<"\n";
 
- //   unsigned long decimal = std::bitset<64>(binary).to_ulong();
- //   std::cout<< " decimal "<<decimal<<"\n";
-    
-/*
-     uint16_t* out;
-    for(int dumb =0;dumb<total_size;dumb++){
-     out = u64_cvt_u16(payload_64[dumb]);
-      for(int i=0; i<4;i++){
-      cout<< " cvt value"<<out[i]<<endl;
-      }
-     }
-  delete[] out;
- /*
    /* Send message */
 return payload_64;
 }
@@ -225,7 +202,8 @@ int buzz_script_set(const char* bo_filename,
    gethostname(hstnm, 30);
    /* Make numeric id from hostname */
    /* NOTE: here we assume that the hostname is in the format Knn */
-   int id = strtol(hstnm + 1, NULL, 10);
+   int id =0; // strtol(hstnm + 1, NULL, 10);
+   cout << " Robot ID" << id<< endl;
    /* Reset the Buzz VM */
    if(VM) buzzvm_destroy(&VM);
    VM = buzzvm_new(id);
@@ -341,14 +319,14 @@ void buzz_script_step() {
    /* Print swarm */
    buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
    /* Check swarm state */
-   int status = 1;
+ /*  int status = 1;
    buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
    if(status == 1 &&
       buzzdict_size(VM->swarmmembers) < 9)
       status = 2;
    buzzvm_pushs(VM, buzzvm_string_register(VM, "swarm_status", 1));
    buzzvm_pushi(VM, status);
-   buzzvm_gstore(VM);
+   buzzvm_gstore(VM);*/
 }
 
 /****************************************/
