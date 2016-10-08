@@ -25,17 +25,23 @@ Downloading ROS Package
 
 Requirements
 ============
-* Buzz : You can download the development sources through git:
+
+1.Buzz : 
+
+You can download the development sources through git:
 
     $ git clone https://github.com/MISTLab/Buzz.git buzz
 
-* ROS binary distribution (Indigo or higher) with catkin (could be used with older versions of ROS with catkin but not tested)
+2.ROS binary distribution (Indigo or higher) with catkin (could be used with older versions of ROS with catkin but not tested)
+
 
 You need the following package:
 
-*  mavros_msgs : You can install using apt-get:
+1.mavros_msgs : 
 
-    $ sudo apt-get install ros-"distro"-mavros ros-"distro"-mavros-extras
+You can install using apt-get:
+
+    $ sudo apt-get install ros-<distro>-mavros ros-<distro>-mavros-extras
 
 Compilation
 ===========
