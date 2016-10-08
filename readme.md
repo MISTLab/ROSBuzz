@@ -1,5 +1,5 @@
-							ROS Implemenation of Buzz
-							=========================
+ROS Implemenation of Buzz
+=========================
 
 What is Buzz?
 =============
@@ -21,7 +21,7 @@ More information is available at http://the.swarming.buzz/wiki/doku.php?id=start
 Downloading ROS Package
 =======================
 
-    $ git clone
+    $ git clone https://github.com/MISTLab/rosbuzz.git
 
 Requirements
 ------------
