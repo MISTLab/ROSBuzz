@@ -1,23 +1,19 @@
+/** @file      buzz_utility.cpp
+ *  @version   1.0 
+ *  @date      27.09.2016
+ *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone. 
+ *  @author    Vivek Shankar Varadharajan
+ *  @copyright 2016 MistLab. All rights reserved.
+ */
 #define _GNU_SOURCE
 #include <stdio.h>
-
 #include "buzz_utility.h"
 #include "buzzuav_closures.h"
 #include <buzz/buzzdebug.h>
-
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <arpa/inet.h>
-#include <errno.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <pthread.h>
-#include <vector>
 #include <iostream>
-#include <bitset>
 #include <map>
 using namespace std;
 /****************************************/
@@ -33,15 +29,13 @@ static int         TCP_COMM_STREAM = -1;
 static uint8_t*    STREAM_SEND_BUF = NULL;
 
 
-
-
 /****************************************/
-
+/*adds neighbours position*/
 void neighbour_pos_callback(std::map< int,  Pos_struct> neighbours_pos_map){
- /* Reset neighbor information */
-   buzzneighbors_reset(VM);
+  /* Reset neighbor information */
+    buzzneighbors_reset(VM);
   /* Get robot id and update neighbor information */
-map< int, Pos_struct >::iterator it;
+    map< int, Pos_struct >::iterator it;
     for (it=neighbours_pos_map.begin(); it!=neighbours_pos_map.end(); ++it){
     buzzneighbors_add(VM,
                         it->first,
@@ -49,10 +43,10 @@ map< int, Pos_struct >::iterator it;
                         (it->second).y,
                         (it->second).z);
     }
-
-
 }
-
+/***************************************/
+/*Reinterprets  uint64_t into 4 uint16_t*/
+/***************************************/
 uint16_t* u64_cvt_u16(uint64_t u64){
    uint16_t* out = new uint16_t[4];
    uint32_t int32_1 = u64 & 0xFFFFFFFF;
@@ -63,8 +57,11 @@ uint16_t* u64_cvt_u16(uint64_t u64){
     out[3] = (int32_2 & (0xFFFF0000) ) >> 16;
    //cout << " values " <<out[0] <<"  "<<out[1] <<"  "<<out[2] <<"  "<<out[3] <<"  ";
 return out;
-
 } 
+
+/***************************************************/
+/*Appends obtained messages to buzz in message Queue*/
+/***************************************************/
 
 void in_msg_process(uint64_t* payload){
 
@@ -74,10 +71,10 @@ void in_msg_process(uint64_t* payload){
    delete[] data;
    uint8_t* pl =(uint8_t*)malloc(size);
    memset(pl, 0,size);
-      /* Copy packet into temporary buffer */
+   /* Copy packet into temporary buffer */
    memcpy(pl, payload ,size);
 
-    size_t tot = sizeof(uint32_t);
+   size_t tot = sizeof(uint32_t);
       
       /* Go through the messages until there's nothing else to read */
       uint16_t unMsgSize;
@@ -96,15 +93,18 @@ void in_msg_process(uint64_t* payload){
    /* Process messages */
 buzzvm_process_inmsgs(VM);
 }
+/***************************************************/
+/*Obtains messages from buzz out message Queue*/
+/***************************************************/
 
 uint64_t* out_msg_process(){
    buzzvm_process_outmsgs(VM);
    uint8_t* buff_send =(uint8_t*)malloc(MSG_SIZE);
    memset(buff_send, 0, MSG_SIZE);
    ssize_t tot = sizeof(uint16_t);
-    /* Send robot id */
+   /* Send robot id */
    *(uint16_t*)(buff_send+tot) = (uint16_t) VM->robot;
-    tot += sizeof(uint16_t);
+   tot += sizeof(uint16_t);
    /* Send messages from FIFO */
    do {
       /* Are there more messages? */
@@ -135,16 +135,18 @@ uint64_t* out_msg_process(){
    int total_size =(ceil((float)tot/(float)sizeof(uint64_t))); 
    *(uint16_t*)buff_send = (uint16_t) total_size;   
   
-
-  uint64_t* payload_64 = new uint64_t[total_size];
+   
+   uint64_t* payload_64 = new uint64_t[total_size];
  
- memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
-
+   memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
+   /*for(int i=0;i<total_size;i++){
+   cout<<" payload from out msg  "<<*(payload_64+i)<<endl;
+   }*/
    /* Send message */
 return payload_64;
 }
 /****************************************/
-
+/*Buzz script not able to load*/
 /****************************************/
 
 static const char* buzz_error_info() {
@@ -170,6 +172,7 @@ static const char* buzz_error_info() {
 }
 
 /****************************************/
+/*Buzz hooks that can be used inside .bzz file*/
 /****************************************/
 
 static int buzz_register_hooks() {
@@ -192,7 +195,7 @@ static int buzz_register_hooks() {
 }
 
 /****************************************/
-
+/*Sets the .bzz and .bdbg file*/
 /****************************************/
 
 int buzz_script_set(const char* bo_filename,
@@ -202,7 +205,7 @@ int buzz_script_set(const char* bo_filename,
    gethostname(hstnm, 30);
    /* Make numeric id from hostname */
    /* NOTE: here we assume that the hostname is in the format Knn */
-   int id =0; // strtol(hstnm + 1, NULL, 10);
+   int id = strtol(hstnm + 1, NULL, 10);
    cout << " Robot ID" << id<< endl;
    /* Reset the Buzz VM */
    if(VM) buzzvm_destroy(&VM);
@@ -260,6 +263,7 @@ int buzz_script_set(const char* bo_filename,
 }
 
 /****************************************/
+/*Swarm struct*/
 /****************************************/
 
 struct buzzswarm_elem_s {
@@ -297,11 +301,9 @@ void check_swarm_members(const void* key, void* data, void* params) {
       }
    }
 }
+/*Step through the buzz script*/
 
 void buzz_script_step() {
-
-   
-   //buzzvm_process_inmsgs(VM);
    /*
     * Update sensors
     */
@@ -319,7 +321,7 @@ void buzz_script_step() {
    /* Print swarm */
    buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
    /* Check swarm state */
- /*  int status = 1;
+   /*  int status = 1;
    buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
    if(status == 1 &&
       buzzdict_size(VM->swarmmembers) < 9)
@@ -330,13 +332,10 @@ void buzz_script_step() {
 }
 
 /****************************************/
+/*Destroy the bvm and other resorces*/
 /****************************************/
 
 void buzz_script_destroy() {
-   
-   /* Get rid of stream buffer */
-   //free(STREAM_SEND_BUF);
-   /* Get rid of virtual machine */
    if(VM) {
       if(VM->state != BUZZVM_STATE_READY) {
          fprintf(stderr, "%s: execution terminated abnormally: %s\n\n",
@@ -353,6 +352,7 @@ void buzz_script_destroy() {
 }
 
 /****************************************/
+/*Execution completed*/
 /****************************************/
 
 int buzz_script_done() {

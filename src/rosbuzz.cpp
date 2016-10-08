@@ -1,7 +1,8 @@
 /** @file      rosbuzz.cpp
- *  @version   1 
+ *  @version   1.0 
  *  @date      27.09.2016
- *  @brief     Buzz Implementation as a node in ROS. 
+ *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone. 
+ *  @author    Vivek Shankar Varadharajan
  *  @copyright 2016 MistLab. All rights reserved.
  */
 
@@ -27,21 +28,28 @@
 #include <map>
 using namespace std;
 
+
+/**
+ * This program implements Buzz node in ros using mavros_msgs, Developed for Dji M100.
+ */
+
+
+
 static int done = 0;
 static double cur_pos[3];
 static uint64_t payload;
 static std::map< int,  Pos_struct> neighbours_pos_map;
 static int timer_step=0;
-/**
- * This program implements Buzz node in ros.
- */
+
+/*Refresh neighbours Position for every ten step*/
 void maintain_pos(int tim_step){
 if(timer_step >=10){
 neighbours_pos_map.clear();
 timer_step=0;
 }
-
 }
+
+/*Maintain neighbours position*/
 void neighbours_pos_maintain(int id, Pos_struct pos_arr ){
 map< int, Pos_struct >::iterator it = neighbours_pos_map.find(id);
 if(it!=neighbours_pos_map.end())
@@ -49,22 +57,15 @@ neighbours_pos_map.erase(it);
 neighbours_pos_map.insert(make_pair(id, pos_arr));
 }
 
-/*usage*/
+/*print usage information not needed at the moment*/
 void usage(const char* path, int status) {
-   fprintf(stderr, "Usage:\n");
-   fprintf(stderr, "\t%s <stream> <msg_size> <file.bo> <file.bdb>\n\n", path);
-   fprintf(stderr, "== Options ==\n\n");
-   fprintf(stderr, "  stream        The stream type: tcp or bt\n");
-   fprintf(stderr, "  msg_size      The message size in bytes\n");
-   fprintf(stderr, "  file.bo       The Buzz bytecode file\n");
-   fprintf(stderr, "  file.bdbg     The Buzz debug file\n\n");
-   exit(status);
+  
 }
+
 /*Set the current position of the robot callback*/
 void set_cur_pos(double latitude,
 		 double longitude,
 		 double altitude){
-/* set the current position of the robot*/
 cur_pos [0] =latitude;
 cur_pos [1] =longitude;
 cur_pos [2] =altitude;
@@ -73,8 +74,8 @@ cur_pos [2] =altitude;
 
 /*convert from catresian to spherical coordinate system callback */
 double* cvt_spherical_coordinates(double neighbours_pos_payload []){
+
 double latitude,longitude,altitude;
-//for(int i=0;i<pos_vect.size();i++){
 latitude=neighbours_pos_payload[0];
 longitude = neighbours_pos_payload[1];
 altitude=neighbours_pos_payload[2];
@@ -99,39 +100,35 @@ set_cur_pos(msg->latitude,msg->longitude,msg->altitude);
 /*payload callback callback*/
 void payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
 {
-uint64_t message_obt[(msg->payload64.end())-(msg->payload64.begin())];
+uint64_t message_obt[msg->payload64.size()];
 int i = 0;
 
-	// print all the remaining numbers
+	/* Go throught the obtained payload*/
 	for(std::vector<long unsigned int>::const_iterator it = msg->payload64.begin(); it != msg->payload64.end(); ++it)
 	{
 		message_obt[i] =(uint64_t) *it;
-                cout<<" obtaind message "<<message_obt[i]<<endl;
+                //cout<<"[Debug:] obtaind message "<<message_obt[i]<<endl;
 		i++;
         }
+/* Extract neighbours position from payload*/
 double neighbours_pos_payload[3];
 memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
-//cout<<"neighbours pos recived "<<" lat " << (double)neighbours_pos_payload[0]<<"  long "<<(double)neighbours_pos_payload[1] <<"  alti "<<(double)neighbours_pos_payload[2]<<endl;
-
+/*Convert obtained position to relative position*/
 for(i=0;i<3;i++){
 neighbours_pos_payload[i]=neighbours_pos_payload[i]-cur_pos[i];
 }
  double* cvt_neighbours_pos_payload = cvt_spherical_coordinates(neighbours_pos_payload);
-//cout<<" neighbours pos cvt " <<" lat " << cvt_neighbours_pos_payload[0]<<"  long "<<cvt_neighbours_pos_payload[1] <<"  alti "<<cvt_neighbours_pos_payload[2]<<endl;
-
-    uint16_t* out = u64_cvt_u16((uint64_t)*(message_obt+3));  
-//cout << " values " <<out[0] <<"  "<<(int)out[1] <<"  "<<out[2] <<"  "<<out[3] <<"  "<<endl;
-struct pos_struct n_pos;
-n_pos.x=cvt_neighbours_pos_payload[0];
-n_pos.y=cvt_neighbours_pos_payload[1];
-n_pos.z=cvt_neighbours_pos_payload[2];
+/*Extract robot id of the neighbour*/
+ uint16_t* out = u64_cvt_u16((uint64_t)*(message_obt+3));  
+/*pass neighbour position to local maintaner*/
+Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
 neighbours_pos_maintain((int)out[1],n_pos);
 delete[] out;
 in_msg_process((message_obt+3));
    
 }
  
-
+/*Dji RC commands service */
 int oldcmdID=0;
 int rc_cmd;
 bool rc_callback(mavros_msgs::CommandInt::Request  &req,
@@ -181,7 +178,7 @@ if(req.command==oldcmdID)
 }
 
 
-/*controlc handler callback*/
+/*control c handler callback*/
 static void ctrlc_handler(int sig) {
    done = 1;
 }
@@ -227,9 +224,9 @@ int main(int argc, char **argv)
 
    
    /* The bytecode filename */
-   char* bcfname = "../catkin_ws/src/rosbuzz/src/out.bo"; //argv[1];
+   char* bcfname = (char*)"../catkin_ws/src/rosbuzz/src/out.bo"; //argv[1];
    /* The debugging information file name */
-   char* dbgfname = "../catkin_ws/src/rosbuzz/src/out.bdbg"; //argv[2];
+   char* dbgfname = (char*)"../catkin_ws/src/rosbuzz/src/out.bdbg"; //argv[2];
    /* Set CTRL-C handler */
    signal(SIGTERM, ctrlc_handler);
    signal(SIGINT, ctrlc_handler);
@@ -239,8 +236,9 @@ int main(int argc, char **argv)
    if(buzz_script_set(bcfname, dbgfname)) {
    fprintf(stdout, "Bytecode file found and set\n");
 
-  
+  /*Commands for dji flight controller*/
   mavros_msgs::CommandInt cmd_srv;
+
   int count = 0;
   while (ros::ok() && !done && !buzz_script_done())
   {
@@ -262,19 +260,27 @@ int main(int argc, char **argv)
     /* diji client call*/
     if (mav_client.call(cmd_srv)){ ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
     else{ ROS_ERROR("Failed to call service 'djicmd'"); }
-    /*Prepare Pay load to be sent*/  
+    /*obtain Pay load to be sent*/  
     uint64_t* payload_out_ptr= out_msg_process();
     uint64_t  position[3];
+    /*Appened current position to message*/
     memcpy(position, cur_pos, 3*sizeof(uint64_t));
     mavros_msgs::Mavlink payload_out;
     payload_out.payload64.push_back(position[0]);
     payload_out.payload64.push_back(position[1]);
     payload_out.payload64.push_back(position[2]);
-    
+    /*Append Buzz message*/
     uint16_t* out = u64_cvt_u16(payload_out_ptr[0]);  
     for(int i=0;i<out[0];i++){
     payload_out.payload64.push_back(payload_out_ptr[i]);
     }
+    int i=0;
+    for(std::vector<long unsigned int>::const_iterator it = payload_out.payload64.begin(); it != payload_out.payload64.end(); ++it)
+	{
+		//message_obt[i] =(uint64_t) *it;
+                //cout<<" [Debug:] sent message "<<*it<<endl;
+		i++;
+        }
     /*publish prepared messages in respective topic*/
     payload_pub.publish(payload_out);
     delete[] out;
@@ -286,13 +292,7 @@ int main(int argc, char **argv)
     ++count;
     timer_step+=1;
     maintain_pos(timer_step);
-   /* cout<<"time step"<<timer_step<<endl;
-    map< int, Pos_struct >::iterator it;
-    for (it=neighbours_pos_map.begin(); it!=neighbours_pos_map.end(); ++it){
-    std::cout << it->first << " => " << (it->second).x <<"   " << (it->second).y <<"   " << (it->second).z<<endl;
-	}
-   */
-
+   
   }
   /* Cleanup */
    buzz_script_destroy();

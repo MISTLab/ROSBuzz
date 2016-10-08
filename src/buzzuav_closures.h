@@ -17,15 +17,13 @@ int buzzros_print(buzzvm_t vm);
 int buzzuav_goto(buzzvm_t vm);
 /* Returns the current command from local variable*/
 int getcmd();
-
+/*Sets goto position could be used for bypassing*/
 void set_goto(double pos[]);
-
+/*sets rc requested command */
 void rc_call(int rc_cmd);
-
-/* sets the battery state to the local variable
- */
+/* sets the battery state */
 void set_battery(float voltage,float current,float remaining);
-/*retuns the current go to position from local variable*/
+/*retuns the current go to position */
 double* getgoto();
 /*
  * Commands the UAV to takeoff
@@ -47,7 +45,7 @@ int buzzuav_update_battery(buzzvm_t vm);
 
 /*
  * Updates IR information in Buzz
- * Proximity and ground sensors
+ * Proximity and ground sensors to do !!!!
  */
 int buzzuav_update_prox(buzzvm_t vm);
 

@@ -1,4 +1,11 @@
-#define _GNU_SOURCE
+/** @file      buzzuav_closures.cpp
+ *  @version   1.0 
+ *  @date      27.09.2016
+ *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone. 
+ *  @author    Vivek Shankar Varadharajan
+ *  @copyright 2016 MistLab. All rights reserved.
+ */
+//#define _GNU_SOURCE
 #include <stdio.h>
 #include "buzzuav_closures.h"
 #include "uav_utility.h"
@@ -56,16 +63,17 @@ int buzzros_print(buzzvm_t vm) {
 
 int buzzuav_goto(buzzvm_t vm) {
    buzzvm_lnum_assert(vm, 3);
-   buzzvm_lload(vm, 1); /* Lattitude */
+   buzzvm_lload(vm, 1); /* Altitude */
    buzzvm_lload(vm, 2); /* Longitude */
-   buzzvm_lload(vm, 3); /* Altitude */
+   buzzvm_lload(vm, 3); /* Latitude */
    buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value * 10.0f;
-goto_pos[1]=buzzvm_stack_at(vm, 2)->f.value * 10.0f;
-goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value * 10.0f;
-cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
+   goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value; 
+   goto_pos[1]=buzzvm_stack_at(vm, 2)->f.value; 
+   goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value; 
+   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
+   printf(" Buzz requested Go To, to Latitude: %15f , Longitude: %15f, Altitude: %15f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    return buzzvm_ret0(vm);
 }
 
@@ -95,24 +103,27 @@ cur_cmd=rc_cmd;
 
 int buzzuav_takeoff(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
+   printf(" Buzz requested Take off !!! \n");
    return buzzvm_ret0(vm);
 }
 
 int buzzuav_land(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_LAND;
+   printf(" Buzz requested Land !!! \n");
    return buzzvm_ret0(vm);
 }
 
 int buzzuav_gohome(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
+   printf(" Buzz requested gohome !!! \n");
    return buzzvm_ret0(vm);
 }
 
 /****************************************/
 void set_battery(float voltage,float current,float remaining){
-batt[0]=voltage;
-batt[1]=current;
-batt[2]=remaining;
+ batt[0]=voltage;
+ batt[1]=current;
+ batt[2]=remaining;
 }
 /****************************************/
 
@@ -137,10 +148,11 @@ int buzzuav_update_battery(buzzvm_t vm) {
 }
 
 /****************************************/
+/*To do !!!!!*/
 /****************************************/
 
 int buzzuav_update_prox(buzzvm_t vm) {
-   static char PROXIMITY_BUF[256];
+ /*  static char PROXIMITY_BUF[256];
    int i;
    //kh4_proximity_ir(PROXIMITY_BUF, DSPIC);
    buzzvm_pushs(vm, buzzvm_string_register(vm, "proximity_ir", 1));
@@ -161,7 +173,7 @@ int buzzuav_update_prox(buzzvm_t vm) {
       buzzvm_tput(vm);
    }
    buzzvm_gstore(vm);
-   return vm->state;
+   return vm->state;*/
 }
 
 /****************************************/

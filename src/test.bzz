@@ -1,31 +1,36 @@
 # Executed once at init time.
 function init() {
 i=0
-v = stigmergy.create(1)
-#v.put("a", 6)
+s = swarm.create(10)
+s.join()
+
 }
  
 # Executed at each time step.
 function step() {
-s = swarm.create(10)
-s.join()
-
+# print all the neighbours position
 neighbors.foreach(
   function(rid, data) {
     print("robot ", rid, ": ",
         "distance  = ", data.distance, ", ",
         "azimuth   = ", data.azimuth, ", ",
         "elevation = ", data.elevation) })
-#if(i==1){
+if(i==1){
+s.exec(function() {uav_takeoff()})
+i=0
+}
+else{
+s.exec(function() {uav_goto(1.1234,2.2345,3.3456)})
+i=1
+}
+#if(i==5){
 #s.leave()
 #i=0
 #}
 #else{
 #i=1
 #}
-#s.select(uav_takeoff)
-#print("Distance to source:", mydist, neighbors.count())
-
+#i = i + 1
 
 }
  
