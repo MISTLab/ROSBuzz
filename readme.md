@@ -21,23 +21,23 @@ More information is available at http://the.swarming.buzz/wiki/doku.php?id=start
 Downloading ROS Package
 =======================
 
-    $ git clone https://github.com/MISTLab/rosbuzz.git
+    $ git clone https://github.com/MISTLab/Rosbuzz.git rosbuzz
 
 Requirements
 ============
 
-1.Buzz : 
+* Buzz : 
 
 You can download the development sources through git:
 
     $ git clone https://github.com/MISTLab/Buzz.git buzz
 
-2.ROS binary distribution (Indigo or higher) with catkin (could be used with older versions of ROS with catkin but not tested)
+* ROS binary distribution (Indigo or higher) with catkin (could be used with older versions of ROS with catkin but not tested)
 
 
 You need the following package:
 
-1.mavros_msgs : 
+* mavros_msgs : 
 
 You can install using apt-get:
 
