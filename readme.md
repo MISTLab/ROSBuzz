@@ -24,12 +24,12 @@ Downloading ROS Package
     $ git clone https://github.com/MISTLab/rosbuzz.git
 
 Requirements
-------------
+============
 * Buzz : You can download the development sources through git:
 
     $ git clone https://github.com/MISTLab/Buzz.git buzz
 
-* ROS binary distribution (Indigo or higher) with catkin
+* ROS binary distribution (Indigo or higher) with catkin (could be used with older versions of ROS with catkin but not tested)
 
 You need the following package:
 
@@ -38,7 +38,7 @@ You need the following package:
     $ sudo apt-get install ros-"distro"-mavros ros-"distro"-mavros-extras
 
 Compilation
------------
+===========
 
 To compile the ros package, execute the following:
 
@@ -52,7 +52,7 @@ Run
     $ rosrun rosbuzz rosbuzz_node
 
 Publisher
-----------
+=========
 
 * Messages from Buzz (BVM):
 The package publishes mavros_msgs/Mavlink message with a topic name of "outMavlink". 
@@ -81,5 +81,3 @@ Client
 * Flight controller client:
 This package is a client of mavros_msgs/CommandInt service with name "djicmd".
  
-
-
