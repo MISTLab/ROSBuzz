@@ -1,6 +1,6 @@
 # Executed once at init time.
 function init() {
-i=0
+i=1
 s = swarm.create(10)
 s.join()
 
@@ -8,6 +8,7 @@ s.join()
  
 # Executed at each time step.
 function step() {
+
 # print all the neighbours position
 neighbors.foreach(
   function(rid, data) {
@@ -17,20 +18,10 @@ neighbors.foreach(
         "elevation = ", data.elevation) })
 if(i==1){
 s.exec(function() {uav_takeoff()})
-i=0
 }
 else{
 s.exec(function() {uav_goto(1.1234,2.2345,3.3456)})
-i=1
 }
-#if(i==5){
-#s.leave()
-#i=0
-#}
-#else{
-#i=1
-#}
-#i = i + 1
 
 }
  

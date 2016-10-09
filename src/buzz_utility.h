@@ -22,7 +22,7 @@ void in_msg_process(uint64_t* payload);
 uint64_t* out_msg_process();
 
 int buzz_script_set(const char* bo_filename,
-                           const char* bdbg_filename);
+                           const char* bdbg_filename, int robot_id);
 void buzz_script_step();
 
 void buzz_script_destroy();

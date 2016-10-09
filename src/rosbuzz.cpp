@@ -30,16 +30,15 @@ using namespace std;
 
 
 /**
- * This program implements Buzz node in ros using mavros_msgs, Developed for Dji M100.
+ * This program implements Buzz node in ros using mavros_msgs.
  */
-
-
 
 static int done = 0;
 static double cur_pos[3];
 static uint64_t payload;
 static std::map< int,  Pos_struct> neighbours_pos_map;
 static int timer_step=0;
+static int robot_id=0;
 
 /*Refresh neighbours Position for every ten step*/
 void maintain_pos(int tim_step){
@@ -188,19 +187,38 @@ static void ctrlc_handler(int sig) {
 int main(int argc, char **argv)
 {
 
-   /*Compile the buzz code .bzz to .bo*/
-   system("rm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
-   system("bzzparse ../catkin_ws/src/rosbuzz/src/test.bzz ../catkin_ws/src/rosbuzz/src/out.basm");
-   system("bzzasm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
-  
+  ros::ServiceServer service;
   /*initiate rosBuzz*/
   ros::init(argc, argv, "rosBuzz"); 
   ROS_INFO("Buzz_node");
-
+ 
   /*Create node Handler*/
   ros::NodeHandle n_c;
+  std::string bzzfile_name, fcclient_name, rcservice_name; //, rcclient;
+  bool rcclient;
+  /*Obtain .bzz file name from parameter server*/
+  if(ros::param::get("/rosbuzz_node/bzzfile_name", bzzfile_name));
+  else {ROS_ERROR("Provide a .bzz file to run in Launch file"); system("rosnode kill rosbuzz_node");}  
+  
+  /*Obtain rc service option from parameter server*/
+  if(ros::param::get("/rosbuzz_node/rcclient", rcclient)){
+     if(rcclient==true){
+    	/*Service*/
+    	if(ros::param::get("/rosbuzz_node/rcservice_name", rcservice_name)){
+        service = n_c.advertiseService(rcservice_name, rc_callback);
+    	ROS_INFO("Ready to receive Mav Commands from RC client");
+        }
+        else{ROS_ERROR("Provide a name topic name for rc service in Launch file"); system("rosnode kill rosbuzz_node");}
+      }
+     else if(rcclient==false){ROS_INFO("RC service is disabled");}
+  }
+  else{ROS_ERROR("Provide a rc client option: yes or no in Launch file"); system("rosnode kill rosbuzz_node");} 
+  /*Obtain fc client name from parameter server*/
+  if(ros::param::get("/rosbuzz_node/fcclient_name", fcclient_name));
+  else {ROS_ERROR("Provide a fc client name in Launch file"); system("rosnode kill rosbuzz_node");}  
+  /*Obtain robot_id from parameter server*/
+  ros::param::get("/rosbuzz_node/robot_id", robot_id);
 
- 
   /*subscribers*/
   ros::Subscriber current_position_sub = n_c.subscribe("current_pos", 1000, current_pos);
 
@@ -213,16 +231,20 @@ int main(int argc, char **argv)
   ros::Publisher payload_pub = n_c.advertise<mavros_msgs::Mavlink>("outMavlink", 1000);
 
   /* Clients*/
-  ros::ServiceClient mav_client = n_c.serviceClient<mavros_msgs::CommandInt>("djicmd");
+  ros::ServiceClient mav_client = n_c.serviceClient<mavros_msgs::CommandInt>(fcclient_name);
+  cout<< " rc client name"<<rcservice_name;
   
-  /*Services*/
-  ros::ServiceServer service = n_c.advertiseService("djicmd_rc", rc_callback);
-  ROS_INFO("Ready to receive Mav Commands from dji RC client");
   
   /*loop rate of ros*/
   ros::Rate loop_rate(1);
 
-   
+   /*Compile the buzz code .bzz to .bo*/
+   stringstream bzzfile_in_compile;
+   bzzfile_in_compile << "bzzparse "<<bzzfile_name<<" ../catkin_ws/src/rosbuzz/src/out.basm";
+   //system("rm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
+   system(bzzfile_in_compile.str().c_str());
+   system("bzzasm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
+
    /* The bytecode filename */
    char* bcfname = (char*)"../catkin_ws/src/rosbuzz/src/out.bo"; //argv[1];
    /* The debugging information file name */
@@ -233,12 +255,12 @@ int main(int argc, char **argv)
 
    
    /* Set the Buzz bytecode */
-   if(buzz_script_set(bcfname, dbgfname)) {
+   if(buzz_script_set(bcfname, dbgfname,robot_id)) {
    fprintf(stdout, "Bytecode file found and set\n");
 
   /*Commands for dji flight controller*/
   mavros_msgs::CommandInt cmd_srv;
-
+  
   int count = 0;
   while (ros::ok() && !done && !buzz_script_done())
   {
@@ -255,7 +277,6 @@ int main(int argc, char **argv)
     cmd_srv.request.param1 = goto_pos[0];
     cmd_srv.request.param2 = goto_pos[1];
     cmd_srv.request.param3 = goto_pos[2];
-    
     cmd_srv.request.command =  getcmd();
     /* diji client call*/
     if (mav_client.call(cmd_srv)){ ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }

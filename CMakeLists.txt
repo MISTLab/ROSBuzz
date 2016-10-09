@@ -37,4 +37,5 @@ install(TARGETS rosbuzz_node
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-
+find_package(catkin REQUIRED COMPONENTS roslaunch)
+roslaunch_add_file_check(launch)
