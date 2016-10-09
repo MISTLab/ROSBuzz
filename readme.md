@@ -21,7 +21,7 @@ More information is available at http://the.swarming.buzz/wiki/doku.php?id=start
 Downloading ROS Package
 =======================
 
-    $ git clone https://github.com/MISTLab/Rosbuzz.git rosbuzz
+    $ git clone https://github.com/MISTLab/ROSbuzz.git rosbuzz
 
 Requirements
 ============
