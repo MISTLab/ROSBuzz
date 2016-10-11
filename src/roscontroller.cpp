@@ -98,7 +98,7 @@ namespace rosbzz_node{
    		system("bzzasm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
 	}
 	
-	inline void roscontroller::prepare_msg_and_publish(){
+	void roscontroller::prepare_msg_and_publish(){
 		/*prepare the goto publish message */
     		double* goto_pos = buzzuav_closures::getgoto();
 		cmd_srv.request.param1 = goto_pos[0];
@@ -138,7 +138,7 @@ namespace rosbzz_node{
 
 
 	/*Refresh neighbours Position for every ten step*/
-	inline void roscontroller::maintain_pos(int tim_step){
+	void roscontroller::maintain_pos(int tim_step){
 		if(timer_step >=10){
 		neighbours_pos_map.clear();
 		timer_step=0;
@@ -146,7 +146,7 @@ namespace rosbzz_node{
 	}
 
 	/*Maintain neighbours position*/
-	inline void roscontroller::neighbours_pos_maintain(int id, buzz_utility::Pos_struct pos_arr ){
+	void roscontroller::neighbours_pos_maintain(int id, buzz_utility::Pos_struct pos_arr ){
 		map< int, buzz_utility::Pos_struct >::iterator it = neighbours_pos_map.find(id);
 		if(it!=neighbours_pos_map.end())
 		neighbours_pos_map.erase(it);
@@ -155,7 +155,7 @@ namespace rosbzz_node{
 
 
 	/*Set the current position of the robot callback*/
-	inline void roscontroller::set_cur_pos(double latitude,
+	void roscontroller::set_cur_pos(double latitude,
 			 double longitude,
 			 double altitude){
 		cur_pos [0] =latitude;
@@ -165,7 +165,7 @@ namespace rosbzz_node{
 	}
 
 	/*convert from catresian to spherical coordinate system callback */
-	inline double* roscontroller::cvt_spherical_coordinates(double neighbours_pos_payload []){
+	double* roscontroller::cvt_spherical_coordinates(double neighbours_pos_payload []){
 		double latitude,longitude,altitude;
 		latitude=neighbours_pos_payload[0];
 		longitude = neighbours_pos_payload[1];
@@ -177,17 +177,17 @@ namespace rosbzz_node{
 	}
 
 	/*battery status callback*/ 
-	inline void roscontroller::battery(const mavros_msgs::BatteryStatus::ConstPtr& msg){
+	void roscontroller::battery(const mavros_msgs::BatteryStatus::ConstPtr& msg){
 		buzzuav_closures::set_battery(msg->voltage,msg->current,msg->remaining);
 	}
 
 	/*current position callback*/
-	inline void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
+	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
 		set_cur_pos(msg->latitude,msg->longitude,msg->altitude);
 	}
 
 	/*payload callback callback*/
-	inline void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg){
+	void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg){
 		uint64_t message_obt[msg->payload64.size()];
 		int i = 0;
 
@@ -216,7 +216,7 @@ namespace rosbzz_node{
 	}
  
 	/* RC command service */
-	inline bool roscontroller::rc_callback(mavros_msgs::CommandInt::Request  &req,
+	bool roscontroller::rc_callback(mavros_msgs::CommandInt::Request  &req,
 		         mavros_msgs::CommandInt::Response &res){
 		int rc_cmd;
 		if(req.command==oldcmdID)

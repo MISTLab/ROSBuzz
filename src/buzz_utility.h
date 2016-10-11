@@ -1,7 +1,7 @@
 #pragma once
 #include <stdio.h>
-#include "buzz_utility.h"
-#include "buzzuav_closures.h"
+#include <buzz_utility.h>
+#include <buzzuav_closures.h>
 #include <buzz/buzzdebug.h>
 #include <stdlib.h>
 #include <string.h>

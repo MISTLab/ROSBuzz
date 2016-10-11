@@ -1,18 +1,18 @@
 #pragma once
-#include "ros/ros.h"
-#include "sensor_msgs/NavSatFix.h"
-#include "mavros_msgs/GlobalPositionTarget.h"
-#include "mavros_msgs/CommandCode.h"
-#include "mavros_msgs/CommandInt.h"
-#include "mavros_msgs/State.h"
-#include "mavros_msgs/BatteryStatus.h"
-#include "mavros_msgs/Mavlink.h"
-#include "sensor_msgs/NavSatStatus.h"
+#include <ros/ros.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <mavros_msgs/GlobalPositionTarget.h>
+#include <mavros_msgs/CommandCode.h>
+#include <mavros_msgs/CommandInt.h>
+#include <mavros_msgs/State.h>
+#include <mavros_msgs/BatteryStatus.h>
+#include <mavros_msgs/Mavlink.h>
+#include <sensor_msgs/NavSatStatus.h>
 #include <sstream>
 #include <buzz/buzzasm.h>
-#include "buzzuav_closures.h"
-#include "buzz_utility.h"
-#include "uav_utility.h"
+#include <buzzuav_closures.h>
+#include <buzz_utility.h>
+#include <uav_utility.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -49,13 +49,13 @@ private:
 	ros::Subscriber battery_sub;
 	ros::Subscriber payload_sub;
 	/*Create node Handler*/
-		ros::NodeHandle n_c;
+	ros::NodeHandle n_c;
 	/*Commands for flight controller*/
-  		mavros_msgs::CommandInt cmd_srv;	
+  	mavros_msgs::CommandInt cmd_srv;	
   	/* The bytecode filename */
-   		char* bcfname = (char*)"../catkin_ws/src/rosbuzz/src/out.bo"; //argv[1];
-   		/* The debugging information file name */
-   		char* dbgfname = (char*)"../catkin_ws/src/rosbuzz/src/out.bdbg"; //argv[2];
+   	char* bcfname = (char*)"../catkin_ws/src/rosbuzz/src/out.bo"; //argv[1];
+   	/* The debugging information file name */
+   	char* dbgfname = (char*)"../catkin_ws/src/rosbuzz/src/out.bdbg"; //argv[2];
 
 	void Initialize_pub_sub();
 
@@ -65,27 +65,27 @@ private:
 	void Compile_bzz();
 
 	/*Prepare messages and publish*/
-	inline void prepare_msg_and_publish();
+	void prepare_msg_and_publish();
 
 	  	
 	/*Refresh neighbours Position for every ten step*/
-	inline void maintain_pos(int tim_step);
+	void maintain_pos(int tim_step);
 
 	/*Maintain neighbours position*/
-	inline void neighbours_pos_maintain(int id, buzz_utility::Pos_struct pos_arr );
+	void neighbours_pos_maintain(int id, buzz_utility::Pos_struct pos_arr );
 
         /*Set the current position of the robot callback*/
-	inline void set_cur_pos(double latitude,
+	void set_cur_pos(double latitude,
 			 double longitude,
 			 double altitude);
 	/*convert from catresian to spherical coordinate system callback */
-	inline double* cvt_spherical_coordinates(double neighbours_pos_payload []);
+	double* cvt_spherical_coordinates(double neighbours_pos_payload []);
 	
 	/*battery status callback*/ 
-	inline void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
+	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
 
 	/*current position callback*/
-	inline void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
+	void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
 
 	/*payload callback callback*/
 	inline void payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg);
