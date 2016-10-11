@@ -6,15 +6,12 @@
  *  @copyright 2016 MistLab. All rights reserved.
  */
 //#define _GNU_SOURCE
-#include <stdio.h>
 #include "buzzuav_closures.h"
-#include "uav_utility.h"
-#include "mavros_msgs/CommandCode.h"
-#include "ros/ros.h"
-
-double goto_pos[3];
-float batt[3];
-int cur_cmd;
+namespace buzzuav_closures{
+static double goto_pos[3];
+static float batt[3];
+static int cur_cmd;
+static int rc_cmd=0;
 /****************************************/
 /****************************************/
 
@@ -84,7 +81,12 @@ return goto_pos;
 }
 /******************************/
 int getcmd(){
+if(rc_cmd==0) return cur_cmd;
+else {
+cur_cmd=rc_cmd;
+rc_cmd=0;
 return cur_cmd;
+} 
 }
 
 void set_goto(double pos[]){
@@ -94,8 +96,8 @@ goto_pos[2]=pos[2];
     
 }
 
-void rc_call(int rc_cmd){
-cur_cmd=rc_cmd;
+void rc_call(int rc_cmd_in){
+rc_cmd=rc_cmd_in;
 }
 
 /****************************************/
@@ -128,7 +130,7 @@ void set_battery(float voltage,float current,float remaining){
 /****************************************/
 
 int buzzuav_update_battery(buzzvm_t vm) {
-   static char BATTERY_BUF[256];
+   //static char BATTERY_BUF[256];
    buzzvm_pushs(vm, buzzvm_string_register(vm, "battery", 1));
    buzzvm_pusht(vm);
    buzzvm_dup(vm);
@@ -172,9 +174,11 @@ int buzzuav_update_prox(buzzvm_t vm) {
       buzzvm_pushi(vm, (PROXIMITY_BUF[i*2] | PROXIMITY_BUF[i*2+1] << 8));
       buzzvm_tput(vm);
    }
-   buzzvm_gstore(vm);
-   return vm->state;*/
+   buzzvm_gstore(vm);*/
+   return vm->state;
 }
 
 /****************************************/
 /****************************************/
+
+}

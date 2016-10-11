@@ -8,7 +8,6 @@
 #include "ros/ros.h"
 
 namespace buzzuav_closures{
-
 /*
  * prextern int() function in Buzz
  * This function is used to print data from buzz
