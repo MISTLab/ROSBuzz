@@ -97,7 +97,8 @@ namespace rosbzz_node{
    		//system("rm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
    		system(bzzfile_in_compile.str().c_str());
 		bzzfile_in_compile.str("");
-           	bzzfile_in_compile <<"bzzasm "<<path<<"/out.basm "<<path<<"/out.bo "<<path<<"/out.bdbg";
+           	cout << "Found PAth name is"<< bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) <<"string stream: 			"<<bzzfile_in_compile.str() << endl;
+		bzzfile_in_compile <<"bzzasm "<<path<<"/out.basm "<<path<<"/out.bo "<<path<<"/out.bdbg";
    		system(bzzfile_in_compile.str().c_str());
 		bzzfile_in_compile.str("");
 		bzzfile_in_compile <<path<<"/out.bo";

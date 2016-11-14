@@ -191,7 +191,7 @@ namespace buzz_utility{
 
 	int buzz_script_set(const char* bo_filename,
 	                    const char* bdbg_filename, int robot_id) {
-	//cout<<"bo file name"<<bo_filename;
+	cout<<"bo file name"<<bo_filename;
 		/* Get hostname */
    		char hstnm[30];
    	gethostname(hstnm, 30);

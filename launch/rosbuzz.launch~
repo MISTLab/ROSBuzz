@@ -1,0 +1,11 @@
+<!-- Launch file for ROSBuzz -->
+
+<launch>
+	<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
+		<param name="bzzfile_name" value="~/catkin_ws/src/rosbuzz/src/test.bzz" />
+                <param name="rcclient" value="true" /> 
+		<param name="rcservice_name" value="rc_cmd" />
+		<param name="fcclient_name" value="fc_cmd" />
+	</node>
+     		<param name="robot_id" value="1"/>
+</launch>

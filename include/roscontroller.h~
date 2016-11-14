@@ -32,7 +32,10 @@ public:
 	~roscontroller();
 	//void RosControllerInit();
 	void RosControllerRun();
-	
+	/* The bytecode filename */
+   	char* bcfname; // = (char*)"/src/rosbuzz/src/out.bo"; //argv[1];
+   	/* The debugging information file name */
+   	char* dbgfname; //= (char*)"/src/rosbuzz/src/out.bdbg"; //argv[2];
 private:
         
  	double cur_pos[3];
@@ -42,7 +45,7 @@ private:
 	int robot_id=0;
         int oldcmdID=0;
 	int rc_cmd;
-	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname; //, rcclient;
+	std::string bzzfile_name, fcclient_name, rcservice_name; //, rcclient;
 	bool rcclient;
 	ros::ServiceClient mav_client;
 	ros::Publisher payload_pub;
