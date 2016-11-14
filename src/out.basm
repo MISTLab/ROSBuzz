@@ -1,0 +1,49 @@
+!8
+'init
+'step
+'print
+'bzz print: voltage: 
+'battery
+'voltage
+'reset
+'destroy
+
+	pushs 0
+	pushcn @__label_1
+	gstore
+	pushs 1
+	pushcn @__label_2
+	gstore
+	pushs 6
+	pushcn @__label_3
+	gstore
+	pushs 7
+	pushcn @__label_4
+	gstore
+	nop
+
+@__label_0
+
+@__exitpoint
+	done
+
+@__label_1
+	ret0	|4,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+
+@__label_2
+	pushs 2	|9,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|9,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 3	|9,6,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 4	|9,37,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|9,37,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 5	|9,38,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	tget	|9,45,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 2	|9,46,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|9,46,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	ret0	|11,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+
+@__label_3
+	ret0	|15,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+
+@__label_4
+	ret0	|19,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
