@@ -80,7 +80,7 @@ namespace rosbzz_node{
 	void roscontroller::Initialize_pub_sub(){
 		/*subscribers*/
   		current_position_sub = n_c.subscribe("/dji_sdk/global_position", 1000, &roscontroller::current_pos,this);
-  		battery_sub = n_c.subscribe("/dji_sdk/power_status", 1000, &roscontroller::battery,this);
+  		battery_sub = n_c.subscribe("/mav/power_status", 1000, &roscontroller::battery,this);
   		payload_sub = n_c.subscribe("inMavlink", 1000, &roscontroller::payload_obt,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>("outMavlink", 1000);
@@ -189,6 +189,7 @@ namespace rosbzz_node{
 	/*battery status callback*/ 
 	void roscontroller::battery(const mavros_msgs::BatteryStatus::ConstPtr& msg){
 		buzzuav_closures::set_battery(msg->voltage,msg->current,msg->remaining);
+		//ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage, msg->current, msg ->remaining);
 	}
 
 	/*current position callback*/

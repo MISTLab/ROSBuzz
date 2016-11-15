@@ -1,12 +1,15 @@
 # Executed once at init time.
 function init() {
-
+i=0
+uav_takeoff()
 }
  
 # Executed at each time step.
 function step() {
 
-print("bzz print: voltage: ", battery.voltage)
+print("bzz print: remaining: ", battery.capacity)
+if(i>20){uav_land()}
+i=i+1
 
 }
  
