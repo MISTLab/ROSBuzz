@@ -10,6 +10,8 @@
 namespace buzzuav_closures{
 static double goto_pos[3];
 static float batt[3];
+static double cur_pos[3];
+static uint8_t status;
 static int cur_cmd;
 static int rc_cmd=0;
 /****************************************/
@@ -148,6 +150,51 @@ int buzzuav_update_battery(buzzvm_t vm) {
    buzzvm_gstore(vm);
    return vm->state;
 }
+/****************************************/
+/*current pos update*/
+/***************************************/
+void set_currentpos(double latitude, double longitude, double altitude){
+   cur_pos[0]=latitude;
+   cur_pos[1]=longitude;
+   cur_pos[2]=altitude;
+}
+/****************************************/
+int buzzuav_update_currentpos(buzzvm_t vm) {
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "position", 1));
+   buzzvm_pusht(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "latitude", 1));
+   buzzvm_pushf(vm, cur_pos[0]);
+   buzzvm_tput(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "longitude", 1));
+   buzzvm_pushf(vm, cur_pos[1]);
+   buzzvm_tput(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 1));
+   buzzvm_pushf(vm, cur_pos[2]);
+   buzzvm_tput(vm);
+   buzzvm_gstore(vm);
+   return vm->state;
+}
+/****************************************/
+/*flight status update*/
+/***************************************/
+void flight_status_update(uint8_t state){
+   status=state;
+}
+/****************************************/
+int buzzuav_update_flight_status(buzzvm_t vm) {
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "flight", 1));
+   buzzvm_pusht(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "status", 1));
+   buzzvm_pushf(vm, status);
+   buzzvm_tput(vm); 
+   buzzvm_gstore(vm);
+   return vm->state;
+}
+
 
 /****************************************/
 /*To do !!!!!*/

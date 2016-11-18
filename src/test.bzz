@@ -8,7 +8,9 @@ uav_takeoff()
 function step() {
 
 print("bzz print: remaining: ", battery.capacity)
-if(i>20){uav_land()}
+print("latitude : ",position.latitude," longitude: ",position.longitude," altitude : ", position.altitude)
+print("flight status: ",flight.status)
+if(i==10){uav_land()}
 i=i+1
 
 }

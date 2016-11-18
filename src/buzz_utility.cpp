@@ -301,7 +301,9 @@ void buzz_script_step() {
     */
    buzzuav_closures::buzzuav_update_battery(VM);
    buzzuav_closures::buzzuav_update_prox(VM);
-   /*
+   buzzuav_closures::buzzuav_update_currentpos(VM);
+   buzzuav_closures::buzzuav_update_flight_status(VM);
+    /*
     * Call Buzz step() function
     */
    if(buzzvm_function_call(VM, "step", 0) != BUZZVM_STATE_READY) {

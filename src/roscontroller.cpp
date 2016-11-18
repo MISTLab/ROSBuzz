@@ -79,9 +79,10 @@ namespace rosbzz_node{
 
 	void roscontroller::Initialize_pub_sub(){
 		/*subscribers*/
-  		current_position_sub = n_c.subscribe("/dji_sdk/global_position", 1000, &roscontroller::current_pos,this);
+  		current_position_sub = n_c.subscribe("/mav/global_position", 1000, &roscontroller::current_pos,this);
   		battery_sub = n_c.subscribe("/mav/power_status", 1000, &roscontroller::battery,this);
   		payload_sub = n_c.subscribe("inMavlink", 1000, &roscontroller::payload_obt,this);
+		flight_status_sub =n_c.subscribe("/mav/flight_status",100, &roscontroller::flight_status_update,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>("outMavlink", 1000);
 		/* Clients*/
@@ -140,7 +141,7 @@ namespace rosbzz_node{
          		cout<<" [Debug:] sent message "<<*it<<endl;
 			i++;
         	}*/
-    		/*publish prepared messages in respective topic*/
+     		/*publish prepared messages in respective topic*/
     		payload_pub.publish(payload_out);
     		delete[] out;
     		delete[] payload_out_ptr;
@@ -191,10 +192,14 @@ namespace rosbzz_node{
 		buzzuav_closures::set_battery(msg->voltage,msg->current,msg->remaining);
 		//ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage, msg->current, msg ->remaining);
 	}
-
+	/*flight status update*/
+	void roscontroller::flight_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg){
+		buzzuav_closures::flight_status_update(msg->landed_state);
+	}
 	/*current position callback*/
 	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
 		set_cur_pos(msg->latitude,msg->longitude,msg->altitude);
+		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude,msg->altitude);
 	}
 
 	/*payload callback callback*/

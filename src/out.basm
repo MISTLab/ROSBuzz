@@ -1,4 +1,4 @@
-!11
+!21
 'init
 'i
 'uav_takeoff
@@ -7,6 +7,16 @@
 'bzz print: remaining: 
 'battery
 'capacity
+'latitude : 
+'position
+'latitude
+' longitude: 
+'longitude
+' altitude : 
+'altitude
+'flight status: 
+'flight
+'status
 'uav_land
 'reset
 'destroy
@@ -17,10 +27,10 @@
 	pushs 3
 	pushcn @__label_2
 	gstore
-	pushs 9
+	pushs 19
 	pushcn @__label_5
 	gstore
-	pushs 10
+	pushs 20
 	pushcn @__label_6
 	gstore
 	nop
@@ -50,26 +60,54 @@
 	tget	|10,48,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
 	pushi 2	|10,49,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
 	callc	|10,49,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	pushs 1	|11,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	gload	|11,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	pushi 20	|11,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	gt	|11,7,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	jumpz @__label_3	|11,8,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	pushs 8	|11,17,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	gload	|11,17,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	pushi 0	|11,19,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	callc	|11,19,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-@__label_3	|12,0,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	pushs 1	|12,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	pushs 1	|12,3,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	gload	|12,3,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	pushi 1	|12,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	add	|12,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	gstore	|12,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
-	ret0	|14,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 4	|11,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|11,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 8	|11,6,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 9	|11,28,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|11,28,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 10	|11,29,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	tget	|11,37,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 11	|11,38,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 9	|11,61,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|11,61,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 12	|11,62,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	tget	|11,71,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 13	|11,72,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 9	|11,96,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|11,96,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 14	|11,97,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	tget	|11,105,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 6	|11,106,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|11,106,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 4	|12,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|12,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 15	|12,6,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 16	|12,30,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|12,30,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 17	|12,31,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	tget	|12,37,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 2	|12,38,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|12,38,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 1	|13,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|13,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 10	|13,6,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	eq	|13,8,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	jumpz @__label_3	|13,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 18	|13,18,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|13,18,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 0	|13,20,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|13,20,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+@__label_3	|14,0,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 1	|14,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 1	|14,3,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|14,3,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 1	|14,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	add	|14,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gstore	|14,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	ret0	|16,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
 
 @__label_5
-	ret0	|18,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	ret0	|20,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
 
 @__label_6
-	ret0	|22,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	ret0	|24,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz

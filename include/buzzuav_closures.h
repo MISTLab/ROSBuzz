@@ -28,8 +28,13 @@ void set_goto(double pos[]);
 void rc_call(int rc_cmd);
 /* sets the battery state */
 void set_battery(float voltage,float current,float remaining);
+/* sets current position */
+void set_currentpos(double latitude, double longitude, double altitude);
 /*retuns the current go to position */
 double* getgoto();
+/* updates flight status*/
+void flight_status_update(uint8_t state);
+
 /*
  * Commands the UAV to takeoff
  */
@@ -47,6 +52,14 @@ int buzzuav_gohome(buzzvm_t vm);
  * Updates battery information in Buzz
  */
 int buzzuav_update_battery(buzzvm_t vm);
+/*
+ * Updates current position in Buzz
+ */
+int buzzuav_update_currentpos(buzzvm_t vm);
+/*
+ * Updates flight status in Buzz
+ */
+int buzzuav_update_flight_status(buzzvm_t vm);
 
 /*
  * Updates IR information in Buzz
