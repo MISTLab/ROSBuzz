@@ -3,12 +3,10 @@
 
 
 namespace rosbzz_node{
-/*Create node Handler*/
 
 	/***Constructor***/
 	roscontroller::roscontroller(ros::NodeHandle n_c)	
 	{
-		/*Create node Handler*/
 		
 		ROS_INFO("Buzz_node");
 		/*Obtain parameters from ros parameter server*/

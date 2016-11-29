@@ -24,8 +24,6 @@
 using namespace std;
 
 namespace rosbzz_node{
-/*Create node Handler*/
-//ros::NodeHandle n_c;
 	
 class roscontroller{
 
@@ -54,7 +52,7 @@ private:
 	ros::Subscriber payload_sub;
 	ros::Subscriber flight_status_sub;
 	/*Commands for flight controller*/
-  		mavros_msgs::CommandInt cmd_srv;	
+  	mavros_msgs::CommandInt cmd_srv;	
   	
 
 	void Initialize_pub_sub(ros::NodeHandle n_c);
