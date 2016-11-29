@@ -1,6 +1,6 @@
 # Executed once at init time.
 function init() {
-i = 1
+i = 0
 }
  
 # Executed at each time step.
@@ -18,6 +18,7 @@ neighbors.listen("key",
    }
 )
 }
+
 else{
 neighbors.broadcast("key", "yes")
 neighbors.broadcast("Take", "no")

@@ -66,7 +66,12 @@ namespace buzz_utility{
    		memcpy(pl, payload ,size);
 
    		size_t tot = sizeof(uint32_t);
-      
+      		/*for(int i=0;i<data[0];i++){
+			uint16_t* out = u64_cvt_u16(payload[i]);
+			for(int k=0;k<4;k++){
+				cout<<" [Debug inside buzz util: obt msg:] "<<out[k]<<endl;
+			}
+		}*/
 		/* Go through the messages until there's nothing else to read */
       		uint16_t unMsgSize;
       			do {
@@ -74,13 +79,13 @@ namespace buzz_utility{
          			unMsgSize = *(uint16_t*)(pl + tot);
    	 			tot += sizeof(uint16_t);
          			/* Append message to the Buzz input message queue */
-         			if(unMsgSize > 0 && unMsgSize <= size*sizeof(uint64_t) - tot) {
+         			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
             			buzzinmsg_queue_append(VM->inmsgs,
                                 buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
             			tot += unMsgSize;
          			}
       			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
-  
+
    		/* Process messages */
 		buzzvm_process_inmsgs(VM);
 	}

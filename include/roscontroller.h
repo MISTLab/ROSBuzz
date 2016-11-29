@@ -24,12 +24,13 @@
 using namespace std;
 
 namespace rosbzz_node{
-
-
+/*Create node Handler*/
+//ros::NodeHandle n_c;
+	
 class roscontroller{
 
 public:
-	roscontroller();
+	roscontroller(ros::NodeHandle n_c);
 	~roscontroller();
 	//void RosControllerInit();
 	void RosControllerRun();
@@ -43,7 +44,7 @@ private:
 	int robot_id=0;
         int oldcmdID=0;
 	int rc_cmd;
-	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname; //, rcclient;
+	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname,out_payload,in_payload; //, rcclient;
 	bool rcclient;
 	ros::ServiceClient mav_client;
 	ros::Publisher payload_pub;
@@ -52,16 +53,14 @@ private:
 	ros::Subscriber battery_sub;
 	ros::Subscriber payload_sub;
 	ros::Subscriber flight_status_sub;
-	/*Create node Handler*/
-		ros::NodeHandle n_c;
 	/*Commands for flight controller*/
   		mavros_msgs::CommandInt cmd_srv;	
   	
 
-	void Initialize_pub_sub();
+	void Initialize_pub_sub(ros::NodeHandle n_c);
 
 	/*Obtain data from ros parameter server*/	
-	void Rosparameters_get();
+	void Rosparameters_get(ros::NodeHandle n_c);
 
 	/*compiles buzz script from the specified .bzz file*/
 	void Compile_bzz();

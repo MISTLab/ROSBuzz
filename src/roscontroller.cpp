@@ -3,15 +3,18 @@
 
 
 namespace rosbzz_node{
+/*Create node Handler*/
 
 	/***Constructor***/
-	roscontroller::roscontroller()	
+	roscontroller::roscontroller(ros::NodeHandle n_c)	
 	{
+		/*Create node Handler*/
+		
 		ROS_INFO("Buzz_node");
 		/*Obtain parameters from ros parameter server*/
-	  	Rosparameters_get();
+	  	Rosparameters_get(n_c);
 		/*Initialize publishers, subscribers and client*/
-  		Initialize_pub_sub();
+  		Initialize_pub_sub(n_c);
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
  		Compile_bzz();
 	}
@@ -52,15 +55,16 @@ namespace rosbzz_node{
   		}
 	}
 
-	void roscontroller::Rosparameters_get(){
+	void roscontroller::Rosparameters_get(ros::NodeHandle n_c){
+		
 		/*Obtain .bzz file name from parameter server*/
-	  	if(ros::param::get("/rosbuzz_node/bzzfile_name", bzzfile_name));
+	  	if(n_c.getParam("bzzfile_name", bzzfile_name));
 	  	else {ROS_ERROR("Provide a .bzz file to run in Launch file"); system("rosnode kill rosbuzz_node");}  
 	  	/*Obtain rc service option from parameter server*/
-	  	if(ros::param::get("/rosbuzz_node/rcclient", rcclient)){
+	  	if(n_c.getParam("rcclient", rcclient)){
 		     	if(rcclient==true){
 			    	/*Service*/
-			    	if(ros::param::get("/rosbuzz_node/rcservice_name", rcservice_name)){
+			    	if(n_c.getParam("rcservice_name", rcservice_name)){
 				        service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback,this);
 				    	ROS_INFO("Ready to receive Mav Commands from RC client");
 			        }
@@ -70,21 +74,28 @@ namespace rosbzz_node{
   		}
   		else{ROS_ERROR("Provide a rc client option: yes or no in Launch file"); system("rosnode kill rosbuzz_node");} 
   		/*Obtain fc client name from parameter server*/
-  		if(ros::param::get("/rosbuzz_node/fcclient_name", fcclient_name));
+  		if(n_c.getParam("fcclient_name", fcclient_name));
   		else {ROS_ERROR("Provide a fc client name in Launch file"); system("rosnode kill rosbuzz_node");}  
   		/*Obtain robot_id from parameter server*/
-  		ros::param::get("/rosbuzz_node/robot_id", robot_id);	
+  		n_c.getParam("robot_id", robot_id);	
+		/*Obtain out payload name*/
+  		n_c.getParam("out_payload", out_payload);
+		/*Obtain in payload name*/
+  		n_c.getParam("in_payload", in_payload);
+		
+		
 
 	}
 
-	void roscontroller::Initialize_pub_sub(){
+	void roscontroller::Initialize_pub_sub(ros::NodeHandle n_c){
 		/*subscribers*/
   		current_position_sub = n_c.subscribe("/mav/global_position", 1000, &roscontroller::current_pos,this);
   		battery_sub = n_c.subscribe("/mav/power_status", 1000, &roscontroller::battery,this);
-  		payload_sub = n_c.subscribe("inMavlink", 1000, &roscontroller::payload_obt,this);
+  		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
 		flight_status_sub =n_c.subscribe("/mav/flight_status",100, &roscontroller::flight_status_update,this);
   		/*publishers*/
-		payload_pub = n_c.advertise<mavros_msgs::Mavlink>("outMavlink", 1000);
+		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
+		
 		/* Clients*/
   		mav_client = n_c.serviceClient<mavros_msgs::CommandInt>(fcclient_name);
 
@@ -94,19 +105,24 @@ namespace rosbzz_node{
 		/*Compile the buzz code .bzz to .bo*/
 		stringstream bzzfile_in_compile;
 	        std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/"));
-   		bzzfile_in_compile << "bzzparse "<<bzzfile_name<<" "<<path<< "/out.basm";
+		bzzfile_in_compile<<path<<"/";
+		path = bzzfile_in_compile.str();
+		bzzfile_in_compile.str("");
+		std::string  name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
+ 		name = name.substr(0,name.find_last_of("."));
+		bzzfile_in_compile << "bzzparse "<<bzzfile_name<<" "<<path<< name<<".basm";
    		//system("rm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
    		system(bzzfile_in_compile.str().c_str());
 		bzzfile_in_compile.str("");
-           	bzzfile_in_compile <<"bzzasm "<<path<<"/out.basm "<<path<<"/out.bo "<<path<<"/out.bdbg";
+           	bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo "<<path<<name<<".bdbg";
    		system(bzzfile_in_compile.str().c_str());
 		bzzfile_in_compile.str("");
-		bzzfile_in_compile <<path<<"/out.bo";
+		bzzfile_in_compile <<path<<name<<".bo";
 		bcfname = bzzfile_in_compile.str();
 		bzzfile_in_compile.str("");
-		bzzfile_in_compile <<path<<"/out.bdbg";
+		bzzfile_in_compile <<path<<name<<".bdbg";
 		dbgfname = bzzfile_in_compile.str();
-
+   		
 	}
 	
 	void roscontroller::prepare_msg_and_publish(){
@@ -117,8 +133,8 @@ namespace rosbzz_node{
     		cmd_srv.request.param3 = goto_pos[2];
     		cmd_srv.request.command =  buzzuav_closures::getcmd();
  		/* flight controller client call*/	
-    		if (mav_client.call(cmd_srv)){ ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-    		else{ ROS_ERROR("Failed to call service 'djicmd'"); }
+    		if (mav_client.call(cmd_srv));//{ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
+    		else ROS_ERROR("Failed to call service from flight controller"); 
     		/*obtain Pay load to be sent*/  
    		uint64_t* payload_out_ptr= buzz_utility::out_msg_process();
     		uint64_t  position[3];
@@ -138,9 +154,15 @@ namespace rosbzz_node{
     		for(std::vector<long unsigned int>::const_iterator it = payload_out.payload64.begin();
 			it != payload_out.payload64.end(); ++it){
 			message_obt[i] =(uint64_t) *it;
-         		cout<<" [Debug:] sent message "<<*it<<endl;
+         		
 			i++;
-        	}*/
+        	}
+		for(i=0;i<payload_out.payload64.size();i++){
+			out = buzz_utility::u64_cvt_u16(message_obt[i]);
+			for(int k=0;k<4;k++){
+				cout<<" [Debug:] sent message "<<out[k]<<endl;
+			}
+		}*/
      		/*publish prepared messages in respective topic*/
     		payload_pub.publish(payload_out);
     		delete[] out;
