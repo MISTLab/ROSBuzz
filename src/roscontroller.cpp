@@ -7,7 +7,6 @@ namespace rosbzz_node{
 	/***Constructor***/
 	roscontroller::roscontroller(ros::NodeHandle n_c)	
 	{
-		
 		ROS_INFO("Buzz_node");
 		/*Obtain parameters from ros parameter server*/
 	  	Rosparameters_get(n_c);
@@ -93,7 +92,6 @@ namespace rosbzz_node{
 		flight_status_sub =n_c.subscribe("/mav/flight_status",100, &roscontroller::flight_status_update,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
-		
 		/* Clients*/
   		mav_client = n_c.serviceClient<mavros_msgs::CommandInt>(fcclient_name);
 
