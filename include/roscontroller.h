@@ -42,6 +42,7 @@ private:
 	int robot_id=0;
         int oldcmdID=0;
 	int rc_cmd;
+	int bzz_old_cmd=0;
 	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname,out_payload,in_payload; //, rcclient;
 	bool rcclient;
 	ros::ServiceClient mav_client;

@@ -92,6 +92,7 @@ namespace rosbzz_node{
 		flight_status_sub =n_c.subscribe("/mav/flight_status",100, &roscontroller::flight_status_update,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
+		cout<<out_payload<<endl;
 		/* Clients*/
   		mav_client = n_c.serviceClient<mavros_msgs::CommandInt>(fcclient_name);
 
@@ -122,15 +123,19 @@ namespace rosbzz_node{
 	}
 	
 	void roscontroller::prepare_msg_and_publish(){
-		/*prepare the goto publish message */
-    		double* goto_pos = buzzuav_closures::getgoto();
-		cmd_srv.request.param1 = goto_pos[0];
-    		cmd_srv.request.param2 = goto_pos[1];
-    		cmd_srv.request.param3 = goto_pos[2];
-    		cmd_srv.request.command =  buzzuav_closures::getcmd();
+		
  		/* flight controller client call*/	
-    		if (mav_client.call(cmd_srv));//{ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-    		else ROS_ERROR("Failed to call service from flight controller"); 
+		if (bzz_old_cmd != buzzuav_closures::getcmd()) {  
+			/*prepare the goto publish message */
+    			double* goto_pos = buzzuav_closures::getgoto();
+			cmd_srv.request.param1 = goto_pos[0];
+    			cmd_srv.request.param2 = goto_pos[1];
+    			cmd_srv.request.param3 = goto_pos[2];
+    			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
+			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
+	    		else ROS_ERROR("Failed to call service from flight controller"); 
+  			bzz_old_cmd = cmd_srv.request.command;
+		} 		
     		/*obtain Pay load to be sent*/  
    		uint64_t* payload_out_ptr= buzz_utility::out_msg_process();
     		uint64_t  position[3];
@@ -276,12 +281,12 @@ namespace rosbzz_node{
 				res.success = true;
 				break;
 			case mavros_msgs::CommandCode::NAV_WAYPOINT:
-   				ROS_INFO("RC_Call: GO TO!!!! x = %f , y = %f , Z = %f",req.param1,req.param2,req.param3);
+   				ROS_INFO("RC_Call: GO TO!!!! ");
 				double rc_goto[3];
-   				rc_goto[0]=req.param1;
-				rc_goto[1]=req.param2;
-				rc_goto[2]=req.param3;
-				buzzuav_closures::set_goto(rc_goto);
+   				rc_goto[0]=req.x;
+				rc_goto[1]=req.y;
+				rc_goto[2]=req.z;
+				buzzuav_closures::rc_set_goto(rc_goto);
 				rc_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;

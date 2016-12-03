@@ -9,10 +9,11 @@
 #include "buzzuav_closures.h"
 namespace buzzuav_closures{
 static double goto_pos[3];
+static double rc_goto_pos[3];
 static float batt[3];
 static double cur_pos[3];
 static uint8_t status;
-static int cur_cmd;
+static int cur_cmd = 0;
 static int rc_cmd=0;
 /****************************************/
 /****************************************/
@@ -83,12 +84,7 @@ return goto_pos;
 }
 /******************************/
 int getcmd(){
-if(rc_cmd==0) return cur_cmd;
-else {
-cur_cmd=rc_cmd;
-rc_cmd=0;
-return cur_cmd;
-} 
+ return cur_cmd;
 }
 
 void set_goto(double pos[]){
@@ -98,6 +94,12 @@ goto_pos[2]=pos[2];
     
 }
 
+void rc_set_goto(double pos[]){
+rc_goto_pos[0]=pos[0];
+rc_goto_pos[1]=pos[1];
+rc_goto_pos[2]=pos[2];
+    
+}
 void rc_call(int rc_cmd_in){
 rc_cmd=rc_cmd_in;
 }
@@ -188,12 +190,33 @@ int buzzuav_update_flight_status(buzzvm_t vm) {
    buzzvm_pushs(vm, buzzvm_string_register(vm, "flight", 1));
    buzzvm_pusht(vm);
    buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "rc_cmd", 1));
+   buzzvm_pushi(vm, rc_cmd);
+   buzzvm_tput(vm);
+   buzzvm_dup(vm);
    buzzvm_pushs(vm, buzzvm_string_register(vm, "status", 1));
-   buzzvm_pushf(vm, status);
+   buzzvm_pushi(vm, status);
    buzzvm_tput(vm); 
+   buzzvm_gstore(vm);
+   //also set rc_controllers goto
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "rc_goto", 1));
+   buzzvm_pusht(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "latitude", 1));
+   buzzvm_pushf(vm, rc_goto_pos[0]);
+   buzzvm_tput(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "longitude", 1));
+   buzzvm_pushf(vm, rc_goto_pos[1]);
+   buzzvm_tput(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 1));
+   buzzvm_pushf(vm, rc_goto_pos[2]);
+   buzzvm_tput(vm);
    buzzvm_gstore(vm);
    return vm->state;
 }
+
 
 
 /****************************************/

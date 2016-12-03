@@ -22,8 +22,10 @@ int buzzros_print(buzzvm_t vm);
 int buzzuav_goto(buzzvm_t vm);
 /* Returns the current command from local variable*/
 int getcmd();
-/*Sets goto position could be used for bypassing*/
+/*Sets goto position */
 void set_goto(double pos[]);
+/*Sets goto position from rc client*/
+void rc_set_goto(double pos[]);
 /*sets rc requested command */
 void rc_call(int rc_cmd);
 /* sets the battery state */
@@ -57,7 +59,9 @@ int buzzuav_update_battery(buzzvm_t vm);
  */
 int buzzuav_update_currentpos(buzzvm_t vm);
 /*
- * Updates flight status in Buzz
+ * Updates flight status and rc command in Buzz, put it in a tabel to acess it 
+ * use flight.status for flight status
+ * use flight.rc_cmd for current rc cmd
  */
 int buzzuav_update_flight_status(buzzvm_t vm);
 
