@@ -1,0 +1,117 @@
+!16
+'init
+'i
+'step
+'neighbors
+'listen
+'Take
+'print
+'Got (
+',
+') from robot #
+'key
+'broadcast
+'yes
+'no
+'reset
+'destroy
+
+	pushs 0
+	pushcn @__label_1
+	gstore
+	pushs 2
+	pushcn @__label_2
+	gstore
+	pushs 14
+	pushcn @__label_7
+	gstore
+	pushs 15
+	pushcn @__label_8
+	gstore
+	nop
+
+@__label_0
+
+@__exitpoint
+	done
+
+@__label_1
+	pushs 1	|3,2,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 1	|3,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gstore	|3,5,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	ret0	|4,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+
+@__label_2
+	pushs 1	|9,6,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|9,6,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 0	|9,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	eq	|9,10,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	jumpz @__label_3	|9,12,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 3	|10,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|10,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 4	|10,10,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	tget	|10,16,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 5	|10,17,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushl @__label_5	|11,3,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 2	|14,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|14,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 3	|15,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|15,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 4	|15,10,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	tget	|15,16,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 10	|15,17,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushl @__label_6	|16,3,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 2	|19,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|19,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	jump @__label_4	|21,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+@__label_3	|21,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 3	|22,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|22,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 11	|22,10,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	tget	|22,19,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 10	|22,20,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 12	|22,27,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 2	|22,33,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|22,33,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 3	|23,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|23,9,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 11	|23,10,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	tget	|23,19,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 5	|23,20,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 13	|23,28,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 2	|23,33,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|23,33,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+@__label_4	|24,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	ret0	|26,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+
+@__label_5
+	pushs 6	|12,11,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|12,11,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 7	|12,12,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	lload 1	|12,24,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 8	|12,26,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	lload 2	|12,36,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 9	|12,38,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	lload 3	|12,59,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 6	|12,60,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|12,60,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	ret0	|13,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+
+@__label_6
+	pushs 6	|17,11,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	gload	|17,11,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 7	|17,12,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	lload 1	|17,24,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 8	|17,26,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	lload 2	|17,36,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushs 9	|17,38,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	lload 3	|17,59,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	pushi 6	|17,60,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	callc	|17,60,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+	ret0	|18,4,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+
+@__label_7
+	ret0	|30,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz
+
+@__label_8
+	ret0	|34,1,/home/ubuntu/ROS_WS/src/ROSBuzz/src/test.bzz

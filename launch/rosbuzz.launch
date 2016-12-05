@@ -2,12 +2,12 @@
 
 <launch>
 		<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
-		<param name="bzzfile_name" value="../ROS_WS/src/ROSBuzz/src/test.bzz" />
+		<param name="bzzfile_name" value="../ROS_WS/src/ROSBuzz/src/test1.bzz" />
                 <param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="rc_cmd" />
 		<param name="fcclient_name" value="/djicmd" />
-		<param name="in_payload" value="outMavlink"/>
-		<param name="out_payload" value="outMavlink"/>
+		<param name="in_payload" value="/inMavlink"/>
+		<param name="out_payload" value="/outMavlink"/>
 		<param name="robot_id" value="1"/>
 		</node>
 		

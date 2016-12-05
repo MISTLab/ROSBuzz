@@ -1,6 +1,8 @@
 # Executed once at init time.
 function init() {
 i = 0
+a = 0
+val = 0
 }
  
 # Executed at each time step.
@@ -15,12 +17,19 @@ neighbors.listen("Take",
 neighbors.listen("key",
    function(vid, value, rid) {
       print("Got (", vid, ",", value, ") from robot #", rid)
+      val = value      
    }
 )
+print(val)
+if ((val==23) and (a == 0)) { 
+	uav_takeoff()
+	a=1
+	}
+      if (a == 10) uav_land()
+      if (a != 0)  a = a+1
 }
-
 else{
-neighbors.broadcast("key", "yes")
+neighbors.broadcast("key", 23)
 neighbors.broadcast("Take", "no")
 }
 
@@ -33,4 +42,3 @@ function reset() {
 # Executed once at the end of experiment.
 function destroy() {
 }
-
