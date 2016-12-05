@@ -9,7 +9,7 @@ endif()
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
-  #mavros_msgs
+  mavros_msgs
   sensor_msgs
 )
 

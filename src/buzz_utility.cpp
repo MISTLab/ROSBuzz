@@ -80,7 +80,7 @@ namespace buzz_utility{
    	 			tot += sizeof(uint16_t);
          			/* Append message to the Buzz input message queue */
          			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
-            			buzzinmsg_queue_append(VM->inmsgs,
+            			buzzinmsg_queue_append(VM,
                                 buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
             			tot += unMsgSize;
          			}
@@ -104,9 +104,9 @@ namespace buzz_utility{
    		/* Send messages from FIFO */
    		do {
         		/* Are there more messages? */
-      			if(buzzoutmsg_queue_isempty(VM->outmsgs)) break;
+      			if(buzzoutmsg_queue_isempty(VM)) break;
       			/* Get first message */
-      			buzzmsg_payload_t m = buzzoutmsg_queue_first(VM->outmsgs);
+      			buzzmsg_payload_t m = buzzoutmsg_queue_first(VM);
       			/* Make sure the next message fits the data buffer */
       			if(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)
         			>
@@ -124,7 +124,7 @@ namespace buzz_utility{
 			tot += buzzmsg_payload_size(m);
    
       			/* Get rid of message */
-      			buzzoutmsg_queue_next(VM->outmsgs);
+      			buzzoutmsg_queue_next(VM);
       			buzzmsg_payload_destroy(&m);
    		} while(1);
 
