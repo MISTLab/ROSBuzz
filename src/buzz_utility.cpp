@@ -318,7 +318,7 @@ void buzz_script_step() {
       buzzvm_dump(VM);
    }
    /* Print swarm */
-   buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
+   //buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
    /* Check swarm state */
    /*  int status = 1;
    buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);

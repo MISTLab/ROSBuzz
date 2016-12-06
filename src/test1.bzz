@@ -3,34 +3,33 @@ function init() {
 i = 0
 a = 0
 val = 0
+oldcmd = 0
 }
  
 # Executed at each time step.
 function step() {
 
-if (i == 0) {
-neighbors.listen("Take",
+neighbors.listen("cmd",
    function(vid, value, rid) {
       print("Got (", vid, ",", value, ") from robot #", rid)
-   }
-)
-neighbors.listen("key",
-   function(vid, value, rid) {
-      print("Got (", vid, ",", value, ") from robot #", rid)
-      val = value      
-   }
-)
-print(val)
-if ((val==23) and (a == 0)) { 
-	uav_takeoff()
-	a=1
+	if(value==22) {
+		uav_takeoff()
+	} else if(value==21) {
+		uav_land()
 	}
-      if (a == 10) uav_land()
-      if (a != 0)  a = a+1
-}
-else{
-neighbors.broadcast("key", 23)
-neighbors.broadcast("Take", "no")
+   }
+)
+
+if(flight.rc_cmd!=oldcmd) {
+	print(flight.rc_cmd)
+	if(flight.rc_cmd==22) {
+		uav_takeoff()		
+		neighbors.broadcast("cmd", 22)
+	} else if(flight.rc_cmd==21) {
+		uav_land()
+		neighbors.broadcast("cmd", 21)
+	}
+	oldcmd=flight.rc_cmd
 }
 
 }

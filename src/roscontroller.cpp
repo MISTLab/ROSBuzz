@@ -258,9 +258,9 @@ namespace rosbzz_node{
 	bool roscontroller::rc_callback(mavros_msgs::CommandInt::Request  &req,
 		         mavros_msgs::CommandInt::Response &res){
 		int rc_cmd;
-		if(req.command==oldcmdID)
+/*		if(req.command==oldcmdID)
 		return true;
-		else oldcmdID=req.command;
+		else oldcmdID=req.command;*/
    		switch(req.command){
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
    				ROS_INFO("RC_call: TAKE OFF!!!!");
