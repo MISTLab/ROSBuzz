@@ -42,7 +42,7 @@ namespace rosbzz_node{
     				/*run once*/
     				ros::spinOnce();
 				/*loop rate of ros*/
-				ros::Rate loop_rate(1);
+				ros::Rate loop_rate(10);
     				/*sleep for the mentioned loop rate*/
     				loop_rate.sleep();
     				timer_step+=1;
@@ -204,9 +204,14 @@ namespace rosbzz_node{
 		latitude=neighbours_pos_payload[0];
 		longitude = neighbours_pos_payload[1];
 		altitude=neighbours_pos_payload[2];
-		neighbours_pos_payload[0]=sqrt(pow(latitude,2.0)+pow(longitude,2.0)+pow(altitude,2.0));
+		try {
+       		neighbours_pos_payload[0]=sqrt(pow(latitude,2.0)+pow(longitude,2.0)+pow(altitude,2.0));
 		neighbours_pos_payload[1]=atan(longitude/latitude);
 		neighbours_pos_payload[2]=atan((sqrt(pow(latitude,2.0)+pow(longitude,2.0)))/altitude);
+   		} catch (std::overflow_error e) {
+        	std::cout << e.what() << " Error in convertion to spherical coordinate system ";
+   		}
+		
 		return neighbours_pos_payload;
 	}
 
