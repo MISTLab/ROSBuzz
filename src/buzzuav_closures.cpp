@@ -194,6 +194,7 @@ int buzzuav_update_flight_status(buzzvm_t vm) {
    buzzvm_pushi(vm, rc_cmd);
    buzzvm_tput(vm);
    buzzvm_dup(vm);
+   rc_cmd=0;
    buzzvm_pushs(vm, buzzvm_string_register(vm, "status", 1));
    buzzvm_pushi(vm, status);
    buzzvm_tput(vm); 
