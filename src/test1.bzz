@@ -26,13 +26,23 @@ function barrier_set(threshold, transf) {
 # Make yourself ready
 #
 function barrier_ready() {
+ 
   barrier.put(id, 1)
+  print ("before put")
+  barrier.get(id)
+  print("barrier put : ")
 }
 
 #
 # Executes the barrier
 #
+function table_print(t) {
+  foreach(t, function(key, value) {
+      log(key, " -> ", value)
+    })
+}
 function barrier_wait(threshold, transf) {
+ table_print(barrier)
   barrier.get(id)
   extradbg = barrier.size()
   if(barrier.size() >= threshold) {
@@ -44,6 +54,16 @@ function barrier_wait(threshold, transf) {
 # flight status
 
 function idle() {
+neighbors.listen("cmd",
+   function(vid, value, rid) {
+      print("Got (", vid, ",", value, ") from robot #", rid)
+	if(value==22) {
+		statef=takeoff
+	} else if(value==21) {
+		statef=land
+	}
+   }
+)
 }
 
 function takeoff() {
@@ -85,20 +105,6 @@ statef=idle
  
 # Executed at each time step.
 function step() {
-
-neighbors.listen("cmd",
-   function(vid, value, rid) {
-      print("Got (", vid, ",", value, ") from robot #", rid)
-	if(value==22) {
-		statef=takeoff
-	} else if(value==21) {
-		statef=land
-	}
-   }
-)
-
-
-print("Flight status: ",flight.status)
 
 if(flight.rc_cmd!=oldcmd) {
 	

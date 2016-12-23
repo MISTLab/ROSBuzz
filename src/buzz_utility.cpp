@@ -175,7 +175,10 @@ namespace buzz_utility{
 		buzzvm_pushs(VM,  buzzvm_string_register(VM, "print", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
    		buzzvm_gstore(VM);
-   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_goto", 1));
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "log", 1));
+                buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
+                buzzvm_gstore(VM);
+                buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_goto", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_goto));
    		buzzvm_gstore(VM);
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_takeoff", 1));
