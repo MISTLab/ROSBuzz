@@ -86,10 +86,10 @@ namespace rosbzz_node{
 
 	void roscontroller::Initialize_pub_sub(ros::NodeHandle n_c){
 		/*subscribers*/
-  		current_position_sub = n_c.subscribe("/mav/global_position", 1000, &roscontroller::current_pos,this);
-  		battery_sub = n_c.subscribe("/mav/power_status", 1000, &roscontroller::battery,this);
+  		current_position_sub = n_c.subscribe("/global_position", 1000, &roscontroller::current_pos,this);
+  		battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
   		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
-		flight_status_sub =n_c.subscribe("/mav/flight_status",100, &roscontroller::flight_status_update,this);
+		flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_status_update,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		cout<<out_payload<<endl;

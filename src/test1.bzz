@@ -1,9 +1,86 @@
+
+########################################
+#
+# BARRIER-RELATED FUNCTIONS
+#
+########################################
+
+#
+# Constants
+#
+BARRIER_VSTIG = 1
+ROBOTS = 2 # number of robots in the swarm
+
+#
+# Sets a barrier
+#
+function barrier_set(threshold, transf) {
+  statef = function() {
+    barrier_wait(threshold, transf);
+  }
+  barrier = stigmergy.create(BARRIER_VSTIG)
+  statestr = "barrier"
+}
+
+#
+# Make yourself ready
+#
+function barrier_ready() {
+  barrier.put(id, 1)
+}
+
+#
+# Executes the barrier
+#
+function barrier_wait(threshold, transf) {
+  barrier.get(id)
+  extradbg = barrier.size()
+  if(barrier.size() >= threshold) {
+    barrier = nil
+    transf()
+  }
+}
+
+# flight status
+
+function idle() {
+}
+
+function takeoff() {
+	if( flight.status == 2) {
+		barrier_set(ROBOTS,transition_to_land)
+		barrier_ready()
+	}
+	else
+		uav_takeoff()
+}
+function land() {
+	if( flight.status == 1) {
+		barrier_set(ROBOTS,idle)
+		barrier_ready()
+	}
+	else
+		uav_land()
+}
+
+
+function transition_to_land() {
+	if(tim>=100){
+		statef=land
+		tim=0
+	}else{
+		tim=tim+1
+	}
+}
+
 # Executed once at init time.
 function init() {
 i = 0
 a = 0
 val = 0
 oldcmd = 0
+tim=0
+statef=idle
 }
  
 # Executed at each time step.
@@ -13,25 +90,28 @@ neighbors.listen("cmd",
    function(vid, value, rid) {
       print("Got (", vid, ",", value, ") from robot #", rid)
 	if(value==22) {
-		uav_takeoff()
+		statef=takeoff
 	} else if(value==21) {
-		uav_land()
+		statef=land
 	}
    }
 )
 
+
+print("Flight status: ",flight.status)
 if(flight.rc_cmd!=oldcmd) {
-	print(flight.rc_cmd)
+	
 	if(flight.rc_cmd==22) {
-		uav_takeoff()		
+		statef=takeoff		
 		neighbors.broadcast("cmd", 22)
 	} else if(flight.rc_cmd==21) {
-		uav_land()
+		statef=land
 		neighbors.broadcast("cmd", 21)
 	}
 	oldcmd=flight.rc_cmd
 }
 
+statef()
 }
  
 # Executed once when the robot (or the simulator) is reset.
