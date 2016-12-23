@@ -42,7 +42,7 @@ function table_print(t) {
     })
 }
 function barrier_wait(threshold, transf) {
- table_print(barrier)
+ #table_print(barrier)
   barrier.get(id)
   extradbg = barrier.size()
   if(barrier.size() >= threshold) {
@@ -54,6 +54,7 @@ function barrier_wait(threshold, transf) {
 # flight status
 
 function idle() {
+statef=idle
 neighbors.listen("cmd",
    function(vid, value, rid) {
       print("Got (", vid, ",", value, ") from robot #", rid)
@@ -85,6 +86,7 @@ function land() {
 
 
 function transition_to_land() {
+	statef=transition_to_land
 	if(tim>=100){
 		statef=land
 		tim=0
@@ -106,17 +108,19 @@ statef=idle
 # Executed at each time step.
 function step() {
 
-if(flight.rc_cmd!=oldcmd) {
+#if(flight.rc_cmd!=oldcmd) {
 	
-	if(flight.rc_cmd==22) {
+	if(flight.rc_cmd==22 and flight.status==1) {
+		flight.rc_cmd=0
 		statef=takeoff		
 		neighbors.broadcast("cmd", 22)
-	} else if(flight.rc_cmd==21) {
+	} else if(flight.rc_cmd==21 and flight.status==2) {
+		flight.rc_cmd=0
 		statef=land
 		neighbors.broadcast("cmd", 21)
 	}
-	oldcmd=flight.rc_cmd
-}
+#	oldcmd=flight.rc_cmd
+#}
 
 statef()
 }
