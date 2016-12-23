@@ -99,6 +99,7 @@ neighbors.listen("cmd",
 
 
 print("Flight status: ",flight.status)
+
 if(flight.rc_cmd!=oldcmd) {
 	
 	if(flight.rc_cmd==22) {

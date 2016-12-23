@@ -197,12 +197,12 @@ namespace buzz_utility{
 	int buzz_script_set(const char* bo_filename,
 	                    const char* bdbg_filename, int robot_id) {
 	//cout<<"bo file name"<<bo_filename;
-		/* Get hostname */
-   		char hstnm[30];
+	/* Get hostname */
+   	char hstnm[30];
    	gethostname(hstnm, 30);
    	/* Make numeric id from hostname */
    	/* NOTE: here we assume that the hostname is in the format Knn */
-   	int id = robot_id; //strtol(hstnm + 1, NULL, 10);
+   	int id = strtol(hstnm + 1, NULL, 10); //robot_id; 
    	cout << " Robot ID" << id<< endl;
    	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
