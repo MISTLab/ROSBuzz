@@ -72,7 +72,7 @@ function takeoff() {
 		barrier_set(ROBOTS,transition_to_land)
 		barrier_ready()
 	}
-	else
+	else if(flight.status!=3)
 		uav_takeoff()
 }
 function land() {
@@ -80,18 +80,17 @@ function land() {
 		barrier_set(ROBOTS,idle)
 		barrier_ready()
 	}
-	else
+	else if(flight.status!=0 and flight.status!=4)
 		uav_land()
 }
 
 
 function transition_to_land() {
 	statef=transition_to_land
-	if(tim>=100){
+	if(battery.capacity<50){
+		print("Low battery! Landing the fleet")
 		statef=land
-		tim=0
-	}else{
-		tim=tim+1
+		neighbors.broadcast("cmd", 21)
 	}
 }
 

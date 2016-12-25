@@ -15,6 +15,7 @@ static double cur_pos[3];
 static uint8_t status;
 static int cur_cmd = 0;
 static int rc_cmd=0;
+static int buzz_cmd=0;
 /****************************************/
 /****************************************/
 
@@ -74,6 +75,7 @@ int buzzuav_goto(buzzvm_t vm) {
    goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value; 
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %15f , Longitude: %15f, Altitude: %15f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
+   buzz_cmd=2;
    return buzzvm_ret0(vm);
 }
 
@@ -94,6 +96,12 @@ goto_pos[2]=pos[2];
     
 }
 
+int bzz_cmd(){
+int cmd = buzz_cmd;
+buzz_cmd=0;
+return cmd;
+}
+
 void rc_set_goto(double pos[]){
 rc_goto_pos[0]=pos[0];
 rc_goto_pos[1]=pos[1];
@@ -110,18 +118,21 @@ rc_cmd=rc_cmd_in;
 int buzzuav_takeoff(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
    printf(" Buzz requested Take off !!! \n");
+   buzz_cmd=1;
    return buzzvm_ret0(vm);
 }
 
 int buzzuav_land(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_LAND;
    printf(" Buzz requested Land !!! \n");
+   buzz_cmd=1;
    return buzzvm_ret0(vm);
 }
 
 int buzzuav_gohome(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
    printf(" Buzz requested gohome !!! \n");
+   buzz_cmd=1;
    return buzzvm_ret0(vm);
 }
 
@@ -252,4 +263,7 @@ int buzzuav_update_prox(buzzvm_t vm) {
 /****************************************/
 /****************************************/
 
+
+
 }
+

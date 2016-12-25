@@ -11,7 +11,6 @@
 #include "sensor_msgs/NavSatStatus.h"
 #include <sstream>
 #include <buzz/buzzasm.h>
-#include "buzzuav_closures.h"
 #include "buzz_utility.h"
 #include "uav_utility.h"
 #include <stdlib.h>
@@ -20,6 +19,7 @@
 #include <signal.h>
 #include <ostream>
 #include <map>
+#include "buzzuav_closures.h"
 
 using namespace std;
 
@@ -40,9 +40,8 @@ private:
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
 	int timer_step=0;
 	int robot_id=0;
-        int oldcmdID=0;
+        //int oldcmdID=0;
 	int rc_cmd;
-	int bzz_old_cmd=0;
 	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname,out_payload,in_payload; //, rcclient;
 	bool rcclient;
 	ros::ServiceClient mav_client;

@@ -7,6 +7,7 @@
 #include "mavros_msgs/CommandCode.h"
 #include "ros/ros.h"
 
+
 namespace buzzuav_closures{
 /*
  * prextern int() function in Buzz
@@ -70,6 +71,8 @@ int buzzuav_update_flight_status(buzzvm_t vm);
  * Proximity and ground sensors to do !!!!
  */
 int buzzuav_update_prox(buzzvm_t vm);
+
+int bzz_cmd();
 
 //#endif
 }
