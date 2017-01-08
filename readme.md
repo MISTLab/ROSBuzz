@@ -31,10 +31,10 @@ Rosbuzz package is the ROS version of Buzz. The package contains a node called �
 
 * The next parameter that the rosbuzz_node depends on is the robot ID of type “int”, this parameter should be set to the parameter named “robot_id” in the parameter server. This parameter is by default set to ‘0’, if not specified.
 
-* Hot swaps of code can be directly integrated into the ROSBuzz node directly from a text editor. The ROSBuzz node directly monitors the file supplied i.e. the name specified in "bzzfile_name". When this file is modified and saved, the new script is tested and once test passes. The new script is set to the current robot and sent to all the robots in the network. To ensure convergence, i.e. all the robots recived the code, number of robots present in the network is needed. The number of robots has to be specified under the parameter name "No_of_Robots".    
+* Hot swaps of code can be integrated into the ROSBuzz node directly from a text editor. The ROSBuzz node monitors the file supplied i.e. the name specified in "bzzfile_name". When this file is modified and saved, the new script is tested and once test passes. The new script is set to the current robot and sent to all the robots in the network. To ensure convergence, i.e. all the robots recived the code, number of robots present in the network is needed. The number of robots has to be specified under the parameter name "No_of_Robots".    
 
 An example template of parameter setting could be found in the launch file “launch/rosbuzzm100.launch”. 
-The launch file named "launch/rosbuzz_2_parallel.launch" can be used to launch two nodes in parellel for testing on a single Machine.
+The launch file named "launch/rosbuzz_2_parallel.launch" can be used to launch two nodes in parellel for testing ROSBuzz node on a single Machine.
 
 
 Downloading ROS Package
