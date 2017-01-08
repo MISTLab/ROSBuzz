@@ -21,7 +21,7 @@ More information is available at http://the.swarming.buzz/wiki/doku.php?id=start
 Description:
 ============
 
-Rosbuzz package is the ROS version of Buzz. The package contains a node called “rosbuzz_node”, which implements buzz as a node in ROS. The rosbuzz_node requires certain parameters to run. These parameters are supplied to the node from the ros parameter server. The package also contains a launch file called “rosbuzz.launch”, which initializes the required parameters. The required parameters are the .bzz file location, presence of Remote Controller client, Remote Controller service name, Flight Controller client name and Robot ID.
+Rosbuzz package is the ROS version of Buzz. The package contains a node called “rosbuzz_node”, which implements buzz as a node in ROS. The rosbuzz_node requires certain parameters to run. These parameters are supplied to the node from the ros parameter server. The package also contains a launch file called “rosbuzzm100.launch”, which initializes the required parameters. The required parameters are the .bzz file location, presence of Remote Controller client, Remote Controller service name, Flight Controller client name, Robot ID and Number of Robots.
 
 * The .bzz file location parameter is a string with name “bzzfile_name”, the node compiles and parses the specified .bzz file into .basm, .bo and .bdbg files. The node runs the parsed .bo byte file.
 
