@@ -14,6 +14,8 @@ namespace rosbzz_node{
   		Initialize_pub_sub(n_c);
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
  		Compile_bzz();
+		set_bzz_file(bzzfile_name.c_str());
+		init_update_monitor(bcfname.c_str(),barrier);
 	}
 
 	/***Destructor***/
@@ -21,7 +23,7 @@ namespace rosbzz_node{
 	{
 		/* All done */  
 		/* Cleanup */
-		buzz_utility::buzz_script_destroy();
+		//buzz_utility::buzz_script_destroy();
  		/* Stop the robot */
    		uav_done();
 	}
@@ -35,6 +37,8 @@ namespace rosbzz_node{
   			{
       				/*Update neighbors position inside Buzz*/
      				buzz_utility::neighbour_pos_callback(neighbours_pos_map);
+				/*Check updater state and step code*/
+  				if(update_routine(bcfname.c_str(), dbgfname.c_str(),0)==CODE_RUNNING)
       				/*Step buzz script */
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
@@ -49,6 +53,8 @@ namespace rosbzz_node{
    				maintain_pos(timer_step);
 				
 			}
+			/* Destroy updater and Cleanup */
+    			update_routine(bcfname.c_str(), dbgfname.c_str(),1);
   		}
 	}
 
@@ -79,7 +85,8 @@ namespace rosbzz_node{
   		n_c.getParam("out_payload", out_payload);
 		/*Obtain in payload name*/
   		n_c.getParam("in_payload", in_payload);
-		
+		/*Obtain Number of robots for barrier*/
+		n_c.getParam("No_of_Robots", barrier);
 		
 
 	}
@@ -121,7 +128,14 @@ namespace rosbzz_node{
 		dbgfname = bzzfile_in_compile.str();
    		
 	}
-	
+	/*Prepare messages for each step and publish*/
+	/*******************************************************************************************************/
+	/* Message format of payload (Each slot is uint64_t)						       */
+	/* _________________________________________________________________________________________________   */
+	/*|	|     |	    |						     |			            |  */
+	/*|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs with size.........  |  */
+	/*|_____|_____|_____|________________________________________________|______________________________|  */
+	/*******************************************************************************************************/	
 	void roscontroller::prepare_msg_and_publish(){
 		
  		/* flight controller client call if requested from Buzz*/
@@ -161,7 +175,6 @@ namespace rosbzz_node{
     		for(std::vector<long unsigned int>::const_iterator it = payload_out.payload64.begin();
 			it != payload_out.payload64.end(); ++it){
 			message_obt[i] =(uint64_t) *it;
-         		
 			i++;
         	}
 		for(i=0;i<payload_out.payload64.size();i++){
@@ -237,6 +250,15 @@ namespace rosbzz_node{
 	}
 
 	/*payload callback callback*/
+
+	/*******************************************************************************************************/
+	/* Message format of payload (Each slot is uint64_t)						       */
+	/* _________________________________________________________________________________________________   */
+	/*|	|     |	    |						     |			            |  */
+	/*|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs with size.........  |  */
+	/*|_____|_____|_____|________________________________________________|______________________________|  */
+	/*******************************************************************************************************/	
+	
 	void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg){
 		uint64_t message_obt[msg->payload64.size()];
 		int i = 0;

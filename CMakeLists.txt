@@ -38,7 +38,8 @@ add_executable(rosbuzz_node src/rosbuzz.cpp
   src/roscontroller.cpp
   src/buzz_utility.cpp
   src/buzzuav_closures.cpp
-  src/uav_utility.cpp)
+  src/uav_utility.cpp 
+  src/buzz_update.cpp)
 target_link_libraries(rosbuzz_node ${catkin_LIBRARIES} /usr/local/lib/libbuzz.so /usr/local/lib/libbuzzdbg.so -lpthread)
 
 # Executables and libraries for installation to do

@@ -17,7 +17,8 @@ namespace buzz_utility{
 	static char*        BO_FNAME        = 0;
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
-	static unsigned int MSG_SIZE        = 32;
+	static uint8_t      MSG_SIZE        = 100;   // Only 100 bytes of Buzz messages every step
+	static int          MAX_MSG_SIZE    = 10100; // Maximum Msg size for sending update packets 
 	
 	
 	/****************************************/
@@ -35,9 +36,9 @@ namespace buzz_utility{
                         		  (it->second).z);
     		}
 	}
-	/***************************************/
-	/*Reinterprets  uint64_t into 4 uint16_t*/
-	/***************************************/
+	/**************************************************************************/
+	/*Deserializes uint64_t into 4 uint16_t, freeing out is left to the user  */
+	/**************************************************************************/
 	uint16_t* u64_cvt_u16(uint64_t u64){
    	uint16_t* out = new uint16_t[4];
    	uint32_t int32_1 = u64 & 0xFFFFFFFF;
@@ -54,17 +55,26 @@ namespace buzz_utility{
 	/*Appends obtained messages to buzz in message Queue*/
 	/***************************************************/
 
+	/*******************************************************************************************************************/
+	/* Message format of payload (Each slot is uint64_t)						                   */
+	/* _______________________________________________________________________________________________________________ */
+	/*|					        		             |			                  |*/
+	/*|Size in Uint64_t(but size is Uint16_t)|robot_id|Update msg size|Update msg|Update msgs+Buzz_msgs with size.....|*/
+	/*|__________________________________________________________________________|____________________________________|*/
+	/*******************************************************************************************************************/
+
 	void in_msg_process(uint64_t* payload){
 
    		/* Go through messages and add them to the FIFO */
    		uint16_t* data= u64_cvt_u16((uint64_t)payload[0]);
+		/*Size is at first 2 bytes*/
    		uint16_t size=data[0]*sizeof(uint64_t);
    		delete[] data;
    		uint8_t* pl =(uint8_t*)malloc(size);
    		memset(pl, 0,size);
    		/* Copy packet into temporary buffer */
    		memcpy(pl, payload ,size);
-
+		/*size and robot id read*/
    		size_t tot = sizeof(uint32_t);
       		/*for(int i=0;i<data[0];i++){
 			uint16_t* out = u64_cvt_u16(payload[i]);
@@ -74,18 +84,31 @@ namespace buzz_utility{
 		}*/
 		/* Go through the messages until there's nothing else to read */
       		uint16_t unMsgSize;
-      			do {
-         			/* Get payload size */
-         			unMsgSize = *(uint16_t*)(pl + tot);
-   	 			tot += sizeof(uint16_t);
-         			/* Append message to the Buzz input message queue */
-         			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
-            			buzzinmsg_queue_append(VM,
-                                buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
-            			tot += unMsgSize;
-         			}
-      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
-
+		unMsgSize = *(uint16_t*)(pl + tot);
+	        tot += sizeof(uint16_t);
+	        code_message_inqueue_append(pl+tot,unMsgSize);
+	      	tot += unMsgSize;
+	      	code_message_inqueue_process();
+	      	unMsgSize=0;
+		/*Check for Buzz messages only when the code is running*/
+		if(get_update_mode()==CODE_RUNNING){
+			uint8_t buzz_msg_pre=*(uint8_t*)(pl + tot);
+			tot+= sizeof(uint8_t);
+			/*Obtain Buzz messages only when they are present*/
+	      		if(buzz_msg_pre){
+	      			do {
+		 			/* Get payload size */
+		 			unMsgSize = *(uint16_t*)(pl + tot);
+	   	 			tot += sizeof(uint16_t);
+		 			/* Append message to the Buzz input message queue */
+		 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
+		    			buzzinmsg_queue_append(VM,
+		                        buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
+		    			tot += unMsgSize;
+		 			}
+	      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
+			}
+		}
    		/* Process messages */
 		buzzvm_process_inmsgs(VM);
 	}
@@ -95,26 +118,39 @@ namespace buzz_utility{
 
    	uint64_t* out_msg_process(){
    		buzzvm_process_outmsgs(VM);
-   		uint8_t* buff_send =(uint8_t*)malloc(MSG_SIZE);
-   		memset(buff_send, 0, MSG_SIZE);
+   		uint8_t* buff_send =(uint8_t*)malloc(MAX_MSG_SIZE);
+   		memset(buff_send, 0, MAX_MSG_SIZE);
    		ssize_t tot = sizeof(uint16_t);
    		/* Send robot id */
    		*(uint16_t*)(buff_send+tot) = (uint16_t) VM->robot;
    		tot += sizeof(uint16_t);
-   		/* Send messages from FIFO */
-   		do {
-        		/* Are there more messages? */
-      			if(buzzoutmsg_queue_isempty(VM)) break;
-      			/* Get first message */
-      			buzzmsg_payload_t m = buzzoutmsg_queue_first(VM);
-      			/* Make sure the next message fits the data buffer */
-      			if(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)
-        			>
-        	 		MSG_SIZE) {
-        	 		buzzmsg_payload_destroy(&m);
-        	 		break;
-      			}
-       
+		/*Append updater msg size*/
+                memcpy(buff_send + tot, (uint8_t*)getupdate_out_msg_size(), sizeof(uint16_t));
+     		// fprintf(stdout,"Msg size : %i\n",(int) *(uint16_t*)(STREAM_SEND_BUF + tot));
+      		tot+= sizeof(uint16_t);
+		/*Append updater msgs*/   		
+		memcpy(buff_send + tot, (uint8_t*) getupdater_out_msg(),*(uint16_t*)getupdate_out_msg_size());
+     		// fprintf(stdout,"Msg 1 : %i , and Msg 2: %i\n",(int) *(uint16_t*)(STREAM_SEND_BUF + tot),(int) *(uint8_t*)(STREAM_SEND_BUF + tot+sizeof(uint16_t)));
+		tot+= *(uint16_t*)getupdate_out_msg_size();
+		/*destroy the updater out msg queue*/
+		destroy_out_msg_queue();
+ 		if(get_update_mode()==CODE_RUNNING){
+	  		*(uint8_t*)(buff_send + tot) = 1;
+	   		tot+= sizeof(uint8_t);
+	   		/* Send messages from FIFO */
+	   		do {
+				/* Are there more messages? */
+	      			if(buzzoutmsg_queue_isempty(VM)) break;
+	      			/* Get first message */
+	      			buzzmsg_payload_t m = buzzoutmsg_queue_first(VM);
+	      			/* Make sure the next message makes the data buffer with buzz messages to be less than 100 Bytes */
+	      			if(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)
+					>
+			 		MSG_SIZE) {
+			 		buzzmsg_payload_destroy(&m);
+			 		break;
+	      			}
+
       			/* Add message length to data buffer */
       			*(uint16_t*)(buff_send + tot) = (uint16_t)buzzmsg_payload_size(m);
       			tot += sizeof(uint16_t);
@@ -126,11 +162,14 @@ namespace buzz_utility{
       			/* Get rid of message */
       			buzzoutmsg_queue_next(VM);
       			buzzmsg_payload_destroy(&m);
-   		} while(1);
-
-   		int total_size =(ceil((float)tot/(float)sizeof(uint64_t))); 
+	   		} while(1);
+		}
+		else{
+	 		*(uint8_t*)(buff_send + tot) = 0;
+			tot+= sizeof(uint8_t);
+		}
+   		uint16_t total_size =(ceil((float)tot/(float)sizeof(uint64_t))); 
    		*(uint16_t*)buff_send = (uint16_t) total_size;   
-  
    
    		uint64_t* payload_64 = new uint64_t[total_size];
  
@@ -140,7 +179,8 @@ namespace buzz_utility{
    		}*/
    		/* Send message */
 		return payload_64;
-	}
+		}
+		
 	/****************************************/
 	/*Buzz script not able to load*/
 	/****************************************/
@@ -193,6 +233,33 @@ namespace buzz_utility{
    	return BUZZVM_STATE_READY;
 	}
 
+	/**************************************************/
+	/*Register dummy Buzz hooks for test during update*/
+	/**************************************************/
+
+	static int testing_buzz_register_hooks() {
+		buzzvm_pushs(VM,  buzzvm_string_register(VM, "print", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
+   		buzzvm_gstore(VM);
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "log", 1));
+                buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
+                buzzvm_gstore(VM);
+                buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_goto", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM);
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_takeoff", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM);
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_gohome", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM);
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_land", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM);
+   	return BUZZVM_STATE_READY;
+	}
+
+
 	/****************************************/
 	/*Sets the .bzz and .bdbg file*/
 	/****************************************/
@@ -232,28 +299,122 @@ namespace buzz_utility{
    	}
    	fclose(fd);
    	/* Read debug information */
+   	//if(!buzzdebug_fromfile(DBG_INFO, bdbg_filename)) {
+      	//	buzzvm_destroy(&VM);
+      	//	buzzdebug_destroy(&DBG_INFO);
+      	//	perror(bdbg_filename);
+      	//	return 0;
+   	//}
+   	/* Set byte code */
+   	//if(buzzvm_set_bcode(VM, BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
+      	//	buzzvm_destroy(&VM);
+      	//	buzzdebug_destroy(&DBG_INFO);
+      	//	fprintf(stdout, "%s: Error loading Buzz script\n\n", bo_filename);
+      	//	return 0;
+   	//}
+   	/* Register hook functions */
+   	/*if(buzz_register_hooks() != BUZZVM_STATE_READY) {
+      		buzzvm_destroy(&VM);
+      		buzzdebug_destroy(&DBG_INFO);
+      		fprintf(stdout, "%s: Error registering hooks\n\n", bo_filename);
+      		return 0;
+   	}*/
+   	/* Save bytecode file name */
+   	//BO_FNAME = strdup(bo_filename);
+   	/* Execute the global part of the script */
+   	//buzzvm_execute_script(VM);
+   	/* Call the Init() function */
+   	//buzzvm_function_call(VM, "init", 0);
+   	/* All OK */
+   	return buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
+	}
+
+	/****************************************/
+	/*Sets a new update                     */
+	/****************************************/
+	int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename,size_t bcode_size){
+	/* Get hostname */
+   	char hstnm[30];
+   	gethostname(hstnm, 30);
+   	/* Make numeric id from hostname */
+   	/* NOTE: here we assume that the hostname is in the format Knn */
+   	int id = strtol(hstnm + 1, NULL, 10);
+	/* Reset the Buzz VM */
+   	if(VM) buzzvm_destroy(&VM);
+   	VM = buzzvm_new(id);
+   	/* Get rid of debug info */
+   	if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
+  	DBG_INFO = buzzdebug_new();
+   
+   	/* Read debug information */
    	if(!buzzdebug_fromfile(DBG_INFO, bdbg_filename)) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
       		perror(bdbg_filename);
       		return 0;
-   	}
+   	 }
    	/* Set byte code */
-   	if(buzzvm_set_bcode(VM, BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
+   	if(buzzvm_set_bcode(VM, UP_BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error loading Buzz script\n\n", bo_filename);
+      		fprintf(stdout, "%s: Error loading Buzz script\n\n", BO_FNAME);
       		return 0;
-   	}
+   	 }
    	/* Register hook functions */
    	if(buzz_register_hooks() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error registering hooks\n\n", bo_filename);
-      		return 0;
+      		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
+        	return 0;
    	}
-   	/* Save bytecode file name */
-   	BO_FNAME = strdup(bo_filename);
+ 
+   	/* Execute the global part of the script */
+   	buzzvm_execute_script(VM);
+   	/* Call the Init() function */
+   	buzzvm_function_call(VM, "init", 0);
+   	/* All OK */
+   	return 1;
+	}
+
+	/****************************************/
+	/*Performs a initialization test        */
+	/****************************************/
+	int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename,size_t bcode_size){
+	/* Get hostname */
+   	char hstnm[30];
+   	gethostname(hstnm, 30);
+   	/* Make numeric id from hostname */
+   	/* NOTE: here we assume that the hostname is in the format Knn */
+   	int id = strtol(hstnm + 1, NULL, 10);
+	/* Reset the Buzz VM */
+   	if(VM) buzzvm_destroy(&VM);
+   	VM = buzzvm_new(id);
+   	/* Get rid of debug info */
+   	if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
+  	DBG_INFO = buzzdebug_new();
+   
+   	/* Read debug information */
+   	if(!buzzdebug_fromfile(DBG_INFO, bdbg_filename)) {
+      		buzzvm_destroy(&VM);
+      		buzzdebug_destroy(&DBG_INFO);
+      		perror(bdbg_filename);
+      		return 0;
+   	 }
+   	/* Set byte code */
+   	if(buzzvm_set_bcode(VM, UP_BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
+      		buzzvm_destroy(&VM);
+      		buzzdebug_destroy(&DBG_INFO);
+      		fprintf(stdout, "%s: Error loading Buzz script\n\n", BO_FNAME);
+      		return 0;
+   	 }
+   	/* Register hook functions */
+   	if(testing_buzz_register_hooks() != BUZZVM_STATE_READY) {
+      		buzzvm_destroy(&VM);
+      		buzzdebug_destroy(&DBG_INFO);
+      		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
+        	return 0;
+   	}
+ 
    	/* Execute the global part of the script */
    	buzzvm_execute_script(VM);
    	/* Call the Init() function */
@@ -266,72 +427,72 @@ namespace buzz_utility{
 	/*Swarm struct*/
 	/****************************************/
 
-struct buzzswarm_elem_s {
-   buzzdarray_t swarms;
-   uint16_t age;
-};
-typedef struct buzzswarm_elem_s* buzzswarm_elem_t;
+	struct buzzswarm_elem_s {
+	   buzzdarray_t swarms;
+	   uint16_t age;
+	};
+	typedef struct buzzswarm_elem_s* buzzswarm_elem_t;
 
-void check_swarm_members(const void* key, void* data, void* params) {
-   buzzswarm_elem_t e = *(buzzswarm_elem_t*)data;
-   int* status = (int*)params;
-   if(*status == 3) return;
-   if(buzzdarray_size(e->swarms) != 1) {
-      fprintf(stderr, "Swarm list size is not 1\n");
-      *status = 3;
-   }
-   else {
-      int sid = 1;
-      if(*buzzdict_get(VM->swarms, &sid, uint8_t) &&
-         buzzdarray_get(e->swarms, 0, uint16_t) != sid) {
-         fprintf(stderr, "I am in swarm #%d and neighbor is in %d\n",
-                 sid,
-                 buzzdarray_get(e->swarms, 0, uint16_t));
-         *status = 3;
-         return;
-      }
-      sid = 2;
-      if(*buzzdict_get(VM->swarms, &sid, uint8_t) &&
-         buzzdarray_get(e->swarms, 0, uint16_t) != sid) {
-         fprintf(stderr, "I am in swarm #%d and neighbor is in %d\n",
-                 sid,
-                 buzzdarray_get(e->swarms, 0, uint16_t));
-         *status = 3;
-         return;
-      }
-   }
-}
-/*Step through the buzz script*/
+	void check_swarm_members(const void* key, void* data, void* params) {
+	   buzzswarm_elem_t e = *(buzzswarm_elem_t*)data;
+	   int* status = (int*)params;
+	   if(*status == 3) return;
+	   if(buzzdarray_size(e->swarms) != 1) {
+	      fprintf(stderr, "Swarm list size is not 1\n");
+	      *status = 3;
+	   }
+	   else {
+	      int sid = 1;
+	      if(*buzzdict_get(VM->swarms, &sid, uint8_t) &&
+		 buzzdarray_get(e->swarms, 0, uint16_t) != sid) {
+		 fprintf(stderr, "I am in swarm #%d and neighbor is in %d\n",
+		         sid,
+		         buzzdarray_get(e->swarms, 0, uint16_t));
+		 *status = 3;
+		 return;
+	      }
+	      sid = 2;
+	      if(*buzzdict_get(VM->swarms, &sid, uint8_t) &&
+		 buzzdarray_get(e->swarms, 0, uint16_t) != sid) {
+		 fprintf(stderr, "I am in swarm #%d and neighbor is in %d\n",
+		         sid,
+		         buzzdarray_get(e->swarms, 0, uint16_t));
+		 *status = 3;
+		 return;
+	      }
+	   }
+	}
+	/*Step through the buzz script*/
 
-void buzz_script_step() {
-   /*
-    * Update sensors
-    */
-   buzzuav_closures::buzzuav_update_battery(VM);
-   buzzuav_closures::buzzuav_update_prox(VM);
-   buzzuav_closures::buzzuav_update_currentpos(VM);
-   buzzuav_closures::buzzuav_update_flight_status(VM);
-    /*
-    * Call Buzz step() function
-    */
-   if(buzzvm_function_call(VM, "step", 0) != BUZZVM_STATE_READY) {
-      fprintf(stderr, "%s: execution terminated abnormally: %s\n\n",
-              BO_FNAME,
-              buzz_error_info());
-      buzzvm_dump(VM);
-   }
-   /* Print swarm */
-   //buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
-   /* Check swarm state */
-   /*  int status = 1;
-   buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
-   if(status == 1 &&
-      buzzdict_size(VM->swarmmembers) < 9)
-      status = 2;
-   buzzvm_pushs(VM, buzzvm_string_register(VM, "swarm_status", 1));
-   buzzvm_pushi(VM, status);
-   buzzvm_gstore(VM);*/
-}
+	void buzz_script_step() {
+	   /*
+	    * Update sensors
+	    */
+	   buzzuav_closures::buzzuav_update_battery(VM);
+	   buzzuav_closures::buzzuav_update_prox(VM);
+	   buzzuav_closures::buzzuav_update_currentpos(VM);
+	   buzzuav_closures::buzzuav_update_flight_status(VM);
+	    /*
+	    * Call Buzz step() function
+	    */
+	   if(buzzvm_function_call(VM, "step", 0) != BUZZVM_STATE_READY) {
+	      fprintf(stderr, "%s: execution terminated abnormally: %s\n\n",
+		      BO_FNAME,
+		      buzz_error_info());
+	      buzzvm_dump(VM);
+	   }
+	   /* Print swarm */
+	   //buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
+	   /* Check swarm state */
+	   /*  int status = 1;
+	   buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
+	   if(status == 1 &&
+	      buzzdict_size(VM->swarmmembers) < 9)
+	      status = 2;
+	   buzzvm_pushs(VM, buzzvm_string_register(VM, "swarm_status", 1));
+	   buzzvm_pushi(VM, status);
+	   buzzvm_gstore(VM);*/
+	}
 
 /****************************************/
 /*Destroy the bvm and other resorces*/
@@ -364,6 +525,33 @@ void buzz_script_destroy() {
 int buzz_script_done() {
    return VM->state != BUZZVM_STATE_READY;
 }
+
+int update_step_test(){
+
+  buzzuav_closures::buzzuav_update_battery(VM);
+  buzzuav_closures::buzzuav_update_prox(VM);
+  buzzuav_closures::buzzuav_update_currentpos(VM);
+  buzzuav_closures::buzzuav_update_flight_status(VM);
+ 
+ int a = buzzvm_function_call(VM, "step", 0);
+if(a != BUZZVM_STATE_READY){
+ fprintf(stdout, "step test VM state %i\n",a);
+  fprintf(stdout, " execution terminated abnormally: %s\n\n",
+                 buzz_error_info());
+}
+ return a == BUZZVM_STATE_READY;
+}
+
+uint16_t get_robotid(){
+/* Get hostname */
+   char hstnm[30];
+   gethostname(hstnm, 30);
+   /* Make numeric id from hostname */
+   /* NOTE: here we assume that the hostname is in the format Knn */
+   int id = strtol(hstnm + 1, NULL, 10);
+return (uint16_t)id;
+}
+
 
 }
 

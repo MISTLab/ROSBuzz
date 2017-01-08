@@ -263,7 +263,7 @@ int buzzuav_update_prox(buzzvm_t vm) {
 /****************************************/
 /****************************************/
 
-
+int dummy_closure(buzzvm_t vm){ return buzzvm_ret0(vm);}
 
 }
 

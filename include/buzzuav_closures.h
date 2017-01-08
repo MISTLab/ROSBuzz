@@ -74,5 +74,6 @@ int buzzuav_update_prox(buzzvm_t vm);
 
 int bzz_cmd();
 
+int dummy_closure(buzzvm_t vm);
 //#endif
 }

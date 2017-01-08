@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "buzz_utility.h"
 #include "buzzuav_closures.h"
+#include "buzz_update.h"
 #include <buzz/buzzdebug.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,10 +36,20 @@ uint64_t* out_msg_process();
 
 int buzz_script_set(const char* bo_filename,
                            const char* bdbg_filename, int robot_id);
+
+int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename,size_t bcode_size);
+
+int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename,size_t bcode_size);
+
 void buzz_script_step();
 
 void buzz_script_destroy();
 
 int buzz_script_done();
+
+int update_step_test();
+
+uint16_t get_robotid();
+
 
 }
