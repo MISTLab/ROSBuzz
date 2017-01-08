@@ -27,11 +27,14 @@ Rosbuzz package is the ROS version of Buzz. The package contains a node called �
 
 * The presence of remote controller client is a bool parameter with name “rcclient”,  this  specifies  whether there is a remote controller present to issue bypassing commands like takeoff, land, goto location and go home. If there is no remote controller present then this parameter could be set to “false”. If a remote controller exists, this parameter could be set “True” and the service topic offered by the remote controller should be specified to the parameter named “rcservice_name”.
 
-* The flight controller client present in the node is used to send commands to the flight controller. The commands that could be sent are takeoff, land, goto location and go home. The topic name used to communicate with the flight controller should be set to the parameter named “fcclient_name”.
+* The flight controller client present in the node, that is used to send commands to the flight controller. The commands that could be sent are takeoff, land, goto location and go home. The topic name used to communicate with the flight controller should be set to the parameter named “fcclient_name”.
 
-* The last parameter that the rosbuzz_node depends on is the robot ID of type “int”, this parameter could be set to the parameter named “robot_id”. This parameter is by default set to ‘0’, if not specified.  
+* The next parameter that the rosbuzz_node depends on is the robot ID of type “int”, this parameter should be set to the parameter named “robot_id” in the parameter server. This parameter is by default set to ‘0’, if not specified.
 
-An example template of parameter setting could be found in the launch file “launch/rosbuzz.launch”. 
+* Hot swaps of code can be directly integrated into the ROSBuzz node directly from a text editor. The ROSBuzz node directly monitors the file supplied i.e. the name specified in "bzzfile_name". When this file is modified and saved, the new script is tested and once test passes. The new script is set to the current robot and sent to all the robots in the network. To ensure convergence, i.e. all the robots recived the code, number of robots present in the network is needed. The number of robots has to be specified under the parameter name "No_of_Robots".    
+
+An example template of parameter setting could be found in the launch file “launch/rosbuzzm100.launch”. 
+The launch file named "launch/rosbuzz_2_parallel.launch" can be used to launch two nodes in parellel for testing on a single Machine.
 
 
 Downloading ROS Package
@@ -72,7 +75,9 @@ Run
 ===
 To run the ROSBuzz package using the launch file, execute the following:
 
-    $ roslaunch rosbuzz rosbuzz.launch
+    $ roslaunch rosbuzz rosbuzzm100.launch
+    
+Note : Before launching the ROSBuzz node, verify all the parameter in the launch file.
 
 Publisher
 =========
