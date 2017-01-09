@@ -18,7 +18,7 @@ namespace buzz_utility{
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
 	static uint8_t      MSG_SIZE        = 100;   // Only 100 bytes of Buzz messages every step
-	static int          MAX_MSG_SIZE    = 10100; // Maximum Msg size for sending update packets 
+	static int          MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
 	
 	
 	/****************************************/

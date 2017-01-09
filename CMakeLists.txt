@@ -11,6 +11,21 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   mavros_msgs
   sensor_msgs
+  message_generation
+)
+
+##############################
+#Generate messages#
+##############################
+
+add_message_files(
+ FILES
+ neigh_pos.msg
+)
+
+generate_messages(
+DEPENDENCIES
+sensor_msgs
 )
 
 ###################################
@@ -20,7 +35,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES xbee_ros_node
-  CATKIN_DEPENDS roscpp std_msgs mavros_msgs sensor_msgs
+  CATKIN_DEPENDS roscpp std_msgs mavros_msgs sensor_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -41,6 +56,7 @@ add_executable(rosbuzz_node src/rosbuzz.cpp
   src/uav_utility.cpp 
   src/buzz_update.cpp)
 target_link_libraries(rosbuzz_node ${catkin_LIBRARIES} /usr/local/lib/libbuzz.so /usr/local/lib/libbuzzdbg.so -lpthread)
+add_dependencies(rosbuzz_node rosbuzz_generate_messages_cpp)
 
 # Executables and libraries for installation to do
 install(TARGETS rosbuzz_node

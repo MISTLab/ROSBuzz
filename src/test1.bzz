@@ -19,32 +19,20 @@ function barrier_set(threshold, transf) {
     barrier_wait(threshold, transf);
   }
   barrier = stigmergy.create(BARRIER_VSTIG)
-  statestr = "barrier"
 }
 
 #
 # Make yourself ready
 #
 function barrier_ready() {
- 
   barrier.put(id, 1)
-  print ("before put")
-  barrier.get(id)
-  print("barrier put : ")
 }
 
 #
 # Executes the barrier
 #
-function table_print(t) {
-  foreach(t, function(key, value) {
-      log(key, " -> ", value)
-    })
-}
 function barrier_wait(threshold, transf) {
- #table_print(barrier)
   barrier.get(id)
-  extradbg = barrier.size()
   if(barrier.size() >= threshold) {
     barrier = nil
     transf()
@@ -69,7 +57,7 @@ neighbors.listen("cmd",
 
 function takeoff() {
 	if( flight.status == 2) {
-		barrier_set(ROBOTS,transition_to_land)
+		barrier_set(ROBOTS,idle)
 		barrier_ready()
 	}
 	else if(flight.status!=3)
@@ -84,31 +72,14 @@ function land() {
 		uav_land()
 }
 
-
-function transition_to_land() {
-	statef=transition_to_land
-	if(battery.capacity<50){
-		print("Low battery! Landing the fleet")
-		statef=land
-		neighbors.broadcast("cmd", 21)
-	}
-}
-
 # Executed once at init time.
 function init() {
-i = 0
-a = 0
-val = 0
-oldcmd = 0
-tim=0
-statef=idle
+	statef=idle
 }
- 
+
 # Executed at each time step.
 function step() {
 
-#if(flight.rc_cmd!=oldcmd) {
-	
 	if(flight.rc_cmd==22 and flight.status==1) {
 		flight.rc_cmd=0
 		statef=takeoff		
@@ -118,8 +89,6 @@ function step() {
 		statef=land
 		neighbors.broadcast("cmd", 21)
 	}
-#	oldcmd=flight.rc_cmd
-#}
 
 statef()
 }

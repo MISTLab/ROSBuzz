@@ -9,6 +9,7 @@
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
 #include "sensor_msgs/NavSatStatus.h"
+#include <rosbuzz/neigh_pos.h>
 #include <sstream>
 #include <buzz/buzzasm.h>
 #include "buzz_utility.h"
@@ -38,6 +39,7 @@ private:
  	double cur_pos[3];
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
+	
 	int timer_step=0;
 	int robot_id=0;
         //int oldcmdID=0;
@@ -47,6 +49,7 @@ private:
 	bool rcclient;
 	ros::ServiceClient mav_client;
 	ros::Publisher payload_pub;
+	ros::Publisher neigh_pos_pub;
 	ros::ServiceServer service;
 	ros::Subscriber current_position_sub;
 	ros::Subscriber battery_sub;

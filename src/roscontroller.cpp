@@ -37,6 +37,19 @@ namespace rosbzz_node{
   			{
       				/*Update neighbors position inside Buzz*/
      				buzz_utility::neighbour_pos_callback(neighbours_pos_map);
+				map< int, buzz_utility::Pos_struct >::iterator it;
+				rosbuzz::neigh_pos neigh_pos_array; //neigh_pos_array.clear(); 
+				sensor_msgs::NavSatFix tmp;
+    				for (it=neighbours_pos_map.begin(); it!=neighbours_pos_map.end(); ++it){
+					tmp.position_covariance_type=it->first; //custom robot id storage
+                        		tmp.longitude=(it->second).x;
+                        		tmp.latitude=(it->second).y;
+                        		tmp.altitude=(it->second).z;
+
+    					neigh_pos_array.pos_neigh.push_back(tmp);
+					    					
+					}
+				neigh_pos_pub.publish(neigh_pos_array);
 				/*Check updater state and step code*/
   				if(update_routine(bcfname.c_str(), dbgfname.c_str(),0)==CODE_RUNNING)
       				/*Step buzz script */
@@ -99,7 +112,7 @@ namespace rosbzz_node{
 		flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_status_update,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
-		cout<<out_payload<<endl;
+		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
 		/* Clients*/
   		mav_client = n_c.serviceClient<mavros_msgs::CommandInt>(fcclient_name);
 
@@ -286,7 +299,7 @@ namespace rosbzz_node{
 		buzz_utility::in_msg_process((message_obt+3));
    
 	}
- 
+ 	
 	/* RC command service */
 	bool roscontroller::rc_callback(mavros_msgs::CommandInt::Request  &req,
 		         mavros_msgs::CommandInt::Response &res){
