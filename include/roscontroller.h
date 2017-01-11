@@ -39,7 +39,8 @@ private:
  	double cur_pos[3];
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
-	
+	std::map< int,  buzz_utility::Pos_struct> raw_neighbours_pos_map;
+	std::map< int, buzz_utility::Pos_struct> pub_neigh_pos;
 	int timer_step=0;
 	int robot_id=0;
         //int oldcmdID=0;
@@ -74,8 +75,11 @@ private:
 	/*Refresh neighbours Position for every ten step*/
 	void maintain_pos(int tim_step);
 
-	/*Maintain neighbours position*/
-	void neighbours_pos_maintain(int id, buzz_utility::Pos_struct pos_arr );
+	/*Puts neighbours position inside neigbours_pos_map*/
+	void neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr );
+
+	/*Puts raw neighbours position in lat.,long.,alt. inside raw_neigbours_pos_map*/
+	void raw_neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr );
 
         /*Set the current position of the robot callback*/
 	void set_cur_pos(double latitude,

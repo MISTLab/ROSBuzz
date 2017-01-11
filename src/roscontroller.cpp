@@ -37,19 +37,19 @@ namespace rosbzz_node{
   			{
       				/*Update neighbors position inside Buzz*/
      				buzz_utility::neighbour_pos_callback(neighbours_pos_map);
+
 				map< int, buzz_utility::Pos_struct >::iterator it;
 				rosbuzz::neigh_pos neigh_pos_array; //neigh_pos_array.clear(); 
 				sensor_msgs::NavSatFix tmp;
-    				for (it=neighbours_pos_map.begin(); it!=neighbours_pos_map.end(); ++it){
+    				for (it=raw_neighbours_pos_map.begin(); it!=raw_neighbours_pos_map.end(); ++it){
 					tmp.position_covariance_type=it->first; //custom robot id storage
                         		tmp.longitude=(it->second).x;
                         		tmp.latitude=(it->second).y;
                         		tmp.altitude=(it->second).z;
-
-    					neigh_pos_array.pos_neigh.push_back(tmp);
-					    					
+    					neigh_pos_array.pos_neigh.push_back(tmp);   					
 					}
 				neigh_pos_pub.publish(neigh_pos_array);
+
 				/*Check updater state and step code*/
   				if(update_routine(bcfname.c_str(), dbgfname.c_str(),0)==CODE_RUNNING)
       				/*Step buzz script */
@@ -207,18 +207,25 @@ namespace rosbzz_node{
 	void roscontroller::maintain_pos(int tim_step){
 		if(timer_step >=10){
 		neighbours_pos_map.clear();
+		raw_neighbours_pos_map.clear();
 		timer_step=0;
 		}
 	}
 
-	/*Maintain neighbours position*/
-	void roscontroller::neighbours_pos_maintain(int id, buzz_utility::Pos_struct pos_arr ){
+	/*Puts neighbours position*/
+	void roscontroller::neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr ){
 		map< int, buzz_utility::Pos_struct >::iterator it = neighbours_pos_map.find(id);
 		if(it!=neighbours_pos_map.end())
 		neighbours_pos_map.erase(it);
 		neighbours_pos_map.insert(make_pair(id, pos_arr));
 		}
-
+	/*Puts raw neighbours position*/
+	void roscontroller::raw_neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr ){
+		map< int, buzz_utility::Pos_struct >::iterator it = raw_neighbours_pos_map.find(id);
+		if(it!=neighbours_pos_map.end())
+		raw_neighbours_pos_map.erase(it);
+		raw_neighbours_pos_map.insert(make_pair(id, pos_arr));
+		}
 
 	/*Set the current position of the robot callback*/
 	void roscontroller::set_cur_pos(double latitude,
@@ -285,6 +292,7 @@ namespace rosbzz_node{
 		/* Extract neighbours position from payload*/
 		double neighbours_pos_payload[3];
 		memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
+		buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
 		/*Convert obtained position to relative position*/
 		for(i=0;i<3;i++){
 			neighbours_pos_payload[i]=neighbours_pos_payload[i]-cur_pos[i];
@@ -294,7 +302,9 @@ namespace rosbzz_node{
  		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));  
 		/*pass neighbour position to local maintaner*/
 		buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
-		neighbours_pos_maintain((int)out[1],n_pos);
+		/*Put RID and pos*/
+		raw_neighbours_pos_put((int)out[1],n_pos);		
+		neighbours_pos_put((int)out[1],n_pos);
 		delete[] out;
 		buzz_utility::in_msg_process((message_obt+3));
    
