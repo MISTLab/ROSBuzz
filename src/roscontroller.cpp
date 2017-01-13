@@ -222,7 +222,7 @@ namespace rosbzz_node{
 	/*Puts raw neighbours position*/
 	void roscontroller::raw_neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr ){
 		map< int, buzz_utility::Pos_struct >::iterator it = raw_neighbours_pos_map.find(id);
-		if(it!=neighbours_pos_map.end())
+		if(it!=raw_neighbours_pos_map.end())
 		raw_neighbours_pos_map.erase(it);
 		raw_neighbours_pos_map.insert(make_pair(id, pos_arr));
 		}
