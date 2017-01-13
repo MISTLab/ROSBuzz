@@ -273,7 +273,7 @@ namespace buzz_utility{
    	gethostname(hstnm, 30);
    	/* Make numeric id from hostname */
    	/* NOTE: here we assume that the hostname is in the format Knn */
-   	int id = strtol(hstnm+3, NULL, 10); 
+   	int id = strtol(hstnm+4, NULL, 10); 
    	cout << " Robot ID: " <<id<< endl;
    	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
