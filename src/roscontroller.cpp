@@ -47,7 +47,7 @@ namespace rosbzz_node{
                         		neigh_tmp.latitude=(it->second).y;
                         		neigh_tmp.altitude=(it->second).z;
     					neigh_pos_array.pos_neigh.push_back(neigh_tmp); 
-					std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
+					//std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
 					}
 				neigh_pos_pub.publish(neigh_pos_array); 
 
@@ -293,8 +293,8 @@ namespace rosbzz_node{
 		/* Extract neighbours position from payload*/
 		double neighbours_pos_payload[3];
 		memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
-		buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
-		//cout<<"obt lat ,long alt"<<neighbours_pos_payload[0]<<neighbours_pos_payload[1]<<neighbours_pos_payload[2];
+		//buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
+		cout<<"obt lat ,long alt"<<neighbours_pos_payload[0]<<neighbours_pos_payload[1]<<neighbours_pos_payload[2];
 		/*Convert obtained position to relative position*/
 		for(i=0;i<3;i++){
 			neighbours_pos_payload[i]=neighbours_pos_payload[i]-cur_pos[i];
@@ -305,7 +305,7 @@ namespace rosbzz_node{
 		/*pass neighbour position to local maintaner*/
 		buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
 		/*Put RID and pos*/
-		raw_neighbours_pos_put((int)out[1],raw_neigh_pos);		
+		//raw_neighbours_pos_put((int)out[1],raw_neigh_pos);		
 		neighbours_pos_put((int)out[1],n_pos);
 		delete[] out;
 		buzz_utility::in_msg_process((message_obt+3));
