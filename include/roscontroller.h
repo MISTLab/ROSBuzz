@@ -40,7 +40,7 @@ private:
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
 	std::map< int,  buzz_utility::Pos_struct> raw_neighbours_pos_map;
-	std::map< int, buzz_utility::Pos_struct> pub_neigh_pos;
+	//std::map< int, buzz_utility::Pos_struct> pub_neigh_pos;
 	int timer_step=0;
 	int robot_id=0;
         //int oldcmdID=0;

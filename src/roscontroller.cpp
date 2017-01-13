@@ -40,13 +40,14 @@ namespace rosbzz_node{
 				
 				map< int, buzz_utility::Pos_struct >::iterator it;
 				rosbuzz::neigh_pos neigh_pos_array; //neigh_pos_array.clear(); 
-				sensor_msgs::NavSatFix tmp;
-    				for (it=raw_neighbours_pos_map.begin(); it!=raw_neighbours_pos_map.end(); ++it){
-					tmp.position_covariance_type=it->first; //custom robot id storage
-                        		tmp.longitude=(it->second).x;
-                        		tmp.latitude=(it->second).y;
-                        		tmp.altitude=(it->second).z;
-    					neigh_pos_array.pos_neigh.push_back(tmp);   					
+				for (it=raw_neighbours_pos_map.begin(); it!=raw_neighbours_pos_map.end(); ++it){
+					sensor_msgs::NavSatFix neigh_tmp;				
+					neigh_tmp.position_covariance_type=it->first; //custom robot id storage
+                        		neigh_tmp.longitude=(it->second).x;
+                        		neigh_tmp.latitude=(it->second).y;
+                        		neigh_tmp.altitude=(it->second).z;
+    					neigh_pos_array.pos_neigh.push_back(neigh_tmp); 
+					std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
 					}
 				neigh_pos_pub.publish(neigh_pos_array); 
 
@@ -207,7 +208,7 @@ namespace rosbzz_node{
 	void roscontroller::maintain_pos(int tim_step){
 		if(timer_step >=10){
 		neighbours_pos_map.clear();
-		raw_neighbours_pos_map.clear();
+		//raw_neighbours_pos_map.clear();
 		timer_step=0;
 		}
 	}
@@ -248,7 +249,7 @@ namespace rosbzz_node{
 		neighbours_pos_payload[1]=atan(longitude/latitude);
 		neighbours_pos_payload[2]=atan((sqrt(pow(latitude,2.0)+pow(longitude,2.0)))/altitude);
    		} catch (std::overflow_error e) {
-        	std::cout << e.what() << " Error in convertion to spherical coordinate system ";
+        	std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
    		}
 		
 		return neighbours_pos_payload;
@@ -293,6 +294,7 @@ namespace rosbzz_node{
 		double neighbours_pos_payload[3];
 		memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
 		buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
+		//cout<<"obt lat ,long alt"<<neighbours_pos_payload[0]<<neighbours_pos_payload[1]<<neighbours_pos_payload[2];
 		/*Convert obtained position to relative position*/
 		for(i=0;i<3;i++){
 			neighbours_pos_payload[i]=neighbours_pos_payload[i]-cur_pos[i];
