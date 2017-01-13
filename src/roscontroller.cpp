@@ -42,7 +42,7 @@ namespace rosbzz_node{
 				rosbuzz::neigh_pos neigh_pos_array; //neigh_pos_array.clear(); 
 				for (it=raw_neighbours_pos_map.begin(); it!=raw_neighbours_pos_map.end(); ++it){
 					sensor_msgs::NavSatFix neigh_tmp;				
-					neigh_tmp.position_covariance_type=it->first; //custom robot id storage
+					neigh_tmp.position_covariance_type=buzz_utility::get_rid_uint8compac(it->first); //custom robot id storage
                         		neigh_tmp.longitude=(it->second).x;
                         		neigh_tmp.latitude=(it->second).y;
                         		neigh_tmp.altitude=(it->second).z;

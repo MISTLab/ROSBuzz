@@ -51,5 +51,6 @@ int update_step_test();
 
 uint16_t get_robotid();
 
+uint8_t get_rid_uint8compac(int rid_old);
 
 }

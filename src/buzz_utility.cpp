@@ -269,14 +269,15 @@ namespace buzz_utility{
 	//cout<<"bo file name"<<bo_filename;
 	/* Get hostname */
    	char hstnm[30];
+        //char* hstnm ="M1003";
    	gethostname(hstnm, 30);
    	/* Make numeric id from hostname */
    	/* NOTE: here we assume that the hostname is in the format Knn */
-   	int id = strtol(hstnm + 2, NULL, 10); //robot_id; 
-   	cout << " Robot ID: " << (uint8_t)id<< endl;
+   	int id = strtol(hstnm+3, NULL, 10); 
+   	cout << " Robot ID: " <<id<< endl;
    	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
-   	VM = buzzvm_new(id);
+   	VM = buzzvm_new((int)id);
    	/* Get rid of debug info */
    	if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
    	DBG_INFO = buzzdebug_new();
@@ -339,6 +340,7 @@ namespace buzz_utility{
    	/* Make numeric id from hostname */
    	/* NOTE: here we assume that the hostname is in the format Knn */
    	int id = strtol(hstnm + 1, NULL, 10);
+	
 	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
    	VM = buzzvm_new(id);
@@ -552,7 +554,47 @@ uint16_t get_robotid(){
 return (uint16_t)id;
 }
 
+uint8_t get_rid_uint8compac(int rid_old){
+uint8_t new_rid;
+switch(rid_old){
 
+case 1:
+	new_rid=1;
+	break;
+case 2:
+	new_rid=2;
+	break;
+case 3:
+	new_rid=3;
+	break;
+case 4:
+	new_rid=4;
+	break;
+case 5:
+	new_rid=5;
+	break;
+case 6:
+	new_rid=6;
+	break;
+case 7:
+	new_rid=7;
+	break;
+case 8:
+	new_rid=8;
+	break;	
+case 9:
+	new_rid=9;
+	break;
+case 10:
+	new_rid=10;
+	break;
+default:
+	new_rid=0;
+
+}
+
+return new_rid;
+}
 }
 
 
