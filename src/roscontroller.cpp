@@ -37,7 +37,7 @@ namespace rosbzz_node{
   			{
       				/*Update neighbors position inside Buzz*/
      				buzz_utility::neighbour_pos_callback(neighbours_pos_map);
-
+				/*
 				map< int, buzz_utility::Pos_struct >::iterator it;
 				rosbuzz::neigh_pos neigh_pos_array; //neigh_pos_array.clear(); 
 				sensor_msgs::NavSatFix tmp;
@@ -48,7 +48,7 @@ namespace rosbzz_node{
                         		tmp.altitude=(it->second).z;
     					neigh_pos_array.pos_neigh.push_back(tmp);   					
 					}
-				neigh_pos_pub.publish(neigh_pos_array);
+				neigh_pos_pub.publish(neigh_pos_array); */
 
 				/*Check updater state and step code*/
   				if(update_routine(bcfname.c_str(), dbgfname.c_str(),0)==CODE_RUNNING)
@@ -207,7 +207,7 @@ namespace rosbzz_node{
 	void roscontroller::maintain_pos(int tim_step){
 		if(timer_step >=10){
 		neighbours_pos_map.clear();
-		raw_neighbours_pos_map.clear();
+		//raw_neighbours_pos_map.clear();
 		timer_step=0;
 		}
 	}
@@ -303,7 +303,7 @@ namespace rosbzz_node{
 		/*pass neighbour position to local maintaner*/
 		buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
 		/*Put RID and pos*/
-		raw_neighbours_pos_put((int)out[1],n_pos);		
+		//raw_neighbours_pos_put((int)out[1],n_pos);		
 		neighbours_pos_put((int)out[1],n_pos);
 		delete[] out;
 		buzz_utility::in_msg_process((message_obt+3));
