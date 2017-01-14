@@ -339,7 +339,7 @@ namespace buzz_utility{
    	gethostname(hstnm, 30);
    	/* Make numeric id from hostname */
    	/* NOTE: here we assume that the hostname is in the format Knn */
-   	int id = strtol(hstnm + 1, NULL, 10);
+   	int id = strtol(hstnm + 4, NULL, 10);
 	
 	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
@@ -387,7 +387,7 @@ namespace buzz_utility{
    	gethostname(hstnm, 30);
    	/* Make numeric id from hostname */
    	/* NOTE: here we assume that the hostname is in the format Knn */
-   	int id = strtol(hstnm + 1, NULL, 10);
+   	int id = strtol(hstnm + 4, NULL, 10);
 	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
    	VM = buzzvm_new(id);
@@ -550,7 +550,7 @@ uint16_t get_robotid(){
    gethostname(hstnm, 30);
    /* Make numeric id from hostname */
    /* NOTE: here we assume that the hostname is in the format Knn */
-   int id = strtol(hstnm + 1, NULL, 10);
+   int id = strtol(hstnm + 4, NULL, 10);
 return (uint16_t)id;
 }
 
