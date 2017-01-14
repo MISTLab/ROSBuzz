@@ -554,47 +554,7 @@ uint16_t get_robotid(){
 return (uint16_t)id;
 }
 
-uint8_t get_rid_uint8compac(int rid_old){
-uint8_t new_rid;
-switch(rid_old){
 
-case 1:
-	new_rid=1;
-	break;
-case 2:
-	new_rid=2;
-	break;
-case 3:
-	new_rid=3;
-	break;
-case 4:
-	new_rid=4;
-	break;
-case 5:
-	new_rid=5;
-	break;
-case 6:
-	new_rid=6;
-	break;
-case 7:
-	new_rid=7;
-	break;
-case 8:
-	new_rid=8;
-	break;	
-case 9:
-	new_rid=9;
-	break;
-case 10:
-	new_rid=10;
-	break;
-default:
-	new_rid=0;
-
-}
-
-return new_rid;
-}
 }
 
 
