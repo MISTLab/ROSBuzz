@@ -3,8 +3,8 @@
 include "/home/ubuntu/buzz/src/include/vec2.bzz"
  
 # Lennard-Jones parameters
-TARGET     = 28.3
-EPSILON    = 15.0
+TARGET     = 0.00000010000005
+EPSILON    = 0.1
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
