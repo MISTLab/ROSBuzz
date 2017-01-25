@@ -3,8 +3,8 @@
 include "/home/ubuntu/buzz/src/include/vec2.bzz"
  
 # Lennard-Jones parameters
-TARGET     = 0.00000010000005
-EPSILON    = 0.1
+TARGET     = 0.000000100001
+EPSILON    = 0.01
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -89,11 +89,11 @@ neighbors.listen("cmd",
 }
 
 function takeoff() {
-	if( flight.status == 2) {
+	if( flight.status == 3) {
 		barrier_set(ROBOTS,hexagon)
 		barrier_ready()
 	}
-	else if(flight.status!=3)
+	else
 		uav_takeoff()
 }
 function land() {
