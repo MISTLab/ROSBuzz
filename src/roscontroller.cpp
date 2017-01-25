@@ -155,22 +155,24 @@ namespace rosbzz_node{
 		
  		/* flight controller client call if requested from Buzz*/
 		/*FC call for takeoff,land and gohome*/
-		if (buzzuav_closures::bzz_cmd()==1){
+		int tmp = buzzuav_closures::bzz_cmd();
+		if (tmp == 1){
 			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
-		}
-		/*FC call for goto*/	
-		else if (buzzuav_closures::bzz_cmd() == 2) {  
+		} else if (tmp == 2) { /*FC call for goto*/ 
 			/*prepare the goto publish message */
     			double* goto_pos = buzzuav_closures::getgoto();
-			cmd_srv.request.param1 = goto_pos[0];
-    			cmd_srv.request.param2 = goto_pos[1];
-    			cmd_srv.request.param3 = goto_pos[2];
+			cmd_srv.request.x = goto_pos[0]*pow(10,7);
+    			cmd_srv.request.y = goto_pos[1]*pow(10,7);
+    			cmd_srv.request.z = goto_pos[2];
     			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
-		} 		
+    			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
+			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
+	    		else ROS_ERROR("Failed to call service from flight controller"); 
+		}
     		/*obtain Pay load to be sent*/  
    		uint64_t* payload_out_ptr= buzz_utility::out_msg_process();
     		uint64_t  position[3];
