@@ -116,6 +116,10 @@ rc_cmd=rc_cmd_in;
 /****************************************/
 
 int buzzuav_takeoff(buzzvm_t vm) {
+   buzzvm_lnum_assert(vm, 1);
+   buzzvm_lload(vm, 1); /* Altitude */
+   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+   goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value; 
    cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
    printf(" Buzz requested Take off !!! \n");
    buzz_cmd=1;

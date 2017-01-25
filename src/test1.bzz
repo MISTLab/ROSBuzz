@@ -89,12 +89,12 @@ neighbors.listen("cmd",
 }
 
 function takeoff() {
-	if( flight.status == 3) {
+	if( flight.status == 2 and position.altitude >= 10.0) {
 		barrier_set(ROBOTS,hexagon)
 		barrier_ready()
 	}
-	else
-		uav_takeoff()
+	else if( flight.status !=3)
+		uav_takeoff(10.1)
 }
 function land() {
 	if( flight.status == 1) {

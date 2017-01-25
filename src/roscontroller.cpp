@@ -156,13 +156,14 @@ namespace rosbzz_node{
  		/* flight controller client call if requested from Buzz*/
 		/*FC call for takeoff,land and gohome*/
 		int tmp = buzzuav_closures::bzz_cmd();
+    		double* goto_pos = buzzuav_closures::getgoto();
 		if (tmp == 1){
+    			cmd_srv.request.z = goto_pos[2];
 			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
 		} else if (tmp == 2) { /*FC call for goto*/ 
 			/*prepare the goto publish message */
-    			double* goto_pos = buzzuav_closures::getgoto();
 			cmd_srv.request.x = goto_pos[0]*pow(10,7);
     			cmd_srv.request.y = goto_pos[1]*pow(10,7);
     			cmd_srv.request.z = goto_pos[2];
