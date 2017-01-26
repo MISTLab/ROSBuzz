@@ -246,16 +246,32 @@ namespace rosbzz_node{
 
 	}
 
-	/*convert from catresian to spherical coordinate system callback */
-	double* roscontroller::cvt_spherical_coordinates(double neighbours_pos_payload []){
-		double latitude,longitude,altitude;
+	/*convert from spherical to cartesian coordinate system callback */
+	double* roscontroller::cvt_cartesian_coordinates(double neighbours_pos_payload []){
+		double latitude, longitude, rho;
 		latitude=neighbours_pos_payload[0];
 		longitude = neighbours_pos_payload[1];
-		altitude=neighbours_pos_payload[2];
+		rho=neighbours_pos_payload[2]+6371000; //centered on Earth
 		try {
-       		neighbours_pos_payload[0]=sqrt(pow(latitude,2.0)+pow(longitude,2.0)+pow(altitude,2.0));
-		neighbours_pos_payload[1]=atan(longitude/latitude);
-		neighbours_pos_payload[2]=atan((sqrt(pow(latitude,2.0)+pow(longitude,2.0)))/altitude);
+			neighbours_pos_payload[0] = cos(latitude) * cos(longitude) * rho;
+    			neighbours_pos_payload[1] = cos(latitude) * sin(longitude) * rho;
+    			neighbours_pos_payload[2] = sin(latitude) * rho; // z is 'up'
+   		} catch (std::overflow_error e) {
+        	std::cout << e.what() << " Error in convertion to cartesian coordinate system "<<endl;
+   		}
+		
+		return neighbours_pos_payload;
+	}
+	/*convert from cartesian to spherical coordinate system callback */
+	double* roscontroller::cvt_spherical_coordinates(double neighbours_pos_payload []){
+		double x, y, z;
+		x = neighbours_pos_payload[0];
+		y = neighbours_pos_payload[1];
+		z = neighbours_pos_payload[2];
+		try {
+       		neighbours_pos_payload[0]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0));
+		neighbours_pos_payload[1]=atan(y/x);
+		neighbours_pos_payload[2]=atan((sqrt(pow(x,2.0)+pow(y,2.0)))/z);
    		} catch (std::overflow_error e) {
         	std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
    		}
@@ -303,9 +319,11 @@ namespace rosbzz_node{
 		memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
 		buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
 		//cout<<"obt lat ,long alt"<<neighbours_pos_payload[0]<<neighbours_pos_payload[1]<<neighbours_pos_payload[2];
-		/*Convert obtained position to relative position*/
+		/*Convert obtained position to relative CARTESIAN position*/
+		double* cartesian_neighbours_pos = cvt_cartesian_coordinates(neighbours_pos_payload);
+		double* cartesian_cur_pos = cvt_cartesian_coordinates(cur_pos);
 		for(i=0;i<3;i++){
-			neighbours_pos_payload[i]=neighbours_pos_payload[i]-cur_pos[i];
+			neighbours_pos_payload[i]=cartesian_neighbours_pos[i]-cartesian_cur_pos[i];
 		}
 		double* cvt_neighbours_pos_payload = cvt_spherical_coordinates(neighbours_pos_payload);
 		/*Extract robot id of the neighbour*/

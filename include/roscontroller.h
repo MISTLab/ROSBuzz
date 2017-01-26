@@ -85,8 +85,11 @@ private:
 	void set_cur_pos(double latitude,
 			 double longitude,
 			 double altitude);
-	/*convert from catresian to spherical coordinate system callback */
+	/*convert from cartesian to spherical coordinate system callback */
 	double* cvt_spherical_coordinates(double neighbours_pos_payload []);
+
+	/*convert from spherical to cartesian coordinate system callback */
+	double* cvt_cartesian_coordinates(double neighbours_pos_payload []);
 	
 	/*battery status callback*/ 
 	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
