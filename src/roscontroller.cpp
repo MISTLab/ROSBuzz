@@ -40,14 +40,16 @@ namespace rosbzz_node{
 				auto current_time = ros::Time::now();
 				map< int, buzz_utility::Pos_struct >::iterator it;
 				rosbuzz::neigh_pos neigh_pos_array; //neigh_pos_array.clear(); 
+				neigh_pos_array.header.frame_id = "/world";
+				neigh_pos_array.header.stamp = current_time;
 				for (it=raw_neighbours_pos_map.begin(); it!=raw_neighbours_pos_map.end(); ++it){
 					sensor_msgs::NavSatFix neigh_tmp;
 					//cout<<"iterator it val: "<< it-> first << " After convertion: " <<(uint8_t) buzz_utility::get_rid_uint8compac(it->first)<<endl;				
 					neigh_tmp.header.stamp = current_time;
 					neigh_tmp.header.frame_id = "/world";
 					neigh_tmp.position_covariance_type=it->first; //custom robot id storage
-                        		neigh_tmp.longitude=(it->second).x;
-                        		neigh_tmp.latitude=(it->second).y;
+                        		neigh_tmp.latitude=(it->second).x;
+                        		neigh_tmp.longitude=(it->second).y;
                         		neigh_tmp.altitude=(it->second).z;
     					neigh_pos_array.pos_neigh.push_back(neigh_tmp); 
 					//std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
