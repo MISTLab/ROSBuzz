@@ -249,8 +249,8 @@ namespace rosbzz_node{
 	/*convert from spherical to cartesian coordinate system callback */
 	void roscontroller::cvt_cartesian_coordinates(double spherical_pos_payload [], double out[]){
 		double latitude, longitude, rho;
-		latitude = spherical_pos_payload[0] / 180 * 3.1416;
-		longitude = spherical_pos_payload[1] / 180 * 3.1416;
+		latitude = spherical_pos_payload[0] / 180.0 * 3.1416;
+		longitude = spherical_pos_payload[1] / 180.0 * 3.1416;
 		rho = spherical_pos_payload[2]+6371000; //centered on Earth
 		try {
 			out[0] = cos(latitude) * cos(longitude) * rho;
@@ -315,7 +315,7 @@ namespace rosbzz_node{
 		double neighbours_pos_payload[3];
 		memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
 		buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
-		//cout<<"obt lat ,long alt"<<neighbours_pos_payload[0]<<neighbours_pos_payload[1]<<neighbours_pos_payload[2];
+		cout<<"obt lat ,long alt"<<neighbours_pos_payload[0]<<neighbours_pos_payload[1]<<neighbours_pos_payload[2];
 		/*Convert obtained position to relative CARTESIAN position*/
 		double cartesian_neighbours_pos[3], cartesian_cur_pos[3];
 		cvt_cartesian_coordinates(neighbours_pos_payload, cartesian_neighbours_pos);
@@ -328,7 +328,7 @@ namespace rosbzz_node{
 		cvt_spherical_coordinates(neighbours_pos_payload, cvt_neighbours_pos_payload);
 		/*Extract robot id of the neighbour*/
  		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));  
-		cout << "Rel Pos of " << out << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[2] << ", "<< cvt_neighbours_pos_payload[3] << endl;
+		cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[2] << ", "<< cvt_neighbours_pos_payload[3] << endl;
 		/*pass neighbour position to local maintaner*/
 		buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
 		/*Put RID and pos*/
