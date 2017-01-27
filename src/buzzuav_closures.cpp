@@ -79,7 +79,7 @@ int buzzuav_goto(buzzvm_t vm) {
    goto_pos[1]=cur_pos[1]+dlon*180/3.1416;
    goto_pos[2]=cur_pos[2];
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
-   printf(" Buzz requested Go To, to Latitude: %15f , Longitude: %15f, Altitude: %15f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
+   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    buzz_cmd=2;
    return buzzvm_ret0(vm);
 }
