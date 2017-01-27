@@ -18,7 +18,7 @@ barrier_val = barrier.size()
 
 neighbors.listen(updated,
    function(vid, value, rid) {
-	print("  got from",vid,"  " )
+	print("  got from",vid,"  ", " value = ",value," ","rid"," " )
       if(value==update_no) barrier_val=ROBOTS
    }
 )
