@@ -149,7 +149,7 @@ void code_message_outqueue_append(){
 	*(uint16_t*)(updater->outmsg_queue->queue+size) = *(size_t*) updater->bcode_size;
 	size+=sizeof(uint16_t);
 	memcpy(updater->outmsg_queue->queue+size, updater->bcode, *(size_t*)updater->bcode_size);
-	size+=*(size_t*)updater->bcode_size;
+	size+=(uint16_t)*(size_t*)updater->bcode_size;
 	/*FILE *fp;
 	fp=fopen("update.bo", "wb");
 	fwrite((updater->bcode), updater->bcode_size, 1, fp);
@@ -157,11 +157,12 @@ void code_message_outqueue_append(){
 	updater_msg_ready=1;
 	*(uint16_t*)updater->outmsg_queue->size=size;
 	
-	fprintf(stdout,"out mes append transfer code size %d\n", (int)*(size_t*) updater->bcode_size);
+	fprintf(stdout,"out msg append transfer code size %d\n", (int)*(size_t*) updater->bcode_size);
 }
 
 void code_message_inqueue_append(uint8_t* msg,uint16_t size){
 updater->inmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
+fprintf(stdout,"in ms append code size %d\n", (int) size);
 updater->inmsg_queue->queue = (uint8_t*)malloc(size);
 updater->inmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));
 memcpy(updater->inmsg_queue->queue, msg, size);
@@ -177,11 +178,13 @@ if(*(int*)updater->mode==CODE_RUNNING){
 		size +=sizeof(uint16_t);	
 		uint16_t update_bcode_size =*(uint16_t*)(updater->inmsg_queue->queue+size);
 		size +=sizeof(uint16_t);	
+		fprintf(stdout,"in queue process Update no %d\n", (int) update_no);
+		fprintf(stdout,"in queue process bcode size %d\n", (int) update_bcode_size);
 		//FILE *fp;
 		//fp=fopen("update.bo", "wb");
 		//fwrite((updater->inmsg_queue->queue+size), update_bcode_size, 1, fp);
 		//fclose(fp);
-		if(test_set_code((updater->inmsg_queue->queue+size),
+		if(test_set_code((uint8_t*)(updater->inmsg_queue->queue+size),
 		   (char*) dbgf_name,(size_t)update_bcode_size)) {
 		*(uint16_t*)updater->update_no=update_no;
 		neigh=1;
@@ -318,7 +321,7 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size){
 			memcpy(updater->bcode, BO_BUF, bcode_size);
 			*(size_t*)updater->bcode_size = bcode_size;
 			buzz_utility::buzz_update_init_test((updater)->standby_bcode,
-			         (char*)dbgfname, *(size_t*)(updater->standby_bcode_size));
+			         (char*)dbgfname,(size_t) *(size_t*)(updater->standby_bcode_size));
 			buzzvm_t  VM = buzz_utility::get_vm();
 			buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
 			buzzvm_pushi(VM, no_of_robot);
@@ -328,7 +331,7 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size){
 		/*Unable to step something wrong*/
 		else{
 			fprintf(stdout,"step test failed, stick to old script\n");
-			buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (int)*(size_t*)(updater->bcode_size));
+			buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (size_t)*(size_t*)(updater->bcode_size));
 			return 0;
 			
 		}				
