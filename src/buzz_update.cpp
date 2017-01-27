@@ -157,12 +157,12 @@ void code_message_outqueue_append(){
 	updater_msg_ready=1;
 	*(uint16_t*)updater->outmsg_queue->size=size;
 	
-	fprintf(stdout,"out msg append transfer code size %d\n", (int)*(size_t*) updater->bcode_size);
+	//fprintf(stdout,"out msg append transfer code size %d\n", (int)*(size_t*) updater->bcode_size);
 }
 
 void code_message_inqueue_append(uint8_t* msg,uint16_t size){
 updater->inmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
-fprintf(stdout,"in ms append code size %d\n", (int) size);
+//fprintf(stdout,"in ms append code size %d\n", (int) size);
 updater->inmsg_queue->queue = (uint8_t*)malloc(size);
 updater->inmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));
 memcpy(updater->inmsg_queue->queue, msg, size);
@@ -178,8 +178,8 @@ if(*(int*)updater->mode==CODE_RUNNING){
 		size +=sizeof(uint16_t);	
 		uint16_t update_bcode_size =*(uint16_t*)(updater->inmsg_queue->queue+size);
 		size +=sizeof(uint16_t);	
-		fprintf(stdout,"in queue process Update no %d\n", (int) update_no);
-		fprintf(stdout,"in queue process bcode size %d\n", (int) update_bcode_size);
+		//fprintf(stdout,"in queue process Update no %d\n", (int) update_no);
+		//fprintf(stdout,"in queue process bcode size %d\n", (int) update_bcode_size);
 		//FILE *fp;
 		//fp=fopen("update.bo", "wb");
 		//fwrite((updater->inmsg_queue->queue+size), update_bcode_size, 1, fp);
@@ -311,7 +311,7 @@ return (uint8_t*)updater->outmsg_queue->queue;
 }
 
 uint8_t* getupdate_out_msg_size(){
-fprintf(stdout,"[Debug  from get out size in util: ]size = %i \n",*(uint16_t*)updater->outmsg_queue->size);
+//fprintf(stdout,"[Debug  from get out size in util: ]size = %i \n",*(uint16_t*)updater->outmsg_queue->size);
 		
 return (uint8_t*)updater->outmsg_queue->size;
 }

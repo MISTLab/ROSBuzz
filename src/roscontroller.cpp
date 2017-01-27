@@ -56,14 +56,14 @@ namespace rosbzz_node{
 					//std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
 					}
 				neigh_pos_pub.publish(neigh_pos_array); 
-				fprintf(stdout, "before update routine\n");
+				//fprintf(stdout, "before update routine\n");
 				/*Check updater state and step code*/
   				update_routine(bcfname.c_str(), dbgfname.c_str());
       				/*Step buzz script */
-				fprintf(stdout, "before code step\n");
+				//fprintf(stdout, "before code step\n");
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
-				fprintf(stdout, "before publish msg\n");
+				//fprintf(stdout, "before publish msg\n");
 		  		prepare_msg_and_publish();
     				/*run once*/
     				ros::spinOnce();
@@ -184,7 +184,7 @@ namespace rosbzz_node{
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
 		}
     		/*obtain Pay load to be sent*/  
-		fprintf(stdout, "before getting msg from utility\n");
+		//fprintf(stdout, "before getting msg from utility\n");
    		uint64_t* payload_out_ptr= buzz_utility::out_msg_process();
     		uint64_t  position[3];
   		/*Appened current position to message*/
