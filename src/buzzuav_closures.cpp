@@ -83,8 +83,8 @@ int buzzros_print(buzzvm_t vm) {
                 z = cartesian_pos_payload[2];
                 try {
                 out[2]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0))-6371000;
-                out[1]=atan2(x,y)*180/M_PI;
-                out[0]=atan2((sqrt(pow(x,2.0)+pow(y,2.0))),z)*180/M_PI;
+                out[1]=atan2(y,x)*180/M_PI;
+                out[0]=atan2(z,(sqrt(pow(x,2.0)+pow(y,2.0))))*180/M_PI;
                 } catch (std::overflow_error e) {
 //                std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
                 }
