@@ -249,8 +249,8 @@ namespace rosbzz_node{
 	/*convert from spherical to cartesian coordinate system callback */
 	void roscontroller::cvt_cartesian_coordinates(double spherical_pos_payload [], double out[]){
 		double latitude, longitude, rho;
-		latitude = spherical_pos_payload[0] / 180.0 * 3.1416;
-		longitude = spherical_pos_payload[1] / 180.0 * 3.1416;
+		latitude = spherical_pos_payload[0] / 180.0 * M_PI;
+		longitude = spherical_pos_payload[1] / 180.0 * M_PI;
 		rho = spherical_pos_payload[2]+6371000; //centered on Earth
 		try {
 			out[0] = cos(latitude) * cos(longitude) * rho;
@@ -258,6 +258,101 @@ namespace rosbzz_node{
     			out[2] = sin(latitude) * rho; // z is 'up'
    		} catch (std::overflow_error e) {
         	std::cout << e.what() << " Error in convertion to cartesian coordinate system "<<endl;
+   		}
+	}
+
+	/*convert from GPS delta to Range and Bearing */
+	void roscontroller::cvt_rangebearing_coordinates(double spherical_pos[], double out[]){
+		//Earth ellipse parameteres
+		double f = 1.0/298.257223563;
+		double a = 6378137;
+		double b = 6356752.314245;
+		double a2b2b2 = (a*a-b*b)/(b*b);
+		// constants to enhance the computation
+		double omega = (spherical_pos[1]-cur_pos[1])/180*M_PI;
+		double A, lambda0, sigma, deltasigma, lambda=omega;
+		double cosU2 = cos(atan((1-f)*tan(spherical_pos[0]/180*M_PI)));
+		double sinU2 = sin(atan((1-f)*tan(spherical_pos[0]/180*M_PI)));
+		double cosU1 = cos(atan((1-f)*tan(cur_pos[0]/180*M_PI)));
+		double sinU1 = sin(atan((1-f)*tan(cur_pos[0]/180*M_PI)));
+		try {
+			bool converged = 0;
+			for (int i = 0; i < 20; i++) {
+			lambda0=lambda;
+
+		        // eq. 14
+        		double sin2sigma = (cosU2 * sin(lambda) * cosU2 * sin(lambda)) + pow(cosU1*sinU2 - sinU1*cosU2 * cos(lambda), 2.0);
+        		double sinsigma = sqrt(sin2sigma);
+
+		        // eq. 15
+      			double cossigma = sinU1*sinU2 + (cosU1*cosU2 * cos(lambda));
+
+        		// eq. 16
+        		sigma = atan2(sinsigma, cossigma);
+
+		        // eq. 17    Careful!  sin2sigma might be almost 0!
+        		double sinalpha = (sin2sigma == 0) ? 0.0 : cosU1*cosU2 * sin(lambda) / sinsigma;
+        		double alpha = asin(sinalpha);
+        		double cos2alpha = cos(alpha) * cos(alpha);
+
+        		// eq. 18    Careful!  cos2alpha might be almost 0!
+        		double cos2sigmam = cos2alpha == 0.0 ? 0.0 : cossigma - 2 * sinU1*sinU2 / cos2alpha;
+        		double u2 = cos2alpha * a2b2b2;
+			double cos2sigmam2 = cos2sigmam * cos2sigmam;
+
+        		// eq. 3
+        		A = 1.0 + u2 / 16384 * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)));
+
+        		// eq. 4
+        		double B = u2 / 1024 * (256 + u2 * (-128 + u2 * (74 - 47 * u2)));
+
+        		// eq. 6
+        		deltasigma = B * sinsigma * (cos2sigmam + B / 4 * (cossigma * (-1 + 2 * cos2sigmam2) - B / 6 * cos2sigmam * (-3 + 4 * sin2sigma) * (-3 + 4 * cos2sigmam2)));
+
+        		// eq. 10
+        		double C = f / 16 * cos2alpha * (4 + f * (4 - 3 * cos2alpha));
+
+        		// eq. 11 (modified)
+        		lambda = omega + (1 - C) * f * sinalpha * (sigma + C * sinsigma * (cos2sigmam + C * cossigma * (-1 + 2 * cos2sigmam2)));
+
+        		// see how much improvement we got
+        		double change = fabs((lambda - lambda0) / lambda);
+
+        		if ((i > 1) && (change < 0.0000000000001)) {
+				//cout << "CONVERSION CONVERGED at " << i << " !!!!" << endl;
+          			converged = 1;
+          			break;
+        		}
+      			}
+
+      			// eq. 19
+      			out[0] = b * A * (sigma - deltasigma);
+
+		      	// didn't converge?  must be N/S
+      			if (!converged) {
+        			if (cur_pos[0] > spherical_pos[0]) {
+          				out[1] = M_PI/2;
+          				out[2] = 0;
+        			} else if (cur_pos[0] < spherical_pos[0]) {
+          				out[1] = 0;
+          				out[2] = M_PI/2;
+        			}
+      			} else { // else, it converged, so do the math
+
+			        // eq. 20
+        			out[1] = atan2(cosU2 * sin(lambda), (cosU1*sinU2 - sinU1*cosU2 * cos(lambda)));
+        			if (out[1] < 0.0) out[1] += 2*M_PI;
+
+        			// eq. 21
+        			out[2] = atan2(cosU1 * sin(lambda), (-sinU1*cosU2 + cosU1*sinU2 * cos(lambda))) + 3.1416;
+			        if (out[2] < 0.0) out[2] += 2*M_PI;
+      			}
+
+      			if (out[1] >= M_PI) out[1] -= M_PI;
+      			if (out[2] >= M_PI) out[2] -= M_PI;
+
+		} catch (std::overflow_error e) {
+        	std::cout << e.what() << " Error in convertion to range and bearing "<<endl;
    		}
 	}
 
@@ -315,7 +410,9 @@ namespace rosbzz_node{
 		double neighbours_pos_payload[3];
 		memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
 		buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
-		cout<<"obt lat ,long alt"<<neighbours_pos_payload[0]<<neighbours_pos_payload[1]<<neighbours_pos_payload[2];
+//		cout<<"Got" << neighbours_pos_payload[0] <<", " << neighbours_pos_payload[1] << ", " << neighbours_pos_payload[2] << endl;
+//		double cvt_neighbours_pos_test[3];
+//		cvt_rangebearing_coordinates(neighbours_pos_payload, cvt_neighbours_pos_test);
 		/*Convert obtained position to relative CARTESIAN position*/
 		double cartesian_neighbours_pos[3], cartesian_cur_pos[3];
 		cvt_cartesian_coordinates(neighbours_pos_payload, cartesian_neighbours_pos);
@@ -328,7 +425,8 @@ namespace rosbzz_node{
 		cvt_spherical_coordinates(neighbours_pos_payload, cvt_neighbours_pos_payload);
 		/*Extract robot id of the neighbour*/
  		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));  
-		cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[2] << ", "<< cvt_neighbours_pos_payload[3] << endl;
+//		cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[2] << ", "<< cvt_neighbours_pos_payload[3] << endl;
+//		cout << "Rel Test Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_test[0] << ", "<< cvt_neighbours_pos_test[2] << ", "<< cvt_neighbours_pos_test[3] << endl;
 		/*pass neighbour position to local maintaner*/
 		buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
 		/*Put RID and pos*/

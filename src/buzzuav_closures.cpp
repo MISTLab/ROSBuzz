@@ -61,7 +61,34 @@ int buzzros_print(buzzvm_t vm) {
 
 /****************************************/
 /****************************************/
-
+/*convert from spherical to cartesian coordinate system callback */
+        void cartesian_coordinates(double spherical_pos_payload [], double out[]){
+                double latitude, longitude, rho;
+                latitude = spherical_pos_payload[0] / 180.0 * M_PI;
+                longitude = spherical_pos_payload[1] / 180.0 * M_PI;
+                rho = spherical_pos_payload[2]+6371000; //centered on Earth
+                try {
+                        out[0] = cos(latitude) * cos(longitude) * rho;
+                        out[1] = cos(latitude) * sin(longitude) * rho;
+                        out[2] = sin(latitude) * rho; // z is 'up'
+                } catch (std::overflow_error e) {
+//                std::cout << e.what() << " Error in convertion to cartesian coordinate system "<<endl;
+                }
+        }
+/*convert from cartesian to spherical coordinate system callback */
+        void spherical_coordinates(double cartesian_pos_payload [], double out[]){
+                double x, y, z;
+                x = cartesian_pos_payload[0];
+                y = cartesian_pos_payload[1];
+                z = cartesian_pos_payload[2];
+                try {
+                out[2]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0))-6371000;
+                out[1]=atan2(y,x)*180/M_PI;
+                out[0]=atan2(z,(sqrt(pow(x,2.0)+pow(y,2.0))))*180/M_PI;
+                } catch (std::overflow_error e) {
+//                std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
+                }
+        }
 int buzzuav_goto(buzzvm_t vm) {
    buzzvm_lnum_assert(vm, 2);
    buzzvm_lload(vm, 1); /* dx */
@@ -70,14 +97,20 @@ int buzzuav_goto(buzzvm_t vm) {
    //buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-   float dy = buzzvm_stack_at(vm, 1)->f.value;
-   float dx = buzzvm_stack_at(vm, 2)->f.value;
+   float dx = buzzvm_stack_at(vm, 1)->f.value;
+   float dy = buzzvm_stack_at(vm, 2)->f.value;
+   printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
    //goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value;
-   double dlat=dx/(6371000+cur_pos[2]);
-   double dlon=dy/cos(cur_pos[0]/180*3.1416)/(6371000+cur_pos[2]);
-   goto_pos[0]=cur_pos[0]+dlat*180/3.1416;
-   goto_pos[1]=cur_pos[1]+dlon*180/3.1416;
-   goto_pos[2]=cur_pos[2];
+   double cur_pos_cartesian[3];
+   cartesian_coordinates(cur_pos,cur_pos_cartesian);
+   double goto_cartesian[3];
+   goto_cartesian[0] = dx + cur_pos_cartesian[0];
+   goto_cartesian[1] = dy + cur_pos_cartesian[1];
+   goto_cartesian[2] = cur_pos_cartesian[2];
+   spherical_coordinates(goto_cartesian, goto_pos);
+//   goto_pos[0]=cur_pos[0]+dlat*180/M_PI;
+//   goto_pos[1]=cur_pos[1]+dlon*180/M_PI;
+//   goto_pos[2]=cur_pos[2];
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    buzz_cmd=2;

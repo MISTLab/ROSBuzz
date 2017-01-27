@@ -90,6 +90,9 @@ private:
 
 	/*convert from spherical to cartesian coordinate system callback */
 	void cvt_cartesian_coordinates(double neighbours_pos_payload [], double out[]);
+
+	/*convert from spherical to cartesian coordinate system callback */
+	void cvt_rangebearing_coordinates(double neighbours_pos_payload [], double out[]);
 	
 	/*battery status callback*/ 
 	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
