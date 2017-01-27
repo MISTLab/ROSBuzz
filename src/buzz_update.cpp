@@ -200,6 +200,11 @@ delete_p(updater->inmsg_queue);
 void update_routine(const char* bcfname,
                            const char* dbgfname){
 dbgf_name=(char*)dbgfname;
+buzzvm_t  VM = buzz_utility::get_vm();
+
+buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
+			buzzvm_pushi(VM, *(uint16_t*)updater->update_no);
+			buzzvm_gstore(VM);
 //fprintf(stdout,"[Debug : ]updater value = %i \n",updater->mode);
 	if(*(int*)updater->mode==CODE_RUNNING){
 		if(check_update()){
@@ -276,7 +281,7 @@ dbgf_name=(char*)dbgfname;
 	else{
 
 		if(neigh==0) code_message_outqueue_append();
-		buzzvm_t  VM = buzz_utility::get_vm();
+		
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "barrier_val",1));
             	buzzvm_gload(VM);
             	buzzobj_t tObj = buzzvm_stack_at(VM, 1);
