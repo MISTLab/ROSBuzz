@@ -171,7 +171,10 @@ uint16_t size =0;
 		fp=fopen("update.bo", "wb");
    		fwrite((updater->bcode), updater->bcode_size, 1, fp);
 		fclose(fp);
-		//fprintf(stdout,"[Debug : ]size = %i \n",(int)sizeof(size_t));
+		fprintf(stdout,"[Debug : ]updater rid = %i \n",(int)updater->robotid);
+		fprintf(stdout,"[Debug : ]updater mode = %i \n",(int)updater->mode);
+		fprintf(stdout,"[Debug : ]update number = %i \n",(int)updater->update_no);
+		
 		*(uint16_t*)updater->outmsg_queue->size=size;
 		/*Update local dictionary*/
 		uint8_t* dict_update=(uint8_t*)malloc(sizeof(uint16_t));
@@ -182,7 +185,7 @@ uint16_t size =0;
 		
 	}
 	else if(type==STATE_MSG){
-		updater->outmsg_queue->queue = (uint8_t*)malloc(3*sizeof(uint8_t));
+		updater->outmsg_queue->queue = (uint8_t*)malloc(4*sizeof(uint8_t));
 		updater->outmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));	
 		//*(uint16_t*)updater->outmsg_queue->size = 3*sizeof(uint8_t);
 		*(uint16_t*)(updater->outmsg_queue->queue+size) = (uint16_t) updater->robotid;
@@ -192,6 +195,10 @@ uint16_t size =0;
 		*(uint8_t*)(updater->outmsg_queue->queue+size) =  updater->update_no;
 		size+=sizeof(uint8_t);
 		*(uint16_t*)updater->outmsg_queue->size=size;
+		fprintf(stdout,"[Debug : ]updater rid = %i \n",(int)updater->robotid);
+		fprintf(stdout,"[Debug : ]updater mode = %i \n",(int)updater->mode);
+		fprintf(stdout,"[Debug : ]update number = %i \n",(int)updater->update_no);
+				
 		/*Update local dictionary*/
 		uint8_t* dict_update=(uint8_t*)malloc(sizeof(uint16_t));
 		*(uint8_t*)dict_update=updater->mode;
@@ -215,13 +222,13 @@ memcpy(updater->inmsg_queue->queue, msg, size);
 void code_message_inqueue_process(){
 int size=0;
 	//fprintf(stdout,"received state : %i from robot : %i\n",*(uint8_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)),*(uint16_t*)updater->inmsg_queue->queue);
-	if(*(uint8_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)) == CODE_UPDATE){
+	if(*(uint8_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)) != CODE_RUNNING){
 		buzzdict_set(updater->state_dict, updater->inmsg_queue->queue,(updater->inmsg_queue->queue+sizeof(uint16_t)));
 		size +=3*sizeof(uint8_t);
 		if(*(uint8_t*)(updater->inmsg_queue->queue+size) > (updater->update_no)){
-			updater->update_no=*(uint8_t*)(updater->inmsg_queue->queue+size);
-			size+=sizeof(uint8_t);
-			if(updater->mode==CODE_RUNNING){				
+			if(updater->mode==CODE_RUNNING){	
+				uint8_t update_no_obt=*(uint8_t*)(updater->inmsg_queue->queue+size);
+				size+=sizeof(uint8_t);						
 				uint16_t update_bcode_size =*(uint16_t*)(updater->inmsg_queue->queue+size);
 				size +=sizeof(uint16_t);	
 				FILE *fp;
@@ -237,6 +244,7 @@ int size=0;
 						//fprintf(stdout,"start and end time in queue process of update Info : %f,%f",(double)begin,(double)end);
 						/*data logging*/
 						fprintf(stdout,"Step test passed\n");
+						updater->update_no=update_no_obt;
 						updater->mode=CODE_UPDATE;
 						//fprintf(stdout,"updater value = %i\n",updater->mode);
 						free(updater->bcode);
@@ -245,7 +253,7 @@ int size=0;
 						//updater->bcode = BO_BUF;
 		  				updater->bcode_size = (size_t)update_bcode_size;
 						code_message_outqueue_append(STATE_MSG);
-						updater->mode=CODE_NEIGHBOUR;
+						updater->mode=CODE_STANDBY;
 
 						//return updater->mode;				
 						//return 0;

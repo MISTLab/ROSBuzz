@@ -15,7 +15,7 @@ namespace rosbzz_node{
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
  		Compile_bzz();
 		set_bzz_file(bzzfile_name.c_str());
-		init_update_monitor(bcfname.c_str(),barrier);
+		
 	}
 
 	/***Destructor***/
@@ -33,6 +33,7 @@ namespace rosbzz_node{
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
+			init_update_monitor(bcfname.c_str(),barrier);
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
       				/*Update neighbors position inside Buzz*/
@@ -198,8 +199,8 @@ namespace rosbzz_node{
 			it != payload_out.payload64.end(); ++it){
 			message_obt[i] =(uint64_t) *it;
 			i++;
-        	}
-		for(i=0;i<payload_out.payload64.size();i++){
+        	}*/
+		/*for(i=0;i<payload_out.payload64.size();i++){
 			out = buzz_utility::u64_cvt_u16(message_obt[i]);
 			for(int k=0;k<4;k++){
 				cout<<" [Debug:] sent message "<<out[k]<<endl;

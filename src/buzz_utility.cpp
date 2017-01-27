@@ -89,8 +89,8 @@ namespace buzz_utility{
 		fprintf(stdout,"received Msg size : %i\n",(int) *(uint16_t*)(pl + tot));
 		 tot += sizeof(uint16_t);
 	        code_message_inqueue_append(pl+tot,unMsgSize);
-	      	tot += unMsgSize;
 		fprintf(stdout,"Msg 1 : %i , and Msg 2: %i\n",(int) *(uint16_t*)(pl+tot),(int) *(uint8_t*)(pl+tot+sizeof(uint16_t)));
+	      	tot += unMsgSize;		
 	      	code_message_inqueue_process();
 	      	unMsgSize=0;
 		/*Check for Buzz messages only when the code is running*/
@@ -554,6 +554,7 @@ uint16_t get_robotid(){
    /* Make numeric id from hostname */
    /* NOTE: here we assume that the hostname is in the format Knn */
    int id = strtol(hstnm + 4, NULL, 10);
+	fprintf(stdout, "Robot id from get rid buzz util:  %i\n",id);
 return (uint16_t)id;
 }
 
