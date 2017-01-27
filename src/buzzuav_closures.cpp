@@ -63,16 +63,21 @@ int buzzros_print(buzzvm_t vm) {
 /****************************************/
 
 int buzzuav_goto(buzzvm_t vm) {
-   buzzvm_lnum_assert(vm, 3);
-   buzzvm_lload(vm, 1); /* Altitude */
-   buzzvm_lload(vm, 2); /* Longitude */
-   buzzvm_lload(vm, 3); /* Latitude */
-   buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+   buzzvm_lnum_assert(vm, 2);
+   buzzvm_lload(vm, 1); /* dx */
+   buzzvm_lload(vm, 2); /* dy */
+   //buzzvm_lload(vm, 3); /* Latitude */
+   //buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-   goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value; 
-   goto_pos[1]=buzzvm_stack_at(vm, 2)->f.value; 
-   goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value; 
+   float dy = buzzvm_stack_at(vm, 1)->f.value;
+   float dx = buzzvm_stack_at(vm, 2)->f.value;
+   //goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value;
+   double dlat=dx/(6371000+cur_pos[2]);
+   double dlon=dy/cos(cur_pos[0]/180*3.1416)/(6371000+cur_pos[2]);
+   goto_pos[0]=cur_pos[0]+dlat*180/3.1416;
+   goto_pos[1]=cur_pos[1]+dlon*180/3.1416;
+   goto_pos[2]=cur_pos[2];
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %15f , Longitude: %15f, Altitude: %15f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    buzz_cmd=2;

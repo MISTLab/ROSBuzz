@@ -86,10 +86,10 @@ private:
 			 double longitude,
 			 double altitude);
 	/*convert from cartesian to spherical coordinate system callback */
-	double* cvt_spherical_coordinates(double neighbours_pos_payload []);
+	void cvt_spherical_coordinates(double neighbours_pos_payload [], double out[]);
 
 	/*convert from spherical to cartesian coordinate system callback */
-	double* cvt_cartesian_coordinates(double neighbours_pos_payload []);
+	void cvt_cartesian_coordinates(double neighbours_pos_payload [], double out[]);
 	
 	/*battery status callback*/ 
 	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
