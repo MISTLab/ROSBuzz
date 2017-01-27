@@ -85,9 +85,12 @@ namespace buzz_utility{
 		/* Go through the messages until there's nothing else to read */
       		uint16_t unMsgSize;
 		unMsgSize = *(uint16_t*)(pl + tot);
-	        tot += sizeof(uint16_t);
+	       
+		fprintf(stdout,"received Msg size : %i\n",(int) *(uint16_t*)(pl + tot));
+		 tot += sizeof(uint16_t);
 	        code_message_inqueue_append(pl+tot,unMsgSize);
 	      	tot += unMsgSize;
+		fprintf(stdout,"Msg 1 : %i , and Msg 2: %i\n",(int) *(uint16_t*)(pl+tot),(int) *(uint8_t*)(pl+tot+sizeof(uint16_t)));
 	      	code_message_inqueue_process();
 	      	unMsgSize=0;
 		/*Check for Buzz messages only when the code is running*/
@@ -126,11 +129,11 @@ namespace buzz_utility{
    		tot += sizeof(uint16_t);
 		/*Append updater msg size*/
                 memcpy(buff_send + tot, (uint8_t*)getupdate_out_msg_size(), sizeof(uint16_t));
-     		// fprintf(stdout,"Msg size : %i\n",(int) *(uint16_t*)(STREAM_SEND_BUF + tot));
+     		 fprintf(stdout,"Msg size : %i\n",(int) *(uint16_t*)(buff_send + tot));
       		tot+= sizeof(uint16_t);
 		/*Append updater msgs*/   		
 		memcpy(buff_send + tot, (uint8_t*) getupdater_out_msg(),*(uint16_t*)getupdate_out_msg_size());
-     		// fprintf(stdout,"Msg 1 : %i , and Msg 2: %i\n",(int) *(uint16_t*)(STREAM_SEND_BUF + tot),(int) *(uint8_t*)(STREAM_SEND_BUF + tot+sizeof(uint16_t)));
+     		 fprintf(stdout,"Msg 1 : %i , and Msg 2: %i\n",(int) *(uint16_t*)(buff_send + tot),(int) *(uint8_t*)(buff_send + tot+sizeof(uint16_t)));
 		tot+= *(uint16_t*)getupdate_out_msg_size();
 		/*destroy the updater out msg queue*/
 		destroy_out_msg_queue();
