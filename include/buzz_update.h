@@ -45,7 +45,7 @@ struct updater_msgqueue_s {
 
 struct buzz_updater_elem_s {
       /* robot id  */
-      uint16_t robotid;
+      //uint16_t robotid;
      /*current Bytecode content */
       uint8_t* bcode;
       /*current bcode size*/

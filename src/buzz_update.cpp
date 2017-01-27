@@ -157,7 +157,7 @@ void code_message_outqueue_append(){
 	updater_msg_ready=1;
 	*(uint16_t*)updater->outmsg_queue->size=size;
 	
-	//fprintf(stdout,"out mes append transfer code %d\n", transfer_code);
+	fprintf(stdout,"out mes append transfer code size %d\n", (int)*(size_t*) updater->bcode_size);
 }
 
 void code_message_inqueue_append(uint8_t* msg,uint16_t size){
@@ -298,7 +298,7 @@ return (uint8_t*)updater->outmsg_queue->queue;
 }
 
 uint8_t* getupdate_out_msg_size(){
-//fprintf(stdout,"[Debug : ]size = %i \n",*(uint16_t*)updater->outmsg_queue->size);
+fprintf(stdout,"[Debug  from get out size in util: ]size = %i \n",*(uint16_t*)updater->outmsg_queue->size);
 		
 return (uint8_t*)updater->outmsg_queue->size;
 }
@@ -328,14 +328,14 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size){
 		/*Unable to step something wrong*/
 		else{
 			fprintf(stdout,"step test failed, stick to old script\n");
-			buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, *(size_t*)(updater->bcode_size));
+			buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (int)*(size_t*)(updater->bcode_size));
 			return 0;
 			
 		}				
 	}    
 	else {
 		fprintf(stdout,"Initialization test failed\n");
-		buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname,*(size_t*) (updater->bcode_size));
+		buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname,(int)*(size_t*) (updater->bcode_size));
 		return 0;				
 		}
 }
