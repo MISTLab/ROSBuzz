@@ -86,6 +86,7 @@ namespace buzz_utility{
       		uint16_t unMsgSize;
 		uint8_t is_msg_pres=*(uint8_t*)(pl + tot);
 		tot+=sizeof(uint8_t);
+		 fprintf(stdout,"is_updater msg present : %i\n",(int)is_msg_pres);
 		if(is_msg_pres){
 		unMsgSize = *(uint16_t*)(pl + tot);
 		tot+=sizeof(uint16_t);
@@ -128,8 +129,8 @@ namespace buzz_utility{
    		tot += sizeof(uint16_t);
 		uint8_t updater_msg_pre = 0;
    		uint16_t updater_msgSize= 0;
-		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()){
-		   //fprintf(stdout,"transfer code %d\n", transfer_code);
+		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1){
+		   fprintf(stdout,"transfer code \n");
 		   updater_msg_pre =1;
 		   //transfer_code=0;
 		   *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;

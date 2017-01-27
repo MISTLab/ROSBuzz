@@ -184,6 +184,7 @@ namespace rosbzz_node{
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
 		}
     		/*obtain Pay load to be sent*/  
+		fprintf(stdout, "before getting msg from utility\n");
    		uint64_t* payload_out_ptr= buzz_utility::out_msg_process();
     		uint64_t  position[3];
   		/*Appened current position to message*/
