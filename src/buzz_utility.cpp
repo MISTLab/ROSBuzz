@@ -87,33 +87,36 @@ namespace buzz_utility{
 		unMsgSize = *(uint16_t*)(pl + tot);
 	       
 		fprintf(stdout,"received Msg size : %i\n",(int) *(uint16_t*)(pl + tot));
-		 tot += sizeof(uint16_t);
-	        code_message_inqueue_append(pl+tot,unMsgSize);
-		fprintf(stdout,"Msg 1 : %i , and Msg 2: %i\n",(int) *(uint16_t*)(pl+tot),(int) *(uint8_t*)(pl+tot+sizeof(uint16_t)));
-	      	tot += unMsgSize;		
-	      	code_message_inqueue_process();
-	      	unMsgSize=0;
-		/*Check for Buzz messages only when the code is running*/
-		if(get_update_mode()==CODE_RUNNING){
-			uint8_t buzz_msg_pre=*(uint8_t*)(pl + tot);
-			tot+= sizeof(uint8_t);
-			/*Obtain Buzz messages only when they are present*/
-	      		if(buzz_msg_pre){
-	      			do {
-		 			/* Get payload size */
-		 			unMsgSize = *(uint16_t*)(pl + tot);
-	   	 			tot += sizeof(uint16_t);
-		 			/* Append message to the Buzz input message queue */
-		 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
-		    			buzzinmsg_queue_append(VM,
-		                        buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
-		    			tot += unMsgSize;
-		 			}
-	      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
+		/*Xbee seems to send a lots of unknown message check later, added to avoid it, safe anyways*/
+		if(*(uint16_t*)(pl + tot) >= 4){		
+			 tot += sizeof(uint16_t);
+			code_message_inqueue_append(pl+tot,unMsgSize);
+			fprintf(stdout,"Msg 1 : %i , and Msg 2: %i\n",(int) *(uint16_t*)(pl+tot),(int) *(uint8_t*)(pl+tot+sizeof(uint16_t)));
+		      	tot += unMsgSize;		
+		      	code_message_inqueue_process();
+		      	unMsgSize=0;
+			/*Check for Buzz messages only when the code is running*/
+			if(get_update_mode()==CODE_RUNNING){
+				uint8_t buzz_msg_pre=*(uint8_t*)(pl + tot);
+				tot+= sizeof(uint8_t);
+				/*Obtain Buzz messages only when they are present*/
+		      		if(buzz_msg_pre){
+		      			do {
+			 			/* Get payload size */
+			 			unMsgSize = *(uint16_t*)(pl + tot);
+		   	 			tot += sizeof(uint16_t);
+			 			/* Append message to the Buzz input message queue */
+			 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
+			    			buzzinmsg_queue_append(VM,
+				                buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
+			    			tot += unMsgSize;
+			 			}
+		      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
+				}
 			}
+	   		/* Process messages */
+			buzzvm_process_inmsgs(VM);
 		}
-   		/* Process messages */
-		buzzvm_process_inmsgs(VM);
 	}
 	/***************************************************/
 	/*Obtains messages from buzz out message Queue*/
