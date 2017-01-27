@@ -541,8 +541,7 @@ int update_step_test(){
  int a = buzzvm_function_call(VM, "step", 0);
 if(a != BUZZVM_STATE_READY){
  fprintf(stdout, "step test VM state %i\n",a);
-  fprintf(stdout, " execution terminated abnormally: %s\n\n",
-                 buzz_error_info());
+  fprintf(stdout, " execution terminated abnormally\n\n");
 }
  return a == BUZZVM_STATE_READY;
 }
