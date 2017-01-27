@@ -2,6 +2,15 @@
 # We need this for 2D vectors
 # Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
 include "/home/ubuntu/buzz/src/include/vec2.bzz"
+####################################################################################################
+# Updater related
+# This should be here for the updater to work, changing position of code will crash the updater
+####################################################################################################
+updated="update_ack"
+
+function updated_neigh(){
+neighbors.broadcast(updated, update_no)
+}
 
 TARGET_ALTITUDE = 10.1
  
@@ -46,7 +55,7 @@ function hexagon() {
 # Constants
 #
 BARRIER_VSTIG = 1
-ROBOTS = 3 # number of robots in the swarm
+#ROBOTS = 3 # number of robots in the swarm
 
 #
 # Sets a barrier

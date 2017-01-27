@@ -1,0 +1,32 @@
+updated="update_ack"
+
+function init(){
+barrier = stigmergy.create(101)
+barrier.put(id,1)
+barrier_val=0
+barrier.onconflict(function (k,l,r) {
+if(r. data < l. data or (r. data == l. data )) return l
+else return r
+})
+
+}
+
+function stand_by(){
+
+barrier.get(id)
+barrier_val = barrier.size()
+
+neighbors.listen(updated,
+   function(vid, value, rid) {
+      if(value==update_no) barrier_val=ROBOTS
+   }
+)
+
+}
+
+
+function step() {
+
+stand_by()
+
+}

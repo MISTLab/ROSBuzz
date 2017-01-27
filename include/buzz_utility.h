@@ -51,4 +51,5 @@ int update_step_test();
 
 uint16_t get_robotid();
 
+buzzvm_t get_vm();
 }

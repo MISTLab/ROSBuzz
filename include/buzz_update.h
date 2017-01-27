@@ -16,8 +16,6 @@
 
 typedef enum {
       CODE_RUNNING = 0, // Code executing
-      CODE_UPDATE,      // Updating code
-      CODE_NEIGHBOUR,   // Neighbour triggered an update
       CODE_STANDBY,     // Standing by for others to update
          } code_states_e;
 
@@ -47,33 +45,34 @@ struct updater_msgqueue_s {
 struct buzz_updater_elem_s {
       /* robot id  */
       uint16_t robotid;
-      /*current Bytecode content */
+     /*current Bytecode content */
       uint8_t* bcode;
       /*current bcode size*/
-      size_t bcode_size;
+      size_t* bcode_size;
+      /*current Bytecode content */
+      uint8_t* standby_bcode;
+      /*current bcode size*/
+      size_t* standby_bcode_size;
       /*updater out msg queue */
       updater_msgqueue_t outmsg_queue;
       /*updater in msg queue*/
       updater_msgqueue_t inmsg_queue;
       /*Current state of the updater one in code_states_e ENUM*/
-      int mode;
-      /*Table with state of other neighbours*/
-      buzzdict_t state_dict;
-      /*Update number to ensure consistency*/
-      uint8_t update_no;
+      int* mode;
+      uint8_t* update_no;
    } ;
    typedef struct buzz_updater_elem_s* buzz_updater_elem_t;
 
 /**************************************************************************/
 /*Updater routine from msg processing to file checks to be called from main*/
 /**************************************************************************/
-int update_routine(const char* bcfname,
-                           const char* dbgfname, int destroy);
+void update_routine(const char* bcfname,
+                           const char* dbgfname);
 
 /************************************************/
 /*Initalizes the updater */
 /************************************************/
-void init_update_monitor(const char* bo_filename,int barrier);
+void init_update_monitor(const char* bo_filename,const char* stand_by_script,int barrier);
 
 
 /*********************************************************/
@@ -112,6 +111,8 @@ int get_update_mode();
 /*sets bzz file name*/
 /***************************************************/
 void set_bzz_file(const char* in_bzz_file);
+
+int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size);
 
 /****************************************************/
 /*Destroys the updater*/

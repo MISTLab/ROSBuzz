@@ -46,7 +46,7 @@ private:
         //int oldcmdID=0;
 	int rc_cmd;
 	int barrier;
-	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname,out_payload,in_payload; //, rcclient;
+	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by; //, rcclient;
 	bool rcclient;
 	ros::ServiceClient mav_client;
 	ros::Publisher payload_pub;

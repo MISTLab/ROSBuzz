@@ -8,7 +8,7 @@
 #include <string.h>
 #include <buzz/buzzdebug.h>
 #include <sys/time.h>
-#define MAX_BUCKETS 10
+
 
 /*Temp for data collection*/
 //static int neigh=-1;
@@ -23,35 +23,9 @@ static buzz_updater_elem_t updater;
 static int no_of_robot;
 static char* dbgf_name;
 static const char* bzz_file;
+static int neigh=0;
 
-uint32_t buzz_updater_hashfunp (const void* key){
-return (*(uint16_t*)key);
-}
-
-
-int buzz_updater_key_cmp(const void* a, const void* b){
-if( *(uint16_t*)a < *(uint16_t*)b ) return -1;
-if( *(uint16_t*)a > *(uint16_t*)b ) return 1;
-return 0;
-}
-
-void updater_entry_destroy(const void* key, void* data, void* params) {
-  // fprintf(stdout,"freeing element.\n");
-   free((void*)key);
-   free((void*)data);
-}
-
-
-
-void standby_barrier_test(const void* key, const void* data, void* tmp){
-	//fprintf(stdout,"Checking barrier for robot :%i it has barrier : %i.\n",*(uint16_t*) key,*(uint8_t*) data );
-	if(*(uint8_t*) data == CODE_STANDBY || *(uint8_t*) data == CODE_RUNNING  ){
-		if(updater->update_no==*(uint8_t*) (data+sizeof(uint8_t)) )
-			(*(uint8_t*)tmp)+=1;
-	}
-}
-
-void init_update_monitor(const char* bo_filename,int barrier){
+void init_update_monitor(const char* bo_filename, const char* stand_by_script,int barrier){
 	fprintf(stdout,"intiialized file monitor.\n");
 	fd=inotify_init1(IN_NONBLOCK);
 	if ( fd < 0 ) {
@@ -80,23 +54,43 @@ void init_update_monitor(const char* bo_filename,int barrier){
 	      //return 0;
 	   }
 	   fclose(fp);
+	uint8_t* STD_BO_BUF          = 0;
+	fp = fopen(stand_by_script, "rb");
+
+	   if(!fp) {
+	      perror(stand_by_script);
+	    
+	   }
+	   fseek(fp, 0, SEEK_END);
+
+	   size_t stdby_bcode_size = ftell(fp);
+	   rewind(fp);
+
+	   STD_BO_BUF = (uint8_t*)malloc(stdby_bcode_size);
+	   if(fread(STD_BO_BUF, 1, stdby_bcode_size, fp) < stdby_bcode_size) {
+	      perror(stand_by_script);
+	     
+	      fclose(fp);
+	      //return 0;
+	   }
+	   fclose(fp);
 
 	 updater = (buzz_updater_elem_t)malloc(sizeof(struct buzz_updater_elem_s));
 	  /* Create a new table for updater*/
 	  updater->bcode = BO_BUF;
-	  updater->bcode_size = bcode_size;
-	  updater->mode=CODE_RUNNING;
-	  updater->robotid= buzz_utility::get_robotid();
-	  updater->state_dict=buzzdict_new(MAX_BUCKETS,
-                        sizeof(uint16_t),
-                        sizeof(uint16_t),
-                        buzz_updater_hashfunp,
-                        buzz_updater_key_cmp,
-                        updater_entry_destroy);
 	  updater->outmsg_queue = NULL;
 	  updater->inmsg_queue = NULL;
-          updater->update_no=0;
+	  updater->bcode_size = (size_t*) malloc(sizeof(size_t));
+	  updater->update_no = (uint8_t*) malloc(sizeof(uint16_t));
+	  *(uint16_t*)updater->update_no =0;
+	  *(size_t*)(updater->bcode_size)=bcode_size;
+	  updater->standby_bcode = STD_BO_BUF;
+	  updater->standby_bcode_size = (size_t*)malloc(sizeof(size_t));
+	  *(size_t*)(updater->standby_bcode_size)=stdby_bcode_size;
+	  updater->mode=(int*)malloc(sizeof(int));
+	  *(int*)updater->mode=CODE_RUNNING;
 	  no_of_robot=barrier;
+	  //neigh = 0;
 	  //updater->outmsg_queue=
 	  // update_table->barrier=nvs;
 
@@ -143,71 +137,25 @@ int check_update(){
 }
 
 
-void code_message_outqueue_append(int type){
-uint16_t size =0;
-//fprintf(stdout,"updater queue append.\n");
-	//if(updater->outmsg_queue == NULL)
-	//updater->outmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
-	//else {
-	//	destroy_out_msg_queue();
-		updater->outmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
-	    // }
-	if(type==SEND_CODE){
-		updater->outmsg_queue->queue = (uint8_t*)malloc((6*sizeof(uint8_t))+updater->bcode_size);
-		updater->outmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));	
-		//*(uint16_t*)updater->outmsg_queue->size =(3*sizeof(uint8_t))+sizeof(size_t)+updater->bcode_size;
-		
-		*(uint16_t*)(updater->outmsg_queue->queue+size) = (uint16_t) updater->robotid;
-		size+=sizeof(uint16_t);
-		*(uint8_t*)(updater->outmsg_queue->queue+size) = (uint8_t) updater->mode;
-		size+=sizeof(uint8_t);
-		*(uint8_t*)(updater->outmsg_queue->queue+size) =  updater->update_no;
-		size+=sizeof(uint8_t);
-		*(uint16_t*)(updater->outmsg_queue->queue+size) = (uint16_t) updater->bcode_size;
-		size+=sizeof(uint16_t);
-		memcpy(updater->outmsg_queue->queue+size, updater->bcode, updater->bcode_size);
-		size+=updater->bcode_size;
-		FILE *fp;
-		fp=fopen("update.bo", "wb");
-   		fwrite((updater->bcode), updater->bcode_size, 1, fp);
-		fclose(fp);
-		fprintf(stdout,"[Debug : ]updater rid = %i \n",(int)updater->robotid);
-		fprintf(stdout,"[Debug : ]updater mode = %i \n",(int)updater->mode);
-		fprintf(stdout,"[Debug : ]update number = %i \n",(int)updater->update_no);
-		
-		*(uint16_t*)updater->outmsg_queue->size=size;
-		/*Update local dictionary*/
-		uint8_t* dict_update=(uint8_t*)malloc(sizeof(uint16_t));
-		*(uint8_t*)dict_update=updater->mode;
-		*(uint8_t*)(dict_update+sizeof(uint8_t))=updater->update_no;
-		buzzdict_set(updater->state_dict,(uint8_t*) &(updater->robotid), (uint8_t*)dict_update);
-		delete_p(dict_update);		
-		
-	}
-	else if(type==STATE_MSG){
-		updater->outmsg_queue->queue = (uint8_t*)malloc(4*sizeof(uint8_t));
-		updater->outmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));	
-		//*(uint16_t*)updater->outmsg_queue->size = 3*sizeof(uint8_t);
-		*(uint16_t*)(updater->outmsg_queue->queue+size) = (uint16_t) updater->robotid;
-		size+=sizeof(uint16_t);
-		*(uint8_t*)(updater->outmsg_queue->queue+size) = (uint8_t) updater->mode;
-		size+=sizeof(uint8_t);
-		*(uint8_t*)(updater->outmsg_queue->queue+size) =  updater->update_no;
-		size+=sizeof(uint8_t);
-		*(uint16_t*)updater->outmsg_queue->size=size;
-		fprintf(stdout,"[Debug : ]updater rid = %i \n",(int)updater->robotid);
-		fprintf(stdout,"[Debug : ]updater mode = %i \n",(int)updater->mode);
-		fprintf(stdout,"[Debug : ]update number = %i \n",(int)updater->update_no);
-				
-		/*Update local dictionary*/
-		uint8_t* dict_update=(uint8_t*)malloc(sizeof(uint16_t));
-		*(uint8_t*)dict_update=updater->mode;
-		*(uint8_t*)(dict_update+sizeof(uint8_t))=updater->update_no;
-		buzzdict_set(updater->state_dict,(uint8_t*) &(updater->robotid), (uint8_t*)dict_update);
-		delete_p(dict_update);
-							
-		}
-
+void code_message_outqueue_append(){
+	updater->outmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
+	uint16_t size =0;
+	updater->outmsg_queue->queue = (uint8_t*)malloc(2*sizeof(uint16_t)+ *(size_t*)(updater->bcode_size));
+	updater->outmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));	
+	/*append the update no, code size and code to out msg*/
+	*(uint16_t*)(updater->outmsg_queue->queue+size) = *(uint16_t*) updater->update_no;
+	size+=sizeof(uint16_t);
+	*(uint16_t*)(updater->outmsg_queue->queue+size) = *(size_t*) updater->bcode_size;
+	size+=sizeof(uint16_t);
+	memcpy(updater->outmsg_queue->queue+size, updater->bcode, *(size_t*)updater->bcode_size);
+	size+=*(size_t*)updater->bcode_size;
+	/*FILE *fp;
+	fp=fopen("update.bo", "wb");
+	fwrite((updater->bcode), updater->bcode_size, 1, fp);
+	fclose(fp);*/
+	*(uint16_t*)updater->outmsg_queue->size=size;
+	
+	//fprintf(stdout,"out mes append transfer code %d\n", transfer_code);
 }
 
 void code_message_inqueue_append(uint8_t* msg,uint16_t size){
@@ -221,75 +169,34 @@ memcpy(updater->inmsg_queue->queue, msg, size);
 
 void code_message_inqueue_process(){
 int size=0;
-	//fprintf(stdout,"received state : %i from robot : %i\n",*(uint8_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)),*(uint16_t*)updater->inmsg_queue->queue);
-	if(*(uint8_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)) != CODE_RUNNING){
-		buzzdict_set(updater->state_dict, updater->inmsg_queue->queue,(updater->inmsg_queue->queue+sizeof(uint16_t)));
-		size +=3*sizeof(uint8_t);
-		if(*(uint8_t*)(updater->inmsg_queue->queue+size) > (updater->update_no)){
-			if(updater->mode==CODE_RUNNING){	
-				uint8_t update_no_obt=*(uint8_t*)(updater->inmsg_queue->queue+size);
-				size+=sizeof(uint8_t);						
-				uint16_t update_bcode_size =*(uint16_t*)(updater->inmsg_queue->queue+size);
-				size +=sizeof(uint16_t);	
-				FILE *fp;
-				fp=fopen("update.bo", "wb");
-		   		fwrite((updater->inmsg_queue->queue+size), update_bcode_size, 1, fp);
-				fclose(fp);
-				if(buzz_utility::buzz_update_init_test((updater->inmsg_queue->queue+size), dbgf_name,(size_t)update_bcode_size)){
-					fprintf(stdout,"Initializtion of script test passed\n");
-					if(buzz_utility::update_step_test()){
-						/*data logging*/
-						//neigh=1;
-						//gettimeofday(&t1, NULL);
-						//fprintf(stdout,"start and end time in queue process of update Info : %f,%f",(double)begin,(double)end);
-						/*data logging*/
-						fprintf(stdout,"Step test passed\n");
-						updater->update_no=update_no_obt;
-						updater->mode=CODE_UPDATE;
-						//fprintf(stdout,"updater value = %i\n",updater->mode);
-						free(updater->bcode);
-						updater->bcode = (uint8_t*)malloc(update_bcode_size);
-						memcpy(updater->bcode, updater->inmsg_queue->queue+size, update_bcode_size);
-						//updater->bcode = BO_BUF;
-		  				updater->bcode_size = (size_t)update_bcode_size;
-						code_message_outqueue_append(STATE_MSG);
-						updater->mode=CODE_STANDBY;
-
-						//return updater->mode;				
-						//return 0;
-						}
-					/*Unable to step something wrong*/
-					else{
-						fprintf(stdout,"Step test failed, stick to old script\n");
-						buzz_utility::buzz_update_set((updater)->bcode, dbgf_name, (updater)->bcode_size);
-
-						//return updater->mode;
-						//return 1;
-					}				
-				}    
-				else {
-					fprintf(stdout,"Initialiation test failed, stick to old script\n");
-					buzz_utility::buzz_update_set((updater)->bcode, dbgf_name, (updater)->bcode_size);
-					//return updater->mode;
-					//return 1;				
-					}
-			}
+if(*(int*)updater->mode==CODE_RUNNING){		
+	if(*(uint16_t*)(updater->inmsg_queue->queue+size) > *(uint16_t*) updater->update_no){
+		uint16_t update_no=*(uint16_t*)(updater->inmsg_queue->queue+size);	
+		size +=sizeof(uint16_t);	
+		uint16_t update_bcode_size =*(uint16_t*)(updater->inmsg_queue->queue+size);
+		size +=sizeof(uint16_t);	
+		//FILE *fp;
+		//fp=fopen("update.bo", "wb");
+		//fwrite((updater->inmsg_queue->queue+size), update_bcode_size, 1, fp);
+		//fclose(fp);
+		if(test_set_code((updater->inmsg_queue->queue+size),
+		   (char*) dbgf_name,(size_t)update_bcode_size)) {
+		*(uint16_t*)updater->update_no=update_no;
+		neigh=1;
 		}
+	}
+}
 
-	}
-	else {
-	buzzdict_set(updater->state_dict,updater->inmsg_queue->queue, updater->inmsg_queue->queue+sizeof(uint16_t));
-	}
 //fprintf(stdout,"in queue freed\n");
 delete_p(updater->inmsg_queue->queue);
 delete_p(updater->inmsg_queue->size);
 delete_p(updater->inmsg_queue);
 }
-int update_routine(const char* bcfname,
-                           const char* dbgfname, int destroy){
-dbgf_name=(char*)dbgfname;
+void update_routine(const char* bcfname,
+                           const char* dbgfname){
+//dbgf_name=(char*)dbgfname;
 //fprintf(stdout,"[Debug : ]updater value = %i \n",updater->mode);
-	if(updater->mode==CODE_RUNNING){
+	if(*(int*)updater->mode==CODE_RUNNING){
 		if(check_update()){
 			std::string bzzfile_name(bzz_file);
 			stringstream bzzfile_in_compile;
@@ -347,86 +254,38 @@ dbgf_name=(char*)dbgfname;
 				      
 				   }
 				   fclose(fp);
-				if(buzz_utility::buzz_update_init_test(BO_BUF, dbgfname,bcode_size)){
-				 fprintf(stdout,"Initializtion of script test passed\n");
-					if(buzz_utility::update_step_test()){
-					/*data logging*/
-					//neigh=0;
-					//gettimeofday(&t1, NULL);
-					//fprintf(stdout,"start and end time in code running state Info : %f,%f",(double)begin,(double)end);
-					/*data logging*/
-					fprintf(stdout,"Step test passed\n");
-					updater->update_no+=1;
-					updater->mode=CODE_UPDATE;
-					//fprintf(stdout,"updater value = %i\n",updater->mode);
-					delete_p(updater->bcode);
-					updater->bcode = (uint8_t*)malloc(bcode_size);
-	  				memcpy(updater->bcode, BO_BUF, bcode_size);
-	  				updater->bcode_size = bcode_size;
-			                code_message_outqueue_append(SEND_CODE);
-					delete_p(BO_BUF);
-					return updater->mode;				
-					//return 0;
-					}
-					/*Unable to step something wrong*/
-					else{
-					fprintf(stdout,"step test failed, stick to old script\n");
-					buzz_utility::buzz_update_set((updater)->bcode, dbgfname, (updater)->bcode_size);
-					code_message_outqueue_append(STATE_MSG);
-					delete_p(BO_BUF);
-					return updater->mode;
-					//return 1;
-					}				
-				}    
-				else {
-					fprintf(stdout,"unable to set new script to switch to old new script\n");
-					delete_p(BO_BUF);
-					buzz_utility::buzz_update_set((updater)->bcode, dbgfname, (updater)->bcode_size);
-					code_message_outqueue_append(STATE_MSG);
-					return updater->mode;
-					//return 1;				
-					}
+				if(test_set_code(BO_BUF, dbgfname,bcode_size)){
+				 uint16_t update_no =*(uint16_t*)(updater->update_no);
+				*(uint16_t*)(updater->update_no) =update_no +1;
+				code_message_outqueue_append();
+				fprintf(stdout,"Update no %d\n", update_no);
+				}
+				neigh=0;
+				delete_p(BO_BUF);
 		       	}
 	     
 		}
-		code_message_outqueue_append(STATE_MSG);
+		
 	}
 
-	else if (updater->mode==CODE_UPDATE){
-	
-		code_message_outqueue_append(SEND_CODE);
-		updater->mode=CODE_STANDBY;
+	else{
 
-	}
-	else if (updater->mode==CODE_NEIGHBOUR){
-		updater->mode=CODE_STANDBY;
-	}
-	else if (updater->mode==CODE_STANDBY){
-
-		uint8_t* tmp =(uint8_t*)malloc(sizeof(uint8_t));
-		*(uint8_t*)tmp=0;
-		buzzdict_foreach( updater->state_dict,reinterpret_cast<buzzdict_elem_funp>(standby_barrier_test), tmp);
-		fprintf(stdout,"Standby barrier ................... %i\n",*(uint8_t*)tmp);
-		code_message_outqueue_append(SEND_CODE);
-		if(*(uint8_t*)tmp==no_of_robot) { 
-			updater->mode=CODE_RUNNING;
-			//gettimeofday(&t2, NULL);
-			//fprintf(stdout,"start and end time in standby state Info : %f,%f",(double)begin,(double)end);
+		if(neigh==0) code_message_outqueue_append();
+		buzzvm_t  VM = buzz_utility::get_vm();
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "barrier_val",1));
+            	buzzvm_gload(VM);
+            	buzzobj_t tObj = buzzvm_stack_at(VM, 1);
+            	buzzvm_pop(VM);
+		fprintf(stdout,"Barrier ..................... %i \n",tObj->i.value);
+		if(tObj->i.value==no_of_robot) { 
+			*(int*)updater->mode=CODE_RUNNING;
 			//collect_data();
-			buzz_utility::buzz_update_set((updater)->bcode, dbgf_name, (updater)->bcode_size);	
+			buzz_utility::buzz_update_init_test((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
+			//buzzvm_function_call(m_tBuzzVM, "updated", 0);	
 			}
-		
-		delete_p(tmp);
-		//fprintf(stdout,"freed tmp\n");
-		
+
 	}
 	
-	if(destroy){
-          
- 	  destroy_updater();
-	  fprintf(stdout,"updater destoryed.\n");
-	}
-return updater->mode;
 }
 
 
@@ -439,7 +298,44 @@ return (uint8_t*)updater->outmsg_queue->queue;
 uint8_t* getupdate_out_msg_size(){
 //fprintf(stdout,"[Debug : ]size = %i \n",*(uint16_t*)updater->outmsg_queue->size);
 		
-return updater->outmsg_queue->size;
+return (uint8_t*)updater->outmsg_queue->size;
+}
+
+int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size){
+	if(buzz_utility::buzz_update_init_test(BO_BUF, dbgfname,bcode_size)){
+		fprintf(stdout,"Initializtion of script test passed\n");
+		if(buzz_utility::update_step_test()){
+			/*data logging*/
+			//start =1;
+			/*data logging*/
+			fprintf(stdout,"Step test passed\n");
+			*(int*)updater->mode = CODE_STANDBY;
+			//fprintf(stdout,"updater value = %i\n",updater->mode);
+			delete_p(updater->bcode);
+			updater->bcode = (uint8_t*)malloc(bcode_size);
+			memcpy(updater->bcode, BO_BUF, bcode_size);
+			*(size_t*)updater->bcode_size = bcode_size;
+			buzz_utility::buzz_update_init_test((updater)->standby_bcode,
+			         (char*)dbgfname, *(size_t*)(updater->standby_bcode_size));
+			buzzvm_t  VM = buzz_utility::get_vm();
+			buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
+			buzzvm_pushi(VM, no_of_robot);
+			buzzvm_gstore(VM);
+			return 1;
+		}
+		/*Unable to step something wrong*/
+		else{
+			fprintf(stdout,"step test failed, stick to old script\n");
+			buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, *(size_t*)(updater->bcode_size));
+			return 0;
+			
+		}				
+	}    
+	else {
+		fprintf(stdout,"Initialization test failed\n");
+		buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname,*(size_t*) (updater->bcode_size));
+		return 0;				
+		}
 }
 
 void destroy_out_msg_queue(){
@@ -450,19 +346,16 @@ delete_p(updater->outmsg_queue);
 }
 
 int get_update_mode(){
-return updater->mode;
+return *(int*)updater->mode;
 }
 
 void destroy_updater(){
-buzz_utility::buzz_script_destroy();
-//dictonary
-//fprintf(stdout,"freeing dict.\n");
-buzzdict_t* updater_dict_ptr=&(updater->state_dict);
-buzzdict_destroy((updater_dict_ptr));
-//fprintf(stdout,"freeing complete dict.\n");
 delete_p(updater->bcode);
-//fprintf(stdout,"freeing complete bcode.\n");
-
+delete_p(updater->bcode_size);
+delete_p(updater->standby_bcode);
+delete_p(updater->standby_bcode_size);
+delete_p(updater->mode);
+delete_p(updater->update_no);
 if(updater->outmsg_queue){
 delete_p(updater->outmsg_queue->queue);
 delete_p(updater->outmsg_queue->size);

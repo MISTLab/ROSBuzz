@@ -84,39 +84,35 @@ namespace buzz_utility{
 		}*/
 		/* Go through the messages until there's nothing else to read */
       		uint16_t unMsgSize;
+		uint8_t is_msg_pres=*(uint8_t*)(pl + tot);
+		tot+=sizeof(uint8_t);
+		if(is_msg_pres){
 		unMsgSize = *(uint16_t*)(pl + tot);
-	       
-		fprintf(stdout,"received Msg size : %i\n",(int) *(uint16_t*)(pl + tot));
-		/*Xbee seems to send a lots of unknown message check later, added to avoid it, safe anyways*/
-		if(*(uint16_t*)(pl + tot) >= 4){		
-			 tot += sizeof(uint16_t);
-			code_message_inqueue_append(pl+tot,unMsgSize);
-			fprintf(stdout,"Msg 1 : %i , and Msg 2: %i\n",(int) *(uint16_t*)(pl+tot),(int) *(uint8_t*)(pl+tot+sizeof(uint16_t)));
-		      	tot += unMsgSize;		
-		      	code_message_inqueue_process();
-		      	unMsgSize=0;
-			/*Check for Buzz messages only when the code is running*/
-			if(get_update_mode()==CODE_RUNNING){
-				uint8_t buzz_msg_pre=*(uint8_t*)(pl + tot);
-				tot+= sizeof(uint8_t);
-				/*Obtain Buzz messages only when they are present*/
-		      		if(buzz_msg_pre){
-		      			do {
-			 			/* Get payload size */
-			 			unMsgSize = *(uint16_t*)(pl + tot);
-		   	 			tot += sizeof(uint16_t);
-			 			/* Append message to the Buzz input message queue */
-			 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
-			    			buzzinmsg_queue_append(VM,
-				                buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
-			    			tot += unMsgSize;
-			 			}
-		      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
-				}
+		tot+=sizeof(uint16_t);
+     		// fprintf(stdout,"%u : read msg size : %u \n",m_unRobotId,unMsgSize);	
+			if(unMsgSize>0){
+				code_message_inqueue_append((uint8_t*)(pl + tot),unMsgSize);
+				tot+=unMsgSize;
+			      	code_message_inqueue_process();
 			}
-	   		/* Process messages */
-			buzzvm_process_inmsgs(VM);
 		}
+	      	unMsgSize=0;
+		
+			/*Obtain Buzz messages only when they are present*/
+	      			do {
+		 			/* Get payload size */
+		 			unMsgSize = *(uint16_t*)(pl + tot);
+	   	 			tot += sizeof(uint16_t);
+		 			/* Append message to the Buzz input message queue */
+		 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
+		    			buzzinmsg_queue_append(VM,
+		                        buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
+		    			tot += unMsgSize;
+		 			}
+	      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
+
+   		/* Process messages */
+		buzzvm_process_inmsgs(VM);
 	}
 	/***************************************************/
 	/*Obtains messages from buzz out message Queue*/
@@ -130,20 +126,28 @@ namespace buzz_utility{
    		/* Send robot id */
    		*(uint16_t*)(buff_send+tot) = (uint16_t) VM->robot;
    		tot += sizeof(uint16_t);
-		/*Append updater msg size*/
-                memcpy(buff_send + tot, (uint8_t*)getupdate_out_msg_size(), sizeof(uint16_t));
-     		 fprintf(stdout,"Msg size : %i\n",(int) *(uint16_t*)(buff_send + tot));
-      		tot+= sizeof(uint16_t);
-		/*Append updater msgs*/   		
-		memcpy(buff_send + tot, (uint8_t*) getupdater_out_msg(),*(uint16_t*)getupdate_out_msg_size());
-     		 fprintf(stdout,"Msg 1 : %i , and Msg 2: %i\n",(int) *(uint16_t*)(buff_send + tot),(int) *(uint8_t*)(buff_send + tot+sizeof(uint16_t)));
-		tot+= *(uint16_t*)getupdate_out_msg_size();
-		/*destroy the updater out msg queue*/
-		destroy_out_msg_queue();
- 		if(get_update_mode()==CODE_RUNNING){
-	  		*(uint8_t*)(buff_send + tot) = 1;
-	   		tot+= sizeof(uint8_t);
-	   		/* Send messages from FIFO */
+		uint8_t updater_msg_pre = 0;
+   		uint16_t updater_msgSize= 0;
+		if((int)get_update_mode()!=CODE_RUNNING){
+		   //fprintf(stdout,"transfer code %d\n", transfer_code);
+		   updater_msg_pre =1;
+		   //transfer_code=0;
+		   *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
+      		   tot += sizeof(uint8_t);
+		   /*Append updater msg size*/
+		   *(uint16_t*)(buff_send + tot) = *(uint16_t*) (getupdate_out_msg_size());
+      		   tot += sizeof(uint16_t);
+		   /*Append updater msgs*/   	
+    		   memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
+		   tot += updater_msgSize;
+		   /*destroy the updater out msg queue*/
+		   destroy_out_msg_queue();
+		}
+		else{
+		   *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
+      		   tot += sizeof(uint8_t);
+		}
+ 			/* Send messages from FIFO */
 	   		do {
 				/* Are there more messages? */
 	      			if(buzzoutmsg_queue_isempty(VM)) break;
@@ -169,11 +173,7 @@ namespace buzz_utility{
       			buzzoutmsg_queue_next(VM);
       			buzzmsg_payload_destroy(&m);
 	   		} while(1);
-		}
-		else{
-	 		*(uint8_t*)(buff_send + tot) = 0;
-			tot+= sizeof(uint8_t);
-		}
+		
    		uint16_t total_size =(ceil((float)tot/(float)sizeof(uint64_t))); 
    		*(uint16_t*)buff_send = (uint16_t) total_size;   
    
@@ -489,7 +489,10 @@ namespace buzz_utility{
 		      buzz_error_info());
 	      buzzvm_dump(VM);
 	   }
-	   /* Print swarm */
+	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+	   /* look into this currently we don't have swarm feature at all */
+	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+	   /*Print swarm*/
 	   //buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
 	   /* Check swarm state */
 	   /*  int status = 1;
@@ -560,6 +563,9 @@ uint16_t get_robotid(){
 return (uint16_t)id;
 }
 
+buzzvm_t get_vm(){
+return VM;
+}
 
 }
 

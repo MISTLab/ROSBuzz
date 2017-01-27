@@ -33,7 +33,7 @@ namespace rosbzz_node{
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
-			init_update_monitor(bcfname.c_str(),barrier);
+			init_update_monitor(bcfname.c_str(),stand_by.c_str(),barrier);
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
       				/*Update neighbors position inside Buzz*/
@@ -56,12 +56,14 @@ namespace rosbzz_node{
 					//std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
 					}
 				neigh_pos_pub.publish(neigh_pos_array); 
-
+				fprintf(stdout, "before update routine\n");
 				/*Check updater state and step code*/
-  				if(update_routine(bcfname.c_str(), dbgfname.c_str(),0)==CODE_RUNNING)
+  				update_routine(bcfname.c_str(), dbgfname.c_str());
       				/*Step buzz script */
+				fprintf(stdout, "before code step\n");
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
+				fprintf(stdout, "before publish msg\n");
 		  		prepare_msg_and_publish();
     				/*run once*/
     				ros::spinOnce();
@@ -74,7 +76,7 @@ namespace rosbzz_node{
 				
 			}
 			/* Destroy updater and Cleanup */
-    			update_routine(bcfname.c_str(), dbgfname.c_str(),1);
+    			//update_routine(bcfname.c_str(), dbgfname.c_str(),1);
   		}
 	}
 
@@ -107,6 +109,8 @@ namespace rosbzz_node{
   		n_c.getParam("in_payload", in_payload);
 		/*Obtain Number of robots for barrier*/
 		n_c.getParam("No_of_Robots", barrier);
+		/*Obtain standby script to run during update*/
+		n_c.getParam("stand_by", stand_by);
 		
 
 	}
