@@ -136,7 +136,9 @@ namespace buzz_utility{
 		   *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
       		   tot += sizeof(uint8_t);
 		   /*Append updater msg size*/
-		   *(uint16_t*)(buff_send + tot) = *(uint16_t*) (getupdate_out_msg_size());
+		   //*(uint16_t*)(buff_send + tot) = *(uint16_t*) (getupdate_out_msg_size());
+			updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());
+			*(uint16_t*)(buff_send + tot)=updater_msgSize;
 			fprintf(stdout,"Updater sent msg size : %i \n", (int)*(uint16_t*) (getupdate_out_msg_size()));
       		   tot += sizeof(uint16_t);
 		   /*Append updater msgs*/   	
