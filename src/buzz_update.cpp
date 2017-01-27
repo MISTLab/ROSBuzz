@@ -199,7 +199,7 @@ delete_p(updater->inmsg_queue);
 }
 void update_routine(const char* bcfname,
                            const char* dbgfname){
-//dbgf_name=(char*)dbgfname;
+dbgf_name=(char*)dbgfname;
 //fprintf(stdout,"[Debug : ]updater value = %i \n",updater->mode);
 	if(*(int*)updater->mode==CODE_RUNNING){
 		if(check_update()){
