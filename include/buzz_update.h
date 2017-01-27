@@ -10,6 +10,7 @@
 #define delete_p(p) do { free(p); p = NULL; } while(0)
 
 
+
 /*********************/
 /*   Updater states */
 /********************/
@@ -119,5 +120,7 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size);
 /***************************************************/
 
 void destroy_updater();
+
+int is_msg_present();
 
 #endif

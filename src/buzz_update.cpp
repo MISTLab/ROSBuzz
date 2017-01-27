@@ -24,7 +24,7 @@ static int no_of_robot;
 static char* dbgf_name;
 static const char* bzz_file;
 static int neigh=0;
-
+static int 	    updater_msg_ready ;
 void init_update_monitor(const char* bo_filename, const char* stand_by_script,int barrier){
 	fprintf(stdout,"intiialized file monitor.\n");
 	fd=inotify_init1(IN_NONBLOCK);
@@ -90,6 +90,7 @@ void init_update_monitor(const char* bo_filename, const char* stand_by_script,in
 	  updater->mode=(int*)malloc(sizeof(int));
 	  *(int*)updater->mode=CODE_RUNNING;
 	  no_of_robot=barrier;
+	  updater_msg_ready=0;
 	  //neigh = 0;
 	  //updater->outmsg_queue=
 	  // update_table->barrier=nvs;
@@ -153,6 +154,7 @@ void code_message_outqueue_append(){
 	fp=fopen("update.bo", "wb");
 	fwrite((updater->bcode), updater->bcode_size, 1, fp);
 	fclose(fp);*/
+	updater_msg_ready=1;
 	*(uint16_t*)updater->outmsg_queue->size=size;
 	
 	//fprintf(stdout,"out mes append transfer code %d\n", transfer_code);
@@ -343,12 +345,16 @@ void destroy_out_msg_queue(){
 delete_p(updater->outmsg_queue->queue);
 delete_p(updater->outmsg_queue->size);
 delete_p(updater->outmsg_queue);
+updater_msg_ready=0;
 }
 
 int get_update_mode(){
 return *(int*)updater->mode;
 }
 
+int is_msg_present(){
+return updater_msg_ready;
+}
 void destroy_updater(){
 delete_p(updater->bcode);
 delete_p(updater->bcode_size);

@@ -128,7 +128,7 @@ namespace buzz_utility{
    		tot += sizeof(uint16_t);
 		uint8_t updater_msg_pre = 0;
    		uint16_t updater_msgSize= 0;
-		if((int)get_update_mode()!=CODE_RUNNING){
+		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()){
 		   //fprintf(stdout,"transfer code %d\n", transfer_code);
 		   updater_msg_pre =1;
 		   //transfer_code=0;
