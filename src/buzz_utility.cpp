@@ -83,6 +83,7 @@ namespace buzz_utility{
 			}
 		}*/
 		/* Go through the messages until there's nothing else to read */
+		fprintf(stdout,"Total data size  : utils : %d\n",(int)size);
       		uint16_t unMsgSize;
 		uint8_t is_msg_pres=*(uint8_t*)(pl + tot);
 		tot+=sizeof(uint8_t);
@@ -94,7 +95,9 @@ namespace buzz_utility{
 			if(unMsgSize>0){
 				code_message_inqueue_append((uint8_t*)(pl + tot),unMsgSize);
 				tot+=unMsgSize;
+				fprintf(stdout,"before in queue process : utils\n");
 			      	code_message_inqueue_process();
+				fprintf(stdout,"after in queue process : utils\n");
 			}
 		}
 	      	unMsgSize=0;
@@ -139,7 +142,7 @@ namespace buzz_utility{
 		   //*(uint16_t*)(buff_send + tot) = *(uint16_t*) (getupdate_out_msg_size());
 			updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());
 			*(uint16_t*)(buff_send + tot)=updater_msgSize;
-			fprintf(stdout,"Updater sent msg size : %i \n", (int)*(uint16_t*) (getupdate_out_msg_size()));
+			fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
       		   tot += sizeof(uint16_t);
 		   /*Append updater msgs*/   	
     		   memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
