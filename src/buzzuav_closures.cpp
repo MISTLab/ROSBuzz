@@ -99,13 +99,14 @@ int buzzuav_goto(buzzvm_t vm) {
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
    float dx = buzzvm_stack_at(vm, 1)->f.value;
    float dy = buzzvm_stack_at(vm, 2)->f.value;
+   printf(" Vector for Goto: %f,%f\n",dx,dy);
    //goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value;
    double cur_pos_cartesian[3];
    cartesian_coordinates(cur_pos,cur_pos_cartesian);
    double goto_spheric[3];
    goto_spheric[0] = dx + cur_pos_cartesian[0];
    goto_spheric[1] = dy + cur_pos_cartesian[1];
-   goto_spheric[2] = 6371000 + cur_pos_cartesian[2];
+   goto_spheric[2] = cur_pos_cartesian[2];
    spherical_coordinates(goto_spheric, goto_pos);
 //   goto_pos[0]=cur_pos[0]+dlat*180/M_PI;
 //   goto_pos[1]=cur_pos[1]+dlon*180/M_PI;
