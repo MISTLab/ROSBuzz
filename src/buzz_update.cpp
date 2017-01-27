@@ -244,7 +244,7 @@ int size=0;
 						memcpy(updater->bcode, updater->inmsg_queue->queue+size, update_bcode_size);
 						//updater->bcode = BO_BUF;
 		  				updater->bcode_size = (size_t)update_bcode_size;
-						code_message_outqueue_append(SEND_CODE);
+						code_message_outqueue_append(STATE_MSG);
 						updater->mode=CODE_NEIGHBOUR;
 
 						//return updater->mode;				
@@ -399,7 +399,7 @@ dbgf_name=(char*)dbgfname;
 		*(uint8_t*)tmp=0;
 		buzzdict_foreach( updater->state_dict,reinterpret_cast<buzzdict_elem_funp>(standby_barrier_test), tmp);
 		fprintf(stdout,"Standby barrier ................... %i\n",*(uint8_t*)tmp);
-		code_message_outqueue_append(STATE_MSG);
+		code_message_outqueue_append(SEND_CODE);
 		if(*(uint8_t*)tmp==no_of_robot) { 
 			updater->mode=CODE_RUNNING;
 			//gettimeofday(&t2, NULL);
