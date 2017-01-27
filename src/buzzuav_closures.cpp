@@ -16,6 +16,7 @@ static uint8_t status;
 static int cur_cmd = 0;
 static int rc_cmd=0;
 static int buzz_cmd=0;
+static float height=0;
 /****************************************/
 /****************************************/
 
@@ -61,12 +62,13 @@ int buzzros_print(buzzvm_t vm) {
 
 /****************************************/
 /****************************************/
+#define EARTH_RADIUS 6371000
 /*convert from spherical to cartesian coordinate system callback */
         void cartesian_coordinates(double spherical_pos_payload [], double out[]){
                 double latitude, longitude, rho;
                 latitude = spherical_pos_payload[0] / 180.0 * M_PI;
                 longitude = spherical_pos_payload[1] / 180.0 * M_PI;
-                rho = spherical_pos_payload[2]+6371000; //centered on Earth
+                rho = spherical_pos_payload[2]+EARTH_RADIUS; //centered on Earth
                 try {
                         out[0] = cos(latitude) * cos(longitude) * rho;
                         out[1] = cos(latitude) * sin(longitude) * rho;
@@ -82,7 +84,7 @@ int buzzros_print(buzzvm_t vm) {
                 y = cartesian_pos_payload[1];
                 z = cartesian_pos_payload[2];
                 try {
-                out[2]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0))-6371000;
+                out[2]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0))-EARTH_RADIUS;
                 out[1]=atan2(y,x)*180/M_PI;
                 out[0]=atan2(z,(sqrt(pow(x,2.0)+pow(y,2.0))))*180/M_PI;
                 } catch (std::overflow_error e) {
@@ -110,7 +112,7 @@ int buzzuav_goto(buzzvm_t vm) {
    spherical_coordinates(goto_cartesian, goto_pos);
 //   goto_pos[0]=cur_pos[0]+dlat*180/M_PI;
 //   goto_pos[1]=cur_pos[1]+dlon*180/M_PI;
-//   goto_pos[2]=cur_pos[2];
+   goto_pos[2]=height;	// force a constant altitude
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    buzz_cmd=2;
@@ -157,7 +159,8 @@ int buzzuav_takeoff(buzzvm_t vm) {
    buzzvm_lnum_assert(vm, 1);
    buzzvm_lload(vm, 1); /* Altitude */
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-   goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value; 
+   goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value;
+   height = goto_pos[2];
    cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
    printf(" Buzz requested Take off !!! \n");
    buzz_cmd=1;

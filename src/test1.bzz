@@ -1,4 +1,3 @@
-
 # We need this for 2D vectors
 # Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
 include "/home/ubuntu/buzz/src/include/vec2.bzz"
@@ -15,8 +14,8 @@ neighbors.broadcast(updated, update_no)
 TARGET_ALTITUDE = 10.1
  
 # Lennard-Jones parameters
-TARGET     = 0.000001001
-EPSILON    = 0.001
+TARGET     = 5	#0.000001001
+EPSILON    = 20	#0.001
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {

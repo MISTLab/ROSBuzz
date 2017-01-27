@@ -9,7 +9,7 @@
 		<param name="in_payload" value="/inMavlink"/>
 		<param name="out_payload" value="/outMavlink"/>
 		<param name="robot_id" value="3"/>
-		<param name="No_of_Robots" value="2"/>
+		<param name="No_of_Robots" value="3"/>
 		<param name="stand_by" value="../ROS_WS/src/ROSBuzz/src/stand_by.bo"/>
 		</node>
 		
