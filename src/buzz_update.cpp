@@ -207,6 +207,7 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 			buzzvm_gstore(VM);
 //fprintf(stdout,"[Debug : ]updater value = %i \n",updater->mode);
 	if(*(int*)updater->mode==CODE_RUNNING){
+		buzzvm_function_call(VM, "updated_neigh", 0);
 		if(check_update()){
 			std::string bzzfile_name(bzz_file);
 			stringstream bzzfile_in_compile;
