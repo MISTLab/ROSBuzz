@@ -269,6 +269,7 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 				 uint16_t update_no =*(uint16_t*)(updater->update_no);
 				*(uint16_t*)(updater->update_no) =update_no +1;
 				code_message_outqueue_append();
+				VM = buzz_utility::get_vm();
 				fprintf(stdout,"Update no %d\n", *(uint16_t*)(updater->update_no));
 				buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 				buzzvm_pushi(VM, *(uint16_t*)updater->update_no);
