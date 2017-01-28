@@ -82,13 +82,13 @@ void init_update_monitor(const char* bo_filename, const char* stand_by_script,in
 	  updater->inmsg_queue = NULL;
 	  updater->bcode_size = (size_t*) malloc(sizeof(size_t));
 	  updater->update_no = (uint8_t*) malloc(sizeof(uint16_t));
-	  *(uint16_t*)updater->update_no =0;
+	  *(uint16_t*)(updater->update_no) =0;
 	  *(size_t*)(updater->bcode_size)=bcode_size;
 	  updater->standby_bcode = STD_BO_BUF;
 	  updater->standby_bcode_size = (size_t*)malloc(sizeof(size_t));
 	  *(size_t*)(updater->standby_bcode_size)=stdby_bcode_size;
 	  updater->mode=(int*)malloc(sizeof(int));
-	  *(int*)updater->mode=CODE_RUNNING;
+	  *(int*)(updater->mode)=CODE_RUNNING;
 	  no_of_robot=barrier;
 	  updater_msg_ready=0;
 	  //neigh = 0;
@@ -144,18 +144,18 @@ void code_message_outqueue_append(){
 	updater->outmsg_queue->queue = (uint8_t*)malloc(2*sizeof(uint16_t)+ *(size_t*)(updater->bcode_size));
 	updater->outmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));	
 	/*append the update no, code size and code to out msg*/
-	*(uint16_t*)(updater->outmsg_queue->queue+size) = *(uint16_t*) updater->update_no;
+	*(uint16_t*)(updater->outmsg_queue->queue+size) = *(uint16_t*) (updater->update_no);
 	size+=sizeof(uint16_t);
-	*(uint16_t*)(updater->outmsg_queue->queue+size) = *(size_t*) updater->bcode_size;
+	*(uint16_t*)(updater->outmsg_queue->queue+size) = *(size_t*) (updater->bcode_size);
 	size+=sizeof(uint16_t);
-	memcpy(updater->outmsg_queue->queue+size, updater->bcode, *(size_t*)updater->bcode_size);
-	size+=(uint16_t)*(size_t*)updater->bcode_size;
+	memcpy(updater->outmsg_queue->queue+size, updater->bcode, *(size_t*)(updater->bcode_size));
+	size+=(uint16_t)*(size_t*)(updater->bcode_size);
 	/*FILE *fp;
 	fp=fopen("update.bo", "wb");
 	fwrite((updater->bcode), updater->bcode_size, 1, fp);
 	fclose(fp);*/
 	updater_msg_ready=1;
-	*(uint16_t*)updater->outmsg_queue->size=size;
+	*(uint16_t*)(updater->outmsg_queue->size)=size;
 	
 	//fprintf(stdout,"out msg append transfer code size %d\n", (int)*(size_t*) updater->bcode_size);
 }
@@ -166,13 +166,14 @@ updater->inmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s
 updater->inmsg_queue->queue = (uint8_t*)malloc(size);
 updater->inmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));
 memcpy(updater->inmsg_queue->queue, msg, size);
-*(uint16_t*)updater->inmsg_queue->size  = size;
+*(uint16_t*)(updater->inmsg_queue->size)  = size;
 
 }
 
 void code_message_inqueue_process(){
 int size=0;
-if(*(int*)updater->mode==CODE_RUNNING){		
+fprintf(stdout,"[debug]Updater mode %d",(*(int*)(updater->mode)) );
+if((*(int*)(updater->mode))==CODE_RUNNING){		
 	fprintf(stdout,"[debug]Inside inmsg code running");
 	if( (*(uint16_t*)(updater->inmsg_queue->queue)) > (*(uint16_t*) updater->update_no) ){
 		fprintf(stdout,"[debug]Inside update number comparision");
@@ -186,9 +187,9 @@ if(*(int*)updater->mode==CODE_RUNNING){
 		//fp=fopen("update.bo", "wb");
 		//fwrite((updater->inmsg_queue->queue+size), update_bcode_size, 1, fp);
 		//fclose(fp);
-		if(test_set_code((uint8_t*)(updater->inmsg_queue->queue+size),
-		   (char*) dbgf_name,(size_t)update_bcode_size)) {
-		*(uint16_t*)updater->update_no=update_no;
+		if( test_set_code((uint8_t*)(updater->inmsg_queue->queue+size),
+		   (char*) dbgf_name,(size_t)update_bcode_size) ) {
+		*(uint16_t*)(updater->update_no)=update_no;
 		neigh=1;
 		}
 	}
@@ -205,7 +206,7 @@ dbgf_name=(char*)dbgfname;
 buzzvm_t  VM = buzz_utility::get_vm();
 
 buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
-			buzzvm_pushi(VM, *(uint16_t*)updater->update_no);
+			buzzvm_pushi(VM, *(uint16_t*)(updater->update_no));
 			buzzvm_gstore(VM);
 //fprintf(stdout,"[Debug : ]updater value = %i \n",updater->mode);
 	if(*(int*)updater->mode==CODE_RUNNING){
@@ -274,7 +275,7 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 				VM = buzz_utility::get_vm();
 				fprintf(stdout,"Update no %d\n", *(uint16_t*)(updater->update_no));
 				buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
-				buzzvm_pushi(VM, *(uint16_t*)updater->update_no);
+				buzzvm_pushi(VM, *(uint16_t*)(updater->update_no));
 				buzzvm_gstore(VM);
 				neigh=0;
 				}
@@ -296,7 +297,7 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
             	buzzvm_pop(VM);
 		fprintf(stdout,"Barrier ..................... %i \n",tObj->i.value);
 		if(tObj->i.value==no_of_robot) { 
-			*(int*)updater->mode=CODE_RUNNING;
+			*(int*)(updater->mode) = CODE_RUNNING;
 			neigh=-1;
 			//collect_data();
 			buzz_utility::buzz_update_init_test((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
@@ -366,7 +367,7 @@ updater_msg_ready=0;
 }
 
 int get_update_mode(){
-return *(int*)updater->mode;
+return (int)*(int*)(updater->mode);
 }
 
 int is_msg_present(){

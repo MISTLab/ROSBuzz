@@ -205,7 +205,8 @@ namespace rosbzz_node{
 			message_obt[i] =(uint64_t) *it;
 			i++;
         	}*/
-		/*for(i=0;i<payload_out.payload64.size();i++){
+		/*for(int i=0;i<payload_out.payload64.size();i++){
+			cout<<" [Debug:] sent message "<<payload_out.payload64[i]<<endl;
 			out = buzz_utility::u64_cvt_u16(message_obt[i]);
 			for(int k=0;k<4;k++){
 				cout<<" [Debug:] sent message "<<out[k]<<endl;
