@@ -177,9 +177,9 @@ fprintf(stdout,"[debug] %u : current update number, %u : received update no \n",
 fprintf(stdout,"[debug]Updater code size %u \n",(*(uint16_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)) ) );
 
 if(  *(int*) (updater->mode) == CODE_RUNNING){		
-	fprintf(stdout,"[debug]Inside inmsg code running");
+	//fprintf(stdout,"[debug]Inside inmsg code running");
 	if( *(uint16_t*)(updater->inmsg_queue->queue) >  *(uint16_t*) (updater->update_no)  ){
-		fprintf(stdout,"[debug]Inside update number comparision");
+		//fprintf(stdout,"[debug]Inside update number comparision");
 		uint16_t update_no=*(uint16_t*)(updater->inmsg_queue->queue);	
 		size +=sizeof(uint16_t);	
 		uint16_t update_bcode_size =*(uint16_t*)(updater->inmsg_queue->queue+size);
@@ -353,6 +353,7 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size ){
 			buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (size_t)*(size_t*)(updater->bcode_size));
 			}
 			else{
+			/*You will never reach here*/
 			fprintf(stdout,"step test failed, Return to stand by\n");
 			buzz_utility::buzz_update_init_test((updater)->standby_bcode,
 			         (char*)dbgfname,(size_t) *(size_t*)(updater->standby_bcode_size));
@@ -372,6 +373,7 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size ){
 		buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname,(int)*(size_t*) (updater->bcode_size));
 		}
 		else{
+		/*You will never reach here*/
 		fprintf(stdout,"Initialization test failed, Return to stand by\n");
 			buzz_utility::buzz_update_init_test((updater)->standby_bcode,
 			         (char*)dbgfname,(size_t) *(size_t*)(updater->standby_bcode_size));
