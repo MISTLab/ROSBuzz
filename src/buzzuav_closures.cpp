@@ -62,7 +62,7 @@ int buzzros_print(buzzvm_t vm) {
 
 /****************************************/
 /****************************************/
-#define EARTH_RADIUS 6371000
+#define EARTH_RADIUS 6371000.0
 /*convert from spherical to cartesian coordinate system callback */
         void cartesian_coordinates(double spherical_pos_payload [], double out[]){
                 double latitude, longitude, rho;
