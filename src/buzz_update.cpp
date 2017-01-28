@@ -173,9 +173,12 @@ memcpy(updater->inmsg_queue->queue, msg, size);
 void code_message_inqueue_process(){
 int size=0;
 fprintf(stdout,"[debug]Updater mode %d",(*(int*)(updater->mode)) );
+fprintf(stdout,"[debug] %u : current update number, %u : received update no ",( *(uint16_t*) (updater->update_no) ), (*(uint16_t*)(updater->inmsg_queue->queue)) );
+fprintf(stdout,"[debug]Updater code size %u",(*(uint16_t*)(updater->inmsg_queue->queue) ) );
+
 if((*(int*)(updater->mode))==CODE_RUNNING){		
 	fprintf(stdout,"[debug]Inside inmsg code running");
-	if( (*(uint16_t*)(updater->inmsg_queue->queue)) > (*(uint16_t*) updater->update_no) ){
+	if( (*(uint16_t*)(updater->inmsg_queue->queue)) > ( *(uint16_t*) (updater->update_no) ) ){
 		fprintf(stdout,"[debug]Inside update number comparision");
 		uint16_t update_no=*(uint16_t*)(updater->inmsg_queue->queue);	
 		size +=sizeof(uint16_t);	
