@@ -22,6 +22,8 @@
 #include <map>
 #include "buzzuav_closures.h"
 
+#define UPDATER_MESSAGE_CONSTANT 987654321
+
 using namespace std;
 
 namespace rosbzz_node{

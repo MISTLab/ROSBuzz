@@ -23,7 +23,7 @@ namespace rosbzz_node{
 	{
 		/* All done */  
 		/* Cleanup */
-		//buzz_utility::buzz_script_destroy();
+		buzz_utility::buzz_script_destroy();
  		/* Stop the robot */
    		uav_done();
 	}
@@ -215,6 +215,39 @@ namespace rosbzz_node{
     		payload_pub.publish(payload_out);
     		delete[] out;
     		delete[] payload_out_ptr;
+
+		
+		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1){
+			uint8_t* buff_send = 0;
+	   		uint16_t updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());;
+			int tot=0;
+			mavros_msgs::Mavlink update_packets;
+			fprintf(stdout,"Transfering code \n");
+			fprintf(stdout,"Sent Update packet Size: %u \n",updater_msgSize);
+			buff_send =(uint8_t*)malloc(sizeof(uint16_t)+updater_msgSize);
+			memset(buff_send, 0,sizeof(uint16_t)+updater_msgSize);
+			   /*Append updater msg size*/
+			   *(uint16_t*)(buff_send + tot)=updater_msgSize;
+			   //fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
+	      		   tot += sizeof(uint16_t);
+			   /*Append updater msgs*/   	
+	    		   memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
+			   tot += updater_msgSize;
+			   /*Destroy the updater out msg queue*/
+			    destroy_out_msg_queue();
+			    uint16_t total_size =(ceil((float)tot/(float)sizeof(uint64_t))); 
+   			    uint64_t* payload_64 = new uint64_t[total_size];
+		  	    memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
+			    delete[] buff_send;
+			    /*Send a constant number to differenciate updater msgs*/
+			    update_packets.payload64.push_back((uint64_t)UPDATER_MESSAGE_CONSTANT);
+			    for(int i=0;i<total_size;i++){
+    				update_packets.payload64.push_back(payload_64[i]);
+    			    }
+			    payload_pub.publish(update_packets);
+			    delete[] payload_64;
+		}
+		
 		}
 
 
@@ -403,43 +436,73 @@ namespace rosbzz_node{
 	/*******************************************************************************************************/	
 	
 	void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg){
-		uint64_t message_obt[msg->payload64.size()];
-		int i = 0;
+		
+		if((uint64_t)msg->payload64[0]==(uint64_t)UPDATER_MESSAGE_CONSTANT){
+			uint16_t obt_msg_size=sizeof(uint64_t)*(msg->payload64.size()-1);
+			uint64_t message_obt[obt_msg_size];
+			/* Go throught the obtained payload*/
+			for(int i=1;i < (int)msg->payload64.size();i++){
+				message_obt[i-1] =(uint64_t)msg->payload64[i];
+		        	//cout<<"[Debug:] obtaind message "<<message_obt[i]<<endl;
+				//i++;
+			}
+			
+			uint8_t* pl =(uint8_t*)malloc(obt_msg_size);
+   			memset(pl, 0,obt_msg_size);
+			/* Copy packet into temporary buffer neglecting update constant */
+   			memcpy((void*)pl, (void*)(message_obt) ,obt_msg_size);
+			uint16_t unMsgSize = *(uint16_t*)(pl);
+			//uint16_t tot;			
+			//tot+=sizeof(uint16_t);
+     			fprintf(stdout,"Update packet read msg size : %u \n",unMsgSize);	
+			if(unMsgSize>0){
+				code_message_inqueue_append((uint8_t*)(pl + sizeof(uint16_t)),unMsgSize);
+				//fprintf(stdout,"before in queue process : utils\n");
+			      	code_message_inqueue_process();
+				//fprintf(stdout,"after in queue process : utils\n");
+			}
+   			delete[] pl;
 
-		/* Go throught the obtained payload*/
-		for(i=0;i < (int)msg->payload64.size();i++){
-			message_obt[i] =(uint64_t)msg->payload64[i];
-                	//cout<<"[Debug:] obtaind message "<<message_obt[i]<<endl;
-			//i++;
-        	}
-		/* Extract neighbours position from payload*/
-		double neighbours_pos_payload[3];
-		memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
-		buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
-//		cout<<"Got" << neighbours_pos_payload[0] <<", " << neighbours_pos_payload[1] << ", " << neighbours_pos_payload[2] << endl;
-//		double cvt_neighbours_pos_test[3];
-//		cvt_rangebearing_coordinates(neighbours_pos_payload, cvt_neighbours_pos_test);
-		/*Convert obtained position to relative CARTESIAN position*/
-		double cartesian_neighbours_pos[3], cartesian_cur_pos[3];
-		cvt_cartesian_coordinates(neighbours_pos_payload, cartesian_neighbours_pos);
-		cvt_cartesian_coordinates(cur_pos, cartesian_cur_pos);
-		/*Compute the relative position*/
-		for(i=0;i<3;i++){
-			neighbours_pos_payload[i]=cartesian_neighbours_pos[i]-cartesian_cur_pos[i];
+
 		}
-		double cvt_neighbours_pos_payload[3];
-		cvt_spherical_coordinates(neighbours_pos_payload, cvt_neighbours_pos_payload);
-		/*Extract robot id of the neighbour*/
- 		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));  
-		cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[2] << ", "<< cvt_neighbours_pos_payload[3] << endl;
-//		cout << "Rel Test Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_test[0] << ", "<< cvt_neighbours_pos_test[2] << ", "<< cvt_neighbours_pos_test[3] << endl;
-		/*pass neighbour position to local maintaner*/
-		buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
-		/*Put RID and pos*/
-		raw_neighbours_pos_put((int)out[1],raw_neigh_pos);		
-		neighbours_pos_put((int)out[1],n_pos);
-		delete[] out;
-		buzz_utility::in_msg_process((message_obt+3));
+
+		else{
+			uint64_t message_obt[msg->payload64.size()];
+			/* Go throught the obtained payload*/
+			for(int i=0;i < (int)msg->payload64.size();i++){
+				message_obt[i] =(uint64_t)msg->payload64[i];
+		        	//cout<<"[Debug:] obtaind message "<<message_obt[i]<<endl;
+				//i++;
+			}
+			/* Extract neighbours position from payload*/
+			double neighbours_pos_payload[3];
+			memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
+			buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
+	//		cout<<"Got" << neighbours_pos_payload[0] <<", " << neighbours_pos_payload[1] << ", " << neighbours_pos_payload[2] << endl;
+	//		double cvt_neighbours_pos_test[3];
+	//		cvt_rangebearing_coordinates(neighbours_pos_payload, cvt_neighbours_pos_test);
+			/*Convert obtained position to relative CARTESIAN position*/
+			double cartesian_neighbours_pos[3], cartesian_cur_pos[3];
+			cvt_cartesian_coordinates(neighbours_pos_payload, cartesian_neighbours_pos);
+			cvt_cartesian_coordinates(cur_pos, cartesian_cur_pos);
+			/*Compute the relative position*/
+			for(int i=0;i<3;i++){
+				neighbours_pos_payload[i]=cartesian_neighbours_pos[i]-cartesian_cur_pos[i];
+			}
+			double cvt_neighbours_pos_payload[3];
+			cvt_spherical_coordinates(neighbours_pos_payload, cvt_neighbours_pos_payload);
+			/*Extract robot id of the neighbour*/
+	 		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));  
+			cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[2] << ", "<< cvt_neighbours_pos_payload[3] << endl;
+	//		cout << "Rel Test Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_test[0] << ", "<< cvt_neighbours_pos_test[2] << ", "<< cvt_neighbours_pos_test[3] << endl;
+			/*pass neighbour position to local maintaner*/
+			buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
+			/*Put RID and pos*/
+			raw_neighbours_pos_put((int)out[1],raw_neigh_pos);		
+			neighbours_pos_put((int)out[1],n_pos);
+			delete[] out;
+			buzz_utility::in_msg_process((message_obt+3));
+		}
    
 	}
  	

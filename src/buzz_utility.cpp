@@ -17,7 +17,7 @@ namespace buzz_utility{
 	static char*        BO_FNAME        = 0;
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
-	static uint8_t      MSG_SIZE        = 100;   // Only 100 bytes of Buzz messages every step
+	static uint8_t      MSG_SIZE        = 50;   // Only 100 bytes of Buzz messages every step
 	static int          MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
 	
 	
@@ -84,23 +84,23 @@ namespace buzz_utility{
 		}*/
 		/* Go through the messages until there's nothing else to read */
 		//fprintf(stdout,"Total data size  : utils : %d\n",(int)size);
-      		uint16_t unMsgSize;
-		uint8_t is_msg_pres=*(uint8_t*)(pl + tot);
-		tot+=sizeof(uint8_t);
+      		uint16_t unMsgSize=0;
+		//uint8_t is_msg_pres=*(uint8_t*)(pl + tot);
+		//tot+=sizeof(uint8_t);
 		 //fprintf(stdout,"is_updater msg present : %i\n",(int)is_msg_pres);
-		if(is_msg_pres){
-		unMsgSize = *(uint16_t*)(pl + tot);
-		tot+=sizeof(uint16_t);
+		//if(is_msg_pres){
+		//unMsgSize = *(uint16_t*)(pl + tot);
+		//tot+=sizeof(uint16_t);
      		// fprintf(stdout,"%u : read msg size : %u \n",m_unRobotId,unMsgSize);	
-			if(unMsgSize>0){
-				code_message_inqueue_append((uint8_t*)(pl + tot),unMsgSize);
-				tot+=unMsgSize;
+		//	if(unMsgSize>0){
+		//		code_message_inqueue_append((uint8_t*)(pl + tot),unMsgSize);
+		//		tot+=unMsgSize;
 				//fprintf(stdout,"before in queue process : utils\n");
-			      	code_message_inqueue_process();
+		//	      	code_message_inqueue_process();
 				//fprintf(stdout,"after in queue process : utils\n");
-			}
-		}
-	      	unMsgSize=0;
+		//	}
+		//}
+	      	//unMsgSize=0;
 		
 			/*Obtain Buzz messages only when they are present*/
 	      			do {
@@ -114,7 +114,7 @@ namespace buzz_utility{
 		    			tot += unMsgSize;
 		 			}
 	      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
-
+		delete[] pl;
    		/* Process messages */
 		buzzvm_process_inmsgs(VM);
 	}
@@ -126,34 +126,35 @@ namespace buzz_utility{
    		buzzvm_process_outmsgs(VM);
    		uint8_t* buff_send =(uint8_t*)malloc(MAX_MSG_SIZE);
    		memset(buff_send, 0, MAX_MSG_SIZE);
+		/*Taking into consideration the sizes included at the end*/
    		ssize_t tot = sizeof(uint16_t);
    		/* Send robot id */
    		*(uint16_t*)(buff_send+tot) = (uint16_t) VM->robot;
    		tot += sizeof(uint16_t);
-		uint8_t updater_msg_pre = 0;
-   		uint16_t updater_msgSize= 0;
-		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1){
+		//uint8_t updater_msg_pre = 0;
+   		//uint16_t updater_msgSize= 0;
+		//if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1){
 		  // fprintf(stdout,"transfer code \n");
-		   updater_msg_pre =1;
+		 //  updater_msg_pre =1;
 		   //transfer_code=0;
-		   *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
-      		   tot += sizeof(uint8_t);
+		 //  *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
+      		 //  tot += sizeof(uint8_t);
 		   /*Append updater msg size*/
 		   //*(uint16_t*)(buff_send + tot) = *(uint16_t*) (getupdate_out_msg_size());
-			updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());
-			*(uint16_t*)(buff_send + tot)=updater_msgSize;
+		//	updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());
+		//	*(uint16_t*)(buff_send + tot)=updater_msgSize;
 			//fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
-      		   tot += sizeof(uint16_t);
+      		//   tot += sizeof(uint16_t);
 		   /*Append updater msgs*/   	
-    		   memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
-		   tot += updater_msgSize;
+    		//   memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
+		//   tot += updater_msgSize;
 		   /*destroy the updater out msg queue*/
-		   destroy_out_msg_queue();
-		}
-		else{
-		   *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
-      		   tot += sizeof(uint8_t);
-		}
+		//   destroy_out_msg_queue();
+		//}
+		//else{
+		//   *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
+      		//   tot += sizeof(uint8_t);
+		//}
  			/* Send messages from FIFO */
 	   		do {
 				/* Are there more messages? */
@@ -187,6 +188,7 @@ namespace buzz_utility{
    		uint64_t* payload_64 = new uint64_t[total_size];
  
    		memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
+		delete[] buff_send;
   		/*for(int i=0;i<total_size;i++){
    		cout<<" payload from out msg  "<<*(payload_64+i)<<endl;
    		}*/
