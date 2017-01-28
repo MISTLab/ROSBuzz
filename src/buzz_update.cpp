@@ -284,7 +284,6 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 	}
 
 	else{
-
 		if(neigh==0 && (!is_msg_present())){ 
 			fprintf(stdout,"Sending code... \n");		
 			code_message_outqueue_append();

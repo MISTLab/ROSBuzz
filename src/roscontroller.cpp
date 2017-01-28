@@ -457,9 +457,9 @@ namespace rosbzz_node{
      			fprintf(stdout,"Update packet read msg size : %u \n",unMsgSize);	
 			if(unMsgSize>0){
 				code_message_inqueue_append((uint8_t*)(pl + sizeof(uint16_t)),unMsgSize);
-				//fprintf(stdout,"before in queue process : utils\n");
+				fprintf(stdout,"before in queue process : utils\n");
 			      	code_message_inqueue_process();
-				//fprintf(stdout,"after in queue process : utils\n");
+				fprintf(stdout,"after in queue process : utils\n");
 			}
    			delete[] pl;
 
