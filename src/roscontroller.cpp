@@ -232,6 +232,7 @@ namespace rosbzz_node{
 			mavros_msgs::Mavlink update_packets;
 			fprintf(stdout,"Transfering code \n");
 			fprintf(stdout,"Sent Update packet Size: %u \n",updater_msgSize);
+			/*allocate mem and clear it*/
 			buff_send =(uint8_t*)malloc(sizeof(uint16_t)+updater_msgSize);
 			memset(buff_send, 0,sizeof(uint16_t)+updater_msgSize);
 			   /*Append updater msg size*/
@@ -243,7 +244,7 @@ namespace rosbzz_node{
 			   tot += updater_msgSize;
 			   /*Destroy the updater out msg queue*/
 			    destroy_out_msg_queue();
-			    uint16_t total_size =(ceil((float)tot/(float)sizeof(uint64_t))); 
+			    uint16_t total_size =(ceil((float)(float)tot/(float)sizeof(uint64_t))); 
    			    uint64_t* payload_64 = new uint64_t[total_size];
 		  	    memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
 			    delete[] buff_send;
@@ -446,11 +447,11 @@ namespace rosbzz_node{
 	void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg){
 		
 		if((uint64_t)msg->payload64[0]==(uint64_t)UPDATER_MESSAGE_CONSTANT){
-			uint16_t obt_msg_size=sizeof(uint64_t)*(msg->payload64.size()-1);
+			uint16_t obt_msg_size=sizeof(uint64_t)*(msg->payload64.size());
 			uint64_t message_obt[obt_msg_size];
 			/* Go throught the obtained payload*/
-			for(int i=1;i < (int)msg->payload64.size();i++){
-				message_obt[i-1] =(uint64_t)msg->payload64[i];
+			for(int i=0;i < (int)msg->payload64.size();i++){
+				message_obt[i] =(uint64_t)msg->payload64[i];
 		        	//cout<<"[Debug:] obtaind message "<<message_obt[i]<<endl;
 				//i++;
 			}
@@ -458,7 +459,7 @@ namespace rosbzz_node{
 			uint8_t* pl =(uint8_t*)malloc(obt_msg_size);
    			memset(pl, 0,obt_msg_size);
 			/* Copy packet into temporary buffer neglecting update constant */
-   			memcpy((void*)pl, (void*)(message_obt) ,obt_msg_size);
+   			memcpy((void*)pl, (void*)(message_obt+1) ,obt_msg_size);
 			uint16_t unMsgSize = *(uint16_t*)(pl);
 			//uint16_t tot;			
 			//tot+=sizeof(uint16_t);

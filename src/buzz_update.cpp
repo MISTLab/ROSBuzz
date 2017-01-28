@@ -162,7 +162,7 @@ void code_message_outqueue_append(){
 
 void code_message_inqueue_append(uint8_t* msg,uint16_t size){
 updater->inmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
-//fprintf(stdout,"in ms append code size %d\n", (int) size);
+fprintf(stdout,"in ms append code size %d\n", (int) size);
 updater->inmsg_queue->queue = (uint8_t*)malloc(size);
 updater->inmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));
 memcpy(updater->inmsg_queue->queue, msg, size);
@@ -172,13 +172,13 @@ memcpy(updater->inmsg_queue->queue, msg, size);
 
 void code_message_inqueue_process(){
 int size=0;
-fprintf(stdout,"[debug]Updater mode %d",(*(int*)(updater->mode)) );
-fprintf(stdout,"[debug] %u : current update number, %u : received update no ",( *(uint16_t*) (updater->update_no) ), (*(uint16_t*)(updater->inmsg_queue->queue)) );
-fprintf(stdout,"[debug]Updater code size %u",(*(uint16_t*)(updater->inmsg_queue->queue) ) );
+fprintf(stdout,"[debug]Updater mode %d \n", *(int*)(updater->mode) );
+fprintf(stdout,"[debug] %u : current update number, %u : received update no \n",( *(uint16_t*) (updater->update_no) ), (*(uint16_t*)(updater->inmsg_queue->queue)) );
+fprintf(stdout,"[debug]Updater code size %u \n",(*(uint16_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)) ) );
 
-if((*(int*)(updater->mode))==CODE_RUNNING){		
+if(  *(int*) (updater->mode) == CODE_RUNNING){		
 	fprintf(stdout,"[debug]Inside inmsg code running");
-	if( (*(uint16_t*)(updater->inmsg_queue->queue)) > ( *(uint16_t*) (updater->update_no) ) ){
+	if( *(uint16_t*)(updater->inmsg_queue->queue) >  *(uint16_t*) (updater->update_no)  ){
 		fprintf(stdout,"[debug]Inside update number comparision");
 		uint16_t update_no=*(uint16_t*)(updater->inmsg_queue->queue);	
 		size +=sizeof(uint16_t);	
@@ -324,7 +324,7 @@ uint8_t* getupdate_out_msg_size(){
 return (uint8_t*)updater->outmsg_queue->size;
 }
 
-int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size){
+int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size ){
 	if(buzz_utility::buzz_update_init_test(BO_BUF, dbgfname,bcode_size)){
 		fprintf(stdout,"Initializtion of script test passed\n");
 		if(buzz_utility::update_step_test()){
@@ -332,7 +332,7 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size){
 			//start =1;
 			/*data logging*/
 			fprintf(stdout,"Step test passed\n");
-			*(int*)updater->mode = CODE_STANDBY;
+			*(int*) (updater->mode) = CODE_STANDBY;
 			//fprintf(stdout,"updater value = %i\n",updater->mode);
 			delete_p(updater->bcode);
 			updater->bcode = (uint8_t*)malloc(bcode_size);
@@ -348,15 +348,38 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size){
 		}
 		/*Unable to step something wrong*/
 		else{
+			if(*(int*) (updater->mode) == CODE_RUNNING){
 			fprintf(stdout,"step test failed, stick to old script\n");
 			buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (size_t)*(size_t*)(updater->bcode_size));
+			}
+			else{
+			fprintf(stdout,"step test failed, Return to stand by\n");
+			buzz_utility::buzz_update_init_test((updater)->standby_bcode,
+			         (char*)dbgfname,(size_t) *(size_t*)(updater->standby_bcode_size));
+			buzzvm_t  VM = buzz_utility::get_vm();
+			buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
+			buzzvm_pushi(VM, no_of_robot);
+			buzzvm_gstore(VM);
+			
+			}
 			return 0;
 			
 		}				
 	}    
 	else {
-		fprintf(stdout,"Initialization test failed\n");
+		if(*(int*) (updater->mode) == CODE_RUNNING){
+		fprintf(stdout,"Initialization test failed, stick to old script\n");
 		buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname,(int)*(size_t*) (updater->bcode_size));
+		}
+		else{
+		fprintf(stdout,"Initialization test failed, Return to stand by\n");
+			buzz_utility::buzz_update_init_test((updater)->standby_bcode,
+			         (char*)dbgfname,(size_t) *(size_t*)(updater->standby_bcode_size));
+			buzzvm_t  VM = buzz_utility::get_vm();
+			buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
+			buzzvm_pushi(VM, no_of_robot);
+			buzzvm_gstore(VM);
+		}
 		return 0;				
 		}
 }
