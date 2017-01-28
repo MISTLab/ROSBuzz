@@ -23,7 +23,7 @@ static buzz_updater_elem_t updater;
 static int no_of_robot;
 static char* dbgf_name;
 static const char* bzz_file;
-static int neigh=0;
+static int neigh=-1;
 static int 	    updater_msg_ready ;
 void init_update_monitor(const char* bo_filename, const char* stand_by_script,int barrier){
 	fprintf(stdout,"intiialized file monitor.\n");
@@ -274,8 +274,8 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 				buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 				buzzvm_pushi(VM, *(uint16_t*)updater->update_no);
 				buzzvm_gstore(VM);
-				}
 				neigh=0;
+				}
 				delete_p(BO_BUF);
 		       	}
 	     
@@ -285,8 +285,10 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 
 	else{
 
-		if(neigh==0) code_message_outqueue_append();
-		
+		if(neigh==0 && (!updater->outmsg_queue)){ 
+			fprintf(stdout,"Sending code... \n");		
+			code_message_outqueue_append();
+		}		
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "barrier_val",1));
             	buzzvm_gload(VM);
             	buzzobj_t tObj = buzzvm_stack_at(VM, 1);
@@ -294,6 +296,7 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 		fprintf(stdout,"Barrier ..................... %i \n",tObj->i.value);
 		if(tObj->i.value==no_of_robot) { 
 			*(int*)updater->mode=CODE_RUNNING;
+			neigh=-1;
 			//collect_data();
 			buzz_utility::buzz_update_init_test((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
 			//buzzvm_function_call(m_tBuzzVM, "updated", 0);	
