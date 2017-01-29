@@ -304,12 +304,13 @@ namespace rosbzz_node{
 
 	}
 
+	#define EARTH_RADIUS 6371000.0
 	/*convert from spherical to cartesian coordinate system callback */
 	void roscontroller::cvt_cartesian_coordinates(double spherical_pos_payload [], double out[]){
 		double latitude, longitude, rho;
 		latitude = spherical_pos_payload[0] / 180.0 * M_PI;
 		longitude = spherical_pos_payload[1] / 180.0 * M_PI;
-		rho = spherical_pos_payload[2]+6371000; //centered on Earth
+		rho = spherical_pos_payload[2]+EARTH_RADIUS; //centered on Earth
 		try {
 			out[0] = cos(latitude) * cos(longitude) * rho;
     			out[1] = cos(latitude) * sin(longitude) * rho;
@@ -422,8 +423,8 @@ namespace rosbzz_node{
 		z = cartesian_pos_payload[2];
 		try {
        		out[0]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0));
-		out[1]=atan(y/x);
-		out[2]=atan((sqrt(pow(x,2.0)+pow(y,2.0)))/z);
+		out[1]=atan2(y,x);
+		out[2]=atan2((sqrt(pow(x,2.0)+pow(y,2.0))),z);
    		} catch (std::overflow_error e) {
         	std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
    		}
