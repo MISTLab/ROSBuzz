@@ -73,7 +73,7 @@ namespace rosbzz_node{
 				 loop_rate.sleep();
 				}	
 				else{*/
-				 ros::Rate loop_rate(50);
+				 ros::Rate loop_rate(10);
 				 loop_rate.sleep();
 				//} 
  				/*sleep for the mentioned loop rate*/
