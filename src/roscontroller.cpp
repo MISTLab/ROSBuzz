@@ -68,14 +68,14 @@ namespace rosbzz_node{
     				/*run once*/
     				ros::spinOnce();
 				/*loop rate of ros*/
-				if( get_update_mode() == CODE_STANDBY){
+				/*if( get_update_mode() == CODE_STANDBY){
 				 ros::Rate loop_rate(10);
 				 loop_rate.sleep();
 				}	
-				else{
-				 ros::Rate loop_rate(10);
+				else{*/
+				 ros::Rate loop_rate(50);
 				 loop_rate.sleep();
-				} 
+				//} 
  				/*sleep for the mentioned loop rate*/
     				
     				timer_step+=1;
