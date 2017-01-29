@@ -123,4 +123,8 @@ void destroy_updater();
 
 int is_msg_present();
 
+int get_update_status();
+
+void set_read_update_status();
+
 #endif

@@ -23,6 +23,8 @@
 #include "buzzuav_closures.h"
 
 #define UPDATER_MESSAGE_CONSTANT 987654321
+#define XBEE_MESSAGE_CONSTANT 586782343
+#define XBEE_STOP_TRANSMISSION 4355356352
 
 using namespace std;
 
@@ -50,6 +52,7 @@ private:
 	int barrier;
 	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by; //, rcclient;
 	bool rcclient;
+	bool multi_msg;
 	ros::ServiceClient mav_client;
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;

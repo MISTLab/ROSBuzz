@@ -133,7 +133,7 @@ namespace rosbzz_node{
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
 		/* Clients*/
   		mav_client = n_c.serviceClient<mavros_msgs::CommandInt>(fcclient_name);
-
+		multi_msg=true;
 	}
 	
 	void roscontroller::Compile_bzz(){
@@ -225,7 +225,7 @@ namespace rosbzz_node{
     		delete[] payload_out_ptr;
 
 		
-		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1){
+		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
 			uint8_t* buff_send = 0;
 	   		uint16_t updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());;
 			int tot=0;
@@ -254,7 +254,17 @@ namespace rosbzz_node{
     				update_packets.payload64.push_back(payload_64[i]);
     			    }
 			    payload_pub.publish(update_packets);
+			    multi_msg=false;
 			    delete[] payload_64;
+		}
+		/*Request xbee to stop any multi transmission updated not needed any more*/
+		if(get_update_status()){
+			set_read_update_status();
+			mavros_msgs::Mavlink stop_req_packet;
+			stop_req_packet.payload64.push_back((uint64_t) XBEE_STOP_TRANSMISSION);
+			payload_pub.publish(stop_req_packet);
+			std::cout << "request xbee to stop multi-packet transmission" << std::endl;	
+		
 		}
 		
 		}
@@ -445,8 +455,14 @@ namespace rosbzz_node{
 	/*******************************************************************************************************/	
 	
 	void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg){
+
+		/*Ack from xbee about its transfer complete of multi packet*/
+		if((uint64_t)msg->payload64[0]==(uint64_t)XBEE_MESSAGE_CONSTANT && msg->payload64.size() == 1){
+			multi_msg=true;
+			std::cout << "ACK From xbee after transimssion of code " << std::endl;
+		}
 		
-		if((uint64_t)msg->payload64[0]==(uint64_t)UPDATER_MESSAGE_CONSTANT){
+		else if((uint64_t)msg->payload64[0]==(uint64_t)UPDATER_MESSAGE_CONSTANT && msg->payload64.size() > 10){
 			uint16_t obt_msg_size=sizeof(uint64_t)*(msg->payload64.size());
 			uint64_t message_obt[obt_msg_size];
 			/* Go throught the obtained payload*/

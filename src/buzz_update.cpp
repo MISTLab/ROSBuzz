@@ -25,6 +25,7 @@ static char* dbgf_name;
 static const char* bzz_file;
 static int neigh=-1;
 static int 	    updater_msg_ready ;
+static int updated=0;
 void init_update_monitor(const char* bo_filename, const char* stand_by_script,int barrier){
 	fprintf(stdout,"intiialized file monitor.\n");
 	fd=inotify_init1(IN_NONBLOCK);
@@ -280,7 +281,9 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 				buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 				buzzvm_pushi(VM, *(uint16_t*)(updater->update_no));
 				buzzvm_gstore(VM);
-				neigh=0;
+				neigh=-1;
+				fprintf(stdout,"Sending code... \n");		
+			        code_message_outqueue_append();
 				}
 				delete_p(BO_BUF);
 		       	}
@@ -304,7 +307,8 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 			neigh=-1;
 			//collect_data();
 			buzz_utility::buzz_update_init_test((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
-			//buzzvm_function_call(m_tBuzzVM, "updated", 0);	
+			//buzzvm_function_call(m_tBuzzVM, "updated", 0);
+			updated=1;	
 			}
 
 	}
@@ -393,7 +397,12 @@ delete_p(updater->outmsg_queue->size);
 delete_p(updater->outmsg_queue);
 updater_msg_ready=0;
 }
-
+int get_update_status(){
+return updated;
+}
+void set_read_update_status(){
+updated=0;
+}
 int get_update_mode(){
 return (int)*(int*)(updater->mode);
 }
