@@ -15,8 +15,8 @@ neighbors.broadcast(updated, update_no)
 TARGET_ALTITUDE = 10.1
  
 # Lennard-Jones parameters
-TARGET     = 5	#0.000001001
-EPSILON    = 200	#0.001
+TARGET     = 5.0	#0.000001001
+EPSILON    = 200.0	#0.001
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -106,16 +106,20 @@ function takeoff() {
 		barrier_set(ROBOTS,hexagon)
 		barrier_ready()
 	}
-	else if( flight.status !=3)
+	else if( flight.status !=3){
+		neighbors.broadcast("cmd", 22)
 		uav_takeoff(TARGET_ALTITUDE)
+	}
 }
 function land() {
 	if( flight.status == 1) {
 		barrier_set(ROBOTS,idle)
 		barrier_ready()
 	}
-	else if(flight.status!=0 and flight.status!=4)
+	else if(flight.status!=0 and flight.status!=4){
+		neighbors.broadcast("cmd", 22)
 		uav_land()
+	}
 }
 
 # Executed once at init time.
