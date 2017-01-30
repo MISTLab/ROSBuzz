@@ -55,7 +55,7 @@ function hexagon() {
 # Constants
 #
 BARRIER_VSTIG = 1
-#ROBOTS = 3 # number of robots in the swarm
+ROBOTS = 3 # number of robots in the swarm
 
 #
 # Sets a barrier
@@ -117,7 +117,7 @@ function land() {
 		barrier_ready()
 	}
 	else if(flight.status!=0 and flight.status!=4){
-		neighbors.broadcast("cmd", 22)
+		neighbors.broadcast("cmd", 21)
 		uav_land()
 	}
 }
