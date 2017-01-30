@@ -423,8 +423,8 @@ namespace rosbzz_node{
 		z = cartesian_pos_payload[2];
 		try {
        		out[0]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0));
-		out[1]=atan2(y,x);
-		out[2]=atan2((sqrt(pow(x,2.0)+pow(y,2.0))),z);
+		out[1]=atan2(x,y);
+		out[2]=atan2(z,(sqrt(pow(x,2.0)+pow(y,2.0))));
    		} catch (std::overflow_error e) {
         	std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
    		}
