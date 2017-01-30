@@ -444,7 +444,7 @@ void collect_data(){
 //time_spent += (t2.tv_usec - t1.tv_usec) / 1000.0;
 //fprintf(stdout,"Data logger Info : %i,%i,%f,%i,%i,%i\n",(int)updater->robotid,neigh,time_spent,(int)updater->bcode_size,(int)no_of_robot,(int)updater->update_no);
 FILE *Fileptr;
-Fileptr=fopen("logger.csv", "a");
+Fileptr=fopen("/home/ubuntu/ROS_WS/update_logger.csv", "a");
 fprintf(Fileptr,"%i,%i,%i,%i,%i,%u\n",(int)buzz_utility::get_robotid(),neigh,timer_steps,(int)*(size_t*)updater->bcode_size,(int)no_of_robot, *(uint8_t*)updater->update_no);
 fclose(Fileptr);
 }
