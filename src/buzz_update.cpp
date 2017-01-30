@@ -13,9 +13,9 @@
 /*Temp for data collection*/
 //static int neigh=-1;
 //static struct timeval t1, t2;
-//static clock_t begin;
+static int timer_steps=0;
 //static clock_t end;
-//void collect_data();
+void collect_data();
 /*Temp end */
 static int fd,wd =0;
 static int old_update =0;
@@ -26,6 +26,7 @@ static const char* bzz_file;
 static int neigh=-1;
 static int 	    updater_msg_ready ;
 static int updated=0;
+
 void init_update_monitor(const char* bo_filename, const char* stand_by_script,int barrier){
 	fprintf(stdout,"intiialized file monitor.\n");
 	fd=inotify_init1(IN_NONBLOCK);
@@ -296,7 +297,8 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 		if(neigh==0 && (!is_msg_present())){ 
 			fprintf(stdout,"Sending code... \n");		
 			code_message_outqueue_append();
-		}		
+		}	
+		timer_steps++;
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "barrier_val",1));
             	buzzvm_gload(VM);
             	buzzobj_t tObj = buzzvm_stack_at(VM, 1);
@@ -304,8 +306,9 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 		fprintf(stdout,"Barrier ..................... %i \n",tObj->i.value);
 		if(tObj->i.value==no_of_robot) { 
 			*(int*)(updater->mode) = CODE_RUNNING;
-			neigh=-1;
-			//collect_data();
+			collect_data();
+			timer_steps=0;
+			//neigh=-1;
 			buzz_utility::buzz_update_init_test((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
 			//buzzvm_function_call(m_tBuzzVM, "updated", 0);
 			updated=1;	
@@ -440,9 +443,9 @@ void collect_data(){
 //double time_spent =   (t2.tv_sec - t1.tv_sec) * 1000.0; //(double)(end - begin) / CLOCKS_PER_SEC;
 //time_spent += (t2.tv_usec - t1.tv_usec) / 1000.0;
 //fprintf(stdout,"Data logger Info : %i,%i,%f,%i,%i,%i\n",(int)updater->robotid,neigh,time_spent,(int)updater->bcode_size,(int)no_of_robot,(int)updater->update_no);
-//FILE *Fileptr;
-//Fileptr=fopen("logger.csv", "a");
-//fprintf(Fileptr,"%i,%i,%f,%i,%i,%i\n",(int)updater->robotid,neigh,time_spent,(int)updater->bcode_size,(int)no_of_robot,(int)updater->update_no);
-//fclose(Fileptr);
+FILE *Fileptr;
+Fileptr=fopen("logger.csv", "a");
+fprintf(Fileptr,"%i,%i,%i,%i,%i,%u\n",(int)buzz_utility::get_robotid(),neigh,timer_steps,(int)*(size_t*)updater->bcode_size,(int)no_of_robot, *(uint8_t*)updater->update_no);
+fclose(Fileptr);
 }
 
