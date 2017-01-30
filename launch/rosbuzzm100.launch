@@ -2,7 +2,7 @@
 
 <launch>
 		<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
-		<param name="bzzfile_name" value="../djiros_ws/src/ROSBuzz/src/test1.bzz" />
+		<param name="bzzfile_name" value="../ROS_WS/src/ROSBuzz/src/test1.bzz" />
                 <param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="/buzzcmd" />
 		<param name="fcclient_name" value="/dji_mavcmd" />
@@ -10,7 +10,7 @@
 		<param name="out_payload" value="/outMavlink"/>
 		<param name="robot_id" value="3"/>
 		<param name="No_of_Robots" value="3"/>
-		<param name="stand_by" value="../djiros_ws/src/ROSBuzz/src/stand_by.bo"/>
+		<param name="stand_by" value="../ROS_WS/src/ROSBuzz/src/stand_by.bo"/>
 		</node>
 		
 		
