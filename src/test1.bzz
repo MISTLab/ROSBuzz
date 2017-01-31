@@ -15,8 +15,8 @@ neighbors.broadcast(updated, update_no)
 TARGET_ALTITUDE = 10.01
  
 # Lennard-Jones parameters
-TARGET     = 5.0	#0.000001001
-EPSILON    = 20.0	#0.001
+TARGET     = 50.0	#0.000001001
+EPSILON    = 80.0	#0.001
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {

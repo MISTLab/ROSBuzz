@@ -1,4 +1,3 @@
-
 #include "roscontroller.h"
 
 
@@ -20,7 +19,9 @@ namespace rosbzz_node{
 		double temp_car[3], temp2_car[3];
 		double out[3], dif[3], out2[3];
 		cvt_cartesian_coordinates(temp_gps,temp_car);
+		printf("TEST FIRST: %.7f,%.7f,%.7f\n",temp_car[0],temp_car[1],temp_car[2]);
 		cvt_cartesian_coordinates(temp2_gps,temp2_car);
+		printf("TEST THIRD: %.7f,%.7f,%.7f\n",temp2_car[0],temp2_car[1],temp2_car[2]);
 		for(int i=0;i<3;i++)
 			dif[i]=temp2_car[i]-temp_car[i];
 		cvt_spherical_coordinates(dif,out);
