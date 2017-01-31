@@ -14,7 +14,7 @@ namespace rosbzz_node{
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
  		Compile_bzz();
 		set_bzz_file(bzzfile_name.c_str());
-/*		double temp_gps[3]={45.564898,-73.563072,10.1};
+		double temp_gps[3]={45.564898,-73.563072,10.1};
 		double temp2_gps[3]={45.565246,-73.561951,10.1};
 		double temp_car[3], temp2_car[3];
 		double out[3], dif[3], out2[3];
@@ -25,10 +25,10 @@ namespace rosbzz_node{
 		for(int i=0;i<3;i++)
 			dif[i]=temp2_car[i]-temp_car[i];
 		cvt_spherical_coordinates(dif,out);
-		cvt_rangebearing_coordinates(temp2_gps,out2,temp_gps);
+		cvt_rangebearingGB_coordinates(temp2_gps,out2,temp_gps);
 //		cvt_rangebearing2D_coordinates(temp2_gps,out2,temp_gps);
 		printf("TEST RESULT: %.7f,%.7f,%.7f\n",out[0],out[1],out[2]);
-		printf("TEST RESULT2: %.7f,%.7f,%.7f\n",out2[0],out2[1],out2[2]);*/
+		printf("TEST RESULT2: %.7f,%.7f,%.7f\n",out2[0],out2[1],out2[2]);
 	}
 
 	/***Destructor***/
@@ -322,10 +322,14 @@ namespace rosbzz_node{
 	#define LAT_AVERAGE 45.564898
 	/*rectangular projection range and bearing coordinate system callback */
 	void roscontroller::cvt_rangebearingGB_coordinates(double nei[], double out[], double cur[]){
-		out[1] = acos(sin(cur[0]) * sin(nei[0]) +cos(nei[0]) * cos(cur[0])*cos(nei[1]-cur[1]))*EARTH_RADIUS;
-		double y = sin(cur[1]-nei[1])*cos(cur[0]);
-		double x =  cos(cur[0])*sin(nei[0]) - sin(nei[0])*cos(cur[0])*cos(cur[1]-nei[1]);
-		out[1] = atan2(y,x)/M_PI*180+180;
+		double lat1 = cur[0]*M_PI/180.0;
+		double lon1 = cur[1]*M_PI/180.0;
+		double lat2 = nei[0]*M_PI/180.0;
+		double lon2 = nei[1]*M_PI/180.0;
+		out[0] = acos(sin(lat1) * sin(lat2) +cos(lat2) * cos(lat1)*cos(lon2-lon1))*EARTH_RADIUS;
+		double y = sin(lon1-lon2)*cos(lat1);
+		double x =  cos(lat2)*sin(lat1) - sin(lat2)*cos(lat1)*cos(lon1-lon2);
+		out[1] = atan2(y,x)+M_PI;
 		out[2] = 0.0;
 	}
 
