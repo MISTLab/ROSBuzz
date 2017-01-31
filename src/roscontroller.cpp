@@ -13,7 +13,7 @@ namespace rosbzz_node{
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
  		Compile_bzz();
 		set_bzz_file(bzzfile_name.c_str());
-		double temp_gps[3]={45.564898,-73.563072,10.1};
+/*		double temp_gps[3]={45.564898,-73.563072,10.1};
 		double temp2_gps[3]={45.565246,-73.561951,10.1};
 		double temp_car[3], temp2_car[3];
 		double out[3], dif[3], out2[3];
@@ -27,7 +27,7 @@ namespace rosbzz_node{
 		cvt_rangebearingGB_coordinates(temp2_gps,out2,temp_gps);
 //		cvt_rangebearing2D_coordinates(temp2_gps,out2,temp_gps);
 		printf("TEST RESULT: %.7f,%.7f,%.7f\n",out[0],out[1],out[2]);
-		printf("TEST RESULT2: %.7f,%.7f,%.7f\n",out2[0],out2[1],out2[2]);
+		printf("TEST RESULT2: %.7f,%.7f,%.7f\n",out2[0],out2[1],out2[2]);*/
 	}
 
 	/***Destructor***/
