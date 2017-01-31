@@ -15,7 +15,7 @@
 //static struct timeval t1, t2;
 static int timer_steps=0;
 //static clock_t end;
-void collect_data();
+//void collect_data();
 /*Temp end */
 static int fd,wd =0;
 static int old_update =0;
@@ -306,10 +306,10 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 		fprintf(stdout,"Barrier ..................... %i \n",tObj->i.value);
 		if(tObj->i.value==no_of_robot) { 
 			*(int*)(updater->mode) = CODE_RUNNING;
-			collect_data();
+			//collect_data();
 			timer_steps=0;
 			//neigh=-1;
-			buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
+			//buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
 			//buzzvm_function_call(m_tBuzzVM, "updated", 0);
 			updated=1;	
 			}
@@ -412,6 +412,9 @@ return (int)*(int*)(updater->mode);
 
 int is_msg_present(){
 return updater_msg_ready;
+}
+buzz_updater_elem_t get_updater(){
+return updater;
 }
 void destroy_updater(){
 delete_p(updater->bcode);
