@@ -321,6 +321,15 @@ namespace rosbzz_node{
 	#define EARTH_RADIUS 6371000.0
 	#define LAT_AVERAGE 45.564898
 	/*rectangular projection range and bearing coordinate system callback */
+	void roscontroller::cvt_rangebearingGB_coordinates(double nei[], double out[], double cur[]){
+		out[1] = acos(sin(cur[0]) * sin(nei[0]) +cos(nei[0]) * cos(cur[0])*cos(nei[1]-cur[1]))*EARTH_RADIUS;
+		double y = sin(cur[1]-nei[1])*cos(cur[0]);
+		double x =  cos(cur[0])*sin(nei[0]) - sin(nei[0])*cos(cur[0])*cos(cur[1]-nei[1]);
+		out[1] = atan2(y,x)/M_PI*180+180;
+		out[2] = 0.0;
+	}
+
+	/*rectangular projection range and bearing coordinate system callback */
 	void roscontroller::cvt_rangebearing2D_coordinates(double spherical_pos_payload [], double out[], double cur[]){
 		double nei_lat = spherical_pos_payload[0] / 180.0 * M_PI;
 		double nei_long = spherical_pos_payload[1] / 180.0 * M_PI;
@@ -534,7 +543,7 @@ namespace rosbzz_node{
 			buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
 	//		cout<<"Got" << neighbours_pos_payload[0] <<", " << neighbours_pos_payload[1] << ", " << neighbours_pos_payload[2] << endl;
 			double cvt_neighbours_pos_test[3];
-			cvt_rangebearing_coordinates(neighbours_pos_payload, cvt_neighbours_pos_test, cur_pos);
+			cvt_rangebearingGB_coordinates(neighbours_pos_payload, cvt_neighbours_pos_test, cur_pos);
 			/*Convert obtained position to relative CARTESIAN position*/
 			double cartesian_neighbours_pos[3], cartesian_cur_pos[3];
 			cvt_cartesian_coordinates(neighbours_pos_payload, cartesian_neighbours_pos);

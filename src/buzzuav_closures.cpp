@@ -91,6 +91,13 @@ int buzzros_print(buzzvm_t vm) {
 //                std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
                 }
         }
+
+void gps_from_rb(double  range, double bearing, double out[3]) {
+ 	out[0] = asin(sin(cur_pos[0]) * cos(range/EARTH_RADIUS) + cos(cur_pos[0]) * sin(range/EARTH_RADIUS) * cos(bearing));
+	out[1] = cur_pos[1] + atan2(sin(bearing) * sin(range/EARTH_RADIUS) * cos(cur_pos[0]), cos(bearing/EARTH_RADIUS) - sin(cur_pos[0])*sin(out[0]));
+	out[3] = height; //constant height.
+}
+
 int buzzuav_goto(buzzvm_t vm) {
    buzzvm_lnum_assert(vm, 2);
    buzzvm_lload(vm, 1); /* dx */
@@ -99,20 +106,21 @@ int buzzuav_goto(buzzvm_t vm) {
    //buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-   float dx = buzzvm_stack_at(vm, 1)->f.value;
-   float dy = buzzvm_stack_at(vm, 2)->f.value;
-   printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
+   float d = buzzvm_stack_at(vm, 1)->f.value;
+   float b  = buzzvm_stack_at(vm, 2)->f.value;
+   printf(" Vector for Goto: %.7f,%.7f\n",d,b);
    //goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value;
-   double cur_pos_cartesian[3];
-   cartesian_coordinates(cur_pos,cur_pos_cartesian);
-   double goto_cartesian[3];
-   goto_cartesian[0] = dx + cur_pos_cartesian[0];
-   goto_cartesian[1] = dy + cur_pos_cartesian[1];
-   goto_cartesian[2] = cur_pos_cartesian[2];
-   spherical_coordinates(goto_cartesian, goto_pos);
+   //double cur_pos_cartesian[3];
+   //cartesian_coordinates(cur_pos,cur_pos_cartesian);
+   //double goto_cartesian[3];
+   //goto_cartesian[0] = dx + cur_pos_cartesian[0];
+   //goto_cartesian[1] = dy + cur_pos_cartesian[1];
+   //goto_cartesian[2] = cur_pos_cartesian[2];
+   //spherical_coordinates(goto_cartesian, goto_pos);
 //   goto_pos[0]=dx;
 //   goto_pos[1]=dy;
-   goto_pos[2]=height;	// force a constant altitude to avoid loop increases
+   //goto_pos[2]=height;	// force a constant altitude to avoid loop increases
+   gps_from_rb(d, b, goto_pos);
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    buzz_cmd=2;
