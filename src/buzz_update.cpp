@@ -309,7 +309,7 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 			collect_data();
 			timer_steps=0;
 			//neigh=-1;
-			buzz_utility::buzz_update_init_test((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
+			buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
 			//buzzvm_function_call(m_tBuzzVM, "updated", 0);
 			updated=1;	
 			}
