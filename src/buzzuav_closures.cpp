@@ -112,7 +112,7 @@ int buzzuav_goto(buzzvm_t vm) {
    spherical_coordinates(goto_cartesian, goto_pos);
 //   goto_pos[0]=dx;
 //   goto_pos[1]=dy;
-//   goto_pos[2]=height;	// force a constant altitude
+   goto_pos[2]=cur_pos[2];	// force a constant altitude
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    buzz_cmd=2;
