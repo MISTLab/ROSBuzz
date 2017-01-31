@@ -98,6 +98,9 @@ neighbors.listen("cmd",
 		statef=land
 	}
    }
+   if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0)
+	statef=hexagon
+
 )
 }
 
