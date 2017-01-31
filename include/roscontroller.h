@@ -100,6 +100,9 @@ private:
 	void cvt_rangebearing_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
 
 	/*convert from spherical to cartesian coordinate system callback */
+	void cvt_rangebearingGB_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
+
+	/*convert from spherical to cartesian coordinate system callback */
 	void cvt_rangebearing2D_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
 	
 	/*battery status callback*/ 
