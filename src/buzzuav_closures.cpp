@@ -95,9 +95,10 @@ int buzzros_print(buzzvm_t vm) {
 void gps_from_rb(double  range, double bearing, double out[3]) {
 	double lat = cur_pos[0]*M_PI/180.0;
 	double lon = cur_pos[1]*M_PI/180.0;
+	bearing = bearing*M_PI/180.0;
  	out[0] = asin(sin(lat) * cos(range/EARTH_RADIUS) + cos(lat) * sin(range/EARTH_RADIUS) * cos(bearing));
 	out[1] = lon + atan2(sin(bearing) * sin(range/EARTH_RADIUS) * cos(lat), cos(bearing/EARTH_RADIUS) - sin(lat)*sin(out[0]));
-	out[3] = height; //constant height.
+	out[2] = height; //constant height.
 }
 
 int buzzuav_goto(buzzvm_t vm) {
