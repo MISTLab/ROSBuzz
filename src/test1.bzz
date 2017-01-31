@@ -42,7 +42,7 @@ function hexagon() {
     math.vec2.scale(accum, 1.0 / neighbors.count())
   # Move according to vector
 #  print("Robot ", id, "must push ",accum.x, "; ", accum.y)
-  uav_goto(0.0,0.0) #accum.x, accum.y)
+  uav_goto(accum.x, accum.y)
 }
  
 ########################################
