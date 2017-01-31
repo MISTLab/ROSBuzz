@@ -75,7 +75,11 @@ namespace rosbzz_node{
 				//fprintf(stdout, "before code step\n");
 				if(get_update_status()){
 				buzz_utility::buzz_update_set((get_updater())->bcode, dbgfname.c_str(), *(size_t*)((get_updater())->bcode_size));
-				set_read_update_status();;
+				set_read_update_status();
+				mavros_msgs::Mavlink stop_req_packet;
+				stop_req_packet.payload64.push_back((uint64_t) XBEE_STOP_TRANSMISSION);
+				payload_pub.publish(stop_req_packet);
+				std::cout << "request xbee to stop multi-packet transmission" << std::endl;
 				}
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
