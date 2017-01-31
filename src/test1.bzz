@@ -12,7 +12,7 @@ function updated_neigh(){
 neighbors.broadcast(updated, update_no)
 }
 
-TARGET_ALTITUDE = 10.01
+TARGET_ALTITUDE = 10.0
  
 # Lennard-Jones parameters
 TARGET     = 50.0	#0.000001001
