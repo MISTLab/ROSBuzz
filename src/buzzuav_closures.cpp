@@ -85,8 +85,8 @@ int buzzros_print(buzzvm_t vm) {
                 z = cartesian_pos_payload[2];
                 try {
                 out[2]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0))-EARTH_RADIUS;
-                out[1]=atan2(y,x)*180/M_PI;
-                out[0]=atan2(z,(sqrt(pow(x,2.0)+pow(y,2.0))))*180/M_PI;
+                out[1]=atan2(y,x)*180.0/M_PI;
+                out[0]=atan2(z,(sqrt(pow(x,2.0)+pow(y,2.0))))*180.0/M_PI;
                 } catch (std::overflow_error e) {
 //                std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
                 }
@@ -112,7 +112,7 @@ int buzzuav_goto(buzzvm_t vm) {
    spherical_coordinates(goto_cartesian, goto_pos);
 //   goto_pos[0]=dx;
 //   goto_pos[1]=dy;
-   goto_pos[2]=cur_pos[2];	// force a constant altitude
+   goto_pos[2]=height;	// force a constant altitude to avoid loop increases
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    buzz_cmd=2;

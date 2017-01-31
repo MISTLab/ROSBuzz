@@ -97,7 +97,10 @@ private:
 	void cvt_cartesian_coordinates(double neighbours_pos_payload [], double out[]);
 
 	/*convert from spherical to cartesian coordinate system callback */
-	void cvt_rangebearing_coordinates(double neighbours_pos_payload [], double out[]);
+	void cvt_rangebearing_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
+
+	/*convert from spherical to cartesian coordinate system callback */
+	void cvt_rangebearing2D_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
 	
 	/*battery status callback*/ 
 	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
