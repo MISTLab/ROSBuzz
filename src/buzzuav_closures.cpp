@@ -7,6 +7,7 @@
  */
 //#define _GNU_SOURCE
 #include "buzzuav_closures.h"
+#include "buzz_utility.h"
 namespace buzzuav_closures{
 static double goto_pos[3];
 static double rc_goto_pos[3];
@@ -103,6 +104,9 @@ void gps_from_rb(double  range, double bearing, double out[3]) {
 	out[2] = height; //constant height.
 }
 
+double hcpos1[4] = {45.564489, -73.562537, 45.564140, -73.562336};
+double hcpos2[4] = {45.564729, -73.562060, 45.564362, -73.562958};
+double hcpos3[4] = {45.564969, -73.562838, 45.564636, -73.563677};
 int buzzuav_goto(buzzvm_t vm) {
    buzzvm_lnum_assert(vm, 2);
    buzzvm_lload(vm, 1); /* dx */
@@ -113,9 +117,9 @@ int buzzuav_goto(buzzvm_t vm) {
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
    float dx = buzzvm_stack_at(vm, 1)->f.value;
    float dy = buzzvm_stack_at(vm, 2)->f.value;
-   float d = sqrt(dx*dx+dy*dy);
-   float b = atan2(dy,dx);
-   printf(" Vector for Goto: %.7f,%.7f\n",d,b);
+//   float d = sqrt(dx*dx+dy*dy);
+//   float b = atan2(dy,dx);
+   printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
    //goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value;
    //double cur_pos_cartesian[3];
    //cartesian_coordinates(cur_pos,cur_pos_cartesian);
@@ -127,7 +131,29 @@ int buzzuav_goto(buzzvm_t vm) {
 //   goto_pos[0]=dx;
 //   goto_pos[1]=dy;
    //goto_pos[2]=height;	// force a constant altitude to avoid loop increases
-   gps_from_rb(d, b, goto_pos);
+//   gps_from_rb(d, b, goto_pos);
+   if(dx == 1.0){
+	if((int)buzz_utility::get_robotid()==1){
+		goto_pos[0]=hcpos1[0];goto_pos[1]=hcpos1[1];goto_pos[2]=height;
+	}
+	if((int)buzz_utility::get_robotid()==2){
+		goto_pos[0]=hcpos2[0];goto_pos[1]=hcpos2[1];goto_pos[2]=height;
+	}
+	if((int)buzz_utility::get_robotid()==3){
+		goto_pos[0]=hcpos3[0];goto_pos[1]=hcpos3[1];goto_pos[2]=height;
+	}
+   }
+   if(dx == 2.0){
+	if((int)buzz_utility::get_robotid()==1){
+		goto_pos[0]=hcpos1[2];goto_pos[1]=hcpos1[3];goto_pos[2]=height;
+	}
+	if((int)buzz_utility::get_robotid()==2){
+		goto_pos[0]=hcpos2[2];goto_pos[1]=hcpos2[3];goto_pos[2]=height;
+	}
+	if((int)buzz_utility::get_robotid()==3){
+		goto_pos[0]=hcpos3[2];goto_pos[1]=hcpos3[3];goto_pos[2]=height;
+	}
+   }
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    buzz_cmd=2;
