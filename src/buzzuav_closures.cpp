@@ -111,8 +111,10 @@ int buzzuav_goto(buzzvm_t vm) {
    //buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-   float d = buzzvm_stack_at(vm, 1)->f.value;
-   float b  = buzzvm_stack_at(vm, 2)->f.value;
+   float dx = buzzvm_stack_at(vm, 1)->f.value;
+   float dy = buzzvm_stack_at(vm, 2)->f.value;
+   float d = sqrt(dx*dx+dy*dy);
+   float b = atan2(dy,dx);
    printf(" Vector for Goto: %.7f,%.7f\n",d,b);
    //goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value;
    //double cur_pos_cartesian[3];
