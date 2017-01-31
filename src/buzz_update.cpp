@@ -12,10 +12,10 @@
 
 /*Temp for data collection*/
 //static int neigh=-1;
-//static struct timeval t1, t2;
+static struct timeval t1, t2;
 static int timer_steps=0;
 //static clock_t end;
-//void collect_data();
+void collect_data();
 /*Temp end */
 static int fd,wd =0;
 static int old_update =0;
@@ -294,9 +294,11 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 	}
 
 	else{
+		gettimeofday(&t1, NULL);
 		if(neigh==0 && (!is_msg_present())){ 
 			fprintf(stdout,"Sending code... \n");		
 			code_message_outqueue_append();
+		
 		}	
 		timer_steps++;
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "barrier_val",1));
@@ -306,7 +308,8 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 		fprintf(stdout,"Barrier ..................... %i \n",tObj->i.value);
 		if(tObj->i.value==no_of_robot) { 
 			*(int*)(updater->mode) = CODE_RUNNING;
-			//collect_data();
+			gettimeofday(&t2, NULL);
+			collect_data();
 			timer_steps=0;
 			//neigh=-1;
 			//buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
@@ -443,12 +446,13 @@ bzz_file=in_bzz_file;
 }
 void collect_data(){
 //fprintf(stdout,"start and end time in data collection Info : %f,%f",(double)begin,(double)end);
-//double time_spent =   (t2.tv_sec - t1.tv_sec) * 1000.0; //(double)(end - begin) / CLOCKS_PER_SEC;
-//time_spent += (t2.tv_usec - t1.tv_usec) / 1000.0;
-//fprintf(stdout,"Data logger Info : %i,%i,%f,%i,%i,%i\n",(int)updater->robotid,neigh,time_spent,(int)updater->bcode_size,(int)no_of_robot,(int)updater->update_no);
-FILE *Fileptr;
-Fileptr=fopen("/home/ubuntu/ROS_WS/update_logger.csv", "a");
-fprintf(Fileptr,"%i,%i,%i,%i,%i,%u\n",(int)buzz_utility::get_robotid(),neigh,timer_steps,(int)*(size_t*)updater->bcode_size,(int)no_of_robot, *(uint8_t*)updater->update_no);
-fclose(Fileptr);
+double time_spent =   (t2.tv_sec - t1.tv_sec) * 1000.0; //(double)(end - begin) / CLOCKS_PER_SEC;
+time_spent += (t2.tv_usec - t1.tv_usec) / 1000.0;
+//int bytecodesize=(int);
+fprintf(stdout,"Data logger Info : %i , %i , %f , %ld , %i , %d \n",(int)buzz_utility::get_robotid(),neigh,time_spent,*(size_t*)updater->bcode_size,(int)no_of_robot,*(uint8_t*)updater->update_no);
+//FILE *Fileptr;
+//Fileptr=fopen("/home/ubuntu/ROS_WS/update_logger.csv", "a");
+//fprintf(Fileptr,"%i,%i,%i,%i,%i,%u\n",(int)buzz_utility::get_robotid(),neigh,timer_steps,(int)*(size_t*)updater->bcode_size,(int)no_of_robot, *(uint8_t*)updater->update_no);
+//fclose(Fileptr);
 }
 

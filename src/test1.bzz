@@ -1,7 +1,7 @@
 
 # We need this for 2D vectors
 # Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
-include "/home/ubuntu/buzz/src/include/vec2.bzz"
+include "/home/vivek/catkin_ws/src/rosbuzz/src/vec2.bzz"
 ####################################################################################################
 # Updater related
 # This should be here for the updater to work, changing position of code will crash the updater
@@ -98,10 +98,11 @@ neighbors.listen("cmd",
 		statef=land
 	}
    }
-   if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0)
-	statef=hexagon
+   
 
 )
+if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0)
+	statef=hexagon
 }
 
 function takeoff() {
