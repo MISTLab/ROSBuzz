@@ -58,7 +58,7 @@ int buzzros_print(buzzvm_t vm) {
       }
    }
    //fprintf(stdout, "\n");
-   return buzzvm_ret0(vm);
+45.564489-73.56253745.56472945.564140-73.56233645.564362   return buzzvm_ret0(vm);
 }
 
 /****************************************/
@@ -117,8 +117,8 @@ int buzzuav_goto(buzzvm_t vm) {
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
    float dy = buzzvm_stack_at(vm, 1)->f.value;
    float dx = buzzvm_stack_at(vm, 2)->f.value;
-   double d = sqrt(dx*dx+dy*dy);	//range
-   double b = atan2(dy,dx);		//bearing
+//   float d = sqrt(dx*dx+dy*dy);
+//   float b = atan2(dy,dx);
    printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
    //goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value;
    //double cur_pos_cartesian[3];
@@ -131,8 +131,8 @@ int buzzuav_goto(buzzvm_t vm) {
 //   goto_pos[0]=dx;
 //   goto_pos[1]=dy;
    //goto_pos[2]=height;	// force a constant altitude to avoid loop increases
-   gps_from_rb(d, b, goto_pos);
-/*   if(dx == 1.0){
+//   gps_from_rb(d, b, goto_pos);
+   if(dx == 1.0){
 	if((int)buzz_utility::get_robotid()==1){
 		goto_pos[0]=hcpos1[0];goto_pos[1]=hcpos1[1];goto_pos[2]=height;
 	}
@@ -153,7 +153,7 @@ int buzzuav_goto(buzzvm_t vm) {
 	if((int)buzz_utility::get_robotid()==3){
 		goto_pos[0]=hcpos3[2];goto_pos[1]=hcpos3[3];goto_pos[2]=height;
 	}
-   }*/
+   }
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
    buzz_cmd=2;
