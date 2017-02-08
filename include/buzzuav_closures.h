@@ -20,6 +20,7 @@ int buzzros_print(buzzvm_t vm);
  * buzzuav_goto(latitude,longitude,altitude) function in Buzz
  * commands the UAV to go to a position supplied
  */
+int buzzuav_moveto(buzzvm_t vm);
 int buzzuav_goto(buzzvm_t vm);
 /* Returns the current command from local variable*/
 int getcmd();

@@ -107,7 +107,8 @@ void gps_from_rb(double  range, double bearing, double out[3]) {
 double hcpos1[4] = {45.564489, -73.562537, 45.564140, -73.562336};
 double hcpos2[4] = {45.564729, -73.562060, 45.564362, -73.562958};
 double hcpos3[4] = {45.564969, -73.562838, 45.564636, -73.563677};
-int buzzuav_goto(buzzvm_t vm) {
+
+int buzzuav_moveto(buzzvm_t vm) {
    buzzvm_lnum_assert(vm, 2);
    buzzvm_lload(vm, 1); /* dx */
    buzzvm_lload(vm, 2); /* dy */
@@ -160,6 +161,13 @@ int buzzuav_goto(buzzvm_t vm) {
    return buzzvm_ret0(vm);
 }
 
+int buzzuav_goto(buzzvm_t vm) {
+   set_goto(rc_goto_pos);
+   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
+   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
+   buzz_cmd=2;
+   return buzzvm_ret0(vm);
+}
 /******************************/
 
 double* getgoto(){

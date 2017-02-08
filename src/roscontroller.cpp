@@ -609,8 +609,8 @@ namespace rosbzz_node{
 			case mavros_msgs::CommandCode::NAV_WAYPOINT:
    				ROS_INFO("RC_Call: GO TO!!!! ");
 				double rc_goto[3];
-   				rc_goto[0]=req.x;
-				rc_goto[1]=req.y;
+   				rc_goto[0]=req.x/pow(10,7);
+				rc_goto[1]=req.y/pow(10,7);
 				rc_goto[2]=req.z;
 				buzzuav_closures::rc_set_goto(rc_goto);
 				rc_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
