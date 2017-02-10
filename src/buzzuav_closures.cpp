@@ -12,7 +12,7 @@ namespace buzzuav_closures{
 static double goto_pos[3];
 static double rc_goto_pos[3];
 static float batt[3];
-static float obst[5];
+static float obst[5]={0,0,0,0,0};
 static double cur_pos[3];
 static uint8_t status;
 static int cur_cmd = 0;
@@ -204,7 +204,7 @@ rc_cmd=rc_cmd_in;
 
 void set_obstacle_dist(float dist[]){
 	for(int i=0; i<5;i++)
-		dist[i]=obst[i];	
+		obst[i]=dist[i];	
 }
 
 

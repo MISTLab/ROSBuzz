@@ -492,6 +492,7 @@ namespace buzz_utility{
 	   buzzuav_closures::buzzuav_update_prox(VM);
 	   buzzuav_closures::buzzuav_update_currentpos(VM);
 	   buzzuav_closures::buzzuav_update_flight_status(VM);
+	   buzzuav_closures::buzzuav_update_obstacle(VM);
 	    /*
 	    * Call Buzz step() function
 	    */

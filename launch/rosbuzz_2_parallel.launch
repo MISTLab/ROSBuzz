@@ -2,7 +2,7 @@
 
 <launch>
 		<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
-		<param name="bzzfile_name" value="/home/vivek/catkin_ws/src/rosbuzz/src/test1.bzz" />
+		<param name="bzzfile_name" value="/home/vivek/catkin_ws/src/rosbuzz/src/test_obst.bzz" />
                 <param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="rc_cmd" />
 		<param name="fcclient_name" value="/djicmd" />
