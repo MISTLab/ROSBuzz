@@ -148,6 +148,7 @@ namespace rosbzz_node{
   		battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
   		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
 		flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_status_update,this);
+		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
@@ -493,7 +494,13 @@ namespace rosbzz_node{
 		set_cur_pos(msg->latitude,msg->longitude,msg->altitude);
 		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude,msg->altitude);
 	}
-
+	/*Obstacle distance call back*/	
+	void roscontroller::obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg){
+		float obst[5];
+		for(int i=0;i<5;i++)
+			obst[i]=msg->ranges[i];
+		buzzuav_closures::set_obstacle_dist(obst);
+	}
 	/*payload callback callback*/
 
 	/*******************************************************************************************************/

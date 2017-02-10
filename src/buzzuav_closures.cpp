@@ -12,6 +12,7 @@ namespace buzzuav_closures{
 static double goto_pos[3];
 static double rc_goto_pos[3];
 static float batt[3];
+static float obst[5];
 static double cur_pos[3];
 static uint8_t status;
 static int cur_cmd = 0;
@@ -201,6 +202,12 @@ void rc_call(int rc_cmd_in){
 rc_cmd=rc_cmd_in;
 }
 
+void set_obstacle_dist(float dist[]){
+	for(int i=0; i<5;i++)
+		dist[i]=obst[i];	
+}
+
+
 /****************************************/
 /****************************************/
 
@@ -280,6 +287,34 @@ int buzzuav_update_currentpos(buzzvm_t vm) {
    buzzvm_dup(vm);
    buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 1));
    buzzvm_pushf(vm, cur_pos[2]);
+   buzzvm_tput(vm);
+   buzzvm_gstore(vm);
+   return vm->state;
+}
+/*obstacle*/
+
+int buzzuav_update_obstacle(buzzvm_t vm) {
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "obstacle", 1));
+   buzzvm_pusht(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "bottom", 1));
+   buzzvm_pushf(vm, obst[0]);
+   buzzvm_tput(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "front", 1));
+   buzzvm_pushf(vm, obst[1]);
+   buzzvm_tput(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "right", 1));
+   buzzvm_pushf(vm, obst[2]);
+   buzzvm_tput(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "back", 1));
+   buzzvm_pushf(vm, obst[3]);
+   buzzvm_tput(vm);
+   buzzvm_dup(vm);
+   buzzvm_pushs(vm, buzzvm_string_register(vm, "left", 1));
+   buzzvm_pushf(vm, obst[4]);
    buzzvm_tput(vm);
    buzzvm_gstore(vm);
    return vm->state;

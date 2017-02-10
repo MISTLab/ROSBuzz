@@ -39,6 +39,9 @@ double* getgoto();
 /* updates flight status*/
 void flight_status_update(uint8_t state);
 
+/*Flight status*/
+void set_obstacle_dist(float dist[]);
+
 /*
  * Commands the UAV to takeoff
  */
@@ -60,6 +63,10 @@ int buzzuav_update_battery(buzzvm_t vm);
  * Updates current position in Buzz
  */
 int buzzuav_update_currentpos(buzzvm_t vm);
+
+/*update obstacles in Buzz*/
+int buzzuav_update_obstacle(buzzvm_t vm);
+
 /*
  * Updates flight status and rc command in Buzz, put it in a tabel to acess it 
  * use flight.status for flight status

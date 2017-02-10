@@ -1,6 +1,6 @@
 #pragma once
-#include "ros/ros.h"
-#include "sensor_msgs/NavSatFix.h"
+#include <ros/ros.h>
+#include <sensor_msgs/NavSatFix.h>
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/CommandCode.h"
 #include "mavros_msgs/CommandInt.h"
@@ -9,6 +9,7 @@
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
 #include "sensor_msgs/NavSatStatus.h"
+#include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
 #include <sstream>
 #include <buzz/buzzasm.h>
@@ -61,6 +62,7 @@ private:
 	ros::Subscriber battery_sub;
 	ros::Subscriber payload_sub;
 	ros::Subscriber flight_status_sub;
+	ros::Subscriber obstacle_sub;
 	/*Commands for flight controller*/
   	mavros_msgs::CommandInt cmd_srv;	
   	
@@ -121,7 +123,7 @@ private:
 	bool rc_callback(mavros_msgs::CommandInt::Request  &req,
 		         mavros_msgs::CommandInt::Response &res);
 
-
+	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 
 };
 

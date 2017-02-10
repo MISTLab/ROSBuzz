@@ -555,7 +555,8 @@ int update_step_test(){
   buzzuav_closures::buzzuav_update_prox(VM);
   buzzuav_closures::buzzuav_update_currentpos(VM);
   buzzuav_closures::buzzuav_update_flight_status(VM);
- 
+  buzzuav_closures::buzzuav_update_obstacle(VM);
+
  int a = buzzvm_function_call(VM, "step", 0);
 if(a != BUZZVM_STATE_READY){
  fprintf(stdout, "step test VM state %i\n",a);
