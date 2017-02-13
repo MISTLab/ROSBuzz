@@ -319,6 +319,17 @@ int buzzuav_update_obstacle(buzzvm_t vm) {
    buzzvm_gstore(vm);
    return vm->state;
 }
+/**************************************/
+/*Flight status ratinale*/
+/**************************************/
+/*****************************************************************
+ DJI_SDK                         -Mavlink ExtendedState landed_state 
+STATUS_GROUND_STANDBY = 1,          1 
+STATUS_TAKE_OFF = 2,                3 
+STATUS_SKY_STANDBY = 3,             2
+STATUS_LANDING = 4,                 4 
+STATUS_FINISHING_LANDING = 5        0 
+******************************************************************/
 /****************************************/
 /*flight status update*/
 /***************************************/
