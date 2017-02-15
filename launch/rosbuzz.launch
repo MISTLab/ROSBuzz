@@ -1,19 +1,19 @@
 <!-- Launch file for ROSBuzz -->
+
 <launch>
-	<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >
-		<rosparam file="$(env ROS_WS)/src/ROSBuzz/launch/robot_config/$(env ROBOT).yaml"/>
-		<param name="program_mode" value="production "/>
-		<!-- Move this to yaml -->
-		<param name="bzzfile_name" value="/home/ivan/catkin_ws/src/ROSBuzz/src/test1.bzz" />
-	    <param name="rcclient" value="true" /> 
+		<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
+		<rosparam file="$(env ROS_WS)/src/ROSBuzz/launch/launch_config/$(env ROBOT).yaml"/>
+		<param name="bzzfile_name" value="$(env ROS_WS)/src/ROSBuzz/src/test1.bzz" />
+        <param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="/buzzcmd" />
-		<!-- Move this to yaml -->
-		
-		<param name="fcclient_name" value="/mavros/cmd/command_int" />
+		<!-- <param name="fcclient_name" value="/mavros/cmd/command_int" /> -->
+		<param name="fcclient_name" value="/dji_mavcmd" />
 		
 		<param name="in_payload" value="/inMavlink"/>
 		<param name="out_payload" value="/outMavlink"/>
 		<param name="robot_id" value="3"/>
-		<param name="No_of_Robots" value="2"/>
-	</node>
+		<param name="No_of_Robots" value="3"/>
+		<param name="stand_by" value="$(env ROS_WS)/src/ROSBuzz/src/stand_by.bo"/>
+		</node>
+		
 </launch>

@@ -66,6 +66,9 @@ private:
 	/*Commands for flight controller*/
   	mavros_msgs::CommandInt cmd_srv;	
   	
+  	std::vector<std::string> m_sMySubscriptions;
+  	std::map<std::string, std::string> m_smTopic_infos;
+
 
 	void Initialize_pub_sub(ros::NodeHandle n_c);
 
@@ -110,8 +113,11 @@ private:
 	/*battery status callback*/ 
 	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
 	
+	/*flight extended status callback*/
+	void flight_extended_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg);
+
 	/*flight status callback*/
-	void flight_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg);
+	void flight_status_update(const mavros_msgs::State::ConstPtr& msg);
 	
 	/*current position callback*/
 	void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
@@ -125,6 +131,9 @@ private:
 
 	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 
+	void GetSubscriptionParameters(ros::NodeHandle node_handle);
+
+	void Subscribe(ros::NodeHandle n_c);
 };
 
 }

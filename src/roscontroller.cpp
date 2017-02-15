@@ -139,16 +139,42 @@ namespace rosbzz_node{
 		/*Obtain standby script to run during update*/
 		n_c.getParam("stand_by", stand_by);
 		
+		GetSubscriptionParameters(n_c);
+		// initialize topics to null?
 
+	}
+
+	void roscontroller::GetSubscriptionParameters(ros::NodeHandle node_handle){
+		//todo: make it as an array in yaml?
+		m_sMySubscriptions.clear();
+		std::string gps_topic, gps_type;
+		node_handle.getParam("topics/gps", gps_topic);
+		node_handle.getParam("type/gps", gps_type);
+		m_smTopic_infos.insert(pair <std::string, std::string>(gps_topic, gps_type));
+
+		std::string battery_topic, battery_type;
+		node_handle.getParam("topics/battery", battery_topic);
+		node_handle.getParam("type/battery", battery_type);
+		m_smTopic_infos.insert(pair <std::string, std::string>(battery_topic, battery_type));
+
+
+		std::string status_topic, status_type;
+		node_handle.getParam("topics/status", status_topic);
+		node_handle.getParam("type/status", status_type);
+		m_smTopic_infos.insert(pair <std::string, std::string>(status_topic, status_type));
 	}
 
 	void roscontroller::Initialize_pub_sub(ros::NodeHandle n_c){
 		/*subscribers*/
-  		current_position_sub = n_c.subscribe("/global_position", 1000, &roscontroller::current_pos,this);
-  		battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
+
+		Subscribe(n_c);
+
+  		//current_position_sub = n_c.subscribe("/global_position", 1000, &roscontroller::current_pos,this);
+  		//battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
   		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
-		flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_status_update,this);
-		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
+		//flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_extended_status_update,this);
+
+  		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
@@ -157,6 +183,26 @@ namespace rosbzz_node{
 		multi_msg=true;
 	}
 	
+	void roscontroller::Subscribe(ros::NodeHandle n_c){
+
+  		for(std::map<std::string, std::string>::iterator it = m_smTopic_infos.begin(); it != m_smTopic_infos.end(); ++it){
+  			if(it->second == "mavros_msgs/ExtendedState"){
+  				flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_extended_status_update, this);
+  			}
+  			else if(it->second == "mavros_msgs/State"){
+  				flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_status_update, this);
+  			}
+  			else if(it->second == "mavros_msgs/BatteryStatus"){
+  		  		battery_sub = n_c.subscribe(it->first, 1000, &roscontroller::battery, this);
+  			}
+  			else if(it->second == "sensor_msgs/NavSatFix"){
+  		  		current_position_sub = n_c.subscribe(it->first, 1000, &roscontroller::current_pos, this);
+ 			}
+
+	  		std::cout << "Subscribed to: " << it->first << endl;
+  		}
+	}
+
 	void roscontroller::Compile_bzz(){
 		/*Compile the buzz code .bzz to .bo*/
 		stringstream bzzfile_in_compile;
@@ -485,8 +531,21 @@ namespace rosbzz_node{
 		buzzuav_closures::set_battery(msg->voltage,msg->current,msg->remaining);
 		//ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage, msg->current, msg ->remaining);
 	}
-	/*flight status update*/
-	void roscontroller::flight_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg){
+
+	/*flight extended status update*/
+	void roscontroller::flight_status_update(const mavros_msgs::State::ConstPtr& msg){
+		// http://wiki.ros.org/mavros/CustomModes
+		std::cout << "Message: " << msg->mode << std::endl;
+		if(msg->mode == "GUIDED")
+			buzzuav_closures::flight_status_update(1);
+		else if (msg->mode == "LAND")
+			buzzuav_closures::flight_status_update(4);
+		else // ground standby = LOITER?
+			buzzuav_closures::flight_status_update(5);//?
+	}
+
+	/*flight extended status update*/
+	void roscontroller::flight_extended_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg){
 		buzzuav_closures::flight_status_update(msg->landed_state);
 	}
 	/*current position callback*/
