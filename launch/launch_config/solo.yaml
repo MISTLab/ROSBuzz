@@ -1,0 +1,12 @@
+topics:
+  gps     :   /mavros/global_position/global
+  battery :   /mavros/battery
+  status  :   /mavros/state
+type:
+  gps  :  sensor_msgs/NavSatFix
+  # for SITL Solo 
+  battery :   mavros_msgs/BatteryState
+  # for solo
+  #battery :   mavros_msgs/BatteryStatus
+  status  :   mavros_msgs/State
+  
