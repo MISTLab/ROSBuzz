@@ -4,6 +4,7 @@
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/CommandCode.h"
 #include "mavros_msgs/CommandInt.h"
+#include "mavros_msgs/CommandLong.h"
 #include "mavros_msgs/ExtendedState.h"
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/BatteryStatus.h"
@@ -64,8 +65,9 @@ private:
 	ros::Subscriber flight_status_sub;
 	ros::Subscriber obstacle_sub;
 	/*Commands for flight controller*/
-  	mavros_msgs::CommandInt cmd_srv;	
-  	
+  	//mavros_msgs::CommandInt cmd_srv;
+  	mavros_msgs::CommandLong cmd_srv;
+
   	std::vector<std::string> m_sMySubscriptions;
   	std::map<std::string, std::string> m_smTopic_infos;
 
@@ -126,8 +128,7 @@ private:
 	void payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg);
 
 	/* RC commands service */
-	bool rc_callback(mavros_msgs::CommandInt::Request  &req,
-		         mavros_msgs::CommandInt::Response &res);
+	bool rc_callback(mavros_msgs::CommandLong::Request  &req, mavros_msgs::CommandLong::Response &res);
 
 	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 

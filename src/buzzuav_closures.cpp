@@ -171,40 +171,40 @@ int buzzuav_goto(buzzvm_t vm) {
 }
 /******************************/
 
-double* getgoto(){
-return goto_pos;
+double* getgoto() {
+	return goto_pos;
 }
 /******************************/
-int getcmd(){
- return cur_cmd;
+int getcmd() {
+	return cur_cmd;
 }
 
-void set_goto(double pos[]){
-goto_pos[0]=pos[0];
-goto_pos[1]=pos[1];
-goto_pos[2]=pos[2];
-    
+void set_goto(double pos[]) {
+	goto_pos[0] = pos[0];
+	goto_pos[1] = pos[1];
+	goto_pos[2] = pos[2];
+
 }
 
-int bzz_cmd(){
-int cmd = buzz_cmd;
-buzz_cmd=0;
-return cmd;
+int bzz_cmd() {
+	int cmd = buzz_cmd;
+	buzz_cmd = 0;
+	return cmd;
 }
 
-void rc_set_goto(double pos[]){
-rc_goto_pos[0]=pos[0];
-rc_goto_pos[1]=pos[1];
-rc_goto_pos[2]=pos[2];
-    
+void rc_set_goto(double pos[]) {
+	rc_goto_pos[0] = pos[0];
+	rc_goto_pos[1] = pos[1];
+	rc_goto_pos[2] = pos[2];
+
 }
-void rc_call(int rc_cmd_in){
-rc_cmd=rc_cmd_in;
+void rc_call(int rc_cmd_in) {
+	rc_cmd = rc_cmd_in;
 }
 
-void set_obstacle_dist(float dist[]){
-	for(int i=0; i<5;i++)
-		obst[i]=dist[i];	
+void set_obstacle_dist(float dist[]) {
+	for (int i = 0; i < 5; i++)
+		obst[i] = dist[i];
 }
 
 

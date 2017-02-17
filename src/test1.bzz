@@ -116,6 +116,7 @@ function takeoff() {
 	}
 }
 function land() {
+	log("Land: ", flight.status)
 	if( flight.status == 1) {
 		barrier_set(ROBOTS,idle)
 		barrier_ready()

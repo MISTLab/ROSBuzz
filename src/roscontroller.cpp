@@ -179,7 +179,15 @@ namespace rosbzz_node{
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
 		/* Clients*/
-  		mav_client = n_c.serviceClient<mavros_msgs::CommandInt>(fcclient_name);
+
+		//if(fcclient_name == "/mavros/cmd/command"){
+		//	mav_client = n_c.serviceClient<mavros_msgs::CommandInt>(fcclient_name);
+		//}
+		//else {
+			//TODO: Here
+			mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
+		//}
+
 		multi_msg=true;
 	}
 	
@@ -241,15 +249,16 @@ namespace rosbzz_node{
 		int tmp = buzzuav_closures::bzz_cmd();
     		double* goto_pos = buzzuav_closures::getgoto();
 		if (tmp == 1){
-    			cmd_srv.request.z = goto_pos[2];
+			cmd_srv.request.param7 = goto_pos[2];
+			//cmd_srv.request.z = goto_pos[2];
 			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
 		} else if (tmp == 2) { /*FC call for goto*/ 
 			/*prepare the goto publish message */
-			cmd_srv.request.x = goto_pos[0]*pow(10,7);
-    			cmd_srv.request.y = goto_pos[1]*pow(10,7);
-    			cmd_srv.request.z = goto_pos[2];
+			cmd_srv.request.param5 = goto_pos[0]*pow(10,7);
+    			cmd_srv.request.param6 = goto_pos[1]*pow(10,7);
+    			cmd_srv.request.param7 = goto_pos[2];
     			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
@@ -535,6 +544,7 @@ namespace rosbzz_node{
 	/*flight extended status update*/
 	void roscontroller::flight_status_update(const mavros_msgs::State::ConstPtr& msg){
 		// http://wiki.ros.org/mavros/CustomModes
+		// TODO: Handle landing
 		std::cout << "Message: " << msg->mode << std::endl;
 		if(msg->mode == "GUIDED")
 			buzzuav_closures::flight_status_update(1);
@@ -647,8 +657,8 @@ namespace rosbzz_node{
 	}
  	
 	/* RC command service */
-	bool roscontroller::rc_callback(mavros_msgs::CommandInt::Request  &req,
-		         mavros_msgs::CommandInt::Response &res){
+	bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request  &req,
+		         mavros_msgs::CommandLong::Response &res){
 		int rc_cmd;
 /*		if(req.command==oldcmdID)
 		return true;
@@ -675,9 +685,13 @@ namespace rosbzz_node{
 			case mavros_msgs::CommandCode::NAV_WAYPOINT:
    				ROS_INFO("RC_Call: GO TO!!!! ");
 				double rc_goto[3];
-   				rc_goto[0]=req.x/pow(10,7);
-				rc_goto[1]=req.y/pow(10,7);
-				rc_goto[2]=req.z;
+   				//rc_goto[0]=req.x/pow(10,7);
+				//rc_goto[1]=req.y/pow(10,7);
+				//rc_goto[2]=req.z;
+				rc_goto[0] = req.param5 / pow(10, 7);
+				rc_goto[1] = req.param6 / pow(10, 7);
+				rc_goto[2] = req.param7;
+
 				buzzuav_closures::rc_set_goto(rc_goto);
 				rc_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
 				buzzuav_closures::rc_call(rc_cmd);
