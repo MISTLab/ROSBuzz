@@ -219,21 +219,21 @@ int buzzuav_takeoff(buzzvm_t vm) {
    height = goto_pos[2];
    cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
    printf(" Buzz requested Take off !!! \n");
-   buzz_cmd=1;
+   buzz_cmd = 1;
    return buzzvm_ret0(vm);
 }
 
 int buzzuav_land(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_LAND;
    printf(" Buzz requested Land !!! \n");
-   buzz_cmd=1;
+   buzz_cmd = 1;
    return buzzvm_ret0(vm);
 }
 
 int buzzuav_gohome(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
    printf(" Buzz requested gohome !!! \n");
-   buzz_cmd=1;
+   buzz_cmd = 1;
    return buzzvm_ret0(vm);
 }
 

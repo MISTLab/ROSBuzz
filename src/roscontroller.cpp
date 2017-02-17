@@ -185,6 +185,8 @@ namespace rosbzz_node{
 		//}
 		//else {
 			//TODO: Here
+		    arm_client = n_c.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
+		    mode_client =  n_c.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
 			mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
 		//}
 
@@ -234,6 +236,29 @@ namespace rosbzz_node{
 		dbgfname = bzzfile_in_compile.str();
    		
 	}
+
+	void roscontroller::Arm(){
+		mavros_msgs::CommandBool arming_message;
+		arming_message.request.value = true;
+		if(arm_client.call(arming_message)) {
+			ROS_INFO("Service called!");
+		} else {
+			ROS_INFO("Service call failed!");
+		}
+	}
+
+	void roscontroller::SetMode(){
+		mavros_msgs::SetMode set_mode_message;
+		set_mode_message.request.base_mode = 0;
+		set_mode_message.request.custom_mode = "GUIDED"; // shit!
+		if(mode_client.call(set_mode_message)) {
+			ROS_INFO("Service called!");
+		} else {
+			ROS_INFO("Service call failed!");
+		}
+	}
+
+
 	/*Prepare messages for each step and publish*/
 	/*******************************************************************************************************/
 	/* Message format of payload (Each slot is uint64_t)						       */
@@ -551,7 +576,7 @@ namespace rosbzz_node{
 		else if (msg->mode == "LAND")
 			buzzuav_closures::flight_status_update(4);
 		else // ground standby = LOITER?
-			buzzuav_closures::flight_status_update(5);//?
+			buzzuav_closures::flight_status_update(1);//?
 	}
 
 	/*flight extended status update*/
@@ -667,6 +692,9 @@ namespace rosbzz_node{
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
    				ROS_INFO("RC_call: TAKE OFF!!!!");
 				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
+				/* arming */
+				SetMode();
+				Arm();
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;
