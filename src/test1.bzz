@@ -144,7 +144,7 @@ function step() {
 		flight.rc_cmd=0
 		statef = land
 		neighbors.broadcast("cmd", 21)
-	} else if(flight.rc_cmd==16 and flight.status==2) {
+	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
 		uav_goto()
 	} 

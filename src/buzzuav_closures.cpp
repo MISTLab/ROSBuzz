@@ -157,7 +157,7 @@ int buzzuav_moveto(buzzvm_t vm) {
 	}
    }*/
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
-   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
+   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
    buzz_cmd=2;
    return buzzvm_ret0(vm);
 }
@@ -215,7 +215,7 @@ int buzzuav_takeoff(buzzvm_t vm) {
    buzzvm_lnum_assert(vm, 1);
    buzzvm_lload(vm, 1); /* Altitude */
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-   goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value;
+   goto_pos[2] = buzzvm_stack_at(vm, 1) -> f.value;
    height = goto_pos[2];
    cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
    printf(" Buzz requested Take off !!! \n");
