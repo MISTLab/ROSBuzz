@@ -125,11 +125,8 @@ namespace rosbzz_node{
      			else if(rcclient==false){ROS_INFO("RC service is disabled");}
   		}
   		else{ROS_ERROR("Provide a rc client option: yes or no in Launch file"); system("rosnode kill rosbuzz_node");} 
-  		/*Obtain fc client name from parameter server*/
-  		if(n_c.getParam("fcclient_name", fcclient_name));
-  		else {ROS_ERROR("Provide a fc client name in Launch file"); system("rosnode kill rosbuzz_node");}  
   		/*Obtain robot_id from parameter server*/
-  		n_c.getParam("robot_id", robot_id);	
+  		n_c.getParam("robot_id", robot_id);
 		/*Obtain out payload name*/
   		n_c.getParam("out_payload", out_payload);
 		/*Obtain in payload name*/
@@ -162,6 +159,10 @@ namespace rosbzz_node{
 		node_handle.getParam("topics/status", status_topic);
 		node_handle.getParam("type/status", status_type);
 		m_smTopic_infos.insert(pair <std::string, std::string>(status_topic, status_type));
+
+  		/*Obtain fc client name from parameter server*/
+  		if(node_handle.getParam("topics/fcclient", fcclient_name));
+  		else {ROS_ERROR("Provide a fc client name in Launch file"); system("rosnode kill rosbuzz_node");}  
 	}
 
 	void roscontroller::Initialize_pub_sub(ros::NodeHandle n_c){
@@ -256,8 +257,8 @@ namespace rosbzz_node{
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
 		} else if (tmp == 2) { /*FC call for goto*/ 
 			/*prepare the goto publish message */
-			cmd_srv.request.param5 = goto_pos[0]*pow(10,7);
-    			cmd_srv.request.param6 = goto_pos[1]*pow(10,7);
+			cmd_srv.request.param5 = goto_pos[0];
+    			cmd_srv.request.param6 = goto_pos[1];
     			cmd_srv.request.param7 = goto_pos[2];
     			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
@@ -685,11 +686,8 @@ namespace rosbzz_node{
 			case mavros_msgs::CommandCode::NAV_WAYPOINT:
    				ROS_INFO("RC_Call: GO TO!!!! ");
 				double rc_goto[3];
-   				//rc_goto[0]=req.x/pow(10,7);
-				//rc_goto[1]=req.y/pow(10,7);
-				//rc_goto[2]=req.z;
-				rc_goto[0] = req.param5 / pow(10, 7);
-				rc_goto[1] = req.param6 / pow(10, 7);
+				rc_goto[0] = req.param5;
+				rc_goto[1] = req.param6;
 				rc_goto[2] = req.param7;
 
 				buzzuav_closures::rc_set_goto(rc_goto);

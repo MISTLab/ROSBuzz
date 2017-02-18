@@ -2,6 +2,7 @@ topics:
   gps     :   /mavros/global_position/global
   battery :   /mavros/battery
   status  :   /mavros/state
+  fcclient:   /mavros/cmd/command
 type:
   gps  :  sensor_msgs/NavSatFix
   # for SITL Solo 

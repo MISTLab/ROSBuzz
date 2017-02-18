@@ -6,8 +6,6 @@
 		<param name="bzzfile_name" value="$(env ROS_WS)/src/ROSBuzz/src/test1.bzz" />
         <param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="/buzzcmd" />
-		<!-- todo: verify if this will work, or use "command" -->
-		<param name="fcclient_name" value="/mavros/cmd/command" />
 		<param name="in_payload" value="/inMavlink"/>
 		<param name="out_payload" value="/outMavlink"/>
 		<param name="robot_id" value="3"/>
