@@ -5,7 +5,9 @@
 #include "mavros_msgs/CommandCode.h"
 #include "mavros_msgs/CommandInt.h"
 #include "mavros_msgs/CommandLong.h"
+#include "mavros_msgs/CommandBool.h"
 #include "mavros_msgs/ExtendedState.h"
+#include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
@@ -71,6 +73,11 @@ private:
   	std::vector<std::string> m_sMySubscriptions;
   	std::map<std::string, std::string> m_smTopic_infos;
 
+  	mavros_msgs::CommandBool m_cmdBool;
+  	ros::ServiceClient arm_client;
+
+  	mavros_msgs::SetMode m_cmdSetMode;
+  	ros::ServiceClient mode_client;
 
 	void Initialize_pub_sub(ros::NodeHandle n_c);
 
@@ -133,6 +140,10 @@ private:
 	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 
 	void GetSubscriptionParameters(ros::NodeHandle node_handle);
+
+	void Arm();
+
+	void SetMode();
 
 	void Subscribe(ros::NodeHandle n_c);
 };
