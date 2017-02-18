@@ -163,6 +163,10 @@ namespace rosbzz_node{
   		/*Obtain fc client name from parameter server*/
   		if(node_handle.getParam("topics/fcclient", fcclient_name));
   		else {ROS_ERROR("Provide a fc client name in Launch file"); system("rosnode kill rosbuzz_node");}  
+  		if(node_handle.getParam("topics/armclient", armclient));
+  		else {ROS_ERROR("Provide an arm client name in Launch file"); system("rosnode kill rosbuzz_node");}  
+  		if(node_handle.getParam("topics/modeclient", modeclient));
+  		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}  
 	}
 
 	void roscontroller::Initialize_pub_sub(ros::NodeHandle n_c){
@@ -179,17 +183,10 @@ namespace rosbzz_node{
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
-		/* Clients*/
-
-		//if(fcclient_name == "/mavros/cmd/command"){
-		//	mav_client = n_c.serviceClient<mavros_msgs::CommandInt>(fcclient_name);
-		//}
-		//else {
-			//TODO: Here
-		    arm_client = n_c.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
-		    mode_client =  n_c.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
-			mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-		//}
+		/* Service Clients*/
+		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armingclient);
+		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
+		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
 
 		multi_msg=true;
 	}

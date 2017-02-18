@@ -3,7 +3,6 @@
 #include <sensor_msgs/NavSatFix.h>
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/CommandCode.h"
-#include "mavros_msgs/CommandInt.h"
 #include "mavros_msgs/CommandLong.h"
 #include "mavros_msgs/CommandBool.h"
 #include "mavros_msgs/ExtendedState.h"
@@ -54,7 +53,7 @@ private:
         //int oldcmdID=0;
 	int rc_cmd;
 	int barrier;
-	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by; //, rcclient;
+	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by;
 	bool rcclient;
 	bool multi_msg;
 	ros::ServiceClient mav_client;
