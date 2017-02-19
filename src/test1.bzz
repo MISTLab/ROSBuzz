@@ -116,11 +116,12 @@ function takeoff() {
 }
 function land() {
 	#log("Land: ", flight.status)
-	if(flight.status != 0 and flight.status != 4){
+	if(flight.status == 2 or flight.status == 3){
 		neighbors.broadcast("cmd", 21)
 		uav_land()
 	}
-	uav_land()
+	else
+		statef=idle
 }
 
 # Executed once at init time.
