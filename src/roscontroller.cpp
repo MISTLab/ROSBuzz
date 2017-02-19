@@ -547,7 +547,7 @@ namespace rosbzz_node{
 
 		}
 
-		else{
+		else if(msg->payload64.size() > 3){
 			uint64_t message_obt[msg->payload64.size()];
 			/* Go throught the obtained payload*/
 			for(int i=0;i < (int)msg->payload64.size();i++){
