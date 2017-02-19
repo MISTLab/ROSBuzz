@@ -55,7 +55,7 @@ function hexagon() {
 # Constants
 #
 BARRIER_VSTIG = 1
-ROBOTS = 1 # number of robots in the swarm
+ROBOTS = 2 # number of robots in the swarm
 
 #
 # Sets a barrier

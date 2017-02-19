@@ -514,11 +514,11 @@ namespace rosbzz_node{
 	void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg){
 
 		/*Ack from xbee about its transfer complete of multi packet*/
-		if((uint64_t)msg->payload64[0]==(uint64_t)XBEE_MESSAGE_CONSTANT && msg->payload64.size() == 1){
+		/*if((uint64_t)msg->payload64[0]==(uint64_t)XBEE_MESSAGE_CONSTANT && msg->payload64.size() == 1){
 			multi_msg=true;
 			std::cout << "ACK From xbee after transimssion of code " << std::endl;
-		}
-		else if((uint64_t)msg->payload64[0]==(uint64_t)UPDATER_MESSAGE_CONSTANT && msg->payload64.size() > 10){
+		}*/
+		if((uint64_t)msg->payload64[0]==(uint64_t)UPDATER_MESSAGE_CONSTANT && msg->payload64.size() > 10){
 			uint16_t obt_msg_size=sizeof(uint64_t)*(msg->payload64.size());
 			uint64_t message_obt[obt_msg_size];
 			/* Go throught the obtained payload*/
