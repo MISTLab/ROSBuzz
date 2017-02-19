@@ -663,9 +663,10 @@ namespace rosbzz_node{
 				neighbours_pos_payload[i]=cartesian_neighbours_pos[i]-cartesian_cur_pos[i];
 			}
 			double *cvt_neighbours_pos_payload = cvt_neighbours_pos_test;
-	//		cvt_spherical_coordinates(neighbours_pos_payload, cvt_neighbours_pos_payload);
+			//double cvt_neighbours_pos_payload[3];
+			//cvt_spherical_coordinates(neighbours_pos_payload, cvt_neighbours_pos_payload);
 			/*Extract robot id of the neighbour*/
-	 		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));  
+	 		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));
 			cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[1] << ", "<< cvt_neighbours_pos_payload[2] << endl;
 	//		cout << "Rel Test Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_test[0] << ", "<< cvt_neighbours_pos_test[2] << ", "<< cvt_neighbours_pos_test[3] << endl;
 			/*pass neighbour position to local maintaner*/

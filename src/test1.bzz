@@ -12,7 +12,7 @@ function updated_neigh(){
 neighbors.broadcast(updated, update_no)
 }
 
-TARGET_ALTITUDE = 10.0
+TARGET_ALTITUDE = 2.0
  
 # Lennard-Jones parameters
 TARGET     = 50.0	#0.000001001
@@ -41,8 +41,8 @@ function hexagon() {
   if(neighbors.count() > 0)
     math.vec2.scale(accum, 1.0 / neighbors.count())
   # Move according to vector
-#  print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
-#  uav_moveto(accum.x, accum.y)
+  print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
+  uav_moveto(accum.x, accum.y)
 }
  
 ########################################
@@ -55,7 +55,7 @@ function hexagon() {
 # Constants
 #
 BARRIER_VSTIG = 1
-ROBOTS = 1 # number of robots in the swarm
+ROBOTS = 2 # number of robots in the swarm
 
 #
 # Sets a barrier
@@ -106,10 +106,10 @@ if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/
 }
 
 function takeoff() {
-	#if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-	#	barrier_set(ROBOTS,hexagon)
-	#	barrier_ready()
-	#}
+	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+		barrier_set(ROBOTS,hexagon)
+		barrier_ready()
+	}
 	if( flight.status !=3){
 		log("Altitude: ", TARGET_ALTITUDE)
 		neighbors.broadcast("cmd", 22)
@@ -118,10 +118,10 @@ function takeoff() {
 }
 function land() {
 	#log("Land: ", flight.status)
-	#if(flight.status != 0 and flight.status != 4){
-	#	neighbors.broadcast("cmd", 21)
-	#	uav_land()
-	#}
+	if(flight.status != 0 and flight.status != 4){
+		neighbors.broadcast("cmd", 21)
+		uav_land()
+	}
 	uav_land()
 }
 
