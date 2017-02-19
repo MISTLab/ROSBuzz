@@ -99,8 +99,8 @@ void gps_from_rb(double  range, double bearing, double out[3]) {
 	double lon = cur_pos[1]*M_PI/180.0;
 //	bearing = bearing*M_PI/180.0;
  	out[0] = asin(sin(lat) * cos(range/EARTH_RADIUS) + cos(lat) * sin(range/EARTH_RADIUS) * cos(bearing));
-	out[0] = out[0]*180.0/M_PI;
 	out[1] = lon + atan2(sin(bearing) * sin(range/EARTH_RADIUS) * cos(lat), cos(range/EARTH_RADIUS) - sin(lat)*sin(out[0]));
+	out[0] = out[0]*180.0/M_PI;
 	out[1] = out[1]*180.0/M_PI;
 	out[2] = height; //constant height.
 }
@@ -157,7 +157,7 @@ int buzzuav_moveto(buzzvm_t vm) {
 	}
    }*/
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
-   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
+   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
    buzz_cmd=2;
    return buzzvm_ret0(vm);
 }
@@ -171,40 +171,40 @@ int buzzuav_goto(buzzvm_t vm) {
 }
 /******************************/
 
-double* getgoto(){
-return goto_pos;
+double* getgoto() {
+	return goto_pos;
 }
 /******************************/
-int getcmd(){
- return cur_cmd;
+int getcmd() {
+	return cur_cmd;
 }
 
-void set_goto(double pos[]){
-goto_pos[0]=pos[0];
-goto_pos[1]=pos[1];
-goto_pos[2]=pos[2];
-    
+void set_goto(double pos[]) {
+	goto_pos[0] = pos[0];
+	goto_pos[1] = pos[1];
+	goto_pos[2] = pos[2];
+
 }
 
-int bzz_cmd(){
-int cmd = buzz_cmd;
-buzz_cmd=0;
-return cmd;
+int bzz_cmd() {
+	int cmd = buzz_cmd;
+	buzz_cmd = 0;
+	return cmd;
 }
 
-void rc_set_goto(double pos[]){
-rc_goto_pos[0]=pos[0];
-rc_goto_pos[1]=pos[1];
-rc_goto_pos[2]=pos[2];
-    
+void rc_set_goto(double pos[]) {
+	rc_goto_pos[0] = pos[0];
+	rc_goto_pos[1] = pos[1];
+	rc_goto_pos[2] = pos[2];
+
 }
-void rc_call(int rc_cmd_in){
-rc_cmd=rc_cmd_in;
+void rc_call(int rc_cmd_in) {
+	rc_cmd = rc_cmd_in;
 }
 
-void set_obstacle_dist(float dist[]){
-	for(int i=0; i<5;i++)
-		obst[i]=dist[i];	
+void set_obstacle_dist(float dist[]) {
+	for (int i = 0; i < 5; i++)
+		obst[i] = dist[i];
 }
 
 
@@ -215,25 +215,25 @@ int buzzuav_takeoff(buzzvm_t vm) {
    buzzvm_lnum_assert(vm, 1);
    buzzvm_lload(vm, 1); /* Altitude */
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-   goto_pos[2]=buzzvm_stack_at(vm, 1)->f.value;
+   goto_pos[2] = buzzvm_stack_at(vm, 1) -> f.value;
    height = goto_pos[2];
    cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
    printf(" Buzz requested Take off !!! \n");
-   buzz_cmd=1;
+   buzz_cmd = 1;
    return buzzvm_ret0(vm);
 }
 
 int buzzuav_land(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_LAND;
    printf(" Buzz requested Land !!! \n");
-   buzz_cmd=1;
+   buzz_cmd = 1;
    return buzzvm_ret0(vm);
 }
 
 int buzzuav_gohome(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
    printf(" Buzz requested gohome !!! \n");
-   buzz_cmd=1;
+   buzz_cmd = 1;
    return buzzvm_ret0(vm);
 }
 

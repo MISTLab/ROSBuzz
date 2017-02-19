@@ -12,11 +12,11 @@ function updated_neigh(){
 neighbors.broadcast(updated, update_no)
 }
 
-TARGET_ALTITUDE = 10.0
+TARGET_ALTITUDE = 2.0
  
 # Lennard-Jones parameters
-TARGET     = 50.0	#0.000001001
-EPSILON    = 0.5	#0.001
+TARGET     = 10.0	#0.000001001
+EPSILON    = 0.05	#0.001
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -41,8 +41,8 @@ function hexagon() {
   if(neighbors.count() > 0)
     math.vec2.scale(accum, 1.0 / neighbors.count())
   # Move according to vector
-#  print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
-#  uav_moveto(accum.x, accum.y)
+  print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
+  uav_moveto(accum.x, accum.y)
 }
  
 ########################################
@@ -101,29 +101,28 @@ neighbors.listen("cmd",
    
 
 )
-if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0)
-	statef=hexagon
 }
 
 function takeoff() {
+	log("TakeOff: ", flight.status)
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 		barrier_set(ROBOTS,hexagon)
 		barrier_ready()
 	}
-	else if( flight.status !=3){
+	if( flight.status !=3){
+		log("Altitude: ", TARGET_ALTITUDE)
 		neighbors.broadcast("cmd", 22)
 		uav_takeoff(TARGET_ALTITUDE)
 	}
 }
 function land() {
-	if( flight.status == 1) {
-		barrier_set(ROBOTS,idle)
-		barrier_ready()
-	}
-	else if(flight.status!=0 and flight.status!=4){
+	log("Land: ", flight.status)
+	if(flight.status == 2 or flight.status == 3){
 		neighbors.broadcast("cmd", 21)
 		uav_land()
 	}
+	else
+		statef=idle
 }
 
 # Executed once at init time.
@@ -134,19 +133,22 @@ function init() {
 # Executed at each time step.
 function step() {
 
-	if(flight.rc_cmd==22 and flight.status==1) {
+	if(flight.rc_cmd==22) {
+		log("cmd 22")
 		flight.rc_cmd=0
-		statef=takeoff		
+		statef = takeoff		
 		neighbors.broadcast("cmd", 22)
-	} else if(flight.rc_cmd==21 and flight.status==2) {
+	} else if(flight.rc_cmd==21) {
+		log("cmd 21")
+		log("To land")
 		flight.rc_cmd=0
-		statef=land
+		statef = land
 		neighbors.broadcast("cmd", 21)
-	} else if(flight.rc_cmd==16 and flight.status==2) {
+	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
 		uav_goto()
-	}
-statef()
+	} 
+	statef()
 }
  
 # Executed once when the robot (or the simulator) is reset.

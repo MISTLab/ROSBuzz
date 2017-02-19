@@ -3,8 +3,10 @@
 #include <sensor_msgs/NavSatFix.h>
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/CommandCode.h"
-#include "mavros_msgs/CommandInt.h"
+#include "mavros_msgs/CommandLong.h"
+#include "mavros_msgs/CommandBool.h"
 #include "mavros_msgs/ExtendedState.h"
+#include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
@@ -51,7 +53,7 @@ private:
         //int oldcmdID=0;
 	int rc_cmd;
 	int barrier;
-	std::string bzzfile_name, fcclient_name, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by; //, rcclient;
+	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by;
 	bool rcclient;
 	bool multi_msg;
 	ros::ServiceClient mav_client;
@@ -64,8 +66,17 @@ private:
 	ros::Subscriber flight_status_sub;
 	ros::Subscriber obstacle_sub;
 	/*Commands for flight controller*/
-  	mavros_msgs::CommandInt cmd_srv;	
-  	
+  	//mavros_msgs::CommandInt cmd_srv;
+  	mavros_msgs::CommandLong cmd_srv;
+
+  	std::vector<std::string> m_sMySubscriptions;
+  	std::map<std::string, std::string> m_smTopic_infos;
+
+  	mavros_msgs::CommandBool m_cmdBool;
+  	ros::ServiceClient arm_client;
+
+  	mavros_msgs::SetMode m_cmdSetMode;
+  	ros::ServiceClient mode_client;
 
 	void Initialize_pub_sub(ros::NodeHandle n_c);
 
@@ -110,8 +121,11 @@ private:
 	/*battery status callback*/ 
 	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
 	
+	/*flight extended status callback*/
+	void flight_extended_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg);
+
 	/*flight status callback*/
-	void flight_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg);
+	void flight_status_update(const mavros_msgs::State::ConstPtr& msg);
 	
 	/*current position callback*/
 	void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
@@ -120,11 +134,17 @@ private:
 	void payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg);
 
 	/* RC commands service */
-	bool rc_callback(mavros_msgs::CommandInt::Request  &req,
-		         mavros_msgs::CommandInt::Response &res);
+	bool rc_callback(mavros_msgs::CommandLong::Request  &req, mavros_msgs::CommandLong::Response &res);
 
 	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 
+	void GetSubscriptionParameters(ros::NodeHandle node_handle);
+
+	void Arm();
+
+	void SetMode();
+
+	void Subscribe(ros::NodeHandle n_c);
 };
 
 }

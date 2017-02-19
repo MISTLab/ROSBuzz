@@ -1,0 +1,16 @@
+topics:
+  gps     :   /mavros/global_position/global
+  battery :   /mavros/battery
+  status  :   /mavros/state
+  fcclient:   /mavros/cmd/command
+  armclient:  /mavros/cmd/arming
+  modeclient: /mavros/set_mode
+type:
+  gps  :  sensor_msgs/NavSatFix
+  # for SITL Solo 
+  battery :   mavros_msgs/BatteryState
+  # for solo
+  #battery :   mavros_msgs/BatteryStatus
+  status  :   mavros_msgs/State
+environment : 
+  environment : solo-simulator
