@@ -109,7 +109,7 @@ function takeoff() {
 		barrier_set(ROBOTS,hexagon)
 		barrier_ready()
 	}
-	if( flight.status !=3){
+	else if( flight.status !=3){
 		log("Altitude: ", TARGET_ALTITUDE)
 		neighbors.broadcast("cmd", 22)
 		uav_takeoff(TARGET_ALTITUDE)
