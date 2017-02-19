@@ -1,0 +1,11 @@
+topics:
+  gps      :   /global_position
+  battery  :   /power_status
+  status   :   /flight_status
+  fcclient :   /dji_mavcmd
+  armclient:   /dji_mavarming
+  modeclient:  /dji_mavmode
+type:
+  gps  :  sensor_msgs/NavSatFix
+  battery :   mavros_msgs/BatteryStatus
+  status  :   mavros_msgs/ExtendedState
