@@ -117,7 +117,7 @@ namespace rosbzz_node{
   		else{ROS_ERROR("Provide a rc client option: yes or no in Launch file"); system("rosnode kill rosbuzz_node");} 
   		/*Obtain robot_id from parameter server*/
   		//n_c.getParam("robot_id", robot_id);
-		robot_id=(int)buzz_utility::get_robotid();
+		//robot_id=(int)buzz_utility::get_robotid();
 		/*Obtain out payload name*/
   		n_c.getParam("out_payload", out_payload);
 		/*Obtain in payload name*/
@@ -169,7 +169,7 @@ namespace rosbzz_node{
   		//battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
   		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
 		//flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_extended_status_update,this);
-
+		Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
   		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
@@ -729,6 +729,10 @@ namespace rosbzz_node{
 				break;
    		}
    		return true;
+	}
+	void roscontroller::set_robot_id(const std_msgs::UInt8::ConstPtr& msg){
+	robot_id=(int)msg->data;
+	
 	}
 	
 }
