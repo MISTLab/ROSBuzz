@@ -272,8 +272,8 @@ namespace rosbzz_node{
 			/*prepare the goto publish message */
 			cmd_srv.request.param5 = goto_pos[0];
     			cmd_srv.request.param6 = goto_pos[1];
-    			cmd_srv.request.param7 = goto_pos[2];
-    			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
+    			cmd_srv.request.param7 = cur_pos[2];	//force constant altitude after takeoff, goto_pos[2];
+    			cmd_srv.request.command =  buzzuav_closures::getcmd();
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
     			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
