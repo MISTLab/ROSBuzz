@@ -294,7 +294,7 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 	}
 
 	else{
-		gettimeofday(&t1, NULL);
+		//gettimeofday(&t1, NULL);
 		if(neigh==0 && (!is_msg_present())){ 
 			fprintf(stdout,"Sending code... \n");		
 			code_message_outqueue_append();
@@ -309,10 +309,10 @@ buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 		if(tObj->i.value==no_of_robot) { 
 			*(int*)(updater->mode) = CODE_RUNNING;
 			gettimeofday(&t2, NULL);
-			collect_data();
+			//collect_data();
 			timer_steps=0;
-			//neigh=-1;
-			//buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
+			neigh=0;
+			buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
 			//buzzvm_function_call(m_tBuzzVM, "updated", 0);
 			updated=1;	
 			}

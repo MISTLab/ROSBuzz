@@ -1,6 +1,7 @@
 #pragma once
 #include <ros/ros.h>
 #include <sensor_msgs/NavSatFix.h>
+#include <std_msgs/UInt8.h>
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/CommandCode.h"
 #include "mavros_msgs/CommandLong.h"
@@ -53,6 +54,7 @@ private:
         //int oldcmdID=0;
 	int rc_cmd;
 	int barrier;
+	int message_number=0;
 	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by;
 	bool rcclient;
 	bool multi_msg;
@@ -65,6 +67,7 @@ private:
 	ros::Subscriber payload_sub;
 	ros::Subscriber flight_status_sub;
 	ros::Subscriber obstacle_sub;
+	ros::Subscriber Robot_id_sub;
 	/*Commands for flight controller*/
   	//mavros_msgs::CommandInt cmd_srv;
   	mavros_msgs::CommandLong cmd_srv;
@@ -135,6 +138,9 @@ private:
 
 	/* RC commands service */
 	bool rc_callback(mavros_msgs::CommandLong::Request  &req, mavros_msgs::CommandLong::Response &res);
+
+	/*robot id sub callback*/
+	void set_robot_id(const std_msgs::UInt8::ConstPtr& msg);
 
 	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 
