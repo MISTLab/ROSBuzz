@@ -1,4 +1,5 @@
 #include "roscontroller.h"
+#include <thread>
 
 namespace rosbzz_node{
 
@@ -236,15 +237,26 @@ namespace rosbzz_node{
 		}
 	}
 
-	void roscontroller::SetMode(){
+	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
+		// wait if necessary
+		if (delay_miliseconds > 0){
+			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
+		}
+		// set mode
 		mavros_msgs::SetMode set_mode_message;
 		set_mode_message.request.base_mode = 0;
-		set_mode_message.request.custom_mode = "GUIDED"; // shit!
+		set_mode_message.request.custom_mode = mode;
 		if(mode_client.call(set_mode_message)) {
 			ROS_INFO("Service called!");
 		} else {
 			ROS_INFO("Service call failed!");
 		}
+	}
+
+	//todo: this
+	void roscontroller::SetModeAsync(std::string mode, int delay_miliseconds){
+		std::thread([&](){SetMode(mode, delay_miliseconds);}).detach();
+		cout << "Async call called... " <<endl;
 	}
 
 
@@ -695,7 +707,9 @@ namespace rosbzz_node{
    				ROS_INFO("RC_call: TAKE OFF!!!!");
 				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
 				/* arming */
-				SetMode();
+				SetMode("GUIDED", 0);
+				cout<< "this..."<<endl;
+				SetModeAsync("LAND", 5000);
 				Arm();
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;

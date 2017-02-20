@@ -148,9 +148,14 @@ private:
 
 	void Arm();
 
-	void SetMode();
+	void SetMode(std::string mode, int delay_miliseconds);
+
+	void SetModeAsync(std::string mode, int delay_miliseconds);
+
+	//void SetModeAsync(std::string mode, int delay);
 
 	void Subscribe(ros::NodeHandle n_c);
+
 };
 
 }
