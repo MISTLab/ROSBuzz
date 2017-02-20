@@ -53,6 +53,7 @@ private:
         //int oldcmdID=0;
 	int rc_cmd;
 	int barrier;
+	int message_number=0;
 	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by;
 	bool rcclient;
 	bool multi_msg;

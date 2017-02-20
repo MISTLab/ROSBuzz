@@ -68,36 +68,26 @@ namespace rosbzz_node{
 					//std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
 					}
 				neigh_pos_pub.publish(neigh_pos_array); 
-				//fprintf(stdout, "before update routine\n");
+			
 				/*Check updater state and step code*/
   				update_routine(bcfname.c_str(), dbgfname.c_str());
-      				/*Step buzz script */
-				//fprintf(stdout, "before code step\n");
-				if(get_update_status()){
-				buzz_utility::buzz_update_set((get_updater())->bcode, dbgfname.c_str(), *(size_t*)((get_updater())->bcode_size));
-				set_read_update_status();
-				mavros_msgs::Mavlink stop_req_packet;
-				stop_req_packet.payload64.push_back((uint64_t) XBEE_STOP_TRANSMISSION);
-				payload_pub.publish(stop_req_packet);
-				std::cout << "request xbee to stop multi-packet transmission" << std::endl;
-				}
+      				
+				/*Step buzz script */
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
-				//fprintf(stdout, "before publish msg\n");
+	
 		  		prepare_msg_and_publish();
+				/*Set multi message available after update*/
+				if(get_update_status()){
+					set_read_update_status();
+					multi_msg=true;
+				}
     				/*run once*/
     				ros::spinOnce();
 				/*loop rate of ros*/
-				/*if( get_update_mode() == CODE_STANDBY){
 				 ros::Rate loop_rate(10);
 				 loop_rate.sleep();
-				}	
-				else{*/
-				 ros::Rate loop_rate(10);
-				 loop_rate.sleep();
-				//} 
  				/*sleep for the mentioned loop rate*/
-    				
     				timer_step+=1;
    				maintain_pos(timer_step);
 				
@@ -126,7 +116,8 @@ namespace rosbzz_node{
   		}
   		else{ROS_ERROR("Provide a rc client option: yes or no in Launch file"); system("rosnode kill rosbuzz_node");} 
   		/*Obtain robot_id from parameter server*/
-  		n_c.getParam("robot_id", robot_id);
+  		//n_c.getParam("robot_id", robot_id);
+		robot_id=(int)buzz_utility::get_robotid();
 		/*Obtain out payload name*/
   		n_c.getParam("out_payload", out_payload);
 		/*Obtain in payload name*/
@@ -318,6 +309,13 @@ namespace rosbzz_node{
 				cout<<" [Debug:] sent message "<<out[k]<<endl;
 			}
 		}*/
+
+		/*Add Robot id and message number to the published message*/
+		if (message_number < 0) message_number=0;
+		else message_number++;
+		payload_out.sysid=(uint8_t)robot_id;
+		payload_out.msgid=(uint32_t)message_number;
+		
      		/*publish prepared messages in respective topic*/
     		payload_pub.publish(payload_out);
     		delete[] out;
@@ -334,27 +332,32 @@ namespace rosbzz_node{
 			/*allocate mem and clear it*/
 			buff_send =(uint8_t*)malloc(sizeof(uint16_t)+updater_msgSize);
 			memset(buff_send, 0,sizeof(uint16_t)+updater_msgSize);
-			   /*Append updater msg size*/
-			   *(uint16_t*)(buff_send + tot)=updater_msgSize;
-			   //fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
-	      		   tot += sizeof(uint16_t);
-			   /*Append updater msgs*/   	
-	    		   memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
-			   tot += updater_msgSize;
-			   /*Destroy the updater out msg queue*/
-			    destroy_out_msg_queue();
-			    uint16_t total_size =(ceil((float)(float)tot/(float)sizeof(uint64_t))); 
-   			    uint64_t* payload_64 = new uint64_t[total_size];
-		  	    memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
-			    delete[] buff_send;
-			    /*Send a constant number to differenciate updater msgs*/
-			    update_packets.payload64.push_back((uint64_t)UPDATER_MESSAGE_CONSTANT);
-			    for(int i=0;i<total_size;i++){
-    				update_packets.payload64.push_back(payload_64[i]);
-    			    }
-			    payload_pub.publish(update_packets);
-			    multi_msg=false;
-			    delete[] payload_64;
+		   	/*Append updater msg size*/
+		  	 *(uint16_t*)(buff_send + tot)=updater_msgSize;
+		   	//fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
+      		   	tot += sizeof(uint16_t);
+		   	/*Append updater msgs*/   	
+    		   	memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
+		   	tot += updater_msgSize;
+		   	/*Destroy the updater out msg queue*/
+		    	destroy_out_msg_queue();
+		    	uint16_t total_size =(ceil((float)(float)tot/(float)sizeof(uint64_t))); 
+		    	uint64_t* payload_64 = new uint64_t[total_size];
+	  	    	memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
+		    	delete[] buff_send;
+		    	/*Send a constant number to differenciate updater msgs*/
+		    	update_packets.payload64.push_back((uint64_t)UPDATER_MESSAGE_CONSTANT);
+		    	for(int i=0;i<total_size;i++){
+				update_packets.payload64.push_back(payload_64[i]);
+		    	}
+		    	/*Add Robot id and message number to the published message*/
+		    	if (message_number < 0) message_number=0;
+		    	else message_number++;
+		    	update_packets.sysid=(uint8_t)robot_id;
+		    	update_packets.msgid=(uint32_t)message_number;
+		    	payload_pub.publish(update_packets);
+		    	multi_msg=false;
+		    	delete[] payload_64;
 		}
 		/*Request xbee to stop any multi transmission updated not needed any more*/
 		//if(get_update_status()){
@@ -727,7 +730,7 @@ namespace rosbzz_node{
    		}
    		return true;
 	}
-
+	
 }
 
 
