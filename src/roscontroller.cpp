@@ -177,6 +177,7 @@ namespace rosbzz_node{
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
 		/* Service Clients*/
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
+		mission_client = n_c.serviceClient<mavros_msgs::WaypointPush>("/mavros/mission/push");
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
 
@@ -235,6 +236,29 @@ namespace rosbzz_node{
 		} else {
 			ROS_INFO("Service call failed!");
 		}
+	}
+
+	void roscontroller::WaypointMissionSetup(){
+		mavros_msgs::WaypointPush srv;
+		mavros_msgs::Waypoint waypoint;
+
+		// prepare waypoint mission package
+		waypoint.frame = mavros_msgs::Waypoint::FRAME_GLOBAL;
+		waypoint.command = mavros_msgs::CommandCode::NAV_WAYPOINT;
+		waypoint.is_current = 2;	// IMPORTANT: goto is no longer used, so instead, use magic number 2 for is_current parameter
+		waypoint.autocontinue = 0;
+		waypoint.x_lat = 45.507730f;
+		waypoint.y_long = -73.613961f;
+		//45.507730, -73.613961
+		waypoint.z_alt = 10;
+
+		srv.request.waypoints.push_back(waypoint);
+		if(mission_client.call(srv)){
+			ROS_INFO("Mission service called!");
+		} else {
+			ROS_INFO("Mission service failed!");
+		}
+
 	}
 
 	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
@@ -588,7 +612,7 @@ namespace rosbzz_node{
 			buzzuav_closures::flight_status_update(1);
 		else if (msg->mode == "LAND")
 			buzzuav_closures::flight_status_update(4);
-		else // ground standby = LOITER?
+		else
 			buzzuav_closures::flight_status_update(1);//?
 	}
 
@@ -708,8 +732,9 @@ namespace rosbzz_node{
 				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
 				/* arming */
 				SetMode("GUIDED", 0);
-				cout<< "this..."<<endl;
-				SetModeAsync("LAND", 5000);
+				//SetMode("LOITER", 0);
+				cout << "this..." << endl;
+				//SetModeAsync("GUIDED", 5000);
 				Arm();
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
@@ -728,11 +753,13 @@ namespace rosbzz_node{
 				break;
 			case mavros_msgs::CommandCode::NAV_WAYPOINT:
    				ROS_INFO("RC_Call: GO TO!!!! ");
-				double rc_goto[3];
+
+   				WaypointMissionSetup();
+
+   				double rc_goto[3];
 				rc_goto[0] = req.param5;
 				rc_goto[1] = req.param6;
 				rc_goto[2] = req.param7;
-
 				buzzuav_closures::rc_set_goto(rc_goto);
 				rc_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
 				buzzuav_closures::rc_call(rc_cmd);

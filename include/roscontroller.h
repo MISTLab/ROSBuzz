@@ -11,6 +11,8 @@
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
+#include "mavros_msgs/WaypointPush.h"
+#include "mavros_msgs/Waypoint.h"
 #include "sensor_msgs/NavSatStatus.h"
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
@@ -80,6 +82,8 @@ private:
 
   	mavros_msgs::SetMode m_cmdSetMode;
   	ros::ServiceClient mode_client;
+
+  	ros::ServiceClient mission_client;
 
 	void Initialize_pub_sub(ros::NodeHandle n_c);
 
@@ -155,6 +159,8 @@ private:
 	//void SetModeAsync(std::string mode, int delay);
 
 	void Subscribe(ros::NodeHandle n_c);
+
+	void WaypointMissionSetup();
 
 };
 
