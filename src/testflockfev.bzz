@@ -13,6 +13,7 @@ neighbors.broadcast(updated, update_no)
 }
 
 TARGET_ALTITUDE = 5.0
+CURSTATE = TURNEDOFF
  
 # Lennard-Jones parameters
 TARGET     = 10.0	#0.000001001
@@ -36,6 +37,7 @@ function lj_sum(rid, data, accum) {
 # Calculates and actuates the flocking interaction
 function hexagon() {
   statef=hexagon
+  CURSTATE=HEXAGON
   # Calculate accumulator
   var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
@@ -89,6 +91,7 @@ function barrier_wait(threshold, transf) {
 
 function idle() {
 statef=idle
+CURSTATE=IDLE
 neighbors.listen("cmd",
    function(vid, value, rid) {
       print("Got (", vid, ",", value, ") from robot #", rid)
@@ -129,6 +132,7 @@ function land() {
 # Executed once at init time.
 function init() {
 	statef=idle
+	CURSTATE=IDLE
 }
 
 # Executed at each time step.
@@ -137,19 +141,22 @@ function step() {
 	if(flight.rc_cmd==22) {
 		log("cmd 22")
 		flight.rc_cmd=0
-		statef = takeoff		
+		statef = takeoff
+		CURSTATE = TAKEOFF		
 		neighbors.broadcast("cmd", 22)
 	} else if(flight.rc_cmd==21) {
 		log("cmd 21")
 		log("To land")
 		flight.rc_cmd=0
 		statef = land
+		CURSTATE = LAND
 		neighbors.broadcast("cmd", 21)
 	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
 		uav_goto()
 	} 
 	statef()
+	log("Current state: ", CURSTATE)
 }
  
 # Executed once when the robot (or the simulator) is reset.
