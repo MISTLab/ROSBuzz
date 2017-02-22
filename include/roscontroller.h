@@ -160,7 +160,7 @@ private:
 
 	void Subscribe(ros::NodeHandle n_c);
 
-	void WaypointMissionSetup();
+	void WaypointMissionSetup(float lat, float lng, float alg);
 
 };
 
