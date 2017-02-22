@@ -238,7 +238,7 @@ namespace rosbzz_node{
 		}
 	}
 
-	void roscontroller::WaypointMissionSetup(){
+	void roscontroller::WaypointMissionSetup(float lat, float lng, float alt){
 		mavros_msgs::WaypointPush srv;
 		mavros_msgs::Waypoint waypoint;
 
@@ -247,10 +247,9 @@ namespace rosbzz_node{
 		waypoint.command = mavros_msgs::CommandCode::NAV_WAYPOINT;
 		waypoint.is_current = 2;	// IMPORTANT: goto is no longer used, so instead, use magic number 2 for is_current parameter
 		waypoint.autocontinue = 0;
-		waypoint.x_lat = 45.507730f;
-		waypoint.y_long = -73.613961f;
-		//45.507730, -73.613961
-		waypoint.z_alt = 10;
+		waypoint.x_lat = lat;
+		waypoint.y_long = lng;
+		waypoint.z_alt = alt;
 
 		srv.request.waypoints.push_back(waypoint);
 		if(mission_client.call(srv)){
@@ -731,10 +730,10 @@ namespace rosbzz_node{
    				ROS_INFO("RC_call: TAKE OFF!!!!");
 				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
 				/* arming */
-				SetMode("GUIDED", 0);
-				//SetMode("LOITER", 0);
+				SetMode("LOITER", 0);
+				//SetMode("GUIDED", 0);
 				cout << "this..." << endl;
-				//SetModeAsync("GUIDED", 5000);
+				SetModeAsync("GUIDED", 2000);
 				Arm();
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
@@ -754,12 +753,24 @@ namespace rosbzz_node{
 			case mavros_msgs::CommandCode::NAV_WAYPOINT:
    				ROS_INFO("RC_Call: GO TO!!!! ");
 
-   				WaypointMissionSetup();
-
+   				//WaypointMissionSetup();
    				double rc_goto[3];
 				rc_goto[0] = req.param5;
 				rc_goto[1] = req.param6;
 				rc_goto[2] = req.param7;
+
+				WaypointMissionSetup(req.param5, req.param6, req.param7);
+				/*
+				WaypointMissionSetup(45.505293f, -73.614722f, 2.0f);
+					std::this_thread::sleep_for( std::chrono::milliseconds ( 100 ) );
+				WaypointMissionSetup(45.505324f, -73.614502f, 2.0f);
+					std::this_thread::sleep_for( std::chrono::milliseconds ( 100 ) );
+				WaypointMissionSetup(45.505452f, -73.614655f, 2.0f);
+					std::this_thread::sleep_for( std::chrono::milliseconds ( 100 ) );
+				WaypointMissionSetup(45.505463f, -73.614389f, 2.0f);
+					std::this_thread::sleep_for( std::chrono::milliseconds ( 100 ) );
+				*/
+
 				buzzuav_closures::rc_set_goto(rc_goto);
 				rc_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
 				buzzuav_closures::rc_call(rc_cmd);
