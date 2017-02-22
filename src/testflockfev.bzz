@@ -1,0 +1,160 @@
+
+# We need this for 2D vectors
+# Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
+include "/home/ubuntu/buzz/src/include/vec2.bzz"
+####################################################################################################
+# Updater related
+# This should be here for the updater to work, changing position of code will crash the updater
+####################################################################################################
+updated="update_ack"
+update_no=0
+function updated_neigh(){
+neighbors.broadcast(updated, update_no)
+}
+
+TARGET_ALTITUDE = 5.0
+ 
+# Lennard-Jones parameters
+TARGET     = 10.0	#0.000001001
+EPSILON    = 10.0	#0.001
+ 
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+  return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
+ 
+# Neighbor data to LJ interaction vector
+function lj_vector(rid, data) {
+  return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
+}
+ 
+# Accumulator of neighbor LJ interactions
+function lj_sum(rid, data, accum) {
+  return math.vec2.add(data, accum)
+}
+ 
+# Calculates and actuates the flocking interaction
+function hexagon() {
+  statef=hexagon
+  # Calculate accumulator
+  var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
+  if(neighbors.count() > 0)
+    math.vec2.scale(accum, 1.0 / neighbors.count())
+  # Move according to vector
+  print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
+  uav_moveto(accum.x, accum.y)
+}
+ 
+########################################
+#
+# BARRIER-RELATED FUNCTIONS
+#
+########################################
+
+#
+# Constants
+#
+BARRIER_VSTIG = 1
+ROBOTS = 3 # number of robots in the swarm
+
+#
+# Sets a barrier
+#
+function barrier_set(threshold, transf) {
+  statef = function() {
+    barrier_wait(threshold, transf);
+  }
+  barrier = stigmergy.create(BARRIER_VSTIG)
+}
+
+#
+# Make yourself ready
+#
+function barrier_ready() {
+  barrier.put(id, 1)
+}
+
+#
+# Executes the barrier
+#
+function barrier_wait(threshold, transf) {
+  barrier.get(id)
+  if(barrier.size() >= threshold) {
+    barrier = nil
+    transf()
+  }
+}
+
+# flight status
+
+function idle() {
+statef=idle
+neighbors.listen("cmd",
+   function(vid, value, rid) {
+      print("Got (", vid, ",", value, ") from robot #", rid)
+	if(value==22) {
+		statef=takeoff
+	} else if(value==21) {
+		statef=land
+	}
+   }
+   
+
+)
+}
+
+function takeoff() {
+	log("TakeOff: ", flight.status)
+	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+		barrier_set(ROBOTS,hexagon)
+		barrier_ready()
+	}
+	else if( flight.status !=3){
+		log("Altitude: ", TARGET_ALTITUDE)
+		neighbors.broadcast("cmd", 22)
+		uav_takeoff(TARGET_ALTITUDE)
+	}
+}
+function land() {
+	log("Land: ", flight.status)
+	if(flight.status == 2 or flight.status == 3){
+		neighbors.broadcast("cmd", 21)
+		uav_land()
+	}
+	else
+		statef=idle
+}
+
+# Executed once at init time.
+function init() {
+	statef=idle
+}
+
+# Executed at each time step.
+function step() {
+
+	if(flight.rc_cmd==22) {
+		log("cmd 22")
+		flight.rc_cmd=0
+		statef = takeoff		
+		neighbors.broadcast("cmd", 22)
+	} else if(flight.rc_cmd==21) {
+		log("cmd 21")
+		log("To land")
+		flight.rc_cmd=0
+		statef = land
+		neighbors.broadcast("cmd", 21)
+	} else if(flight.rc_cmd==16) {
+		flight.rc_cmd=0
+		uav_goto()
+	} 
+	statef()
+}
+ 
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+ 
+# Executed once at the end of experiment.
+function destroy() {
+}
