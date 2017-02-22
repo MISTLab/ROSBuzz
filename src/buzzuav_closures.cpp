@@ -145,7 +145,7 @@ int buzzuav_moveto(buzzvm_t vm) {
 		goto_pos[0]=hcpos3[0];goto_pos[1]=hcpos3[1];goto_pos[2]=height;
 	}
    }
-   if(dx == 2.0){
+   if(dx == 2.0){OB
 	if((int)buzz_utility::get_robotid()==1){
 		goto_pos[0]=hcpos1[2];goto_pos[1]=hcpos1[3];goto_pos[2]=height;
 	}
@@ -163,6 +163,7 @@ int buzzuav_moveto(buzzvm_t vm) {
 }
 
 int buzzuav_goto(buzzvm_t vm) {
+   rc_goto_pos[2]=height;
    set_goto(rc_goto_pos);
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
