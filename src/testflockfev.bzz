@@ -106,9 +106,9 @@ neighbors.listen("cmd",
 function takeoff() {
 	log("TakeOff: ", flight.status)
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-		#barrier_set(ROBOTS,hexagon)
-		#barrier_ready()
-		statef=hexagon
+		barrier_set(ROBOTS,hexagon)
+		barrier_ready()
+		#statef=hexagon
 	}
 	else if( flight.status !=3){
 		log("Altitude: ", TARGET_ALTITUDE)
