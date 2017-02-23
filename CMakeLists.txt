@@ -15,7 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ##############################
-#Generate messages#
 ##############################
 
 add_message_files(
