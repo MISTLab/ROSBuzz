@@ -3,7 +3,7 @@ topics:
   battery  :   /power_status
   status   :   /flight_status
   fcclient :   /dji_mavcmd
-  armclient:   /dji_mavarming
+  armclient:   /dji_mavarm
   modeclient:  /dji_mavmode
 type:
   gps  :  sensor_msgs/NavSatFix

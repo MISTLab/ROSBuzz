@@ -13,21 +13,6 @@ namespace rosbzz_node{
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
  		Compile_bzz();
 		set_bzz_file(bzzfile_name.c_str());
-/*		double temp_gps[3]={45.564898,-73.563072,10.1};
-		double temp2_gps[3]={45.565246,-73.561951,10.1};
-		double temp_car[3], temp2_car[3];
-		double out[3], dif[3], out2[3];
-		cvt_cartesian_coordinates(temp_gps,temp_car);
-		printf("TEST FIRST: %.7f,%.7f,%.7f\n",temp_car[0],temp_car[1],temp_car[2]);
-		cvt_cartesian_coordinates(temp2_gps,temp2_car);
-		printf("TEST THIRD: %.7f,%.7f,%.7f\n",temp2_car[0],temp2_car[1],temp2_car[2]);
-		for(int i=0;i<3;i++)
-			dif[i]=temp2_car[i]-temp_car[i];
-		cvt_spherical_coordinates(dif,out);
-		cvt_rangebearingGB_coordinates(temp2_gps,out2,temp_gps);
-//		cvt_rangebearing2D_coordinates(temp2_gps,out2,temp_gps);
-		printf("TEST RESULT: %.7f,%.7f,%.7f\n",out[0],out[1],out[2]);
-		printf("TEST RESULT2: %.7f,%.7f,%.7f\n",out2[0],out2[1],out2[2]);*/
 	}
 
 	/***Destructor***/
@@ -39,7 +24,7 @@ namespace rosbzz_node{
  		/* Stop the robot */
    		uav_done();
 	}
-	
+
 	/*rosbuzz_node run*/
 	void roscontroller::RosControllerRun(){
 		/* Set the Buzz bytecode */
@@ -228,11 +213,14 @@ namespace rosbzz_node{
 
 	void roscontroller::Arm(){
 		mavros_msgs::CommandBool arming_message;
-		arming_message.request.value = true;
+		arming_message.request.value = armstate;
 		if(arm_client.call(arming_message)) {
-			ROS_INFO("Service called!");
+			if(arming_message.response.success==1)
+				ROS_INFO("FC Arm Service called!");
+			else
+				ROS_INFO("FC Arm Service call failed!");
 		} else {
-			ROS_INFO("Service call failed!");
+			ROS_INFO("FC Arm Service call failed!");
 		}
 	}
 
@@ -241,9 +229,9 @@ namespace rosbzz_node{
 		set_mode_message.request.base_mode = 0;
 		set_mode_message.request.custom_mode = "GUIDED"; // shit!
 		if(mode_client.call(set_mode_message)) {
-			ROS_INFO("Service called!");
+			ROS_INFO("Set Mode Service call successful!");
 		} else {
-			ROS_INFO("Service call failed!");
+			ROS_INFO("Set Mode Service call failed!");
 		}
 	}
 
@@ -279,6 +267,8 @@ namespace rosbzz_node{
     			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
+		} else if (tmp == 3) { /*FC call for arm*/
+			Arm(); 
 		}
     		/*obtain Pay load to be sent*/  
 		//fprintf(stdout, "before getting msg from utility\n");
@@ -696,13 +686,26 @@ namespace rosbzz_node{
 				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
 				/* arming */
 				SetMode();
-				Arm();
+				if(!armstate) {
+					armstate =1;
+					Arm();
+				}
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;
 			case mavros_msgs::CommandCode::NAV_LAND:
    				ROS_INFO("RC_Call: LAND!!!!");
 				rc_cmd=mavros_msgs::CommandCode::NAV_LAND;
+				buzzuav_closures::rc_call(rc_cmd);
+				res.success = true;
+				break;
+			case mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM:
+				rc_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
+				armstate = req.param1;
+				if(armstate)
+   					ROS_INFO("RC_Call: ARM!!!!");
+				else
+   					ROS_INFO("RC_Call: DISARM!!!!");
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;

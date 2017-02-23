@@ -156,6 +156,9 @@ function step() {
 	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
 		uav_goto()
+	} else if(flight.rc_cmd==400) {
+		flight.rc_cmd=0
+		uav_arm()
 	} 
 	statef()
 	log("Current state: ", CURSTATE)

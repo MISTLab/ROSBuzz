@@ -170,6 +170,13 @@ int buzzuav_goto(buzzvm_t vm) {
    buzz_cmd=2;
    return buzzvm_ret0(vm);
 }
+
+int buzzuav_arm(buzzvm_t vm) {
+   cur_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
+   printf(" Buzz requested Arm/Disarm  \n");
+   buzz_cmd=3;
+   return buzzvm_ret0(vm);
+}
 /******************************/
 
 double* getgoto() {
