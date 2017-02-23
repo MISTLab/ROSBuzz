@@ -125,8 +125,10 @@ function land() {
 		neighbors.broadcast("cmd", 21)
 		uav_land()
 	}
-	else
+	else {
+		barrier = nil
 		statef=idle
+	}
 }
 
 # Executed once at init time.
