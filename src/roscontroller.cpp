@@ -308,6 +308,7 @@ namespace rosbzz_node{
 		if(fcclient_name == "/mavros/cmd/command"){
 			int tmp = buzzuav_closures::bzz_cmd();
 	    	double* goto_pos = buzzuav_closures::getgoto();
+	    	cout << "Flying Solo today? " << endl;
 
 	    	switch(tmp){
 	    	// TAKEOFF -- LAND
@@ -322,8 +323,8 @@ namespace rosbzz_node{
 				cmd_srv.request.command =  buzzuav_closures::getcmd();
 
 	    		// just to be safe -- while landing!
-	    		if(armstate == 1 && buzzuav_closures::getcmd() == 22){
-					SetMode("GUIDED", 0);
+	    		if(armstate == 1 && buzzuav_closures::getcmd() == 21){
+					SetMode("LAND", 0);
 	    		}
 
 				if (mav_client.call(cmd_srv)){
@@ -643,7 +644,10 @@ namespace rosbzz_node{
 		else if (msg->mode == "LAND")
 			buzzuav_closures::flight_status_update(4);
 		else // ground standby = LOITER?
+		{
+			cout << "Warning -- something else, going to GUIDED!" << endl;
 			buzzuav_closures::flight_status_update(1);//?
+		}
 	}
 
 	/*flight extended status update*/
@@ -783,7 +787,7 @@ namespace rosbzz_node{
 					armstate = 1;
 					SetMode("LOITER", 0);
 					Arm();
-					if(fcclient_name == "/mavros/cmd/command") { SetMode("LOITER", 2000); }
+					if(fcclient_name == "/mavros/cmd/command") { SetMode("GUIDED", 2000); }
 				}
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
@@ -791,6 +795,9 @@ namespace rosbzz_node{
 			case mavros_msgs::CommandCode::NAV_LAND:
    				ROS_INFO("RC_Call: LAND!!!!");
 				rc_cmd=mavros_msgs::CommandCode::NAV_LAND;
+				// again -- to be safe:
+				SetMode("LAND", 0);
+
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;
