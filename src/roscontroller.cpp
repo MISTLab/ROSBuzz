@@ -33,11 +33,6 @@ namespace rosbzz_node{
 			init_update_monitor(bcfname.c_str(),stand_by.c_str(),barrier);
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
-				/*Set arm parameter*/
-				int tmp_arm_state= buzzuav_closures::get_armstate();
-				if(tmp_arm_state == 1) armstate=tmp_arm_state;
-				else if (tmp_arm_state==0) armstate=tmp_arm_state;
-
       				/*Update neighbors position inside Buzz*/
      				buzz_utility::neighbour_pos_callback(neighbours_pos_map);
 				auto current_time = ros::Time::now();
@@ -72,17 +67,14 @@ namespace rosbzz_node{
 					set_read_update_status();
 					multi_msg=true;
 				}
-				/*sleep for the mentioned loop rate*/
-    				timer_step+=1;
-   				maintain_pos(timer_step);
-				
     				/*run once*/
     				ros::spinOnce();
 				/*loop rate of ros*/
 				 ros::Rate loop_rate(10);
 				 loop_rate.sleep();
- 				
-				
+ 				/*sleep for the mentioned loop rate*/
+    				timer_step+=1;
+   				maintain_pos(timer_step);
 				
 			}
 			/* Destroy updater and Cleanup */
@@ -276,7 +268,11 @@ namespace rosbzz_node{
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
 		} else if (tmp == 3) { /*FC call for arm*/
+			armstate=1;
 			Arm(); 
+		} else if (tmp == 4){
+			armstate=0;
+			Arm();
 		}
     		/*obtain Pay load to be sent*/  
 		//fprintf(stdout, "before getting msg from utility\n");
@@ -693,7 +689,7 @@ namespace rosbzz_node{
    				ROS_INFO("RC_call: TAKE OFF!!!!");
 				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
 				/* arming */
-				//SetMode();
+				SetMode();
 				if(!armstate) {
 					armstate =1;
 					Arm();
@@ -713,15 +709,13 @@ namespace rosbzz_node{
 				if(armstate){
    					ROS_INFO("RC_Call: ARM!!!!");
 					buzzuav_closures::rc_call(rc_cmd);
-					buzzuav_closures::rc_call_setarmparm(armstate);
 					res.success = true;	
 				}			
 				else{
    					ROS_INFO("RC_Call: DISARM!!!!");
-					buzzuav_closures::rc_call(rc_cmd);
-					buzzuav_closures::rc_call_setarmparm(armstate);
-					res.success = true;
-				}
+					buzzuav_closures::rc_call(rc_cmd+1);
+					res.success = true;	
+				}			
 				break;
 			case mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH:
    				ROS_INFO("RC_Call: GO HOME!!!!");
@@ -753,5 +747,4 @@ namespace rosbzz_node{
 	}
 	
 }
-
 

@@ -19,7 +19,6 @@ static int cur_cmd = 0;
 static int rc_cmd=0;
 static int buzz_cmd=0;
 static float height=0;
-static int arm_state=-1;
 /****************************************/
 /****************************************/
 
@@ -173,13 +172,15 @@ int buzzuav_goto(buzzvm_t vm) {
 }
 
 int buzzuav_arm(buzzvm_t vm) {
-   buzzvm_lnum_assert(vm, 1);
-   buzzvm_lload(vm, 1); /* arm param1 */
-   buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
    cur_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
-   arm_state = buzzvm_stack_at(vm, 1)->i.value;
-   printf(" Buzz requested Arm/Disarm  \n");
+   printf(" Buzz requested Arm \n");
    buzz_cmd=3;
+   return buzzvm_ret0(vm);
+}
+int buzzuav_disarm(buzzvm_t vm) {
+   cur_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM + 1;
+   printf(" Buzz requested Disarm  \n");
+   buzz_cmd=4;
    return buzzvm_ret0(vm);
 }
 /******************************/
@@ -220,13 +221,6 @@ void set_obstacle_dist(float dist[]) {
 		obst[i] = dist[i];
 }
 
-void rc_call_setarmparm(int armstate){
-	buzzvm_t  VM = buzz_utility::get_vm();
-	buzzvm_pushs(VM, buzzvm_string_register(VM, "armstate", 1));
-	buzzvm_pushi(VM, armstate);
-	buzzvm_gstore(VM);
-
-}
 
 /****************************************/
 /****************************************/
@@ -424,12 +418,5 @@ int buzzuav_update_prox(buzzvm_t vm) {
 /****************************************/
 
 int dummy_closure(buzzvm_t vm){ return buzzvm_ret0(vm);}
-
-int get_armstate(){
-	int tmp= arm_state;
-	arm_state=-1;
-	return tmp;
-}
-
 
 }

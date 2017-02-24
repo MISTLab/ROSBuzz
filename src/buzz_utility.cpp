@@ -242,6 +242,9 @@ namespace buzz_utility{
                 buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_arm", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_arm));
    		buzzvm_gstore(VM);
+		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_disarm", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_disarm));
+   		buzzvm_gstore(VM);
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_takeoff", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_takeoff));
    		buzzvm_gstore(VM);
@@ -274,6 +277,9 @@ namespace buzz_utility{
                 buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_arm", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
+		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_disarm", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM); 
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_takeoff", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
