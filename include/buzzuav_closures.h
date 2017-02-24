@@ -83,6 +83,12 @@ int buzzuav_update_prox(buzzvm_t vm);
 
 int bzz_cmd();
 
+/*arm disarm*/
+
+void rc_call_setarmparm(int armstate);
+
 int dummy_closure(buzzvm_t vm);
+
+int get_armstate();
 //#endif
 }

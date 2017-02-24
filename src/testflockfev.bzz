@@ -1,7 +1,7 @@
 
 # We need this for 2D vectors
 # Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
-include "/home/ubuntu/buzz/src/include/vec2.bzz"
+include "/home/vivek/ubuntu/buzz/src/include/vec2.bzz"
 ####################################################################################################
 # Updater related
 # This should be here for the updater to work, changing position of code will crash the updater
@@ -101,6 +101,12 @@ neighbors.listen("cmd",
 	} else if(value==21) {
 		statef=land
 	}
+	else if(value==401){
+		uav_arm(1)
+	}
+	else if(value==402){
+		uav_arm(0)
+	}
    }
    
 
@@ -131,7 +137,20 @@ function land() {
 		statef=idle
 	}
 }
+function arm(){
+	log("arm: ", armstate)
+	if(armstate == 1){
+		neighbors.broadcast("cmd", 401)
+		uav_arm(armstate)
 
+	}
+	else {
+		neighbors.broadcast("cmd", 402)
+		uav_arm(armstate)
+	}
+
+
+}
 # Executed once at init time.
 function init() {
 	statef=idle
@@ -159,7 +178,7 @@ function step() {
 		uav_goto()
 	} else if(flight.rc_cmd==400) {
 		flight.rc_cmd=0
-		uav_arm()
+		arm()
 	} 
 	statef()
 	log("Current state: ", CURSTATE)
