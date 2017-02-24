@@ -323,7 +323,7 @@ namespace rosbzz_node{
 				cmd_srv.request.command =  buzzuav_closures::getcmd();
 
 	    		// just to be safe -- while landing!
-	    		if(armstate == 1 && buzzuav_closures::getcmd() == 21){
+	    		if(buzzuav_closures::getcmd() == 21){
 					SetMode("LAND", 0);
 	    		}
 
