@@ -48,6 +48,7 @@ void set_obstacle_dist(float dist[]);
 int buzzuav_takeoff(buzzvm_t vm);
 int buzzuav_arm(buzzvm_t vm);
 
+int buzzuav_disarm(buzzvm_t vm) ;
 /* Commands the UAV to land
  */
 int buzzuav_land(buzzvm_t vm);
@@ -83,6 +84,8 @@ int buzzuav_update_prox(buzzvm_t vm);
 
 int bzz_cmd();
 
+
 int dummy_closure(buzzvm_t vm);
+
 //#endif
 }

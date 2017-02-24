@@ -290,6 +290,10 @@ namespace rosbzz_node{
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller");
 		} else if (tmp == 3) { /*FC call for arm*/
+			armstate=1;
+			Arm(); 
+		} else if (tmp == 4){
+			armstate=0;
 			Arm();
 		}
 	}
@@ -358,10 +362,10 @@ namespace rosbzz_node{
     		payload_out.payload64.push_back(position[1]);
     		payload_out.payload64.push_back(position[2]);
     		/*Append Buzz message*/
-    		uint16_t* out = buzz_utility::u64_cvt_u16(payload_out_ptr[0]);
+    		uint16_t* out = buzz_utility::u64_cvt_u16(payload_out_ptr[0]);  
     		for(int i=0;i<out[0];i++){
     			payload_out.payload64.push_back(payload_out_ptr[i]);
-    		}
+    		}	
     		/*int i=0;
 		uint64_t message_obt[payload_out.payload64.size()];
     		for(std::vector<long unsigned int>::const_iterator it = payload_out.payload64.begin();
@@ -432,10 +436,10 @@ namespace rosbzz_node{
 		//	mavros_msgs::Mavlink stop_req_packet;
 		//	stop_req_packet.payload64.push_back((uint64_t) XBEE_STOP_TRANSMISSION);
 		//	payload_pub.publish(stop_req_packet);
-		//	std::cout << "request xbee to stop multi-packet transmission" << std::endl;
-
+		//	std::cout << "request xbee to stop multi-packet transmission" << std::endl;	
+		
 		//}
-
+		
 		}
 
 
@@ -804,12 +808,16 @@ namespace rosbzz_node{
 			case mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM:
 				rc_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
 				armstate = req.param1;
-				if(armstate)
+				if(armstate){
    					ROS_INFO("RC_Call: ARM!!!!");
-				else
+					buzzuav_closures::rc_call(rc_cmd);
+					res.success = true;	
+				}			
+				else{
    					ROS_INFO("RC_Call: DISARM!!!!");
-				buzzuav_closures::rc_call(rc_cmd);
-				res.success = true;
+					buzzuav_closures::rc_call(rc_cmd+1);
+					res.success = true;	
+				}			
 				break;
 			case mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH:
    				ROS_INFO("RC_Call: GO HOME!!!!");
@@ -818,6 +826,7 @@ namespace rosbzz_node{
 				res.success = true;
 				break;
 			case mavros_msgs::CommandCode::NAV_WAYPOINT:
+   				ROS_INFO("RC_Call: GO TO!!!! ");
 				double rc_goto[3];
 				rc_goto[0] = req.param5;
 				rc_goto[1] = req.param6;

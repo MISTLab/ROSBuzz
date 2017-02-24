@@ -173,8 +173,14 @@ int buzzuav_goto(buzzvm_t vm) {
 
 int buzzuav_arm(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
-   printf(" Buzz requested Arm/Disarm  \n");
+   printf(" Buzz requested Arm \n");
    buzz_cmd=3;
+   return buzzvm_ret0(vm);
+}
+int buzzuav_disarm(buzzvm_t vm) {
+   cur_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM + 1;
+   printf(" Buzz requested Disarm  \n");
+   buzz_cmd=4;
    return buzzvm_ret0(vm);
 }
 /******************************/
@@ -414,4 +420,3 @@ int buzzuav_update_prox(buzzvm_t vm) {
 int dummy_closure(buzzvm_t vm){ return buzzvm_ret0(vm);}
 
 }
-

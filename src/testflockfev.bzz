@@ -1,4 +1,3 @@
-
 # We need this for 2D vectors
 # Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
 include "/home/ubuntu/buzz/src/include/vec2.bzz"
@@ -100,6 +99,10 @@ neighbors.listen("cmd",
 		statef=takeoff
 	} else if(value==21) {
 		statef=land
+	} else if(value==400) {
+		uav_arm()
+	} else if(value==401){
+		uav_disarm()
 	}
    }
    
@@ -160,7 +163,11 @@ function step() {
 	} else if(flight.rc_cmd==400) {
 		flight.rc_cmd=0
 		uav_arm()
-	} 
+		neighbors.broadcast("cmd", 400)
+	} else if (flight.rc_cmd==401){
+		uav_disarm()
+		neighbors.broadcast("cmd", 401)
+	}
 	statef()
 	log("Current state: ", CURSTATE)
 }
