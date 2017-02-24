@@ -1,4 +1,5 @@
 #include "roscontroller.h"
+#include <thread>
 
 namespace rosbzz_node{
 
@@ -161,6 +162,7 @@ namespace rosbzz_node{
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
 		/* Service Clients*/
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
+		mission_client = n_c.serviceClient<mavros_msgs::WaypointPush>("/mavros/mission/push");
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
 
@@ -224,15 +226,48 @@ namespace rosbzz_node{
 		}
 	}
 
-	void roscontroller::SetMode(){
+	void roscontroller::WaypointMissionSetup(float lat, float lng, float alt){
+		mavros_msgs::WaypointPush srv;
+		mavros_msgs::Waypoint waypoint;
+
+		// prepare waypoint mission package
+		waypoint.frame = mavros_msgs::Waypoint::FRAME_GLOBAL;
+		waypoint.command = mavros_msgs::CommandCode::NAV_WAYPOINT;
+		waypoint.is_current = 2;	// IMPORTANT: goto is no longer used, so instead, use magic number 2 for is_current parameter
+		waypoint.autocontinue = 0;
+		waypoint.x_lat = lat;
+		waypoint.y_long = lng;
+		waypoint.z_alt = alt;
+
+		srv.request.waypoints.push_back(waypoint);
+		if(mission_client.call(srv)){
+			ROS_INFO("Mission service called!");
+		} else {
+			ROS_INFO("Mission service failed!");
+		}
+
+	}
+
+	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
+		// wait if necessary
+		if (delay_miliseconds > 0){
+			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
+		}
+		// set mode
 		mavros_msgs::SetMode set_mode_message;
 		set_mode_message.request.base_mode = 0;
-		set_mode_message.request.custom_mode = "GUIDED"; // shit!
+		set_mode_message.request.custom_mode = mode;
 		if(mode_client.call(set_mode_message)) {
 			ROS_INFO("Set Mode Service call successful!");
 		} else {
 			ROS_INFO("Set Mode Service call failed!");
 		}
+	}
+
+	//todo: this
+	void roscontroller::SetModeAsync(std::string mode, int delay_miliseconds){
+		std::thread([&](){SetMode(mode, delay_miliseconds);}).detach();
+		cout << "Async call called... " <<endl;
 	}
 
 
@@ -566,7 +601,7 @@ namespace rosbzz_node{
 			buzzuav_closures::flight_status_update(1);
 		else if (msg->mode == "LAND")
 			buzzuav_closures::flight_status_update(4);
-		else // ground standby = LOITER?
+		else
 			buzzuav_closures::flight_status_update(1);//?
 	}
 
@@ -685,11 +720,19 @@ namespace rosbzz_node{
    				ROS_INFO("RC_call: TAKE OFF!!!!");
 				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
 				/* arming */
+<<<<<<< HEAD
 				SetMode();
 				if(!armstate) {
 					armstate =1;
 					Arm();
 				}
+=======
+				SetMode("LOITER", 0);
+				//SetMode("GUIDED", 0);
+				cout << "this..." << endl;
+				SetModeAsync("GUIDED", 2000);
+				Arm();
+>>>>>>> 4ac9d89f7c5e82fe99a48f616c587efd01d50ddd
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;
@@ -717,10 +760,24 @@ namespace rosbzz_node{
 				break;
 			case mavros_msgs::CommandCode::NAV_WAYPOINT:
    				ROS_INFO("RC_Call: GO TO!!!! ");
-				double rc_goto[3];
+
+   				//WaypointMissionSetup();
+   				double rc_goto[3];
 				rc_goto[0] = req.param5;
 				rc_goto[1] = req.param6;
 				rc_goto[2] = req.param7;
+
+				WaypointMissionSetup(req.param5, req.param6, req.param7);
+				/*
+				WaypointMissionSetup(45.505293f, -73.614722f, 2.0f);
+					std::this_thread::sleep_for( std::chrono::milliseconds ( 100 ) );
+				WaypointMissionSetup(45.505324f, -73.614502f, 2.0f);
+					std::this_thread::sleep_for( std::chrono::milliseconds ( 100 ) );
+				WaypointMissionSetup(45.505452f, -73.614655f, 2.0f);
+					std::this_thread::sleep_for( std::chrono::milliseconds ( 100 ) );
+				WaypointMissionSetup(45.505463f, -73.614389f, 2.0f);
+					std::this_thread::sleep_for( std::chrono::milliseconds ( 100 ) );
+				*/
 
 				buzzuav_closures::rc_set_goto(rc_goto);
 				rc_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;

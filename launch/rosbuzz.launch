@@ -2,15 +2,14 @@
 
 <launch>
 		<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
-		<rosparam file="$(env ROS_WS)/src/ROSBuzz/launch/launch_config/$(env ROBOT).yaml"/>
-		<param name="bzzfile_name" value="$(env ROS_WS)/src/ROSBuzz/src/test1.bzz" />
+		<rosparam file="/home/ivan/catkin_ws/src/rosbuzz/launch/launch_config/solo.yaml"/>
+		<param name="bzzfile_name" value="/home/ivan/catkin_ws/src/rosbuzz/src/testalone.bzz" />
         <param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="/buzzcmd" />
 		<param name="in_payload" value="/inMavlink"/>
 		<param name="out_payload" value="/outMavlink"/>
 		<param name="robot_id" value="3"/>
 		<param name="No_of_Robots" value="3"/>
-		<param name="stand_by" value="$(env ROS_WS)/src/ROSBuzz/src/stand_by.bo"/>
-		</node>
-		
+		<param name="stand_by" value="/home/ivan/catkin_ws/src/rosbuzz/src/stand_by.bo"/>
+		</node>	
 </launch>
