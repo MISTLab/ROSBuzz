@@ -26,12 +26,11 @@
 	<param name="Xbee_Out_To_Buzz" type="str" value="inMavlink" />
 	<param name="Xbee_In_From_Controller" type="str" value="xbee_cmd" />
 	<param name="No_of_dev" type="int" value="3" />
-	<param name="Xbee_Out_To_Controller" type="str" value="mav_dji_cmd" />
 
 	<!-- run rosbuzz -->
 	<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
 		<rosparam file="/home/pi/ros_catkin_ws/src/ROSBuzz/launch/launch_config/solo.yaml"/>
-		<param name="bzzfile_name" value="/home/pi/ros_catkin_ws/src/ROSBuzz/src/testalone.bzz" />
+		<param name="bzzfile_name" value="/home/pi/ros_catkin_ws/src/ROSBuzz/src/testflockfev.bzz" />
 		<param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="/buzzcmd" />
 		<param name="in_payload" value="/inMavlink"/>
