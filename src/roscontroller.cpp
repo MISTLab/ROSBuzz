@@ -15,6 +15,9 @@ namespace rosbzz_node{
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
  		Compile_bzz();
 		set_bzz_file(bzzfile_name.c_str());
+		/*Initialize variables*/
+		armstate = 0;
+		multi_msg = true;
 	}
 
 	/***Destructor***/
@@ -83,6 +86,9 @@ namespace rosbzz_node{
   		}
 	}
 
+	/*--------------------------------------------------------
+	/ Get all required parameters from the ROS launch file
+	/-------------------------------------------------------*/
 	void roscontroller::Rosparameters_get(ros::NodeHandle n_c){
 		
 		/*Obtain .bzz file name from parameter server*/
@@ -146,6 +152,9 @@ namespace rosbzz_node{
   		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}  
 	}
 
+	/*--------------------------------------------------------
+	/ Create all required subscribers, publishers and ROS service clients
+	/-------------------------------------------------------*/
 	void roscontroller::Initialize_pub_sub(ros::NodeHandle n_c){
 		/*subscribers*/
 
@@ -191,6 +200,9 @@ namespace rosbzz_node{
   		}
 	}
 
+	/*--------------------------------------------------------
+	/ Create Buzz bytecode from the bzz script inputed
+	/-------------------------------------------------------*/
 	void roscontroller::Compile_bzz(){
 		/*Compile the buzz code .bzz to .bo*/
 		stringstream bzzfile_in_compile;
@@ -215,6 +227,9 @@ namespace rosbzz_node{
    		
 	}
 
+	/*--------------------------------------------------------
+	/ Fonctions handling the local MAV ROS fligh controller
+	/-------------------------------------------------------*/
 	void roscontroller::Arm(){
 		mavros_msgs::CommandBool arming_message;
 		arming_message.request.value = armstate;
@@ -240,31 +255,22 @@ namespace rosbzz_node{
 	}
 
 
-	void roscontroller::WaypointMissionSetup(float lat, float lng, float alt){
-		mavros_msgs::WaypointPush srv;
-		mavros_msgs::Waypoint waypoint;
-
-		// prepare waypoint mission package
-		waypoint.frame = mavros_msgs::Waypoint::FRAME_GLOBAL;
-		waypoint.command = mavros_msgs::CommandCode::NAV_WAYPOINT;
-		waypoint.is_current = 2;	// IMPORTANT: goto is no longer used, so instead, use magic number 2 for is_current parameter
-		waypoint.autocontinue = 0;
-		waypoint.x_lat = lat;
-		waypoint.y_long = lng;
-		waypoint.z_alt = alt;
-
-		srv.request.waypoints.push_back(waypoint);
-		if(mission_client.call(srv)){
-			ROS_INFO("Waypoint setup service called!");
-		} else {
-			ROS_INFO("Waypoint setup service failed!");
-		}
-
-	}
-
-	void roscontroller::fc_command_setup(){
+	/*-----------------------------------------------------------------
+	/Prepare Buzz messages payload for each step and publish
+	/
+	/*******************************************************************************************************/
+	/* Message format of payload (Each slot is uint64_t)						       */
+	/* _________________________________________________________________________________________________   */
+	/*|	|     |	    |						     |			            |  */
+	/*|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs with size.........  |  */
+	/*|_____|_____|_____|________________________________________________|______________________________|  */
+	/*******************************************************************************************************/	
+	void roscontroller::prepare_msg_and_publish(){
+		
  		/* flight controller client call if requested from Buzz*/
 		/*FC call for takeoff,land and gohome*/
+		/* TODO: this should go in a separate function and be called by the main Buzz step */
+
 		int tmp = buzzuav_closures::bzz_cmd();
     	double* goto_pos = buzzuav_closures::getgoto();
 
@@ -478,10 +484,12 @@ namespace rosbzz_node{
 	}
 
 
-	#define EARTH_RADIUS 6371000.0
-	#define LAT_AVERAGE 45.564898
-	/*rectangular projection range and bearing coordinate system callback */
-	void roscontroller::cvt_rangebearingGB_coordinates(double nei[], double out[], double cur[]){
+	/*-----------------------------------------------------------
+	/ Compute Range and Bearing of a neighbor in a local reference frame
+	/ from GPS coordinates
+	----------------------------------------------------------- */
+	#define EARTH_RADIUS (double) 6371000.0
+	void roscontroller::cvt_rangebearing_coordinates(double nei[], double out[], double cur[]){
 		double lat1 = cur[0]*M_PI/180.0;
 		double lon1 = cur[1]*M_PI/180.0;
 		double lat2 = nei[0]*M_PI/180.0;
@@ -493,146 +501,7 @@ namespace rosbzz_node{
 		out[2] = 0.0;
 	}
 
-	/*rectangular projection range and bearing coordinate system callback */
-	void roscontroller::cvt_rangebearing2D_coordinates(double spherical_pos_payload [], double out[], double cur[]){
-		double nei_lat = spherical_pos_payload[0] / 180.0 * M_PI;
-		double nei_long = spherical_pos_payload[1] / 180.0 * M_PI;
-		double cur_lat = cur[0] / 180.0 * M_PI;
-		double cur_long = cur[1] / 180.0 * M_PI;
-		double rho = spherical_pos_payload[2]+EARTH_RADIUS; //centered on Earth
-		double x_nei = rho * nei_long * cos(LAT_AVERAGE);
-		double y_nei = rho * nei_lat;
-		double x_cur = rho * cur_long * cos(LAT_AVERAGE);
-		double y_cur = rho * cur_lat;
-		out[0] = sqrt(pow(x_nei-x_cur,2.0)+pow(y_nei-y_cur,2.0));
-		out[1] = atan2(y_nei-y_cur,x_nei-x_cur);
-		out[2] = 0;
-	}
-
-	/*convert spherical  to cartesian coordinate system callback */
-	void roscontroller::cvt_cartesian_coordinates(double spherical_pos_payload [], double out[]){
-		double latitude = spherical_pos_payload[0] / 180.0 * M_PI;
-		double longitude = spherical_pos_payload[1] / 180.0 * M_PI;
-		double rho = spherical_pos_payload[2]+EARTH_RADIUS; //centered on Earth
-		try {
-			out[0] = cos(latitude) * cos(longitude) * rho;
-    			out[1] = cos(latitude) * sin(longitude) * rho;
-    			out[2] = sin(latitude) * rho; // z is 'up'
-   		} catch (std::overflow_error e) {
-        	std::cout << e.what() << " Error in convertion to cartesian coordinate system "<<endl;
-   		}
-	}
-
-	/*convert from GPS delta to Range and Bearing */
-	void roscontroller::cvt_rangebearing_coordinates(double spherical_pos[], double out[], double pos[]){
-		//Earth ellipse parameteres
-		double f = 1.0/298.257223563;
-		double a = 6378137.0;
-		double b = 6356752.314245;
-		double a2b2b2 = (a*a-b*b)/(b*b);
-		// constants to enhance the computation
-		double omega = (spherical_pos[1]-pos[1])/180*M_PI;
-		double A, lambda0, sigma, deltasigma, lambda=omega;
-		double cosU2 = cos(atan((1-f)*tan(spherical_pos[0]/180*M_PI)));
-		double sinU2 = sin(atan((1-f)*tan(spherical_pos[0]/180*M_PI)));
-		double cosU1 = cos(atan((1-f)*tan(pos[0]/180*M_PI)));
-		double sinU1 = sin(atan((1-f)*tan(pos[0]/180*M_PI)));
-		try {
-			bool converged = 0;
-			for (int i = 0; i < 20; i++) {
-			lambda0=lambda;
-
-		        // eq. 14
-        		double sin2sigma = (cosU2 * sin(lambda) * cosU2 * sin(lambda)) + pow(cosU1*sinU2 - sinU1*cosU2 * cos(lambda), 2.0);
-        		double sinsigma = sqrt(sin2sigma);
-
-		        // eq. 15
-      			double cossigma = sinU1*sinU2 + (cosU1*cosU2 * cos(lambda));
-
-        		// eq. 16
-        		sigma = atan2(sinsigma, cossigma);
-
-		        // eq. 17    Careful!  sin2sigma might be almost 0!
-        		double sinalpha = (sin2sigma == 0) ? 0.0 : cosU1*cosU2 * sin(lambda) / sinsigma;
-        		double alpha = asin(sinalpha);
-        		double cos2alpha = cos(alpha) * cos(alpha);
-
-        		// eq. 18    Careful!  cos2alpha might be almost 0!
-        		double cos2sigmam = cos2alpha == 0.0 ? 0.0 : cossigma - 2 * sinU1*sinU2 / cos2alpha;
-        		double u2 = cos2alpha * a2b2b2;
-			double cos2sigmam2 = cos2sigmam * cos2sigmam;
-
-        		// eq. 3
-        		A = 1.0 + u2 / 16384 * (4096 + u2 * (-768 + u2 * (320 - 175 * u2)));
-
-        		// eq. 4
-        		double B = u2 / 1024 * (256 + u2 * (-128 + u2 * (74 - 47 * u2)));
-
-        		// eq. 6
-        		deltasigma = B * sinsigma * (cos2sigmam + B / 4 * (cossigma * (-1 + 2 * cos2sigmam2) - B / 6 * cos2sigmam * (-3 + 4 * sin2sigma) * (-3 + 4 * cos2sigmam2)));
-
-        		// eq. 10
-        		double C = f / 16 * cos2alpha * (4 + f * (4 - 3 * cos2alpha));
-
-        		// eq. 11 (modified)
-        		lambda = omega + (1 - C) * f * sinalpha * (sigma + C * sinsigma * (cos2sigmam + C * cossigma * (-1 + 2 * cos2sigmam2)));
-
-        		// see how much improvement we got
-        		double change = fabs((lambda - lambda0) / lambda);
-
-        		if ((i > 1) && (change < 0.0000000000001)) {
-				//cout << "CONVERSION CONVERGED at " << i << " !!!!" << endl;
-          			converged = 1;
-          			break;
-        		}
-      			}
-
-      			// eq. 19
-      			out[0] = b * A * (sigma - deltasigma);
-
-		      	// didn't converge?  must be N/S
-      			if (!converged) {
-        			if (pos[0] > spherical_pos[0]) {
-          				out[1] = M_PI/2;
-          				out[2] = 0;
-        			} else if (pos[0] < spherical_pos[0]) {
-          				out[1] = 0;
-          				out[2] = M_PI/2;
-        			}
-      			} else { // else, it converged, so do the math
-
-			        // eq. 20
-        			out[1] = atan2(cosU2 * sin(lambda), (cosU1*sinU2 - sinU1*cosU2 * cos(lambda)));
-        			if (out[1] < 0.0) out[1] += 2*M_PI;
-
-        			// eq. 21
-        			out[2] = atan2(cosU1 * sin(lambda), (-sinU1*cosU2 + cosU1*sinU2 * cos(lambda))) + 3.1416;
-			        if (out[2] < 0.0) out[2] += 2*M_PI;
-      			}
-
-      			if (out[1] >= M_PI) out[1] -= M_PI;
-      			if (out[2] >= M_PI) out[2] -= M_PI;
-
-		} catch (std::overflow_error e) {
-        	std::cout << e.what() << " Error in convertion to range and bearing "<<endl;
-   		}
-	}
-
-	/*convert from cartesian to spherical coordinate system callback */
-	void roscontroller::cvt_spherical_coordinates(double cartesian_pos_payload [], double out[]){
-		double x = cartesian_pos_payload[0];
-		double y = cartesian_pos_payload[1];
-		double z = cartesian_pos_payload[2];
-		try {
-       		out[0]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0));
-		out[1]=atan2(y,x);
-		out[2]=atan2((sqrt(pow(x,2.0)+pow(y,2.0))),z);
-   		} catch (std::overflow_error e) {
-        	std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
-   		}
-	}
-
-	/*battery status callback*/
+	/*battery status callback*/ 
 	void roscontroller::battery(const mavros_msgs::BatteryStatus::ConstPtr& msg){
 		buzzuav_closures::set_battery(msg->voltage,msg->current,msg->remaining);
 		//ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage, msg->current, msg ->remaining);
@@ -729,23 +598,11 @@ namespace rosbzz_node{
 			memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
 			buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
 	//		cout<<"Got" << neighbours_pos_payload[0] <<", " << neighbours_pos_payload[1] << ", " << neighbours_pos_payload[2] << endl;
-			double cvt_neighbours_pos_test[3];
-			cvt_rangebearingGB_coordinates(neighbours_pos_payload, cvt_neighbours_pos_test, cur_pos);
-			/*Convert obtained position to relative CARTESIAN position*/
-			double cartesian_neighbours_pos[3], cartesian_cur_pos[3];
-			cvt_cartesian_coordinates(neighbours_pos_payload, cartesian_neighbours_pos);
-			cvt_cartesian_coordinates(cur_pos, cartesian_cur_pos);
-			/*Compute the relative position*/
-			for(int i=0;i<3;i++){
-				neighbours_pos_payload[i]=cartesian_neighbours_pos[i]-cartesian_cur_pos[i];
-			}
-			double *cvt_neighbours_pos_payload = cvt_neighbours_pos_test;
-			//double cvt_neighbours_pos_payload[3];
-			//cvt_spherical_coordinates(neighbours_pos_payload, cvt_neighbours_pos_payload);
+			double cvt_neighbours_pos_payload[3];
+			cvt_rangebearing_coordinates(neighbours_pos_payload, cvt_neighbours_pos_payload, cur_pos);
 			/*Extract robot id of the neighbour*/
 	 		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));
 			cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[1] << ", "<< cvt_neighbours_pos_payload[2] << endl;
-	//		cout << "Rel Test Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_test[0] << ", "<< cvt_neighbours_pos_test[2] << ", "<< cvt_neighbours_pos_test[3] << endl;
 			/*pass neighbour position to local maintaner*/
 			buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
 			/*Put RID and pos*/
@@ -757,42 +614,16 @@ namespace rosbzz_node{
 
 	}
 
-	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
-		// wait if necessary
-		if (delay_miliseconds > 0){
-			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
-		}
-		// set mode
-		mavros_msgs::SetMode set_mode_message;
-		set_mode_message.request.base_mode = 0;
-		set_mode_message.request.custom_mode = mode;
-		if(mode_client.call(set_mode_message)) {
-			ROS_INFO("Set Mode Service call successful!");
-		} else {
-			ROS_INFO("Set Mode Service call failed!");
-		}
-	}
-
-	/* RC command service */
+	/*-----------------------------------------------------------
+	/ Catch the ROS service call from a custom remote controller (Mission Planner)
+	/ and send the requested commands to Buzz
+	----------------------------------------------------------- */
 	bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request  &req,
 		         mavros_msgs::CommandLong::Response &res){
 		int rc_cmd;
-/*		if(req.command==oldcmdID)
-		return true;
-		else oldcmdID=req.command;*/
    		switch(req.command){
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
    				ROS_INFO("RC_call: TAKE OFF!!!!");
-				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
-				/* arming */
-				SetMode();
-				cout << "ARM: " << armstate <<endl;
-				if(!armstate) {
-					armstate = 1;
-					SetMode("LOITER", 0);
-					Arm();
-					if(fcclient_name == "/mavros/cmd/command") { SetMode("GUIDED", 2000); }
-				}
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;

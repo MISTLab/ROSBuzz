@@ -9,6 +9,9 @@
 #include "buzzuav_closures.h"
 #include "buzz_utility.h"
 namespace buzzuav_closures{
+
+// TODO: Minimize the required global variables and put them in the header
+
 static double goto_pos[3];
 static double rc_goto_pos[3];
 static float batt[3];
@@ -62,42 +65,13 @@ int buzzros_print(buzzvm_t vm) {
    return buzzvm_ret0(vm);
 }
 
-/****************************************/
-/****************************************/
-#define EARTH_RADIUS 6371000.0
-/*convert from spherical to cartesian coordinate system callback */
-        void cartesian_coordinates(double spherical_pos_payload [], double out[]){
-                double latitude, longitude, rho;
-                latitude = spherical_pos_payload[0] / 180.0 * M_PI;
-                longitude = spherical_pos_payload[1] / 180.0 * M_PI;
-                rho = spherical_pos_payload[2]+EARTH_RADIUS; //centered on Earth
-                try {
-                        out[0] = cos(latitude) * cos(longitude) * rho;
-                        out[1] = cos(latitude) * sin(longitude) * rho;
-                        out[2] = sin(latitude) * rho; // z is 'up'
-                } catch (std::overflow_error e) {
-//                std::cout << e.what() << " Error in convertion to cartesian coordinate system "<<endl;
-                }
-        }
-/*convert from cartesian to spherical coordinate system callback */
-        void spherical_coordinates(double cartesian_pos_payload [], double out[]){
-                double x, y, z;
-                x = cartesian_pos_payload[0];
-                y = cartesian_pos_payload[1];
-                z = cartesian_pos_payload[2];
-                try {
-                out[2]=sqrt(pow(x,2.0)+pow(y,2.0)+pow(z,2.0))-EARTH_RADIUS;
-                out[1]=atan2(y,x)*180.0/M_PI;
-                out[0]=atan2(z,(sqrt(pow(x,2.0)+pow(y,2.0))))*180.0/M_PI;
-                } catch (std::overflow_error e) {
-//                std::cout << e.what() << " Error in convertion to spherical coordinate system "<<endl;
-                }
-        }
-
+/*----------------------------------------/
+/ Compute GPS destination from current position and desired Range and Bearing
+/----------------------------------------*/
+#define EARTH_RADIUS (double) 6371000.0
 void gps_from_rb(double  range, double bearing, double out[3]) {
 	double lat = cur_pos[0]*M_PI/180.0;
 	double lon = cur_pos[1]*M_PI/180.0;
-//	bearing = bearing*M_PI/180.0;
  	out[0] = asin(sin(lat) * cos(range/EARTH_RADIUS) + cos(lat) * sin(range/EARTH_RADIUS) * cos(bearing));
 	out[1] = lon + atan2(sin(bearing) * sin(range/EARTH_RADIUS) * cos(lat), cos(range/EARTH_RADIUS) - sin(lat)*sin(out[0]));
 	out[0] = out[0]*180.0/M_PI;
@@ -105,10 +79,14 @@ void gps_from_rb(double  range, double bearing, double out[3]) {
 	out[2] = height; //constant height.
 }
 
+// Hard coded GPS position in Park Maisonneuve, Montreal, Canada for simulation tests
 double hcpos1[4] = {45.564489, -73.562537, 45.564140, -73.562336};
 double hcpos2[4] = {45.564729, -73.562060, 45.564362, -73.562958};
 double hcpos3[4] = {45.564969, -73.562838, 45.564636, -73.563677};
 
+/*----------------------------------------/
+/ Buzz closure to move following a 2D vector
+/----------------------------------------*/
 int buzzuav_moveto(buzzvm_t vm) {
    buzzvm_lnum_assert(vm, 2);
    buzzvm_lload(vm, 1); /* dx */
@@ -122,46 +100,16 @@ int buzzuav_moveto(buzzvm_t vm) {
    double d = sqrt(dx*dx+dy*dy);	//range
    double b = atan2(dy,dx);		//bearing
    printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
-   //goto_pos[0]=buzzvm_stack_at(vm, 3)->f.value;
-   //double cur_pos_cartesian[3];
-   //cartesian_coordinates(cur_pos,cur_pos_cartesian);
-   //double goto_cartesian[3];
-   //goto_cartesian[0] = dx + cur_pos_cartesian[0];
-   //goto_cartesian[1] = dy + cur_pos_cartesian[1];
-   //goto_cartesian[2] = cur_pos_cartesian[2];
-   //spherical_coordinates(goto_cartesian, goto_pos);
-//   goto_pos[0]=dx;
-//   goto_pos[1]=dy;
-   //goto_pos[2]=height;	// force a constant altitude to avoid loop increases
    gps_from_rb(d, b, goto_pos);
-/*   if(dx == 1.0){
-	if((int)buzz_utility::get_robotid()==1){
-		goto_pos[0]=hcpos1[0];goto_pos[1]=hcpos1[1];goto_pos[2]=height;
-	}
-	if((int)buzz_utility::get_robotid()==2){
-		goto_pos[0]=hcpos2[0];goto_pos[1]=hcpos2[1];goto_pos[2]=height;
-	}
-	if((int)buzz_utility::get_robotid()==3){
-		goto_pos[0]=hcpos3[0];goto_pos[1]=hcpos3[1];goto_pos[2]=height;
-	}
-   }
-   if(dx == 2.0){OB
-	if((int)buzz_utility::get_robotid()==1){
-		goto_pos[0]=hcpos1[2];goto_pos[1]=hcpos1[3];goto_pos[2]=height;
-	}
-	if((int)buzz_utility::get_robotid()==2){
-		goto_pos[0]=hcpos2[2];goto_pos[1]=hcpos2[3];goto_pos[2]=height;
-	}
-	if((int)buzz_utility::get_robotid()==3){
-		goto_pos[0]=hcpos3[2];goto_pos[1]=hcpos3[3];goto_pos[2]=height;
-	}
-   }*/
    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
    printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
    buzz_cmd=2;
    return buzzvm_ret0(vm);
 }
 
+/*----------------------------------------/
+/ Buzz closure to go directly to a GPS destination from the Mission Planner
+/----------------------------------------*/
 int buzzuav_goto(buzzvm_t vm) {
    rc_goto_pos[2]=height;
    set_goto(rc_goto_pos);
@@ -171,6 +119,9 @@ int buzzuav_goto(buzzvm_t vm) {
    return buzzvm_ret0(vm);
 }
 
+/*----------------------------------------/
+/ Buzz closure to arm/disarm the drone, useful for field tests to ensure all systems are up and runing
+/----------------------------------------*/
 int buzzuav_arm(buzzvm_t vm) {
    cur_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
    printf(" Buzz requested Arm \n");
@@ -183,12 +134,44 @@ int buzzuav_disarm(buzzvm_t vm) {
    buzz_cmd=4;
    return buzzvm_ret0(vm);
 }
-/******************************/
 
+/*---------------------------------------/
+/ Buss closure for basic UAV commands
+/---------------------------------------*/
+int buzzuav_takeoff(buzzvm_t vm) {
+   buzzvm_lnum_assert(vm, 1);
+   buzzvm_lload(vm, 1); /* Altitude */
+   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+   goto_pos[2] = buzzvm_stack_at(vm, 1) -> f.value;
+   height = goto_pos[2];
+   cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
+   printf(" Buzz requested Take off !!! \n");
+   buzz_cmd = 1;
+   return buzzvm_ret0(vm);
+}
+
+int buzzuav_land(buzzvm_t vm) {
+   cur_cmd=mavros_msgs::CommandCode::NAV_LAND;
+   printf(" Buzz requested Land !!! \n");
+   buzz_cmd = 1;
+   return buzzvm_ret0(vm);
+}
+
+int buzzuav_gohome(buzzvm_t vm) {
+   cur_cmd=mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
+   printf(" Buzz requested gohome !!! \n");
+   buzz_cmd = 1;
+   return buzzvm_ret0(vm);
+}
+
+
+/*-------------------------------
+/ Get/Set to transfer variable from Roscontroller to buzzuav
+/------------------------------------*/
 double* getgoto() {
 	return goto_pos;
 }
-/******************************/
+
 int getcmd() {
 	return cur_cmd;
 }
@@ -221,43 +204,11 @@ void set_obstacle_dist(float dist[]) {
 		obst[i] = dist[i];
 }
 
-
-/****************************************/
-/****************************************/
-
-int buzzuav_takeoff(buzzvm_t vm) {
-   buzzvm_lnum_assert(vm, 1);
-   buzzvm_lload(vm, 1); /* Altitude */
-   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-   goto_pos[2] = buzzvm_stack_at(vm, 1) -> f.value;
-   height = goto_pos[2];
-   cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
-   printf(" Buzz requested Take off !!! \n");
-   buzz_cmd = 1;
-   return buzzvm_ret0(vm);
-}
-
-int buzzuav_land(buzzvm_t vm) {
-   cur_cmd=mavros_msgs::CommandCode::NAV_LAND;
-   printf(" Buzz requested Land !!! \n");
-   buzz_cmd = 1;
-   return buzzvm_ret0(vm);
-}
-
-int buzzuav_gohome(buzzvm_t vm) {
-   cur_cmd=mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
-   printf(" Buzz requested gohome !!! \n");
-   buzz_cmd = 1;
-   return buzzvm_ret0(vm);
-}
-
-/****************************************/
 void set_battery(float voltage,float current,float remaining){
  batt[0]=voltage;
  batt[1]=current;
  batt[2]=remaining;
 }
-/****************************************/
 
 int buzzuav_update_battery(buzzvm_t vm) {
    //static char BATTERY_BUF[256];
@@ -305,7 +256,10 @@ int buzzuav_update_currentpos(buzzvm_t vm) {
    buzzvm_gstore(vm);
    return vm->state;
 }
-/*obstacle*/
+/*-----------------------------------------
+/ Create an obstacle Buzz table from proximity sensors
+/ TODO: swap to proximity function below
+--------------------------------------------*/
 
 int buzzuav_update_obstacle(buzzvm_t vm) {
    buzzvm_pushs(vm, buzzvm_string_register(vm, "obstacle", 1));
@@ -333,24 +287,16 @@ int buzzuav_update_obstacle(buzzvm_t vm) {
    buzzvm_gstore(vm);
    return vm->state;
 }
-/**************************************/
-/*Flight status ratinale*/
-/**************************************/
-/*****************************************************************
- DJI_SDK                         -Mavlink ExtendedState landed_state 
-STATUS_GROUND_STANDBY = 1,          1 
-STATUS_TAKE_OFF = 2,                3 
-STATUS_SKY_STANDBY = 3,             2
-STATUS_LANDING = 4,                 4 
-STATUS_FINISHING_LANDING = 5        0 
-******************************************************************/
-/****************************************/
-/*flight status update*/
-/***************************************/
+
 void flight_status_update(uint8_t state){
    status=state;
 }
-/****************************************/
+
+/*----------------------------------------------------
+/ Create the generic robot table with status, remote controller current comand and destination
+/ and current position of the robot
+/ TODO: change global name for robot
+/------------------------------------------------------*/
 int buzzuav_update_flight_status(buzzvm_t vm) {
    buzzvm_pushs(vm, buzzvm_string_register(vm, "flight", 1));
    buzzvm_pusht(vm);
