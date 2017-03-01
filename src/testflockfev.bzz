@@ -125,7 +125,8 @@ function takeoff() {
 }
 function land() {
 	log("Land: ", flight.status)
-	if(flight.status == 2 or flight.status == 3){
+	# SOLO: land = status 4, guided = 1
+	if(flight.status == 1){
 		neighbors.broadcast("cmd", 21)
 		uav_land()
 	}

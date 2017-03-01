@@ -86,6 +86,8 @@ private:
 
   	ros::ServiceClient mission_client;
 
+  	std::string current_mode; // SOLO SPECIFIC: just so you don't call the switch to same mode
+
     void Initialize_pub_sub(ros::NodeHandle n_c);
 
 	/*Obtain data from ros parameter server*/	
@@ -140,8 +142,6 @@ private:
 	void GetSubscriptionParameters(ros::NodeHandle node_handle);
 
 	void Arm();
-
-	void SetMode();
 
 	void SetMode(std::string mode, int delay_miliseconds);
 

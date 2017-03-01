@@ -1,7 +1,5 @@
 #include "roscontroller.h"
 #include <thread>
-
-
 namespace rosbzz_node{
 
 	/***Constructor***/
@@ -16,6 +14,8 @@ namespace rosbzz_node{
  		Compile_bzz();
 		set_bzz_file(bzzfile_name.c_str());
 		/*Initialize variables*/
+		//
+		SetMode("LOITER", 0);
 		armstate = 0;
 		multi_msg = true;
 	}
@@ -80,6 +80,7 @@ namespace rosbzz_node{
  				/*sleep for the mentioned loop rate*/
     				timer_step+=1;
    				maintain_pos(timer_step);
+
 			}
 			/* Destroy updater and Cleanup */
     			//update_routine(bcfname.c_str(), dbgfname.c_str(),1);
@@ -173,11 +174,8 @@ namespace rosbzz_node{
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-		mission_client = n_c.serviceClient<mavros_msgs::WaypointPush>("/mavros/mission/push");
-
 
 		multi_msg=true;
-		armstate = 0;
 	}
 	
 	void roscontroller::Subscribe(ros::NodeHandle n_c){
@@ -243,18 +241,6 @@ namespace rosbzz_node{
 		}
 	}
 
-	void roscontroller::SetMode(){
-		mavros_msgs::SetMode set_mode_message;
-		set_mode_message.request.base_mode = 0;
-		set_mode_message.request.custom_mode = "GUIDED"; // shit!
-		if(mode_client.call(set_mode_message)) {
-			ROS_INFO("Set Mode Service call successful!");
-		} else {
-			ROS_INFO("Set Mode Service call failed!");
-		}
-	}
-
-
 	/*-----------------------------------------------------------------
 	/Prepare Buzz messages payload for each step and publish
 	/
@@ -272,91 +258,62 @@ namespace rosbzz_node{
 		/* TODO: this should go in a separate function and be called by the main Buzz step */
 
 		int tmp = buzzuav_closures::bzz_cmd();
+		std::cout<< "Going: " << tmp << std::endl;
     	double* goto_pos = buzzuav_closures::getgoto();
-
-    	if (tmp == 1){
+    	// TODO: Make sure that land and takeoff use the right statuses in bzz
+		if (tmp == 1){
 			cmd_srv.request.param7 = goto_pos[2];
-			//cmd_srv.request.z = goto_pos[2];
 			cmd_srv.request.command =  buzzuav_closures::getcmd();
+			std::cout << " CMD: " << buzzuav_closures::getcmd() << std::endl;
+			// SOLO SPECIFIC: SITL DOES NOT USE 21 TO LAND -- workaround: set to LAND mode
+
+			switch(buzzuav_closures::getcmd()){
+			case mavros_msgs::CommandCode::NAV_LAND:
+				if(current_mode != "LAND")
+					SetMode("LAND", 0);
+				break;
+			case mavros_msgs::CommandCode::NAV_TAKEOFF:
+				if(current_mode != "GUIDED")
+					SetMode("GUIDED", 0); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
+				break;
+			}
+
+			if (mav_client.call(cmd_srv))
+				{ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
+			else
+				ROS_ERROR("Failed to call service from flight controller");
+
+		} else if (tmp == 2) { /*FC call for goto*/
+			/*prepare the goto publish message */
+			cmd_srv.request.param5 = goto_pos[0];
+			cmd_srv.request.param6 = goto_pos[1];
+			cmd_srv.request.param7 = goto_pos[2];
+			cmd_srv.request.command =  buzzuav_closures::getcmd();
+
+			if (mav_client.call(cmd_srv)) {
+				ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+			}
+	    	else
+	    		ROS_ERROR("Failed to call service from flight controller");
+
+			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
+
 			if (mav_client.call(cmd_srv)){
 				ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
 			}
 	    	else
 	    		ROS_ERROR("Failed to call service from flight controller");
 
-		} else if (tmp == 2) { /*FC call for goto*/
-			/*prepare the goto publish message */
-			cmd_srv.request.param5 = goto_pos[0];
-    			cmd_srv.request.param6 = goto_pos[1];
-    			cmd_srv.request.param7 = goto_pos[2];
-    			cmd_srv.request.command =  buzzuav_closures::getcmd();
-			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-	    		else ROS_ERROR("Failed to call service from flight controller");
-    			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
-			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-	    		else ROS_ERROR("Failed to call service from flight controller");
 		} else if (tmp == 3) { /*FC call for arm*/
+			// SOLO SPECIFIC: when you land, mode is LANDED, which is not armable, therefore change it to LOITER
+			SetMode("LOITER", 0);
 			armstate=1;
 			Arm(); 
 		} else if (tmp == 4){
+			SetMode("LOITER", 0);
 			armstate=0;
 			Arm();
 		}
-	}
-
-	// TODO: split this
-	/*Prepare messages for each step and publish*/
-	/*******************************************************************************************************/
-	/* Message format of payload (Each slot is uint64_t)						       */
-	/* _________________________________________________________________________________________________   */
-	/*|	|     |	    |						     |			            |  */
-	/*|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs with size.........  |  */
-	/*|_____|_____|_____|________________________________________________|______________________________|  */
-	/*******************************************************************************************************/
-	void roscontroller::prepare_msg_and_publish(){
-
-		if(fcclient_name == "/mavros/cmd/command"){
-			int tmp = buzzuav_closures::bzz_cmd();
-	    	double* goto_pos = buzzuav_closures::getgoto();
-	    	cout << "Flying Solo today? " << endl;
-
-	    	switch(tmp){
-	    	// TAKEOFF -- LAND
-	    	case 1:
-	    		if(!armstate){
-					SetMode("LOITER", 0);
-	    			Arm();
-	    			armstate = 1;
-					SetMode("GUIDED", 2000);
-	    		}
-				cmd_srv.request.param7 = goto_pos[2];
-				cmd_srv.request.command =  buzzuav_closures::getcmd();
-
-	    		// just to be safe -- while landing!
-	    		if(buzzuav_closures::getcmd() == 21){
-					SetMode("LAND", 0);
-	    		}
-
-				if (mav_client.call(cmd_srv)){
-					ROS_INFO("Reply: %ld", (long int) cmd_srv.response.success);
-				}
-		    	else
-		    		ROS_ERROR("Failed to call service from flight controller");
-				break;
-			// GOTO
-	    	case 2:
-				WaypointMissionSetup(goto_pos[0], goto_pos[1], goto_pos[2]);
-				break;
-			// ARM
-	    	case 3:
-	    		Arm();
-	    		break;
-	    	}
-
-		} else {
-			fc_command_setup();
-		}
-
     		/*obtain Pay load to be sent*/
 		//fprintf(stdout, "before getting msg from utility\n");
    		uint64_t* payload_out_ptr= buzz_utility::out_msg_process();
@@ -517,10 +474,7 @@ namespace rosbzz_node{
 		else if (msg->mode == "LAND")
 			buzzuav_closures::flight_status_update(4);
 		else // ground standby = LOITER?
-		{
-			cout << "Warning -- something else, going to GUIDED!" << endl;
 			buzzuav_closures::flight_status_update(1);//?
-		}
 	}
 
 	/*flight extended status update*/
@@ -624,15 +578,13 @@ namespace rosbzz_node{
    		switch(req.command){
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
    				ROS_INFO("RC_call: TAKE OFF!!!!");
+				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;
 			case mavros_msgs::CommandCode::NAV_LAND:
    				ROS_INFO("RC_Call: LAND!!!!");
 				rc_cmd=mavros_msgs::CommandCode::NAV_LAND;
-				// again -- to be safe:
-				SetMode("LAND", 0);
-
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;
@@ -663,10 +615,8 @@ namespace rosbzz_node{
 				rc_goto[1] = req.param6;
 				rc_goto[2] = req.param7;
 
-				WaypointMissionSetup(req.param5, req.param6, req.param7);
-
 				buzzuav_closures::rc_set_goto(rc_goto);
-				rc_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
+				rc_cmd= mavros_msgs::CommandCode::NAV_WAYPOINT;
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;
@@ -681,5 +631,26 @@ namespace rosbzz_node{
 	
 	}
 	
-}
+	/*
+	 * SOLO SPECIFIC FUNCTIONS
+	 */
 
+
+	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
+		// wait if necessary
+		if (delay_miliseconds > 0){
+			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
+		}
+		// set mode
+		mavros_msgs::SetMode set_mode_message;
+		set_mode_message.request.base_mode = 0;
+		set_mode_message.request.custom_mode = mode;
+		current_mode = mode;
+		if(mode_client.call(set_mode_message)) {
+			ROS_INFO("Set Mode Service call successful!");
+		} else {
+			ROS_INFO("Set Mode Service call failed!");
+		}
+	}
+
+}

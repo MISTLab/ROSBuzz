@@ -1,5 +1,5 @@
 <launch>
-	<!-- RUN mavros -->
+	<!-- RUN mavros 
 	<arg name="fcu_url" default="tcp://127.0.0.1:5760" />
 	<arg name="gcs_url" default="" />
 	<arg name="tgt_system" default="1" />
@@ -15,18 +15,18 @@
 		<arg name="tgt_component" value="$(arg tgt_component)" />
 		<arg name="log_output" value="$(arg log_output)" />
 	</include>
-
-	<!-- run xbee -->
+-->
+	<!-- run xbee 
 	<node pkg="xbee_ros_node" type="xbee_mav" name="xbee_mav" args="slave swarm" output="screen" />
 	<param name="Xbee_In_From_Buzz" type="str" value="outMavlink" />
 	<param name="Xbee_Out_To_Buzz" type="str" value="inMavlink" />
 	<param name="Xbee_In_From_Controller" type="str" value="xbee_cmd" />
 	<param name="No_of_dev" type="int" value="3" />
-
+-->
 	<!-- run rosbuzz -->
 	<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
 		<rosparam file="/home/ivan/catkin_ws/src/rosbuzz/launch/launch_config/solo.yaml"/>
-		<param name="bzzfile_name" value="/home/ivan/catkin_ws/src/rosbuzz/src/testalone.bzz" />
+		<param name="bzzfile_name" value="/home/ivan/catkin_ws/src/rosbuzz/src/testflockfev.bzz" />
 		<param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="/buzzcmd" />
 		<param name="in_payload" value="/inMavlink"/>
@@ -35,9 +35,11 @@
 		<param name="No_of_Robots" value="3"/>
 		<param name="stand_by" value="/home/ivan/catkin_ws/src/rosbuzz/src/stand_by.bo"/>
 	</node>
-		
+	
+	<!--	
 	<node pkg="rosloader" type="rosloader" name="rosloader" output="screen"/> 
-		
+	-->
+	
 	<!-- set streaming rate 
 	/mavros/cmd/arming
 	<node pkg="rosservice" type="rosservice" name="stream_rate" args="call /mavros/set_stream_rate 0 10 1" />
