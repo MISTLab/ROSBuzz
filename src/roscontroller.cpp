@@ -557,6 +557,7 @@ namespace rosbzz_node{
    		switch(req.command){
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
    				ROS_INFO("RC_call: TAKE OFF!!!!");
+				rc_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
 				break;
