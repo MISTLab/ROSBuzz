@@ -97,13 +97,16 @@ int buzzuav_moveto(buzzvm_t vm) {
    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
    float dy = buzzvm_stack_at(vm, 1)->f.value;
    float dx = buzzvm_stack_at(vm, 2)->f.value;
-   double d = sqrt(dx*dx+dy*dy);	//range
+   goto_pos[0]=dx;
+   goto_pos[1]=dy;
+   goto_pos[2]=0;
+   /*double d = sqrt(dx*dx+dy*dy);	//range
    double b = atan2(dy,dx);		//bearing
    printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
    gps_from_rb(d, b, goto_pos);
-   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
-   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
-   buzz_cmd=2;
+   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
+   printf(" Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
+   buzz_cmd=5;
    return buzzvm_ret0(vm);
 }
 

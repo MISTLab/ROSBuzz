@@ -168,6 +168,7 @@ namespace rosbzz_node{
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
+		localsetpoint_pub = n_c.advertise<mavros_msgs::PositionTarget>("/setpoint_raw/local",1000);
 		/* Service Clients*/
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
@@ -292,6 +293,16 @@ namespace rosbzz_node{
 		} else if (tmp == 4){
 			armstate=0;
 			Arm();
+		} else if (tmp == 5) { /*Buzz call for moveto*/ 
+			/*prepare the goto publish message */
+			mavros_msgs::PositionTarget pt;
+			pt.type_mask = mavros_msgs::PositionTarget::IGNORE_VX && mavros_msgs::PositionTarget::IGNORE_VY && mavros_msgs::PositionTarget::IGNORE_VZ && mavros_msgs::PositionTarget::IGNORE_AFX && mavros_msgs::PositionTarget::IGNORE_AFY && mavros_msgs::PositionTarget::IGNORE_AFZ && mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
+			pt.coordinate_frame =  mavros_msgs::PositionTarget::FRAME_LOCAL_NED;
+			pt.position.x = goto_pos[0];
+    			pt.position.y = goto_pos[1];
+    			pt.position.z = goto_pos[2];
+    			pt.yaw = 0;//goto_pos[3];
+			localsetpoint_pub.publish(pt);
 		}
     		/*obtain Pay load to be sent*/  
 		//fprintf(stdout, "before getting msg from utility\n");

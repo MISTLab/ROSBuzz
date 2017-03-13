@@ -11,6 +11,7 @@
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
+#include "mavros_msgs/PositionTarget.h"
 #include "sensor_msgs/NavSatStatus.h"
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
@@ -62,6 +63,7 @@ private:
 	ros::ServiceClient mav_client;
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;
+	ros::Publisher localsetpoint_pub;
 	ros::ServiceServer service;
 	ros::Subscriber current_position_sub;
 	ros::Subscriber battery_sub;
