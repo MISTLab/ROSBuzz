@@ -58,12 +58,13 @@ namespace rosbzz_node{
 					//std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
 					}
 				neigh_pos_pub.publish(neigh_pos_array); 
+
 			
 				/*Check updater state and step code*/
   				update_routine(bcfname.c_str(), dbgfname.c_str());
       				
 				/*Step buzz script */
-      				buzz_utility::buzz_script_step();
+      			buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
 	
 		  		prepare_msg_and_publish();
@@ -80,6 +81,8 @@ namespace rosbzz_node{
  				/*sleep for the mentioned loop rate*/
     				timer_step+=1;
    				maintain_pos(timer_step);
+
+
 
 			}
 			/* Destroy updater and Cleanup */
@@ -168,6 +171,11 @@ namespace rosbzz_node{
 		Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
   		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
+
+  		//mavros_msgs/PositionTarget
+  		local_position_pub = n_c.advertise<mavros_msgs::PositionTarget>("/mavros/setpoint_raw/local", 10);
+  		//mavros_msgs::PositionTarget message;
+
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
 		/* Service Clients*/
@@ -241,13 +249,11 @@ namespace rosbzz_node{
 		}
 	}
 
-	/*-----------------------------------------------------------------
-	/Prepare Buzz messages payload for each step and publish
-	/
+	/* Prepare Buzz messages payload for each step and publish */
 	/*******************************************************************************************************/
-	/* Message format of payload (Each slot is uint64_t)						       */
+	/* Message format of payload (Each slot is uint64_t)						      					   */
 	/* _________________________________________________________________________________________________   */
-	/*|	|     |	    |						     |			            |  */
+	/*|	|     |	    |						     |			            | 								   */
 	/*|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs with size.........  |  */
 	/*|_____|_____|_____|________________________________________________|______________________________|  */
 	/*******************************************************************************************************/	
@@ -575,6 +581,7 @@ namespace rosbzz_node{
 	bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request  &req,
 		         mavros_msgs::CommandLong::Response &res){
 		int rc_cmd;
+
    		switch(req.command){
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
    				ROS_INFO("RC_call: TAKE OFF!!!!");
@@ -609,11 +616,14 @@ namespace rosbzz_node{
 				res.success = true;
 				break;
 			case mavros_msgs::CommandCode::NAV_WAYPOINT:
-   				ROS_INFO("RC_Call: GO TO!!!! ");
+   				ROS_INFO("RC_Call: GO TO!!!! --- Doing this! ");
 				double rc_goto[3];
+				// testing PositionTarget
 				rc_goto[0] = req.param5;
 				rc_goto[1] = req.param6;
 				rc_goto[2] = req.param7;
+				// param 4 for yaw
+				LocalPosition(rc_goto[0], rc_goto[1], rc_goto[2], req.param4);
 
 				buzzuav_closures::rc_set_goto(rc_goto);
 				rc_cmd= mavros_msgs::CommandCode::NAV_WAYPOINT;
@@ -628,13 +638,48 @@ namespace rosbzz_node{
 	}
 	void roscontroller::set_robot_id(const std_msgs::UInt8::ConstPtr& msg){
 	robot_id=(int)msg->data;
-	
+
 	}
 	
 	/*
 	 * SOLO SPECIFIC FUNCTIONS
 	 */
 
+	void roscontroller::LocalPosition(float x, float y, float z, float yaw){
+		// http://docs.ros.org/kinetic/api/mavros_msgs/html/msg/PositionTarget.html
+		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
+
+		mavros_msgs::PositionTarget moveMsg;
+		/*
+		#define C_EARTH (double) 6378137.0
+
+		double d_lon = destination_longitude - global_position.longitude;
+		double d_lat = destination_latitude - global_position.latitude;
+
+		flight_ctrl_data.x = ((d_lat) * M_PI/180.0) * C_EARTH;
+		flight_ctrl_data.y = ((d_lon) * M_PI/180.0) * C_EARTH * cos((dst_latitude)*M_PI/180.0);
+		*/
+
+
+		moveMsg.coordinate_frame = mavros_msgs::PositionTarget::FRAME_BODY_OFFSET_NED;
+		moveMsg.type_mask = mavros_msgs::PositionTarget::IGNORE_AFX |
+		                                     mavros_msgs::PositionTarget::IGNORE_AFY |
+		                                     mavros_msgs::PositionTarget::IGNORE_AFZ |
+		                                     mavros_msgs::PositionTarget::IGNORE_VX  |
+		                                     mavros_msgs::PositionTarget::IGNORE_VY  |
+		                                     mavros_msgs::PositionTarget::IGNORE_VZ;
+
+		moveMsg.header.stamp = ros::Time::now();
+		moveMsg.position.x = x;
+		moveMsg.position.y = y;
+		moveMsg.position.z = z;
+		moveMsg.yaw = yaw * 0.0174532925; //DEG to RAD
+		//moveMsg.yaw_rate = 1;
+
+
+		local_position_pub.publish(moveMsg);
+		ROS_INFO("Sent message!");
+	}
 
 	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
 		// wait if necessary

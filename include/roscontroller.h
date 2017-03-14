@@ -14,6 +14,7 @@
 #include "sensor_msgs/NavSatStatus.h"
 #include "mavros_msgs/WaypointPush.h"
 #include "mavros_msgs/Waypoint.h"
+#include "mavros_msgs/PositionTarget.h"
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
 #include <sstream>
@@ -71,6 +72,8 @@ private:
 	ros::Subscriber flight_status_sub;
 	ros::Subscriber obstacle_sub;
 	ros::Subscriber Robot_id_sub;
+	ros::Publisher local_position_pub;
+
 	/*Commands for flight controller*/
   	//mavros_msgs::CommandInt cmd_srv;
   	mavros_msgs::CommandLong cmd_srv;
@@ -150,6 +153,8 @@ private:
 	void WaypointMissionSetup(float lat, float lng, float alt);
 
 	void fc_command_setup();
+
+	void LocalPosition(float x, float y, float z, float yaw);
 };
 
 }
