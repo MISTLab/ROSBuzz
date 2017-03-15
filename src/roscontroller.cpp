@@ -380,7 +380,7 @@ namespace rosbzz_node{
 			/*prepare the goto publish message */
 			mavros_msgs::PositionTarget pt;
 			pt.type_mask = mavros_msgs::PositionTarget::IGNORE_VX | mavros_msgs::PositionTarget::IGNORE_VY | mavros_msgs::PositionTarget::IGNORE_VZ | mavros_msgs::PositionTarget::IGNORE_AFX | mavros_msgs::PositionTarget::IGNORE_AFY | mavros_msgs::PositionTarget::IGNORE_AFZ | mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
-			pt.coordinate_frame =  mavros_msgs::PositionTarget::FRAME_LOCAL_NED_OFFSET;
+			pt.coordinate_frame =  mavros_msgs::PositionTarget::FRAME_LOCAL_OFFSET_NED;
 			pt.position.x = goto_pos[0];
     			pt.position.y = goto_pos[1];
     			pt.position.z = goto_pos[2];
