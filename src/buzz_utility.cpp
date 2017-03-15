@@ -76,15 +76,9 @@ namespace buzz_utility{
    		memcpy(pl, payload ,size);
 		/*size and robot id read*/
    		size_t tot = sizeof(uint32_t);
-      		/*for(int i=0;i<data[0];i++){
-			uint16_t* out = u64_cvt_u16(payload[i]);
-			for(int k=0;k<4;k++){
-				cout<<" [Debug inside buzz util: obt msg:] "<<out[k]<<endl;
-			}
-		}*/
 		/* Go through the messages until there's nothing else to read */
-		//fprintf(stdout,"Total data size  : utils : %d\n",(int)size);
       		uint16_t unMsgSize=0;
+<<<<<<< HEAD
 		//uint8_t is_msg_pres=*(uint8_t*)(pl + tot);
 		//tot+=sizeof(uint8_t);
 		 //fprintf(stdout,"is_updater msg present : %i\n",(int)is_msg_pres);
@@ -102,6 +96,9 @@ namespace buzz_utility{
 		//}
 	      	//unMsgSize=0;
 
+=======
+		
+>>>>>>> dev
 			/*Obtain Buzz messages only when they are present*/
 	      			do {
 		 			/* Get payload size */
@@ -131,6 +128,7 @@ namespace buzz_utility{
    		/* Send robot id */
    		*(uint16_t*)(buff_send+tot) = (uint16_t) VM->robot;
    		tot += sizeof(uint16_t);
+<<<<<<< HEAD
 		//uint8_t updater_msg_pre = 0;
    		//uint16_t updater_msgSize= 0;
 		//if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1){
@@ -155,6 +153,8 @@ namespace buzz_utility{
 		//   *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
       		//   tot += sizeof(uint8_t);
 		//}
+=======
+>>>>>>> dev
  			/* Send messages from FIFO */
 	   		do {
 				/* Are there more messages? */
@@ -507,7 +507,6 @@ namespace buzz_utility{
 	   buzzuav_closures::buzzuav_update_prox(VM);
 	   buzzuav_closures::buzzuav_update_currentpos(VM);
 	   buzzuav_closures::buzzuav_update_flight_status(VM);
-	   buzzuav_closures::buzzuav_update_obstacle(VM);
 	    /*
 	    * Call Buzz step() function
 	    */
@@ -518,7 +517,7 @@ namespace buzz_utility{
 	      buzzvm_dump(VM);
 	   }
 	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-	   /* look into this currently we don't have swarm feature at all */
+	   /* look into this currently we don't have swarm feature tested */
 	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 	   /*Print swarm*/
 	   //buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
@@ -571,7 +570,6 @@ int update_step_test(){
   buzzuav_closures::buzzuav_update_prox(VM);
   buzzuav_closures::buzzuav_update_currentpos(VM);
   buzzuav_closures::buzzuav_update_flight_status(VM);
-  buzzuav_closures::buzzuav_update_obstacle(VM);
 
  int a = buzzvm_function_call(VM, "step", 0);
 if(a != BUZZVM_STATE_READY){

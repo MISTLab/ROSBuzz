@@ -11,6 +11,7 @@
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/BatteryStatus.h"
 #include "mavros_msgs/Mavlink.h"
+#include "mavros_msgs/PositionTarget.h"
 #include "sensor_msgs/NavSatStatus.h"
 #include "mavros_msgs/WaypointPush.h"
 #include "mavros_msgs/Waypoint.h"
@@ -65,6 +66,7 @@ private:
 	ros::ServiceClient mav_client;
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;
+	ros::Publisher localsetpoint_pub;
 	ros::ServiceServer service;
 	ros::Subscriber current_position_sub;
 	ros::Subscriber battery_sub;
@@ -86,8 +88,9 @@ private:
 
   	mavros_msgs::SetMode m_cmdSetMode;
   	ros::ServiceClient mode_client;
-
-  	ros::ServiceClient mission_client;
+	
+	/*Initialize publisher and subscriber, done in the constructor*/
+	void Initialize_pub_sub(ros::NodeHandle n_c);
 
   	std::string current_mode; // SOLO SPECIFIC: just so you don't call the switch to same mode
 
@@ -98,6 +101,12 @@ private:
 
 	/*compiles buzz script from the specified .bzz file*/
 	void Compile_bzz();
+
+	/*Flight controller service call*/
+	void flight_controler_service_call();
+	
+	/*Neighbours pos publisher*/
+	void neighbours_pos_publisher();
 
 	/*Prepare messages and publish*/
 	void prepare_msg_and_publish();
@@ -140,14 +149,19 @@ private:
 	/*robot id sub callback*/
 	void set_robot_id(const std_msgs::UInt8::ConstPtr& msg);
 
+	/*Obstacle distance table callback*/
 	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 
+	/*Get publisher and subscriber from YML file*/
 	void GetSubscriptionParameters(ros::NodeHandle node_handle);
 
+	/*Arm/disarm method that can be called from buzz*/
 	void Arm();
 
-	void SetMode(std::string mode, int delay_miliseconds);
+	/*set mode like guided for solo*/
+	void SetMode();
 
+	/*Robot independent subscribers*/
 	void Subscribe(ros::NodeHandle n_c);
 
 	void WaypointMissionSetup(float lat, float lng, float alt);

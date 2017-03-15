@@ -78,13 +78,20 @@ function barrier_ready() {
 #
 # Executes the barrier
 #
+WAIT_TIMEOUT = 100
+timeW=0
 function barrier_wait(threshold, transf) {
   barrier.get(id)
   CURSTATE = "BARRIERWAIT"
   if(barrier.size() >= threshold) {
     barrier = nil
     transf()
-  }
+   } else if(timeW>=WAIT_TIMEOUT) {
+     barrier = nil
+     statef=hexagon #idle
+     timeW=0
+   }
+   timeW = timeW+1
 }
 
 # flight status
@@ -144,7 +151,6 @@ function init() {
 
 # Executed at each time step.
 function step() {
-
 	if(flight.rc_cmd==22) {
 		log("cmd 22")
 		flight.rc_cmd=0
@@ -166,6 +172,7 @@ function step() {
 		uav_arm()
 		neighbors.broadcast("cmd", 400)
 	} else if (flight.rc_cmd==401){
+		flight.rc_cmd=0
 		uav_disarm()
 		neighbors.broadcast("cmd", 401)
 	}

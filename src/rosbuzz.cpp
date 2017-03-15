@@ -18,6 +18,8 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "rosBuzz"); 
   ros::NodeHandle n_c("~");
   rosbzz_node::roscontroller RosController(n_c);
+  /*Register ros controller object inside buzz*/
+  //buzzuav_closures::set_ros_controller_ptr(&RosController);
   RosController.RosControllerRun(); 
   return 0;
 }
