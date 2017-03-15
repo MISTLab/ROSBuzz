@@ -302,6 +302,7 @@ namespace rosbzz_node{
     			pt.position.y = goto_pos[1];
     			pt.position.z = goto_pos[2];
     			pt.yaw = 0;//goto_pos[3];
+			ROS_INFO("Sending local setpoint: %.2f, %.2f, %.2f",pt.position.x,pt.position.y,pt.position.z);
 			localsetpoint_pub.publish(pt);
 		}
     		/*obtain Pay load to be sent*/  
