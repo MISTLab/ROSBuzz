@@ -6,7 +6,8 @@
 #include "uav_utility.h"
 #include "mavros_msgs/CommandCode.h"
 #include "ros/ros.h"
-
+#include "buzz_utility.h"
+//#include "roscontroller.h"
 
 namespace buzzuav_closures{
 /*
@@ -46,8 +47,13 @@ void set_obstacle_dist(float dist[]);
  * Commands the UAV to takeoff
  */
 int buzzuav_takeoff(buzzvm_t vm);
+/*
+ * Arm command from Buzz 
+ */
 int buzzuav_arm(buzzvm_t vm);
-
+/*
+ * Disarm from buzz
+ */
 int buzzuav_disarm(buzzvm_t vm) ;
 /* Commands the UAV to land
  */
@@ -66,8 +72,6 @@ int buzzuav_update_battery(buzzvm_t vm);
  */
 int buzzuav_update_currentpos(buzzvm_t vm);
 
-/*update obstacles in Buzz*/
-int buzzuav_update_obstacle(buzzvm_t vm);
 
 /*
  * Updates flight status and rc command in Buzz, put it in a tabel to acess it 

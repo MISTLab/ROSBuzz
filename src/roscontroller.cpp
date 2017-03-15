@@ -2,7 +2,9 @@
 
 namespace rosbzz_node{
 
-	/***Constructor***/
+	/*---------------
+	/Constructor
+	---------------*/
 	roscontroller::roscontroller(ros::NodeHandle n_c)	
 	{
 		ROS_INFO("Buzz_node");
@@ -18,7 +20,9 @@ namespace rosbzz_node{
 		multi_msg = true;
 	}
 
-	/***Destructor***/
+	/*---------------------
+	/Destructor
+	---------------------*/
 	roscontroller::~roscontroller()
 	{
 		/* All done */  
@@ -28,7 +32,9 @@ namespace rosbzz_node{
    		uav_done();
 	}
 
-	/*rosbuzz_node run*/
+	/*-------------------------------------------------
+	/rosbuzz_node loop method executed once every step
+	/--------------------------------------------------*/
 	void roscontroller::RosControllerRun(){
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
@@ -38,33 +44,16 @@ namespace rosbzz_node{
   			{
       				/*Update neighbors position inside Buzz*/
      				buzz_utility::neighbour_pos_callback(neighbours_pos_map);
-				auto current_time = ros::Time::now();
-				map< int, buzz_utility::Pos_struct >::iterator it;
-				rosbuzz::neigh_pos neigh_pos_array; //neigh_pos_array.clear(); 
-				neigh_pos_array.header.frame_id = "/world";
-				neigh_pos_array.header.stamp = current_time;
-				for (it=raw_neighbours_pos_map.begin(); it!=raw_neighbours_pos_map.end(); ++it){
-					sensor_msgs::NavSatFix neigh_tmp;
-					//cout<<"iterator it val: "<< it-> first << " After convertion: " <<(uint8_t) buzz_utility::get_rid_uint8compac(it->first)<<endl;				
-					neigh_tmp.header.stamp = current_time;
-					neigh_tmp.header.frame_id = "/world";
-					neigh_tmp.position_covariance_type=it->first; //custom robot id storage
-                        		neigh_tmp.latitude=(it->second).x;
-                        		neigh_tmp.longitude=(it->second).y;
-                        		neigh_tmp.altitude=(it->second).z;
-    					neigh_pos_array.pos_neigh.push_back(neigh_tmp); 
-					//std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
-					}
-				neigh_pos_pub.publish(neigh_pos_array); 
-			
+				/*Neighbours of the robot published with id in respective topic*/
+				neighbours_pos_publisher();
 				/*Check updater state and step code*/
   				update_routine(bcfname.c_str(), dbgfname.c_str());
-      				
 				/*Step buzz script */
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
-	
 		  		prepare_msg_and_publish();
+				/*call flight controler service to set command long*/
+				flight_controler_service_call();
 				/*Set multi message available after update*/
 				if(get_update_status()){
 					set_read_update_status();
@@ -122,7 +111,9 @@ namespace rosbzz_node{
 		// initialize topics to null?
 
 	}
-
+	/*-----------------------------------------------------------------------------------
+	/Obtains publisher, subscriber and services from yml file based on the robot used
+	/-----------------------------------------------------------------------------------*/
 	void roscontroller::GetSubscriptionParameters(ros::NodeHandle node_handle){
 		//todo: make it as an array in yaml?
 		m_sMySubscriptions.clear();
@@ -167,8 +158,8 @@ namespace rosbzz_node{
   		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
-		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);	
-		localsetpoint_pub = n_c.advertise<mavros_msgs::PositionTarget>("/setpoint_raw/local",1000);
+		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);
+		localsetpoint_pub = n_c.advertise<mavros_msgs::PositionTarget>("/setpoint_raw/local",1000);	
 		/* Service Clients*/
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
@@ -176,7 +167,9 @@ namespace rosbzz_node{
 
 		multi_msg=true;
 	}
-	
+	/*---------------------------------------
+	/Robot independent subscribers
+	/--------------------------------------*/
 	void roscontroller::Subscribe(ros::NodeHandle n_c){
 
   		for(std::map<std::string, std::string>::iterator it = m_smTopic_infos.begin(); it != m_smTopic_infos.end(); ++it){
@@ -201,6 +194,7 @@ namespace rosbzz_node{
 	/ Create Buzz bytecode from the bzz script inputed
 	/-------------------------------------------------------*/
 	void roscontroller::Compile_bzz(){
+		/*TODO: change to bzzc instead of bzzparse and also add -I for includes*/
 		/*Compile the buzz code .bzz to .bo*/
 		stringstream bzzfile_in_compile;
 	        std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/"));
@@ -210,7 +204,6 @@ namespace rosbzz_node{
 		std::string  name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
  		name = name.substr(0,name.find_last_of("."));
 		bzzfile_in_compile << "bzzparse "<<bzzfile_name<<" "<<path<< name<<".basm";
-   		//system("rm ../catkin_ws/src/rosbuzz/src/out.basm ../catkin_ws/src/rosbuzz/src/out.bo ../catkin_ws/src/rosbuzz/src/out.bdbg");
    		system(bzzfile_in_compile.str().c_str());
 		bzzfile_in_compile.str("");
            	bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo "<<path<<name<<".bdbg";
@@ -223,9 +216,32 @@ namespace rosbzz_node{
 		dbgfname = bzzfile_in_compile.str();
    		
 	}
+	/*----------------------------------------------------
+	/ Publish neighbours pos and id in neighbours pos topic
+	/----------------------------------------------------*/
+	void roscontroller::neighbours_pos_publisher(){
+		auto current_time = ros::Time::now();
+		map< int, buzz_utility::Pos_struct >::iterator it;
+		rosbuzz::neigh_pos neigh_pos_array; //neigh_pos_array.clear(); 
+		neigh_pos_array.header.frame_id = "/world";
+		neigh_pos_array.header.stamp = current_time;
+		for (it=raw_neighbours_pos_map.begin(); it!=raw_neighbours_pos_map.end(); ++it){
+			sensor_msgs::NavSatFix neigh_tmp;
+			//cout<<"iterator it val: "<< it-> first << " After convertion: " <<(uint8_t) buzz_utility::get_rid_uint8compac(it->first)<<endl;				
+			neigh_tmp.header.stamp = current_time;
+			neigh_tmp.header.frame_id = "/world";
+			neigh_tmp.position_covariance_type=it->first; //custom robot id storage
+        		neigh_tmp.latitude=(it->second).x;
+        		neigh_tmp.longitude=(it->second).y;
+        		neigh_tmp.altitude=(it->second).z;
+			neigh_pos_array.pos_neigh.push_back(neigh_tmp); 
+			//std::cout<<"long obt"<<neigh_tmp.longitude<<endl;  					
+			}
+		neigh_pos_pub.publish(neigh_pos_array); 	
+	}
 
 	/*--------------------------------------------------------
-	/ Fonctions handling the local MAV ROS fligh controller
+	/ Functions handling the local MAV ROS flight controller
 	/-------------------------------------------------------*/
 	void roscontroller::Arm(){
 		mavros_msgs::CommandBool arming_message;
@@ -239,7 +255,9 @@ namespace rosbzz_node{
 			ROS_INFO("FC Arm Service call failed!");
 		}
 	}
-
+	/*---------------------------------------------------------
+	/ Set mode for the solos
+	/---------------------------------------------------------*/
 	void roscontroller::SetMode(){
 		mavros_msgs::SetMode set_mode_message;
 		set_mode_message.request.base_mode = 0;
@@ -252,61 +270,18 @@ namespace rosbzz_node{
 	}
 
 
-	/*-----------------------------------------------------------------
+	/*-----------------------------------------------------------------------------------------------------
 	/Prepare Buzz messages payload for each step and publish
-	/
-	/*******************************************************************************************************/
-	/* Message format of payload (Each slot is uint64_t)						       */
-	/* _________________________________________________________________________________________________   */
-	/*|	|     |	    |						     |			            |  */
-	/*|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs with size.........  |  */
-	/*|_____|_____|_____|________________________________________________|______________________________|  */
-	/*******************************************************************************************************/	
+	/-----------------------------------------------------------------------------------------------------*/
+	/*----------------------------------------------------------------------------------------------------*/
+	/* Message format of payload (Each slot is uint64_t)						       /
+	/ _________________________________________________________________________________________________    /
+	/|	|     |	    |						     |			           |   /
+	/|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs with size.........  |   /
+	/|_____|_____|_____|________________________________________________|______________________________|  */
+	/*----------------------------------------------------------------------------------------------------*/	
 	void roscontroller::prepare_msg_and_publish(){
-		
- 		/* flight controller client call if requested from Buzz*/
-		/*FC call for takeoff,land and gohome*/
-		/* TODO: this should go in a separate function and be called by the main Buzz step */
-
-		int tmp = buzzuav_closures::bzz_cmd();
-    		double* goto_pos = buzzuav_closures::getgoto();
-		if (tmp == 1){
-			cmd_srv.request.param7 = goto_pos[2];
-			//cmd_srv.request.z = goto_pos[2];
-			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
-			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-	    		else ROS_ERROR("Failed to call service from flight controller"); 
-		} else if (tmp == 2) { /*FC call for goto*/ 
-			/*prepare the goto publish message */
-			cmd_srv.request.param5 = goto_pos[0];
-    			cmd_srv.request.param6 = goto_pos[1];
-    			cmd_srv.request.param7 = goto_pos[2];
-    			cmd_srv.request.command =  buzzuav_closures::getcmd();
-			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-	    		else ROS_ERROR("Failed to call service from flight controller"); 
-    			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
-			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-	    		else ROS_ERROR("Failed to call service from flight controller"); 
-		} else if (tmp == 3) { /*FC call for arm*/
-			armstate=1;
-			Arm(); 
-		} else if (tmp == 4){
-			armstate=0;
-			Arm();
-		} else if (tmp == 5) { /*Buzz call for moveto*/ 
-			/*prepare the goto publish message */
-			mavros_msgs::PositionTarget pt;
-			pt.type_mask = mavros_msgs::PositionTarget::IGNORE_VX && mavros_msgs::PositionTarget::IGNORE_VY && mavros_msgs::PositionTarget::IGNORE_VZ && mavros_msgs::PositionTarget::IGNORE_AFX && mavros_msgs::PositionTarget::IGNORE_AFY && mavros_msgs::PositionTarget::IGNORE_AFZ && mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
-			pt.coordinate_frame =  mavros_msgs::PositionTarget::FRAME_LOCAL_NED;
-			pt.position.x = goto_pos[0];
-    			pt.position.y = goto_pos[1];
-    			pt.position.z = goto_pos[2];
-    			pt.yaw = 0;//goto_pos[3];
-			ROS_INFO("Sending local setpoint: %.2f, %.2f, %.2f",pt.position.x,pt.position.y,pt.position.z);
-			localsetpoint_pub.publish(pt);
-		}
     		/*obtain Pay load to be sent*/  
-		//fprintf(stdout, "before getting msg from utility\n");
    		uint64_t* payload_out_ptr= buzz_utility::out_msg_process();
     		uint64_t  position[3];
   		/*Appened current position to message*/
@@ -320,21 +295,6 @@ namespace rosbzz_node{
     		for(int i=0;i<out[0];i++){
     			payload_out.payload64.push_back(payload_out_ptr[i]);
     		}	
-    		/*int i=0;
-		uint64_t message_obt[payload_out.payload64.size()];
-    		for(std::vector<long unsigned int>::const_iterator it = payload_out.payload64.begin();
-			it != payload_out.payload64.end(); ++it){
-			message_obt[i] =(uint64_t) *it;
-			i++;
-        	}*/
-		/*for(int i=0;i<payload_out.payload64.size();i++){
-			cout<<" [Debug:] sent message "<<payload_out.payload64[i]<<endl;
-			out = buzz_utility::u64_cvt_u16(message_obt[i]);
-			for(int k=0;k<4;k++){
-				cout<<" [Debug:] sent message "<<out[k]<<endl;
-			}
-		}*/
-
 		/*Add Robot id and message number to the published message*/
 		if (message_number < 0) message_number=0;
 		else message_number++;
@@ -345,8 +305,7 @@ namespace rosbzz_node{
     		payload_pub.publish(payload_out);
     		delete[] out;
     		delete[] payload_out_ptr;
-
-		
+		/*Check for updater message if present send*/
 		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
 			uint8_t* buff_send = 0;
 	   		uint16_t updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());;
@@ -384,36 +343,75 @@ namespace rosbzz_node{
 		    	multi_msg=false;
 		    	delete[] payload_64;
 		}
-		/*Request xbee to stop any multi transmission updated not needed any more*/
-		//if(get_update_status()){
-		//	set_read_update_status();
-		//	mavros_msgs::Mavlink stop_req_packet;
-		//	stop_req_packet.payload64.push_back((uint64_t) XBEE_STOP_TRANSMISSION);
-		//	payload_pub.publish(stop_req_packet);
-		//	std::cout << "request xbee to stop multi-packet transmission" << std::endl;	
 		
-		//}
-		
-		}
-
-
-	/*Refresh neighbours Position for every ten step*/
+	}
+	/*---------------------------------------------------------------------------------
+	/Flight controller service call every step if there is a command set from bzz script
+	/-------------------------------------------------------------------------------- */
+	void roscontroller::flight_controler_service_call(){
+		/* flight controller client call if requested from Buzz*/
+		/*FC call for takeoff,land, gohome and arm/disarm*/
+		int tmp = buzzuav_closures::bzz_cmd();
+    		double* goto_pos = buzzuav_closures::getgoto();
+		if (tmp == 1){
+			cmd_srv.request.param7 = goto_pos[2];
+			//cmd_srv.request.z = goto_pos[2];
+			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
+			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
+	    		else ROS_ERROR("Failed to call service from flight controller"); 
+		} else if (tmp == 2) { /*FC call for goto*/ 
+			/*prepare the goto publish message */
+			cmd_srv.request.param5 = goto_pos[0];
+    			cmd_srv.request.param6 = goto_pos[1];
+    			cmd_srv.request.param7 = goto_pos[2];
+    			cmd_srv.request.command =  buzzuav_closures::getcmd();
+			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
+	    		else ROS_ERROR("Failed to call service from flight controller"); 
+    			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
+			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
+	    		else ROS_ERROR("Failed to call service from flight controller"); 
+		} else if (tmp == 3) { /*FC call for arm*/
+			armstate=1;
+			Arm(); 
+		} else if (tmp == 4){
+			armstate=0;
+			Arm();
+		} else if (tmp == 5) { /*Buzz call for moveto*/ 
+			/*prepare the goto publish message */
+			mavros_msgs::PositionTarget pt;
+			pt.type_mask = mavros_msgs::PositionTarget::IGNORE_VX | mavros_msgs::PositionTarget::IGNORE_VY | mavros_msgs::PositionTarget::IGNORE_VZ | mavros_msgs::PositionTarget::IGNORE_AFX | mavros_msgs::PositionTarget::IGNORE_AFY | mavros_msgs::PositionTarget::IGNORE_AFZ | mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
+			pt.coordinate_frame =  mavros_msgs::PositionTarget::FRAME_LOCAL_NED_OFFSET;
+			pt.position.x = goto_pos[0];
+    			pt.position.y = goto_pos[1];
+    			pt.position.z = goto_pos[2];
+    			pt.yaw = 0;//goto_pos[3];
+			ROS_INFO("Sending local setpoint: %.2f, %.2f, %.2f",pt.position.x,pt.position.y,pt.position.z);
+			localsetpoint_pub.publish(pt);
+ 		}
+	}
+	/*----------------------------------------------
+	/Refresh neighbours Position for every ten step
+	/---------------------------------------------*/
 	void roscontroller::maintain_pos(int tim_step){
 		if(timer_step >=10){
 		neighbours_pos_map.clear();
-		//raw_neighbours_pos_map.clear();
+		//raw_neighbours_pos_map.clear(); // TODO: currently not a problem, but have to clear !
 		timer_step=0;
 		}
 	}
 
-	/*Puts neighbours position*/
+	/*---------------------------------------------------------------------------------
+	/Puts neighbours position into local struct storage that is cleared every 10 step
+	/---------------------------------------------------------------------------------*/
 	void roscontroller::neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr ){
 		map< int, buzz_utility::Pos_struct >::iterator it = neighbours_pos_map.find(id);
 		if(it!=neighbours_pos_map.end())
 		neighbours_pos_map.erase(it);
 		neighbours_pos_map.insert(make_pair(id, pos_arr));
 		}
-	/*Puts raw neighbours position*/
+	/*-----------------------------------------------------------------------------------
+	/Puts raw neighbours position into local storage for neighbours pos publisher
+	/-----------------------------------------------------------------------------------*/
 	void roscontroller::raw_neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr ){
 		map< int, buzz_utility::Pos_struct >::iterator it = raw_neighbours_pos_map.find(id);
 		if(it!=raw_neighbours_pos_map.end())
@@ -421,14 +419,15 @@ namespace rosbzz_node{
 		raw_neighbours_pos_map.insert(make_pair(id, pos_arr));
 		}
 
-	/*Set the current position of the robot callback*/
+	/*--------------------------------------------------------
+	/Set the current position of the robot callback
+	/--------------------------------------------------------*/
 	void roscontroller::set_cur_pos(double latitude,
 			 double longitude,
 			 double altitude){
 		cur_pos [0] =latitude;
 		cur_pos [1] =longitude;
 		cur_pos [2] =altitude;
-
 	}
 
 
@@ -449,13 +448,17 @@ namespace rosbzz_node{
 		out[2] = 0.0;
 	}
 
-	/*battery status callback*/ 
+	/*------------------------------------------------------
+	/ Update battery status into BVM from subscriber
+	/------------------------------------------------------*/ 
 	void roscontroller::battery(const mavros_msgs::BatteryStatus::ConstPtr& msg){
 		buzzuav_closures::set_battery(msg->voltage,msg->current,msg->remaining);
 		//ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage, msg->current, msg ->remaining);
 	}
 
-	/*flight extended status update*/
+	/*----------------------------------------------------------------------
+	/Update flight extended status into BVM from subscriber for solos
+	/---------------------------------------------------------------------*/
 	void roscontroller::flight_status_update(const mavros_msgs::State::ConstPtr& msg){
 		// http://wiki.ros.org/mavros/CustomModes
 		// TODO: Handle landing
@@ -468,47 +471,47 @@ namespace rosbzz_node{
 			buzzuav_closures::flight_status_update(1);//?
 	}
 
-	/*flight extended status update*/
+	/*------------------------------------------------------------
+	/Update flight extended status into BVM from subscriber
+	------------------------------------------------------------*/
 	void roscontroller::flight_extended_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg){
 		buzzuav_closures::flight_status_update(msg->landed_state);
 	}
-	/*current position callback*/
+	/*-------------------------------------------------------------
+	/ Update current position into BVM from subscriber
+	/-------------------------------------------------------------*/
 	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
 		set_cur_pos(msg->latitude,msg->longitude,msg->altitude);
 		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude,msg->altitude);
 	}
-	/*Obstacle distance call back*/	
+	/*-------------------------------------------------------------
+	/Set obstacle Obstacle distance table into BVM from subscriber
+	/-------------------------------------------------------------*/	
 	void roscontroller::obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg){
 		float obst[5];
 		for(int i=0;i<5;i++)
 			obst[i]=msg->ranges[i];
 		buzzuav_closures::set_obstacle_dist(obst);
 	}
-	/*payload callback callback*/
 
+	/*-------------------------------------------------------------
+	/Push payload into BVM FIFO
+	/-------------------------------------------------------------*/
 	/*******************************************************************************************************/
 	/* Message format of payload (Each slot is uint64_t)						       */
 	/* _________________________________________________________________________________________________   */
 	/*|	|     |	    |						     |			            |  */
 	/*|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs with size.........  |  */
 	/*|_____|_____|_____|________________________________________________|______________________________|  */
-	/*******************************************************************************************************/	
-	
+	/*******************************************************************************************************/		
 	void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg){
-
-		/*Ack from xbee about its transfer complete of multi packet*/
-		/*if((uint64_t)msg->payload64[0]==(uint64_t)XBEE_MESSAGE_CONSTANT && msg->payload64.size() == 1){
-			multi_msg=true;
-			std::cout << "ACK From xbee after transimssion of code " << std::endl;
-		}*/
-		if((uint64_t)msg->payload64[0]==(uint64_t)UPDATER_MESSAGE_CONSTANT && msg->payload64.size() > 10){
+		/*Check for Updater message, if updater message push it into updater FIFO*/
+		if((uint64_t)msg->payload64[0]==(uint64_t)UPDATER_MESSAGE_CONSTANT && msg->payload64.size() > 5){
 			uint16_t obt_msg_size=sizeof(uint64_t)*(msg->payload64.size());
 			uint64_t message_obt[obt_msg_size];
 			/* Go throught the obtained payload*/
 			for(int i=0;i < (int)msg->payload64.size();i++){
 				message_obt[i] =(uint64_t)msg->payload64[i];
-		        	//cout<<"[Debug:] obtaind message "<<message_obt[i]<<endl;
-				//i++;
 			}
 
 			uint8_t* pl =(uint8_t*)malloc(obt_msg_size);
@@ -518,7 +521,7 @@ namespace rosbzz_node{
 			uint16_t unMsgSize = *(uint16_t*)(pl);
 			//uint16_t tot;
 			//tot+=sizeof(uint16_t);
-     			fprintf(stdout,"Update packet read msg size : %u \n",unMsgSize);	
+     			fprintf(stdout,"Update packet, read msg size : %u \n",unMsgSize);	
 			if(unMsgSize>0){
 				code_message_inqueue_append((uint8_t*)(pl + sizeof(uint16_t)),unMsgSize);
 				//fprintf(stdout,"before in queue process : utils\n");
@@ -526,10 +529,8 @@ namespace rosbzz_node{
 				//fprintf(stdout,"after in queue process : utils\n");
 			}
    			delete[] pl;
-
-
 		}
-
+		/*BVM FIFO message*/
 		else if(msg->payload64.size() > 3){
 			uint64_t message_obt[msg->payload64.size()];
 			/* Go throught the obtained payload*/
@@ -617,6 +618,10 @@ namespace rosbzz_node{
    		}
    		return true;
 	}
+	/*-----------------------------------------------------
+	/Obtain robot id by subscribing to xbee robot id topic 
+	/ TODO: check for integrity of this subscriber call back
+	/----------------------------------------------------*/
 	void roscontroller::set_robot_id(const std_msgs::UInt8::ConstPtr& msg){
 	robot_id=(int)msg->data;
 	

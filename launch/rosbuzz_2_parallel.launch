@@ -2,7 +2,7 @@
 
 <launch>
 		<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
-		<param name="bzzfile_name" value="/home/vivek/catkin_ws/src/rosbuzz/src/testflockfev.bzz" />
+		<param name="bzzfile_name" value="/home/vivek/catkin_ws/src/rosbuzz/src/testflockfev_2parallel.bzz" />
 		<rosparam file="/home/vivek/catkin_ws/src/rosbuzz/launch/launch_config/m100.yaml"/>
                 <param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="rc_cmd" />

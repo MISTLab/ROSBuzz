@@ -83,7 +83,8 @@ private:
 
   	mavros_msgs::SetMode m_cmdSetMode;
   	ros::ServiceClient mode_client;
-
+	
+	/*Initialize publisher and subscriber, done in the constructor*/
 	void Initialize_pub_sub(ros::NodeHandle n_c);
 
 	/*Obtain data from ros parameter server*/	
@@ -91,6 +92,12 @@ private:
 
 	/*compiles buzz script from the specified .bzz file*/
 	void Compile_bzz();
+
+	/*Flight controller service call*/
+	void flight_controler_service_call();
+	
+	/*Neighbours pos publisher*/
+	void neighbours_pos_publisher();
 
 	/*Prepare messages and publish*/
 	void prepare_msg_and_publish();
@@ -133,14 +140,19 @@ private:
 	/*robot id sub callback*/
 	void set_robot_id(const std_msgs::UInt8::ConstPtr& msg);
 
+	/*Obstacle distance table callback*/
 	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 
+	/*Get publisher and subscriber from YML file*/
 	void GetSubscriptionParameters(ros::NodeHandle node_handle);
 
+	/*Arm/disarm method that can be called from buzz*/
 	void Arm();
 
+	/*set mode like guided for solo*/
 	void SetMode();
 
+	/*Robot independent subscribers*/
 	void Subscribe(ros::NodeHandle n_c);
 };
 
