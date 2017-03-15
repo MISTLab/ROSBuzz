@@ -161,14 +161,9 @@ namespace rosbzz_node{
 		Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
   		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
-
-  		//mavros_msgs/PositionTarget
-  		local_position_pub = n_c.advertise<mavros_msgs::PositionTarget>("/mavros/setpoint_raw/local", 10);
-  		//mavros_msgs::PositionTarget message;
-
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);
-		localsetpoint_pub = n_c.advertise<mavros_msgs::PositionTarget>("/setpoint_raw/local",1000);	
+		localsetpoint_pub = n_c.advertise<mavros_msgs::PositionTarget>("/mavros/setpoint_raw/local",1000);
 		/* Service Clients*/
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
@@ -255,6 +250,7 @@ namespace rosbzz_node{
 	void roscontroller::Arm(){
 		mavros_msgs::CommandBool arming_message;
 		arming_message.request.value = armstate;
+		ROS_INFO("FC Arm Service called!------------------------------------------------------");
 		if(arm_client.call(arming_message)) {
 			if(arming_message.response.success==1)
 				ROS_INFO("FC Arm Service called!");
@@ -264,20 +260,6 @@ namespace rosbzz_node{
 			ROS_INFO("FC Arm Service call failed!");
 		}
 	}
-	/*---------------------------------------------------------
-	/ Set mode for the solos
-	/---------------------------------------------------------*/
-	void roscontroller::SetMode(){
-		mavros_msgs::SetMode set_mode_message;
-		set_mode_message.request.base_mode = 0;
-		set_mode_message.request.custom_mode = "GUIDED"; // shit!
-		if(mode_client.call(set_mode_message)) {
-			ROS_INFO("Set Mode Service call successful!");
-		} else {
-			ROS_INFO("Set Mode Service call failed!");
-		}
-	}
-
 
 	/*-----------------------------------------------------------------------------------------------------
 	/Prepare Buzz messages payload for each step and publish
@@ -357,45 +339,59 @@ namespace rosbzz_node{
 	/*---------------------------------------------------------------------------------
 	/Flight controller service call every step if there is a command set from bzz script
 	/-------------------------------------------------------------------------------- */
-	void roscontroller::flight_controler_service_call(){
+	void roscontroller::flight_controler_service_call() {
 		/* flight controller client call if requested from Buzz*/
 		/*FC call for takeoff,land, gohome and arm/disarm*/
 		int tmp = buzzuav_closures::bzz_cmd();
-    		double* goto_pos = buzzuav_closures::getgoto();
-		if (tmp == 1){
+		double* goto_pos = buzzuav_closures::getgoto();
+		if (tmp == 1) {
 			cmd_srv.request.param7 = goto_pos[2];
-			//cmd_srv.request.z = goto_pos[2];
-			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
-			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-	    		else ROS_ERROR("Failed to call service from flight controller"); 
-		} else if (tmp == 2) { /*FC call for goto*/ 
+			cmd_srv.request.command =  buzzuav_closures::getcmd();
+			//std::cout << " CMD: " << buzzuav_closures::getcmd() << std::endl;
+			// SOLO SPECIFIC: SITL DOES NOT USE 21 TO LAND -- workaround: set to LAND mode
+			switch(buzzuav_closures::getcmd()){
+			case mavros_msgs::CommandCode::NAV_LAND:
+				if(current_mode != "LAND")
+					SetMode("LAND", 0);
+				break;
+			case mavros_msgs::CommandCode::NAV_TAKEOFF:
+				if(current_mode != "GUIDED")
+					SetMode("GUIDED", 0); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
+				break;
+			}
+
+			if (mav_client.call(cmd_srv))
+				{ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
+			else
+				ROS_ERROR("Failed to call service from flight controller");
+
+		} else if (tmp == 2) { /*FC call for goto*/
 			/*prepare the goto publish message */
 			cmd_srv.request.param5 = goto_pos[0];
-    			cmd_srv.request.param6 = goto_pos[1];
-    			cmd_srv.request.param7 = goto_pos[2];
-    			cmd_srv.request.command =  buzzuav_closures::getcmd();
-			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-	    		else ROS_ERROR("Failed to call service from flight controller"); 
-    			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
-			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-	    		else ROS_ERROR("Failed to call service from flight controller"); 
+			cmd_srv.request.param6 = goto_pos[1];
+			cmd_srv.request.param7 = goto_pos[2];
+			cmd_srv.request.command = buzzuav_closures::getcmd();
+			if (mav_client.call(cmd_srv)) {
+				ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+			} else
+				ROS_ERROR("Failed to call service from flight controller");
+			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
+			if (mav_client.call(cmd_srv)) {
+				ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+			} else
+				ROS_ERROR("Failed to call service from flight controller");
 		} else if (tmp == 3) { /*FC call for arm*/
-			armstate=1;
-			Arm(); 
-		} else if (tmp == 4){
-			armstate=0;
+			SetMode("LOITER", 0);
+			armstate = 1;
 			Arm();
-		} else if (tmp == 5) { /*Buzz call for moveto*/ 
+		} else if (tmp == 4) {
+			armstate = 0;
+			SetMode("LOITER", 0);
+			Arm();
+		} else if (tmp == 5) { /*Buzz call for moveto*/
 			/*prepare the goto publish message */
-			mavros_msgs::PositionTarget pt;
-			pt.type_mask = mavros_msgs::PositionTarget::IGNORE_VX && 				mavros_msgs::PositionTarget::IGNORE_VY && mavros_msgs::PositionTarget::IGNORE_VZ && mavros_msgs::PositionTarget::IGNORE_AFX && mavros_msgs::PositionTarget::IGNORE_AFY && mavros_msgs::PositionTarget::IGNORE_AFZ && mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
-			pt.coordinate_frame =  mavros_msgs::PositionTarget::FRAME_LOCAL_NED;
-			pt.position.x = goto_pos[0];
-    			pt.position.y = goto_pos[1];
-    			pt.position.z = goto_pos[2];
-    			pt.yaw = 0;//goto_pos[3];
-			localsetpoint_pub.publish(pt);
- 		}
+			roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
+		}
 	}
 	/*----------------------------------------------
 	/Refresh neighbours Position for every ten step
@@ -575,7 +571,6 @@ namespace rosbzz_node{
 	bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request  &req,
 		         mavros_msgs::CommandLong::Response &res){
 		int rc_cmd;
-
    		switch(req.command){
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
    				ROS_INFO("RC_call: TAKE OFF!!!!");
@@ -584,7 +579,7 @@ namespace rosbzz_node{
 				res.success = true;
 				break;
 			case mavros_msgs::CommandCode::NAV_LAND:
-   				ROS_INFO("RC_Call: LAND!!!!");
+   				ROS_INFO("RC_Call: LAND!!!! sending land");
 				rc_cmd=mavros_msgs::CommandCode::NAV_LAND;
 				buzzuav_closures::rc_call(rc_cmd);
 				res.success = true;
@@ -616,8 +611,8 @@ namespace rosbzz_node{
 				rc_goto[0] = req.param5;
 				rc_goto[1] = req.param6;
 				rc_goto[2] = req.param7;
-				// param 4 for yaw
-				LocalPosition(rc_goto[0], rc_goto[1], rc_goto[2], req.param4);
+				// for test
+				//SetLocalPosition(rc_goto[0], rc_goto[1], rc_goto[2], 0);
 
 				buzzuav_closures::rc_set_goto(rc_goto);
 				rc_cmd= mavros_msgs::CommandCode::NAV_WAYPOINT;
@@ -635,30 +630,18 @@ namespace rosbzz_node{
 	/ TODO: check for integrity of this subscriber call back
 	/----------------------------------------------------*/
 	void roscontroller::set_robot_id(const std_msgs::UInt8::ConstPtr& msg){
-	robot_id=(int)msg->data;
-
+		robot_id=(int)msg->data;
 	}
 	
 	/*
 	 * SOLO SPECIFIC FUNCTIONS
 	 */
 
-	void roscontroller::LocalPosition(float x, float y, float z, float yaw){
+	void roscontroller::SetLocalPosition(float x, float y, float z, float yaw){
 		// http://docs.ros.org/kinetic/api/mavros_msgs/html/msg/PositionTarget.html
 		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
 
 		mavros_msgs::PositionTarget moveMsg;
-		/*
-		#define C_EARTH (double) 6378137.0
-
-		double d_lon = destination_longitude - global_position.longitude;
-		double d_lat = destination_latitude - global_position.latitude;
-
-		flight_ctrl_data.x = ((d_lat) * M_PI/180.0) * C_EARTH;
-		flight_ctrl_data.y = ((d_lon) * M_PI/180.0) * C_EARTH * cos((dst_latitude)*M_PI/180.0);
-		*/
-
-
 		moveMsg.coordinate_frame = mavros_msgs::PositionTarget::FRAME_BODY_OFFSET_NED;
 		moveMsg.type_mask = mavros_msgs::PositionTarget::IGNORE_AFX |
 		                                     mavros_msgs::PositionTarget::IGNORE_AFY |
@@ -666,22 +649,20 @@ namespace rosbzz_node{
 		                                     mavros_msgs::PositionTarget::IGNORE_VX  |
 		                                     mavros_msgs::PositionTarget::IGNORE_VY  |
 		                                     mavros_msgs::PositionTarget::IGNORE_VZ;
-
 		moveMsg.header.stamp = ros::Time::now();
 		moveMsg.position.x = x;
 		moveMsg.position.y = y;
 		moveMsg.position.z = z;
-		moveMsg.yaw = yaw * 0.0174532925; //DEG to RAD
-		//moveMsg.yaw_rate = 1;
+		moveMsg.yaw = 0;
 
+		localsetpoint_pub.publish(moveMsg);
 
-		local_position_pub.publish(moveMsg);
-		ROS_INFO("Sent message!");
+		ROS_INFO("Sent local position message!");
 	}
 
 	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
 		// wait if necessary
-		if (delay_miliseconds > 0){
+		if (delay_miliseconds != 0){
 			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
 		}
 		// set mode

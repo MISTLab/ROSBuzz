@@ -74,7 +74,6 @@ private:
 	ros::Subscriber flight_status_sub;
 	ros::Subscriber obstacle_sub;
 	ros::Subscriber Robot_id_sub;
-	ros::Publisher local_position_pub;
 
 	/*Commands for flight controller*/
   	//mavros_msgs::CommandInt cmd_srv;
@@ -93,8 +92,6 @@ private:
 	void Initialize_pub_sub(ros::NodeHandle n_c);
 
   	std::string current_mode; // SOLO SPECIFIC: just so you don't call the switch to same mode
-
-    void Initialize_pub_sub(ros::NodeHandle n_c);
 
 	/*Obtain data from ros parameter server*/	
 	void Rosparameters_get(ros::NodeHandle n_c);
@@ -159,16 +156,16 @@ private:
 	void Arm();
 
 	/*set mode like guided for solo*/
-	void SetMode();
+	void SetMode(std::string mode, int delay_miliseconds);
 
 	/*Robot independent subscribers*/
 	void Subscribe(ros::NodeHandle n_c);
 
-	void WaypointMissionSetup(float lat, float lng, float alt);
+	//void WaypointMissionSetup(float lat, float lng, float alt);
 
 	void fc_command_setup();
 
-	void LocalPosition(float x, float y, float z, float yaw);
+	void SetLocalPosition(float x, float y, float z, float yaw);
 };
 
 }

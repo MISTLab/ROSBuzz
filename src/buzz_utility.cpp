@@ -78,27 +78,7 @@ namespace buzz_utility{
    		size_t tot = sizeof(uint32_t);
 		/* Go through the messages until there's nothing else to read */
       		uint16_t unMsgSize=0;
-<<<<<<< HEAD
-		//uint8_t is_msg_pres=*(uint8_t*)(pl + tot);
-		//tot+=sizeof(uint8_t);
-		 //fprintf(stdout,"is_updater msg present : %i\n",(int)is_msg_pres);
-		//if(is_msg_pres){
-		//unMsgSize = *(uint16_t*)(pl + tot);
-		//tot+=sizeof(uint16_t);
-     		// fprintf(stdout,"%u : read msg size : %u \n",m_unRobotId,unMsgSize);
-		//	if(unMsgSize>0){
-		//		code_message_inqueue_append((uint8_t*)(pl + tot),unMsgSize);
-		//		tot+=unMsgSize;
-				//fprintf(stdout,"before in queue process : utils\n");
-		//	      	code_message_inqueue_process();
-				//fprintf(stdout,"after in queue process : utils\n");
-		//	}
-		//}
-	      	//unMsgSize=0;
-
-=======
 		
->>>>>>> dev
 			/*Obtain Buzz messages only when they are present*/
 	      			do {
 		 			/* Get payload size */
@@ -128,33 +108,6 @@ namespace buzz_utility{
    		/* Send robot id */
    		*(uint16_t*)(buff_send+tot) = (uint16_t) VM->robot;
    		tot += sizeof(uint16_t);
-<<<<<<< HEAD
-		//uint8_t updater_msg_pre = 0;
-   		//uint16_t updater_msgSize= 0;
-		//if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1){
-		  // fprintf(stdout,"transfer code \n");
-		 //  updater_msg_pre =1;
-		   //transfer_code=0;
-		 //  *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
-      		 //  tot += sizeof(uint8_t);
-		   /*Append updater msg size*/
-		   //*(uint16_t*)(buff_send + tot) = *(uint16_t*) (getupdate_out_msg_size());
-		//	updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());
-		//	*(uint16_t*)(buff_send + tot)=updater_msgSize;
-			//fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
-      		//   tot += sizeof(uint16_t);
-		   /*Append updater msgs*/
-    		//   memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
-		//   tot += updater_msgSize;
-		   /*destroy the updater out msg queue*/
-		//   destroy_out_msg_queue();
-		//}
-		//else{
-		//   *(uint8_t*)(buff_send + tot) = (uint8_t)updater_msg_pre;
-      		//   tot += sizeof(uint8_t);
-		//}
-=======
->>>>>>> dev
  			/* Send messages from FIFO */
 	   		do {
 				/* Are there more messages? */
@@ -532,67 +485,67 @@ namespace buzz_utility{
 	   buzzvm_gstore(VM);*/
 	}
 
-/****************************************/
-/*Destroy the bvm and other resorces*/
-/****************************************/
+	/****************************************/
+	/*Destroy the bvm and other resorces*/
+	/****************************************/
 
-void buzz_script_destroy() {
-   if(VM) {
-      if(VM->state != BUZZVM_STATE_READY) {
-         fprintf(stderr, "%s: execution terminated abnormally: %s\n\n",
-                 BO_FNAME,
-                 buzz_error_info());
-         buzzvm_dump(VM);
-      }
-      buzzvm_function_call(VM, "destroy", 0);
-      buzzvm_destroy(&VM);
-      free(BO_FNAME);
-      buzzdebug_destroy(&DBG_INFO);
-   }
-   fprintf(stdout, "Script execution stopped.\n");
-}
+	void buzz_script_destroy() {
+	   if(VM) {
+		  if(VM->state != BUZZVM_STATE_READY) {
+			 fprintf(stderr, "%s: execution terminated abnormally: %s\n\n",
+					 BO_FNAME,
+					 buzz_error_info());
+			 buzzvm_dump(VM);
+		  }
+		  buzzvm_function_call(VM, "destroy", 0);
+		  buzzvm_destroy(&VM);
+		  free(BO_FNAME);
+		  buzzdebug_destroy(&DBG_INFO);
+	   }
+	   fprintf(stdout, "Script execution stopped.\n");
+	}
 
 
-/****************************************/
-/****************************************/
+	/****************************************/
+	/****************************************/
 
-/****************************************/
-/*Execution completed*/
-/****************************************/
+	/****************************************/
+	/*Execution completed*/
+	/****************************************/
 
-int buzz_script_done() {
-   return VM->state != BUZZVM_STATE_READY;
-}
+	int buzz_script_done() {
+		return VM->state != BUZZVM_STATE_READY;
+	}
 
-int update_step_test(){
+	int update_step_test() {
 
-  buzzuav_closures::buzzuav_update_battery(VM);
-  buzzuav_closures::buzzuav_update_prox(VM);
-  buzzuav_closures::buzzuav_update_currentpos(VM);
-  buzzuav_closures::buzzuav_update_flight_status(VM);
+		buzzuav_closures::buzzuav_update_battery(VM);
+		buzzuav_closures::buzzuav_update_prox(VM);
+		buzzuav_closures::buzzuav_update_currentpos(VM);
+		buzzuav_closures::buzzuav_update_flight_status(VM);
 
- int a = buzzvm_function_call(VM, "step", 0);
-if(a != BUZZVM_STATE_READY){
- fprintf(stdout, "step test VM state %i\n",a);
-  fprintf(stdout, " execution terminated abnormally\n\n");
-}
- return a == BUZZVM_STATE_READY;
-}
+		int a = buzzvm_function_call(VM, "step", 0);
+		if(a != BUZZVM_STATE_READY) {
+			fprintf(stdout, "step test VM state %i\n",a);
+			fprintf(stdout, " execution terminated abnormally\n\n");
+		}
+		return a == BUZZVM_STATE_READY;
+	}
 
-uint16_t get_robotid(){
-/* Get hostname */
-   char hstnm[30];
-   gethostname(hstnm, 30);
-   /* Make numeric id from hostname */
-   /* NOTE: here we assume that the hostname is in the format Knn */
-   int id = strtol(hstnm + 4, NULL, 10);
-	//fprintf(stdout, "Robot id from get rid buzz util:  %i\n",id);
-return (uint16_t)id;
-}
+	uint16_t get_robotid() {
+		/* Get hostname */
+		char hstnm[30];
+		gethostname(hstnm, 30);
+		/* Make numeric id from hostname */
+		/* NOTE: here we assume that the hostname is in the format Knn */
+		int id = strtol(hstnm + 4, NULL, 10);
+		//fprintf(stdout, "Robot id from get rid buzz util:  %i\n",id);
+		return (uint16_t)id;
+	}
 
-buzzvm_t get_vm(){
-return VM;
-}
+	buzzvm_t get_vm() {
+		return VM;
+	}
 
 }
 
