@@ -86,21 +86,12 @@ function barrier_wait(threshold, transf) {
   if(barrier.size() >= threshold) {
     barrier = nil
     transf()
-<<<<<<< HEAD
   } else if(timeW>=WAIT_TIMEOUT) {
     barrier = nil
     statef=land
     timeW=0
   }
   timeW = timeW+1
-=======
-   } else if(timeW>=WAIT_TIMEOUT) {
-     barrier = nil
-     statef=hexagon #idle
-     timeW=0
-   }
-   timeW = timeW+1
->>>>>>> 141f05807d744ec9db040287ff04b06db10d6e8e
 }
 
 # flight status
