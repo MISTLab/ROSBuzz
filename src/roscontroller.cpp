@@ -436,8 +436,16 @@ namespace rosbzz_node{
 	/ from GPS coordinates
 	----------------------------------------------------------- */
 	#define EARTH_RADIUS (double) 6371000.0
+	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
 	void roscontroller::cvt_rangebearing_coordinates(double nei[], double out[], double cur[]){
-		double lat1 = cur[0]*M_PI/180.0;
+ 		double d_lon = nei[1] - cur[1];
+        	double d_lat = nei[0] - cur[0];
+        	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
+        	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
+		out[1] = atan2(ned_y,ned_x);
+		out[2] = 0.0;
+/*		double lat1 = cur[0]*M_PI/180.0;
 		double lon1 = cur[1]*M_PI/180.0;
 		double lat2 = nei[0]*M_PI/180.0;
 		double lon2 = nei[1]*M_PI/180.0;
@@ -445,7 +453,7 @@ namespace rosbzz_node{
 		double y = sin(lon1-lon2)*cos(lat1);
 		double x =  cos(lat2)*sin(lat1) - sin(lat2)*cos(lat1)*cos(lon1-lon2);
 		out[1] = atan2(y,x)+M_PI;
-		out[2] = 0.0;
+		out[2] = 0.0;*/
 	}
 
 	/*------------------------------------------------------
