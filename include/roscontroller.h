@@ -16,6 +16,7 @@
 #include "mavros_msgs/WaypointPush.h"
 #include "mavros_msgs/Waypoint.h"
 #include "mavros_msgs/PositionTarget.h"
+#include "mavros_msgs/StreamRate.h"
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
 #include <sstream>
@@ -166,6 +167,8 @@ private:
 	void fc_command_setup();
 
 	void SetLocalPosition(float x, float y, float z, float yaw);
+
+	void SetStreamRate(int id, int rate, int on_off);
 };
 
 }

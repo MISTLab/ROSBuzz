@@ -16,10 +16,12 @@ namespace rosbzz_node{
  		Compile_bzz();
 		set_bzz_file(bzzfile_name.c_str());
 		/*Initialize variables*/
-		//
+		// Solo things
 		SetMode("LOITER", 0);
 		armstate = 0;
 		multi_msg = true;
+		// set stream rate
+		SetStreamRate(0, 10, 1);
 	}
 
 	/*---------------------
@@ -356,7 +358,7 @@ namespace rosbzz_node{
 				break;
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
 				if(current_mode != "GUIDED")
-					SetMode("GUIDED", 0); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
+					SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
 				break;
 			}
 
@@ -386,7 +388,7 @@ namespace rosbzz_node{
 			Arm();
 		} else if (tmp == 4) {
 			armstate = 0;
-			SetMode("LOITER", 0);
+		SetMode("LOITER", 0);
 			Arm();
 		} else if (tmp == 5) { /*Buzz call for moveto*/
 			/*prepare the goto publish message */
@@ -676,5 +678,19 @@ namespace rosbzz_node{
 			ROS_INFO("Set Mode Service call failed!");
 		}
 	}
+
+	void roscontroller::SetStreamRate(int id, int rate, int on_off){
+		mavros_msgs::StreamRate message;
+		message.request.stream_id = id;
+		message.request.message_rate = rate;
+		message.request.on_off = on_off;
+		if(mav_client.call(message)){
+			ROS_INFO("Set Mode Service call successful!");
+		} else {
+			ROS_INFO("Set Mode Service call failed!");
+		}
+	}
+
+
 
 }
