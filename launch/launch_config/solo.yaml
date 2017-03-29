@@ -5,6 +5,7 @@ topics:
   fcclient:   /mavros/cmd/command
   armclient:  /mavros/cmd/arming
   modeclient: /mavros/set_mode
+  stream:  /mavros/set_stream_rate
 type:
   gps  :  sensor_msgs/NavSatFix
   # for SITL Solo 

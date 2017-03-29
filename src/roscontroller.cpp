@@ -133,7 +133,6 @@ namespace rosbzz_node{
 		node_handle.getParam("type/battery", battery_type);
 		m_smTopic_infos.insert(pair <std::string, std::string>(battery_topic, battery_type));
 
-
 		std::string status_topic, status_type;
 		node_handle.getParam("topics/status", status_topic);
 		node_handle.getParam("type/status", status_type);
@@ -146,6 +145,8 @@ namespace rosbzz_node{
   		else {ROS_ERROR("Provide an arm client name in Launch file"); system("rosnode kill rosbuzz_node");}  
   		if(node_handle.getParam("topics/modeclient", modeclient));
   		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}  
+  		if(node_handle.getParam("topics/stream", stream_client_name));
+  		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}
 	}
 
 	/*--------------------------------------------------------
@@ -170,6 +171,7 @@ namespace rosbzz_node{
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
+		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
 
 		multi_msg=true;
 	}
@@ -684,7 +686,7 @@ namespace rosbzz_node{
 		message.request.stream_id = id;
 		message.request.message_rate = rate;
 		message.request.on_off = on_off;
-		if(mav_client.call(message)){
+		if(stream_client.call(message)){
 			ROS_INFO("Set Mode Service call successful!");
 		} else {
 			ROS_INFO("Set Mode Service call failed!");
