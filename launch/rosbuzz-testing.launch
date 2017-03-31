@@ -18,7 +18,7 @@
 	</include>
 
 	<!-- set streaming rate -->
-	<node pkg="rosservice" type="rosservice" name="freq" args="call /mavros/set_stream_rate 0 10 1" output="screen" />
+	<!-- node pkg="rosservice" type="rosservice" name="freq" args="call /mavros/set_stream_rate 0 10 1" output="screen" / -->
 
 	<!-- run xbee -->
 	<node pkg="xbee_ros_node" type="xbee_mav" name="xbee_mav" args="slave swarm" output="screen" />

@@ -686,11 +686,12 @@ namespace rosbzz_node{
 		message.request.stream_id = id;
 		message.request.message_rate = rate;
 		message.request.on_off = on_off;
-		if(stream_client.call(message)){
-			ROS_INFO("Set Mode Service call successful!");
-		} else {
-			ROS_INFO("Set Mode Service call failed!");
+
+		while(!stream_client.call(message)){
+			ROS_INFO("Set stream rate call failed!, trying again...");
+			std::this_thread::sleep_for( std::chrono::milliseconds ( 2000 ) );
 		}
+		ROS_INFO("Set stream rate call successful");
 	}
 
 
