@@ -19,7 +19,7 @@ namespace buzz_utility{
 	static buzzdebug_t  DBG_INFO        = 0;
 	static uint8_t      MSG_SIZE        = 50;   // Only 100 bytes of Buzz messages every step
 	static int          MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
-	
+	static int 	    Robot_id        = 0;
 	
 	/****************************************/
 	/*adds neighbours position*/
@@ -254,16 +254,17 @@ namespace buzz_utility{
 	                    const char* bdbg_filename, int robot_id) {
 	//cout<<"bo file name"<<bo_filename;
 	/* Get hostname */
-   	char hstnm[30];
+   	//char hstnm[30];
         //char* hstnm ="M1003";
-   	gethostname(hstnm, 30);
+   	//gethostname(hstnm, 30);
    	/* Make numeric id from hostname */
-   	/* NOTE: here we assume that the hostname is in the format Knn */
-   	int id = strtol(hstnm+4, NULL, 10); 
-   	cout << " Robot ID: " <<id<< endl;
+   	/* NOTE: here we assume that the hostname is in the format Mnn */
+   	//int id = strtol(hstnm+4, NULL, 10); 
+   	cout << " Robot ID: " <<robot_id<< endl;
    	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
-   	VM = buzzvm_new((int)id);
+	Robot_id =robot_id;
+   	VM = buzzvm_new((int)robot_id);
    	/* Get rid of debug info */
    	if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
    	DBG_INFO = buzzdebug_new();
@@ -321,15 +322,15 @@ namespace buzz_utility{
 	/****************************************/
 	int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename,size_t bcode_size){
 	/* Get hostname */
-   	char hstnm[30];
-   	gethostname(hstnm, 30);
+   	//char hstnm[30];
+   	//gethostname(hstnm, 30);
    	/* Make numeric id from hostname */
-   	/* NOTE: here we assume that the hostname is in the format Knn */
-   	int id = strtol(hstnm + 4, NULL, 10);
+   	/* NOTE: here we assume that the hostname is in the format Mnn */
+   	//int id = strtol(hstnm + 4, NULL, 10);
 	
 	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
-   	VM = buzzvm_new(id);
+   	VM = buzzvm_new(Robot_id);
    	/* Get rid of debug info */
    	if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
   	DBG_INFO = buzzdebug_new();
@@ -369,14 +370,14 @@ namespace buzz_utility{
 	/****************************************/
 	int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename,size_t bcode_size){
 	/* Get hostname */
-   	char hstnm[30];
-   	gethostname(hstnm, 30);
+   	//char hstnm[30];
+   	//gethostname(hstnm, 30);
    	/* Make numeric id from hostname */
-   	/* NOTE: here we assume that the hostname is in the format Knn */
-   	int id = strtol(hstnm + 4, NULL, 10);
+   	/* NOTE: here we assume that the hostname is in the format Mnn */
+   	//int id = strtol(hstnm + 4, NULL, 10);
 	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
-   	VM = buzzvm_new(id);
+   	VM = buzzvm_new(Robot_id);
    	/* Get rid of debug info */
    	if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
   	DBG_INFO = buzzdebug_new();
