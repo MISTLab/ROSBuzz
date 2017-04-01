@@ -353,13 +353,13 @@ namespace rosbzz_node{
 		/*FC call for takeoff,land, gohome and arm/disarm*/
 		int tmp = buzzuav_closures::bzz_cmd();
     		double* goto_pos = buzzuav_closures::getgoto();
-		if (tmp == 1){
+		if (tmp == buzzuav_closures::COMMAND_TAKEOFF || tmp== buzzuav_closures::COMMAND_LAND || tmp==buzzuav_closures::COMMAND_GOHOME){
 			cmd_srv.request.param7 = goto_pos[2];
 			//cmd_srv.request.z = goto_pos[2];
 			cmd_srv.request.command =  buzzuav_closures::getcmd();  		
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
-		} else if (tmp == 2) { /*FC call for goto*/ 
+		} else if (tmp == buzzuav_closures::COMMAND_GOTO) { /*FC call for goto*/ 
 			/*prepare the goto publish message */
 			cmd_srv.request.param5 = goto_pos[0];
     			cmd_srv.request.param6 = goto_pos[1];
@@ -370,13 +370,13 @@ namespace rosbzz_node{
     			cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
 			if (mav_client.call(cmd_srv)){ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
 	    		else ROS_ERROR("Failed to call service from flight controller"); 
-		} else if (tmp == 3) { /*FC call for arm*/
+		} else if (tmp == buzzuav_closures::COMMAND_ARM) { /*FC call for arm*/
 			armstate=1;
 			Arm(); 
-		} else if (tmp == 4){
+		} else if (tmp == buzzuav_closures::COMMAND_DISARM){
 			armstate=0;
 			Arm();
-		} else if (tmp == 5) { /*Buzz call for moveto*/ 
+		} else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/ 
 			/*prepare the goto publish message */
 			mavros_msgs::PositionTarget pt;
 			pt.type_mask = mavros_msgs::PositionTarget::IGNORE_VX | mavros_msgs::PositionTarget::IGNORE_VY | mavros_msgs::PositionTarget::IGNORE_VZ | mavros_msgs::PositionTarget::IGNORE_AFX | mavros_msgs::PositionTarget::IGNORE_AFY | mavros_msgs::PositionTarget::IGNORE_AFZ | mavros_msgs::PositionTarget::IGNORE_YAW_RATE;
