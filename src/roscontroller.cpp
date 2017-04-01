@@ -36,6 +36,18 @@ namespace rosbzz_node{
 	/rosbuzz_node loop method executed once every step
 	/--------------------------------------------------*/
 	void roscontroller::RosControllerRun(){
+		
+		while(!robot_id_client.call(robot_id_srv_request,robot_id_srv_response)){
+			/*run once*/
+    			ros::spinOnce();
+			/*loop rate of ros*/
+			ros::Rate loop_rate(10);
+			loop_rate.sleep();
+ 			/*sleep for the mentioned loop rate*/
+			ROS_ERROR("Waiting for Xbee to respond to get device ID");
+		}
+		robot_id=robot_id_srv_response.value.integer;
+			
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
@@ -154,7 +166,7 @@ namespace rosbzz_node{
   		//battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
   		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
 		//flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_extended_status_update,this);
-		Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
+		//Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
   		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
@@ -164,7 +176,7 @@ namespace rosbzz_node{
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-
+		robot_id_client = n_c.serviceClient<mavros_msgs::ParamGet>("/Robot_ID_srv");
 		multi_msg=true;
 	}
 	/*---------------------------------------
@@ -630,10 +642,10 @@ namespace rosbzz_node{
 	/Obtain robot id by subscribing to xbee robot id topic 
 	/ TODO: check for integrity of this subscriber call back
 	/----------------------------------------------------*/
-	void roscontroller::set_robot_id(const std_msgs::UInt8::ConstPtr& msg){
-	robot_id=(int)msg->data;
+	/*void roscontroller::set_robot_id(const std_msgs::UInt8::ConstPtr& msg){
 	
-	}
+	
+	}*/
 	
 }
 

@@ -13,6 +13,8 @@
 #include "mavros_msgs/Mavlink.h"
 #include "mavros_msgs/PositionTarget.h"
 #include "sensor_msgs/NavSatStatus.h"
+#include <mavros_msgs/ParamGet.h>
+#include <mavros_msgs/ParamValue.h>
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
 #include <sstream>
@@ -61,6 +63,7 @@ private:
 	bool rcclient;
 	bool multi_msg;
 	ros::ServiceClient mav_client;
+	ros::ServiceClient robot_id_client;
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;
 	ros::Publisher localsetpoint_pub;
@@ -70,11 +73,12 @@ private:
 	ros::Subscriber payload_sub;
 	ros::Subscriber flight_status_sub;
 	ros::Subscriber obstacle_sub;
-	ros::Subscriber Robot_id_sub;
+	//ros::Subscriber Robot_id_sub;
 	/*Commands for flight controller*/
   	//mavros_msgs::CommandInt cmd_srv;
   	mavros_msgs::CommandLong cmd_srv;
-
+	mavros_msgs::ParamGet::Request robot_id_srv_request;
+	mavros_msgs::ParamGet::Response robot_id_srv_response;
   	std::vector<std::string> m_sMySubscriptions;
   	std::map<std::string, std::string> m_smTopic_infos;
 
