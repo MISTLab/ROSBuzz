@@ -52,7 +52,7 @@ namespace rosbzz_node{
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
-			init_update_monitor(bcfname.c_str(),stand_by.c_str(),barrier);
+			init_update_monitor(bcfname.c_str(),stand_by.c_str());
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
       				/*Update neighbors position inside Buzz*/
@@ -72,6 +72,10 @@ namespace rosbzz_node{
 					set_read_update_status();
 					multi_msg=true;
 				}
+				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
+				buzz_utility::set_robot_var(neighbours_pos_map.size());
+				/*Set no of robots for updates*/
+				updates_set_robots(neighbours_pos_map.size());
     				/*run once*/
     				ros::spinOnce();
 				/*loop rate of ros*/
@@ -80,6 +84,7 @@ namespace rosbzz_node{
  				/*sleep for the mentioned loop rate*/
     				timer_step+=1;
    				maintain_pos(timer_step);
+				
 				
 			}
 			/* Destroy updater and Cleanup */

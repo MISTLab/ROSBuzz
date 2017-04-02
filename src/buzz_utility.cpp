@@ -548,6 +548,11 @@ buzzvm_t get_vm(){
 return VM;
 }
 
+void set_robot_var(int ROBOTS){
+	buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
+	buzzvm_pushi(VM, ROBOTS);
+	buzzvm_gstore(VM);
+}
 }
 
 
