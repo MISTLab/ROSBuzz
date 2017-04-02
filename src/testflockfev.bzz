@@ -16,7 +16,7 @@ CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
 TARGET     = 10.0	#0.000001001
-EPSILON    = 12.0	#0.001
+EPSILON    = 20.0	#0.001
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -56,7 +56,7 @@ function hexagon() {
 # Constants
 #
 BARRIER_VSTIG = 1
-ROBOTS = 3 # number of robots in the swarm
+# ROBOTS = 3 # number of robots in the swarm
 
 #
 # Sets a barrier
@@ -178,6 +178,7 @@ function step() {
 	}
 	statef()
 	log("Current state: ", CURSTATE)
+	log("Swarm size: ",ROBOTS)
 }
  
 # Executed once when the robot (or the simulator) is reset.
