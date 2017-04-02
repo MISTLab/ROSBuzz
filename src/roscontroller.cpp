@@ -36,8 +36,9 @@ namespace rosbzz_node{
 	/rosbuzz_node loop method executed once every step
 	/--------------------------------------------------*/
 	void roscontroller::RosControllerRun(){
-		
-		while(!robot_id_client.call(robot_id_srv_request,robot_id_srv_response)){
+		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
+        	mavros_msgs::ParamGet::Response robot_id_srv_response;
+		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
 			/*run once*/
     			ros::spinOnce();
 			/*loop rate of ros*/
@@ -118,6 +119,7 @@ namespace rosbzz_node{
 		n_c.getParam("No_of_Robots", barrier);
 		/*Obtain standby script to run during update*/
 		n_c.getParam("stand_by", stand_by);
+		n_c.getParam("xbee_status_srv", xbeesrv_name);
 		
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
@@ -176,7 +178,7 @@ namespace rosbzz_node{
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-		robot_id_client = n_c.serviceClient<mavros_msgs::ParamGet>("/Robot_ID_srv");
+		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
 		multi_msg=true;
 	}
 	/*---------------------------------------

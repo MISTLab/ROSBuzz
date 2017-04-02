@@ -29,40 +29,42 @@ namespace buzzuav_closures{
 
 	int buzzros_print(buzzvm_t vm) {
 	int i;
+	char buffer [50] = "";
 	   for(i = 1; i < buzzdarray_size(vm->lsyms->syms); ++i) {
 	      buzzvm_lload(vm, i);
 	      buzzobj_t o = buzzvm_stack_at(vm, 1);
 	      buzzvm_pop(vm);
 	      switch(o->o.type) {
 		 case BUZZTYPE_NIL:
-		    ROS_INFO("BUZZ - [nil]");
+		    sprintf(buffer,"%s BUZZ - [nil]", buffer);
 		    break;
 		 case BUZZTYPE_INT:
-		    ROS_INFO("%d", o->i.value);
+		    sprintf(buffer,"%s %d", buffer, o->i.value);
 		    //fprintf(stdout, "%d", o->i.value);
 		    break;
 		 case BUZZTYPE_FLOAT:
-		    ROS_INFO("%f", o->f.value);
+		    sprintf(buffer,"%s %f", buffer, o->f.value);
 		    break;
 		 case BUZZTYPE_TABLE:
-		    ROS_INFO("[table with %d elems]", (buzzdict_size(o->t.value)));
+		    sprintf(buffer,"%s [table with %d elems]", buffer, (buzzdict_size(o->t.value)));
 		    break;
 		 case BUZZTYPE_CLOSURE:
 		    if(o->c.value.isnative)
-			ROS_INFO("[n-closure @%d]", o->c.value.ref);
+		    	sprintf(buffer,"%s [n-closure @%d]", buffer, o->c.value.ref);
 		    else
-			ROS_INFO("[c-closure @%d]", o->c.value.ref);
+		    	sprintf(buffer,"%s [c-closure @%d]", buffer, o->c.value.ref);
 		    break;
 		 case BUZZTYPE_STRING:
-		    ROS_INFO("%s", o->s.value.str);
+		    sprintf(buffer,"%s %s", buffer, o->s.value.str);
 		    break;
 		 case BUZZTYPE_USERDATA:
-		    ROS_INFO("[userdata @%p]", o->u.value);
+		    sprintf(buffer,"%s [userdata @%p]", buffer, o->u.value);
 		    break;
 		 default:
 		    break;
 	      }
 	   }
+	   ROS_INFO(buffer);
 	   //fprintf(stdout, "\n");
 	   return buzzvm_ret0(vm);
 	}

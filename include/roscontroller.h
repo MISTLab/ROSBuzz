@@ -59,11 +59,11 @@ private:
 	int armstate;
 	int barrier;
 	int message_number=0;
-	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by;
+	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name;
 	bool rcclient;
 	bool multi_msg;
 	ros::ServiceClient mav_client;
-	ros::ServiceClient robot_id_client;
+	ros::ServiceClient xbeestatus_srv;
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;
 	ros::Publisher localsetpoint_pub;
@@ -77,8 +77,6 @@ private:
 	/*Commands for flight controller*/
   	//mavros_msgs::CommandInt cmd_srv;
   	mavros_msgs::CommandLong cmd_srv;
-	mavros_msgs::ParamGet::Request robot_id_srv_request;
-	mavros_msgs::ParamGet::Response robot_id_srv_response;
   	std::vector<std::string> m_sMySubscriptions;
   	std::map<std::string, std::string> m_smTopic_infos;
 
