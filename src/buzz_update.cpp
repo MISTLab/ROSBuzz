@@ -27,7 +27,7 @@ static int neigh=-1;
 static int 	    updater_msg_ready ;
 static int updated=0;
 
-void init_update_monitor(const char* bo_filename, const char* stand_by_script,int barrier){
+void init_update_monitor(const char* bo_filename, const char* stand_by_script){
 	fprintf(stdout,"intiialized file monitor.\n");
 	fd=inotify_init1(IN_NONBLOCK);
 	if ( fd < 0 ) {
@@ -91,7 +91,7 @@ void init_update_monitor(const char* bo_filename, const char* stand_by_script,in
 	  *(size_t*)(updater->standby_bcode_size)=stdby_bcode_size;
 	  updater->mode=(int*)malloc(sizeof(int));
 	  *(int*)(updater->mode)=CODE_RUNNING;
-	  no_of_robot=barrier;
+	  //no_of_robot=barrier;
 	  updater_msg_ready=0;
 	  //neigh = 0;
 	  //updater->outmsg_queue=
@@ -444,6 +444,11 @@ close(fd);
 void set_bzz_file(const char* in_bzz_file){
 bzz_file=in_bzz_file;
 }
+
+void updates_set_robots(int robots){
+no_of_robot=robots;
+}
+
 void collect_data(){
 //fprintf(stdout,"start and end time in data collection Info : %f,%f",(double)begin,(double)end);
 double time_spent =   (t2.tv_sec - t1.tv_sec) * 1000.0; //(double)(end - begin) / CLOCKS_PER_SEC;

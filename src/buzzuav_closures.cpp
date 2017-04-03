@@ -29,40 +29,42 @@ namespace buzzuav_closures{
 
 	int buzzros_print(buzzvm_t vm) {
 	int i;
+	char buffer [50] = "";
 	   for(i = 1; i < buzzdarray_size(vm->lsyms->syms); ++i) {
 	      buzzvm_lload(vm, i);
 	      buzzobj_t o = buzzvm_stack_at(vm, 1);
 	      buzzvm_pop(vm);
 	      switch(o->o.type) {
 		 case BUZZTYPE_NIL:
-		    ROS_INFO("BUZZ - [nil]");
+		    sprintf(buffer,"%s BUZZ - [nil]", buffer);
 		    break;
 		 case BUZZTYPE_INT:
-		    ROS_INFO("%d", o->i.value);
+		    sprintf(buffer,"%s %d", buffer, o->i.value);
 		    //fprintf(stdout, "%d", o->i.value);
 		    break;
 		 case BUZZTYPE_FLOAT:
-		    ROS_INFO("%f", o->f.value);
+		    sprintf(buffer,"%s %f", buffer, o->f.value);
 		    break;
 		 case BUZZTYPE_TABLE:
-		    ROS_INFO("[table with %d elems]", (buzzdict_size(o->t.value)));
+		    sprintf(buffer,"%s [table with %d elems]", buffer, (buzzdict_size(o->t.value)));
 		    break;
 		 case BUZZTYPE_CLOSURE:
 		    if(o->c.value.isnative)
-			ROS_INFO("[n-closure @%d]", o->c.value.ref);
+		    	sprintf(buffer,"%s [n-closure @%d]", buffer, o->c.value.ref);
 		    else
-			ROS_INFO("[c-closure @%d]", o->c.value.ref);
+		    	sprintf(buffer,"%s [c-closure @%d]", buffer, o->c.value.ref);
 		    break;
 		 case BUZZTYPE_STRING:
-		    ROS_INFO("%s", o->s.value.str);
+		    sprintf(buffer,"%s %s", buffer, o->s.value.str);
 		    break;
 		 case BUZZTYPE_USERDATA:
-		    ROS_INFO("[userdata @%p]", o->u.value);
+		    sprintf(buffer,"%s [userdata @%p]", buffer, o->u.value);
 		    break;
 		 default:
 		    break;
 	      }
 	   }
+	   ROS_INFO(buffer);
 	   //fprintf(stdout, "\n");
 	   return buzzvm_ret0(vm);
 	}
@@ -108,7 +110,7 @@ namespace buzzuav_closures{
 	   gps_from_rb(d, b, goto_pos);
 	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
 	   printf(" Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
-	   buzz_cmd=5;
+	   buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
 	   return buzzvm_ret0(vm);
 	}
 
@@ -120,7 +122,7 @@ namespace buzzuav_closures{
 	   set_goto(rc_goto_pos);
 	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
 	   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
-	   buzz_cmd=2;
+	   buzz_cmd=COMMAND_GOTO;
 	   return buzzvm_ret0(vm);
 	}
 
@@ -130,13 +132,13 @@ namespace buzzuav_closures{
 	int buzzuav_arm(buzzvm_t vm) {
 	   cur_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
 	   printf(" Buzz requested Arm \n");
-	   buzz_cmd=3;
+	   buzz_cmd=COMMAND_ARM;
 	   return buzzvm_ret0(vm);
 	}
 	int buzzuav_disarm(buzzvm_t vm) {
 	   cur_cmd=mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM + 1;
 	   printf(" Buzz requested Disarm  \n");
-	   buzz_cmd=4;
+	   buzz_cmd=COMMAND_DISARM;
 	   return buzzvm_ret0(vm);
 	}
 
@@ -151,21 +153,21 @@ namespace buzzuav_closures{
 	   height = goto_pos[2];
 	   cur_cmd=mavros_msgs::CommandCode::NAV_TAKEOFF;
 	   printf(" Buzz requested Take off !!! \n");
-	   buzz_cmd = 1;
+	   buzz_cmd = COMMAND_TAKEOFF;
 	   return buzzvm_ret0(vm);
 	}
 
 	int buzzuav_land(buzzvm_t vm) {
 	   cur_cmd=mavros_msgs::CommandCode::NAV_LAND;
 	   printf(" Buzz requested Land !!! \n");
-	   buzz_cmd = 1;
+	   buzz_cmd = COMMAND_LAND;
 	   return buzzvm_ret0(vm);
 	}
 
 	int buzzuav_gohome(buzzvm_t vm) {
 	   cur_cmd=mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
 	   printf(" Buzz requested gohome !!! \n");
-	   buzz_cmd = 1;
+	   buzz_cmd = COMMAND_GOHOME;
 	   return buzzvm_ret0(vm);
 	}
 
@@ -306,9 +308,65 @@ namespace buzzuav_closures{
 
 	/******************************************************/
 	/*Create an obstacle Buzz table from proximity sensors*/
+	/*  Acessing proximity in buzz script 
+	    proximity[0].angle and proximity[0].value - front
+		""          ""          "" 	      - right and back
+	    proximity[3].angle and proximity[3].value - left
+	    proximity[4].angle = -1 and proximity[4].value -bottom */
 	/******************************************************/
 
 	int buzzuav_update_prox(buzzvm_t vm) {
+
+	buzzvm_pushs(vm, buzzvm_string_register(vm, "proximity", 1));
+        buzzvm_pusht(vm);
+        buzzobj_t tProxTable = buzzvm_stack_at(vm, 1);
+        buzzvm_gstore(vm);
+      
+        /* Fill into the proximity table */
+        buzzobj_t tProxRead;
+        float angle =0;
+        for(size_t i = 0; i < 4; ++i) {
+           /* Create table for i-th read */
+           buzzvm_pusht(vm);
+           tProxRead = buzzvm_stack_at(vm, 1);
+           buzzvm_pop(vm);
+           /* Fill in the read */
+	   buzzvm_push(vm, tProxRead);
+   	   buzzvm_pushs(vm, buzzvm_string_register(vm, "value", 0));
+   	   buzzvm_pushf(vm, obst[i+1]);
+   	   buzzvm_tput(vm);
+	   buzzvm_push(vm, tProxRead);
+   	   buzzvm_pushs(vm, buzzvm_string_register(vm, "angle", 0));
+   	   buzzvm_pushf(vm, angle);
+   	   buzzvm_tput(vm);
+           /* Store read table in the proximity table */
+          buzzvm_push(vm, tProxTable);
+   	  buzzvm_pushi(vm, i);
+  	  buzzvm_push(vm, tProxRead);
+ 	  buzzvm_tput(vm);
+	   angle+=1.5708;
+        }
+	/* Create table for bottom read */
+	 angle =-1;
+         buzzvm_pusht(vm);
+         tProxRead = buzzvm_stack_at(vm, 1);
+         buzzvm_pop(vm);
+         /* Fill in the read */
+	 buzzvm_push(vm, tProxRead);
+   	 buzzvm_pushs(vm, buzzvm_string_register(vm, "value", 0));
+   	 buzzvm_pushf(vm, obst[0]);
+   	 buzzvm_tput(vm);
+	 buzzvm_push(vm, tProxRead);
+   	 buzzvm_pushs(vm, buzzvm_string_register(vm, "angle", 0));
+   	 buzzvm_pushf(vm, angle);
+   	 buzzvm_tput(vm);
+	 /*Store read table in the proximity table*/
+	 buzzvm_push(vm, tProxTable);
+   	 buzzvm_pushi(vm, 4);
+  	 buzzvm_push(vm, tProxRead);
+ 	 buzzvm_tput(vm);
+
+	 /*
 	  buzzvm_pushs(vm, buzzvm_string_register(vm, "proximity", 1));
 	   buzzvm_pusht(vm);
 	   buzzvm_dup(vm);
@@ -331,7 +389,7 @@ namespace buzzuav_closures{
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "left", 1));
 	   buzzvm_pushf(vm, obst[4]);
 	   buzzvm_tput(vm);
-	   buzzvm_gstore(vm);
+	   buzzvm_gstore(vm);*/
 	   return vm->state;
 	}
 

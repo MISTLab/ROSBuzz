@@ -16,7 +16,7 @@ CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
 TARGET     = 10.0	#0.000001001
-EPSILON    = 10.0	#0.001
+EPSILON    = 18.0	#0.001
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -56,7 +56,7 @@ function hexagon() {
 # Constants
 #
 BARRIER_VSTIG = 1
-ROBOTS = 4 # number of robots in the swarm
+# ROBOTS = 3 # number of robots in the swarm
 
 #
 # Sets a barrier
@@ -86,12 +86,12 @@ function barrier_wait(threshold, transf) {
   if(barrier.size() >= threshold) {
     barrier = nil
     transf()
-   } else if(timeW>=WAIT_TIMEOUT) {
-     barrier = nil
-     statef=hexagon #idle
-     timeW=0
-   }
-   timeW = timeW+1
+  } else if(timeW>=WAIT_TIMEOUT) {
+    barrier = nil
+    statef=land
+    timeW=0
+  }
+  timeW = timeW+1
 }
 
 # flight status
@@ -99,25 +99,12 @@ function barrier_wait(threshold, transf) {
 function idle() {
 statef=idle
 CURSTATE = "IDLE"
-neighbors.listen("cmd",
-   function(vid, value, rid) {
-      print("Got (", vid, ",", value, ") from robot #", rid)
-	if(value==22) {
-		statef=takeoff
-	} else if(value==21) {
-		statef=land
-	} else if(value==400) {
-		uav_arm()
-	} else if(value==401){
-		uav_disarm()
-	}
-   }
    
-
-)
 }
 
 function takeoff() {
+	CURSTATE = "TAKEOFF"
+	statef=takeoff
 	log("TakeOff: ", flight.status)
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 		barrier_set(ROBOTS,hexagon)
@@ -131,6 +118,8 @@ function takeoff() {
 	}
 }
 function land() {
+	CURSTATE = "LAND"
+	statef=land
 	log("Land: ", flight.status)
 	if(flight.status == 2 or flight.status == 1){
 		neighbors.broadcast("cmd", 21)
@@ -165,6 +154,7 @@ function step() {
 		neighbors.broadcast("cmd", 21)
 	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
+		statef = idle
 		uav_goto()
 	} else if(flight.rc_cmd==400) {
 		flight.rc_cmd=0
@@ -175,8 +165,24 @@ function step() {
 		uav_disarm()
 		neighbors.broadcast("cmd", 401)
 	}
+neighbors.listen("cmd",
+   function(vid, value, rid) {
+      print("Got (", vid, ",", value, ") from robot #", rid)
+	if(value==22 and CURSTATE=="IDLE") {
+		statef=takeoff
+	} else if(value==21) {
+		statef=land
+	} else if(value==400 and CURSTATE=="IDLE") {
+		uav_arm()
+	} else if(value==401 and CURSTATE=="IDLE"){
+		uav_disarm()
+	}
+   }
+
+)
 	statef()
 	log("Current state: ", CURSTATE)
+	log("Swarm size: ",ROBOTS)
 }
  
 # Executed once when the robot (or the simulator) is reset.

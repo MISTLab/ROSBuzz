@@ -48,7 +48,15 @@ public:
 	void RosControllerRun();
 	
 private:
-        
+        struct num_robot_count
+	{
+		uint8_t history[10];
+		uint8_t index=0;
+	  	uint8_t current=0;
+  		num_robot_count(){}
+	  
+	}; typedef struct num_robot_count Num_robot_count ;
+
  	double cur_pos[3];
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
@@ -61,10 +69,17 @@ private:
 	int armstate;
 	int barrier;
 	int message_number=0;
-	std::string bzzfile_name, fcclient_name, armclient, stream_client_name, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by;
+	int no_of_robots=0;
+	/*tmp to be corrected*/
+	int no_cnt=0;
+	int old_val=0;	
+	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name;
+	std::string stream_client_name;
 	bool rcclient;
 	bool multi_msg;
+	Num_robot_count count_robots;
 	ros::ServiceClient mav_client;
+	ros::ServiceClient xbeestatus_srv;
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;
 	ros::Publisher localsetpoint_pub;
@@ -80,7 +95,6 @@ private:
 	/*Commands for flight controller*/
   	//mavros_msgs::CommandInt cmd_srv;
   	mavros_msgs::CommandLong cmd_srv;
-
   	std::vector<std::string> m_sMySubscriptions;
   	std::map<std::string, std::string> m_smTopic_infos;
 
@@ -170,6 +184,8 @@ private:
 	void SetLocalPosition(float x, float y, float z, float yaw);
 
 	void SetStreamRate(int id, int rate, int on_off);
+	
+	void get_number_of_robots();
 };
 
 }

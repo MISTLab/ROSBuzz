@@ -40,10 +40,23 @@ namespace rosbzz_node{
 	/rosbuzz_node loop method executed once every step
 	/--------------------------------------------------*/
 	void roscontroller::RosControllerRun(){
+		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
+        	mavros_msgs::ParamGet::Response robot_id_srv_response;
+		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
+			/*run once*/
+    			ros::spinOnce();
+			/*loop rate of ros*/
+			ros::Rate loop_rate(10);
+			loop_rate.sleep();
+ 			/*sleep for the mentioned loop rate*/
+			ROS_ERROR("Waiting for Xbee to respond to get device ID");
+		}
+		robot_id=robot_id_srv_response.value.integer;
+			
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
-			init_update_monitor(bcfname.c_str(),stand_by.c_str(),barrier);
+			init_update_monitor(bcfname.c_str(),stand_by.c_str());
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
       				/*Update neighbors position inside Buzz*/
@@ -63,6 +76,13 @@ namespace rosbzz_node{
 					set_read_update_status();
 					multi_msg=true;
 				}
+				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
+				//no_of_robots=get_number_of_robots();
+				get_number_of_robots();
+				//if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
+				buzz_utility::set_robot_var(no_of_robots);
+				/*Set no of robots for updates*/
+				updates_set_robots(no_of_robots);
     				/*run once*/
     				ros::spinOnce();
 				/*loop rate of ros*/
@@ -71,9 +91,8 @@ namespace rosbzz_node{
  				/*sleep for the mentioned loop rate*/
     				timer_step+=1;
    				maintain_pos(timer_step);
-
-
-
+				
+				
 			}
 			/* Destroy updater and Cleanup */
     			//update_routine(bcfname.c_str(), dbgfname.c_str(),1);
@@ -112,6 +131,7 @@ namespace rosbzz_node{
 		n_c.getParam("No_of_Robots", barrier);
 		/*Obtain standby script to run during update*/
 		n_c.getParam("stand_by", stand_by);
+		n_c.getParam("xbee_status_srv", xbeesrv_name);
 		
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
@@ -161,7 +181,7 @@ namespace rosbzz_node{
   		//battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
   		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
 		//flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_extended_status_update,this);
-		Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
+		//Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
   		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
@@ -171,6 +191,7 @@ namespace rosbzz_node{
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
+		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
 		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
 
 		multi_msg=true;
@@ -444,8 +465,16 @@ namespace rosbzz_node{
 	/ from GPS coordinates
 	----------------------------------------------------------- */
 	#define EARTH_RADIUS (double) 6371000.0
+	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
 	void roscontroller::cvt_rangebearing_coordinates(double nei[], double out[], double cur[]){
-		double lat1 = cur[0]*M_PI/180.0;
+ 		double d_lon = nei[1] - cur[1];
+        	double d_lat = nei[0] - cur[0];
+        	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
+        	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
+		out[1] = atan2(ned_y,ned_x);
+		out[2] = 0.0;
+/*		double lat1 = cur[0]*M_PI/180.0;
 		double lon1 = cur[1]*M_PI/180.0;
 		double lat2 = nei[0]*M_PI/180.0;
 		double lon2 = nei[1]*M_PI/180.0;
@@ -453,7 +482,7 @@ namespace rosbzz_node{
 		double y = sin(lon1-lon2)*cos(lat1);
 		double x =  cos(lat2)*sin(lat1) - sin(lat2)*cos(lat1)*cos(lon1-lon2);
 		out[1] = atan2(y,x)+M_PI;
-		out[2] = 0.0;
+		out[2] = 0.0;*/
 	}
 
 	/*------------------------------------------------------
@@ -633,10 +662,66 @@ namespace rosbzz_node{
 	/Obtain robot id by subscribing to xbee robot id topic 
 	/ TODO: check for integrity of this subscriber call back
 	/----------------------------------------------------*/
-	void roscontroller::set_robot_id(const std_msgs::UInt8::ConstPtr& msg){
-		robot_id=(int)msg->data;
-	}
+	/*void roscontroller::set_robot_id(const std_msgs::UInt8::ConstPtr& msg){
 	
+	
+	}*/
+	void roscontroller::get_number_of_robots(){
+		
+		if(no_of_robots==0){
+			no_of_robots=neighbours_pos_map.size()+1;
+						
+		}
+		else{
+			if(no_of_robots!=neighbours_pos_map.size()+1 && no_cnt==0){
+				no_cnt++;
+				old_val=neighbours_pos_map.size()+1;
+			
+			}			
+			else if(old_val==neighbours_pos_map.size()+1){
+				no_cnt++;
+				if(no_cnt==3){
+					no_of_robots=neighbours_pos_map.size()+1;
+					no_cnt=0;
+				}
+			}
+			else{
+				no_cnt=0;
+			}
+		}
+		//if(count_robots.current !=0){
+			/*std::map< int,  int> count_count;
+			uint8_t index=0;
+			count_robots.history[count_robots.index]=neighbours_pos_map.size()+1;
+			//count_robots.current=neighbours_pos_map.size()+1;
+			count_robots.index++;	
+			if(count_robots.index >9) count_robots.index =0;	
+			for(int i=0;i<10;i++){
+				if(count_robots.history[i]==count_robots.current){
+					current_count++;	
+				}
+				else{
+					if(count_robots.history[i]!=0){
+						odd_count++;
+						odd_val=count_robots.history[i];
+					}
+				}
+			}
+			if(odd_count>current_count){
+				count_robots.current=odd_val;
+			}	
+		//}
+		/*else{
+			if(neighbours_pos_map.size()!=0){
+				count_robots.history[count_robots.index]=neighbours_pos_map.size()+1;
+				//count_robots.current=neighbours_pos_map.size()+1;
+				count_robots.index++;
+				if(count_robots.index >9){ 
+					count_robots.index =0;
+					count_robots.current=neighbours_pos_map.size()+1;
+				} 
+			}
+		}*/
 	/*
 	 * SOLO SPECIFIC FUNCTIONS
 	 */

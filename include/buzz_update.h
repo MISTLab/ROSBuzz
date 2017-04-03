@@ -73,7 +73,7 @@ void update_routine(const char* bcfname,
 /************************************************/
 /*Initalizes the updater */
 /************************************************/
-void init_update_monitor(const char* bo_filename,const char* stand_by_script,int barrier);
+void init_update_monitor(const char* bo_filename,const char* stand_by_script);
 
 
 /*********************************************************/
@@ -128,5 +128,7 @@ int is_msg_present();
 int get_update_status();
 
 void set_read_update_status();
+
+void updates_set_robots(int robots);
 
 #endif
