@@ -8,8 +8,7 @@
 		<param name="rcservice_name" value="/buzzcmd" />
 		<param name="in_payload" value="/inMavlink"/>
 		<param name="out_payload" value="/outMavlink"/>
-		<param name="robot_id" value="3"/>
-		<param name="No_of_Robots" value="3"/>
+		<param name="xbee_status_srv" value="/xbee_status"/>
 		<param name="stand_by" value="$(env ROS_WS)/src/ROSBuzz/src/stand_by.bo"/>
 		</node>
 		

@@ -73,9 +73,10 @@ namespace rosbzz_node{
 					multi_msg=true;
 				}
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
-				buzz_utility::set_robot_var(raw_neighbours_pos_map.size()+1);
+				if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
+				buzz_utility::set_robot_var(no_of_robots);
 				/*Set no of robots for updates*/
-				updates_set_robots(raw_neighbours_pos_map.size()+1);
+				updates_set_robots(no_of_robots);
     				/*run once*/
     				ros::spinOnce();
 				/*loop rate of ros*/

@@ -59,6 +59,7 @@ private:
 	int armstate;
 	int barrier;
 	int message_number=0;
+	int no_of_robots=0;
 	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name;
 	bool rcclient;
 	bool multi_msg;
