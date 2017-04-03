@@ -68,6 +68,9 @@ private:
 	int barrier;
 	int message_number=0;
 	int no_of_robots=0;
+	/*tmp to be corrected*/
+	int no_cnt=0;
+	int old_val=0;	
 	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name;
 	bool rcclient;
 	bool multi_msg;
@@ -167,7 +170,7 @@ private:
 	/*Robot independent subscribers*/
 	void Subscribe(ros::NodeHandle n_c);
 	
-	int get_number_of_robots();
+	void get_number_of_robots();
 };
 
 }

@@ -74,7 +74,8 @@ namespace rosbzz_node{
 				}
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
 				//no_of_robots=get_number_of_robots();
-				if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
+				get_number_of_robots();
+				//if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
 				buzz_utility::set_robot_var(no_of_robots);
 				/*Set no of robots for updates*/
 				updates_set_robots(no_of_robots);
@@ -655,9 +656,31 @@ namespace rosbzz_node{
 	
 	
 	}*/
-	int roscontroller::get_number_of_robots(){
+	void roscontroller::get_number_of_robots(){
+		
+		if(no_of_robots==0){
+			no_of_robots=neighbours_pos_map.size()+1;
+						
+		}
+		else{
+			if(no_of_robots!=neighbours_pos_map.size()+1 && no_cnt==0){
+				no_cnt++;
+				old_val=neighbours_pos_map.size()+1;
+			
+			}			
+			else if(old_val==neighbours_pos_map.size()+1){
+				no_cnt++;
+				if(no_cnt==3){
+					no_of_robots=neighbours_pos_map.size()+1;
+					no_cnt=0;
+				}
+			}
+			else{
+				no_cnt=0;
+			}
+		}
 		//if(count_robots.current !=0){
-		/*	std::map< int,  int> count_count;
+			/*std::map< int,  int> count_count;
 			uint8_t index=0;
 			count_robots.history[count_robots.index]=neighbours_pos_map.size()+1;
 			//count_robots.current=neighbours_pos_map.size()+1;
@@ -689,7 +712,6 @@ namespace rosbzz_node{
 				} 
 			}
 		}*/
-	return count_robots.current;
 	}
 	
 }
