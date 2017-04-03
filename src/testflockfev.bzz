@@ -78,7 +78,7 @@ function barrier_ready() {
 #
 # Executes the barrier
 #
-WAIT_TIMEOUT = 500
+WAIT_TIMEOUT = 100
 timeW=0
 function barrier_wait(threshold, transf) {
   barrier.get(id)
@@ -118,6 +118,8 @@ neighbors.listen("cmd",
 }
 
 function takeoff() {
+	CURSTATE = "TAKEOFF"
+	statef=takeoff
 	log("TakeOff: ", flight.status)
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 		barrier_set(ROBOTS,hexagon)
@@ -131,6 +133,8 @@ function takeoff() {
 	}
 }
 function land() {
+	CURSTATE = "LAND"
+	statef=land
 	log("Land: ", flight.status)
 	if(flight.status == 2 or flight.status == 3){
 		neighbors.broadcast("cmd", 21)
