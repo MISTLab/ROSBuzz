@@ -46,7 +46,15 @@ public:
 	void RosControllerRun();
 	
 private:
-        
+        struct num_robot_count
+	{
+		uint8_t history[10];
+		uint8_t index=0;
+	  	uint8_t current=0;
+  		num_robot_count(){}
+	  
+	}; typedef struct num_robot_count Num_robot_count ;
+
  	double cur_pos[3];
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
@@ -63,6 +71,7 @@ private:
 	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name;
 	bool rcclient;
 	bool multi_msg;
+	Num_robot_count count_robots;
 	ros::ServiceClient mav_client;
 	ros::ServiceClient xbeestatus_srv;
 	ros::Publisher payload_pub;
@@ -157,6 +166,8 @@ private:
 
 	/*Robot independent subscribers*/
 	void Subscribe(ros::NodeHandle n_c);
+	
+	int get_number_of_robots();
 };
 
 }
