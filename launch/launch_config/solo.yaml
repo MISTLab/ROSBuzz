@@ -6,6 +6,7 @@ topics:
   armclient:  /mavros/cmd/arming
   modeclient: /mavros/set_mode
   stream:  /mavros/set_stream_rate
+  altitude: /mavros/global_position/rel_alt
 type:
   gps  :  sensor_msgs/NavSatFix
   # for SITL Solo 
@@ -13,5 +14,6 @@ type:
   # for solo
   #battery :   mavros_msgs/BatteryStatus
   status  :   mavros_msgs/State
+  altitude: std_msgs/Float64
 environment : 
   environment : solo-simulator

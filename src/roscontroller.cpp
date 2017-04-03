@@ -43,7 +43,7 @@ namespace rosbzz_node{
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
         mavros_msgs::ParamGet::Response robot_id_srv_response;
 
-
+        /*
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
     			ros::spinOnce();
 			ros::Rate loop_rate(10);
@@ -52,6 +52,8 @@ namespace rosbzz_node{
 		}
 
 		robot_id=robot_id_srv_response.value.integer;
+		*/
+        robot_id = 32;
 
         //robot_id = 84;
 		/* Set the Buzz bytecode */
@@ -159,6 +161,11 @@ namespace rosbzz_node{
 		node_handle.getParam("type/status", status_type);
 		m_smTopic_infos.insert(pair <std::string, std::string>(status_topic, status_type));
 
+		std::string altitude_topic, altitude_type;
+		node_handle.getParam("topics/altitude", altitude_topic);
+		node_handle.getParam("type/altitude", altitude_type);
+		m_smTopic_infos.insert(pair <std::string, std::string>(altitude_topic, altitude_type));
+
   		/*Obtain fc client name from parameter server*/
   		if(node_handle.getParam("topics/fcclient", fcclient_name));
   		else {ROS_ERROR("Provide a fc client name in Launch file"); system("rosnode kill rosbuzz_node");}  
@@ -215,6 +222,9 @@ namespace rosbzz_node{
   			else if(it->second == "sensor_msgs/NavSatFix"){
   		  		current_position_sub = n_c.subscribe(it->first, 1000, &roscontroller::current_pos, this);
  			}
+  			else if(it->second == "std_msgs/Float64"){
+  				relative_altitude_sub = n_c.subscribe(it->first, 1000, &roscontroller::current_rel_alt, this);
+  			}
 
 	  		std::cout << "Subscribed to: " << it->first << endl;
   		}
@@ -370,6 +380,7 @@ namespace rosbzz_node{
 		/*FC call for takeoff,land, gohome and arm/disarm*/
 		int tmp = buzzuav_closures::bzz_cmd();
 		double* goto_pos = buzzuav_closures::getgoto();
+		ros::Rate loop_rate(0.25);
 		if (tmp == buzzuav_closures::COMMAND_TAKEOFF || tmp== buzzuav_closures::COMMAND_LAND || tmp==buzzuav_closures::COMMAND_GOHOME) {
 			cmd_srv.request.param7 = goto_pos[2];
 			cmd_srv.request.command =  buzzuav_closures::getcmd();
@@ -378,18 +389,28 @@ namespace rosbzz_node{
 			switch(buzzuav_closures::getcmd()){
 			case mavros_msgs::CommandCode::NAV_LAND:
 				if(current_mode != "LAND")
-					SetMode("LAND", 0);
+					{SetMode("LAND", 0);}
+				if (mav_client.call(cmd_srv)){
+					ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+				} else
+					{ROS_ERROR("Failed to call service from flight controller");}
+				armstate = 0;
 				break;
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
+				if(!armstate){
+					SetMode("LOITER", 0);
+					armstate = 1;
+					Arm();
+					loop_rate.sleep();
+				}
 				if(current_mode != "GUIDED")
 					SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
+				if (mav_client.call(cmd_srv))
+					{ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);}
+				else
+					ROS_ERROR("Failed to call service from flight controller");
 				break;
 			}
-
-			if (mav_client.call(cmd_srv))
-				{ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success); }
-			else
-				ROS_ERROR("Failed to call service from flight controller");
 
 		} else if (tmp == buzzuav_closures::COMMAND_GOTO) { /*FC call for goto*/
 			/*prepare the goto publish message */
@@ -407,16 +428,20 @@ namespace rosbzz_node{
 			} else
 				ROS_ERROR("Failed to call service from flight controller");
 		} else if (tmp == buzzuav_closures::COMMAND_ARM) { /*FC call for arm*/
-			SetMode("LOITER", 0);
-			armstate = 1;
-			Arm();
+			if(!armstate){
+				SetMode("LOITER", 0);
+				armstate = 1;
+				Arm();
+			}
 		} else if (tmp == buzzuav_closures::COMMAND_DISARM) {
-			armstate = 0;
-		SetMode("LOITER", 0);
-			Arm();
+			if(armstate){
+				armstate = 0;
+				SetMode("LOITER", 0);
+				Arm();
+			}
 		} else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
-			/*prepare the goto publish message */
-			roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
+			/*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
+			roscontroller::SetLocalPosition(goto_pos[1], goto_pos[0], goto_pos[2], 0);
 		}
 	}
 	/*----------------------------------------------
@@ -459,7 +484,6 @@ namespace rosbzz_node{
 		cur_pos [1] =longitude;
 		cur_pos [2] =altitude;
 	}
-
 
 	/*-----------------------------------------------------------
 	/ Compute Range and Bearing of a neighbor in a local reference frame
@@ -519,8 +543,17 @@ namespace rosbzz_node{
 	/ Update current position into BVM from subscriber
 	/-------------------------------------------------------------*/
 	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
-		set_cur_pos(msg->latitude,msg->longitude, msg->altitude);
-		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude,msg->altitude);
+		ROS_INFO("Altitude out: %f", cur_rel_altitude);
+		set_cur_pos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
+		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
+	}
+	/*-------------------------------------------------------------
+	/ Update altitude into BVM from subscriber
+	/-------------------------------------------------------------*/
+	void roscontroller::current_rel_alt(const std_msgs::Float64::ConstPtr& msg){
+		ROS_INFO("Altitude in: %f", msg->data);
+		cur_rel_altitude = (double)msg->data;
+
 	}
 	/*-------------------------------------------------------------
 	/Set obstacle Obstacle distance table into BVM from subscriber
@@ -735,7 +768,7 @@ namespace rosbzz_node{
 		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
 
 		mavros_msgs::PositionTarget moveMsg;
-		moveMsg.coordinate_frame = mavros_msgs::PositionTarget::FRAME_BODY_OFFSET_NED;
+		moveMsg.coordinate_frame = mavros_msgs::PositionTarget::FRAME_LOCAL_OFFSET_NED;
 		moveMsg.type_mask = mavros_msgs::PositionTarget::IGNORE_AFX |
 		                                     mavros_msgs::PositionTarget::IGNORE_AFY |
 		                                     mavros_msgs::PositionTarget::IGNORE_AFZ |

@@ -18,6 +18,7 @@
 #include "mavros_msgs/PositionTarget.h"
 #include "mavros_msgs/StreamRate.h"
 #include "mavros_msgs/ParamGet.h"
+#include "std_msgs/Float64.h"
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
 #include <sstream>
@@ -59,6 +60,7 @@ private:
 	}; typedef struct num_robot_count Num_robot_count ;
 
  	double cur_pos[3];
+ 	double cur_rel_altitude;
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
 	std::map< int,  buzz_utility::Pos_struct> raw_neighbours_pos_map;
@@ -76,6 +78,7 @@ private:
 	int old_val=0;	
 	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name;
 	std::string stream_client_name;
+	std::string relative_altitude_sub_name;
 	bool rcclient;
 	bool multi_msg;
 	Num_robot_count count_robots;
@@ -91,6 +94,7 @@ private:
 	ros::Subscriber flight_status_sub;
 	ros::Subscriber obstacle_sub;
 	ros::Subscriber Robot_id_sub;
+	ros::Subscriber relative_altitude_sub;
 	ros::ServiceClient stream_client;
 
 	/*Commands for flight controller*/
@@ -153,6 +157,9 @@ private:
 	
 	/*current position callback*/
 	void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
+
+	/*current relative altitude callback*/
+	void current_rel_alt(const std_msgs::Float64::ConstPtr& msg);
 
 	/*payload callback callback*/
 	void payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg);
