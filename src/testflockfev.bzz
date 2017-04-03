@@ -99,22 +99,7 @@ function barrier_wait(threshold, transf) {
 function idle() {
 statef=idle
 CURSTATE = "IDLE"
-neighbors.listen("cmd",
-   function(vid, value, rid) {
-      print("Got (", vid, ",", value, ") from robot #", rid)
-	if(value==22) {
-		statef=takeoff
-	} else if(value==21) {
-		statef=land
-	} else if(value==400) {
-		uav_arm()
-	} else if(value==401){
-		uav_disarm()
-	}
-   }
    
-
-)
 }
 
 function takeoff() {
@@ -180,6 +165,21 @@ function step() {
 		uav_disarm()
 		neighbors.broadcast("cmd", 401)
 	}
+neighbors.listen("cmd",
+   function(vid, value, rid) {
+      print("Got (", vid, ",", value, ") from robot #", rid)
+	if(value==22 and statef==idle) {
+		statef=takeoff
+	} else if(value==21) {
+		statef=land
+	} else if(value==400 and statef==idle) {
+		uav_arm()
+	} else if(value==401 and statef==idle){
+		uav_disarm()
+	}
+   }
+
+)
 	statef()
 	log("Current state: ", CURSTATE)
 	log("Swarm size: ",ROBOTS)
