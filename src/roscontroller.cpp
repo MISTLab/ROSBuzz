@@ -673,7 +673,7 @@ namespace rosbzz_node{
 					}
 				}
 			}
-			if(odd_count>count_robots.current){
+			if(odd_count>current_count){
 				count_robots.current=odd_val;
 			}	
 		}
