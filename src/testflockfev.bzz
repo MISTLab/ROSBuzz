@@ -168,13 +168,13 @@ function step() {
 neighbors.listen("cmd",
    function(vid, value, rid) {
       print("Got (", vid, ",", value, ") from robot #", rid)
-	if(value==22 and statef==idle) {
+	if(value==22 and CURSTATE=="IDLE") {
 		statef=takeoff
 	} else if(value==21) {
 		statef=land
-	} else if(value==400 and statef==idle) {
+	} else if(value==400 and CURSTATE=="IDLE") {
 		uav_arm()
-	} else if(value==401 and statef==idle){
+	} else if(value==401 and CURSTATE=="IDLE"){
 		uav_disarm()
 	}
    }
