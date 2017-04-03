@@ -41,18 +41,19 @@ namespace rosbzz_node{
 	/--------------------------------------------------*/
 	void roscontroller::RosControllerRun(){
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
-        	mavros_msgs::ParamGet::Response robot_id_srv_response;
+        mavros_msgs::ParamGet::Response robot_id_srv_response;
+
+
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
-			/*run once*/
     			ros::spinOnce();
-			/*loop rate of ros*/
 			ros::Rate loop_rate(10);
 			loop_rate.sleep();
- 			/*sleep for the mentioned loop rate*/
 			ROS_ERROR("Waiting for Xbee to respond to get device ID");
 		}
+
 		robot_id=robot_id_srv_response.value.integer;
-			
+
+        //robot_id = 84;
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
@@ -369,7 +370,7 @@ namespace rosbzz_node{
 		/*FC call for takeoff,land, gohome and arm/disarm*/
 		int tmp = buzzuav_closures::bzz_cmd();
 		double* goto_pos = buzzuav_closures::getgoto();
-		if (tmp == 1) {
+		if (tmp == buzzuav_closures::COMMAND_TAKEOFF || tmp== buzzuav_closures::COMMAND_LAND || tmp==buzzuav_closures::COMMAND_GOHOME) {
 			cmd_srv.request.param7 = goto_pos[2];
 			cmd_srv.request.command =  buzzuav_closures::getcmd();
 			//std::cout << " CMD: " << buzzuav_closures::getcmd() << std::endl;
@@ -390,7 +391,7 @@ namespace rosbzz_node{
 			else
 				ROS_ERROR("Failed to call service from flight controller");
 
-		} else if (tmp == 2) { /*FC call for goto*/
+		} else if (tmp == buzzuav_closures::COMMAND_GOTO) { /*FC call for goto*/
 			/*prepare the goto publish message */
 			cmd_srv.request.param5 = goto_pos[0];
 			cmd_srv.request.param6 = goto_pos[1];
@@ -405,15 +406,15 @@ namespace rosbzz_node{
 				ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
 			} else
 				ROS_ERROR("Failed to call service from flight controller");
-		} else if (tmp == 3) { /*FC call for arm*/
+		} else if (tmp == buzzuav_closures::COMMAND_ARM) { /*FC call for arm*/
 			SetMode("LOITER", 0);
 			armstate = 1;
 			Arm();
-		} else if (tmp == 4) {
+		} else if (tmp == buzzuav_closures::COMMAND_DISARM) {
 			armstate = 0;
 		SetMode("LOITER", 0);
 			Arm();
-		} else if (tmp == 5) { /*Buzz call for moveto*/
+		} else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
 			/*prepare the goto publish message */
 			roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
 		}
@@ -505,7 +506,7 @@ namespace rosbzz_node{
 		else if (msg->mode == "LAND")
 			buzzuav_closures::flight_status_update(4);
 		else // ground standby = LOITER?
-			buzzuav_closures::flight_status_update(1);//?
+			buzzuav_closures::flight_status_update(7);//?
 	}
 
 	/*------------------------------------------------------------
@@ -518,7 +519,7 @@ namespace rosbzz_node{
 	/ Update current position into BVM from subscriber
 	/-------------------------------------------------------------*/
 	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
-		set_cur_pos(msg->latitude,msg->longitude,msg->altitude);
+		set_cur_pos(msg->latitude,msg->longitude, msg->altitude);
 		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude,msg->altitude);
 	}
 	/*-------------------------------------------------------------
@@ -689,8 +690,9 @@ namespace rosbzz_node{
 				no_cnt=0;
 			}
 		}
-		//if(count_robots.current !=0){
-			/*std::map< int,  int> count_count;
+		/*
+		if(count_robots.current !=0){
+			std::map< int,  int> count_count;
 			uint8_t index=0;
 			count_robots.history[count_robots.index]=neighbours_pos_map.size()+1;
 			//count_robots.current=neighbours_pos_map.size()+1;
@@ -710,8 +712,8 @@ namespace rosbzz_node{
 			if(odd_count>current_count){
 				count_robots.current=odd_val;
 			}	
-		//}
-		/*else{
+		}
+		else{
 			if(neighbours_pos_map.size()!=0){
 				count_robots.history[count_robots.index]=neighbours_pos_map.size()+1;
 				//count_robots.current=neighbours_pos_map.size()+1;
@@ -721,7 +723,9 @@ namespace rosbzz_node{
 					count_robots.current=neighbours_pos_map.size()+1;
 				} 
 			}
-		}*/
+		}
+		*/
+	}
 	/*
 	 * SOLO SPECIFIC FUNCTIONS
 	 */

@@ -106,15 +106,16 @@ function takeoff() {
 	CURSTATE = "TAKEOFF"
 	statef=takeoff
 	log("TakeOff: ", flight.status)
-	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+	uav_takeoff(TARGET_ALTITUDE)
+	
+	if( flight.status == 1) {
 		barrier_set(ROBOTS,hexagon)
 		barrier_ready()
 		#statef=hexagon
 	}
-	else if( flight.status !=3){
+	else if( flight.status == 7 ){
 		log("Altitude: ", TARGET_ALTITUDE)
 		neighbors.broadcast("cmd", 22)
-		uav_takeoff(TARGET_ALTITUDE)
 	}
 }
 function land() {

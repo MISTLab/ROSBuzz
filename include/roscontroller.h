@@ -17,6 +17,7 @@
 #include "mavros_msgs/Waypoint.h"
 #include "mavros_msgs/PositionTarget.h"
 #include "mavros_msgs/StreamRate.h"
+#include "mavros_msgs/ParamGet.h"
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
 #include <sstream>
