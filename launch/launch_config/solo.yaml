@@ -3,6 +3,7 @@ topics:
   battery :   /mavros/battery
   status  :   /mavros/state
   fcclient:   /mavros/cmd/command
+  setpoint:   /mavros/setpoint_raw/local
   armclient:  /mavros/cmd/arming
   modeclient: /mavros/set_mode
   stream:  /mavros/set_stream_rate

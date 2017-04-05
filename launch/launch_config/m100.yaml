@@ -3,6 +3,7 @@ topics:
   battery  :   /power_status
   status   :   /flight_status
   fcclient :   /dji_mavcmd
+  setpoint :   /setpoint_raw/local
   armclient:   /dji_mavarm
   modeclient:  /dji_mavmode
   altitude: /rel_alt
