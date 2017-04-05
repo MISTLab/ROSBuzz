@@ -194,6 +194,7 @@ private:
 	void SetStreamRate(int id, int rate, int on_off);
 	
 	void get_number_of_robots();
+	void GetRobotId();
 };
 
 }

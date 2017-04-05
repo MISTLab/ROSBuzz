@@ -20,8 +20,10 @@ namespace rosbzz_node{
 		SetMode("LOITER", 0);
 		armstate = 0;
 		multi_msg = true;
-		// set stream rate
+		// set stream rate - wait for the FC to be started
 		SetStreamRate(0, 10, 1);
+		/// Get Robot Id - wait for Xbee to be started
+		GetRobotId();
 	}
 
 	/*---------------------
@@ -36,26 +38,25 @@ namespace rosbzz_node{
    		uav_done();
 	}
 
-	/*-------------------------------------------------
-	/rosbuzz_node loop method executed once every step
-	/--------------------------------------------------*/
-	void roscontroller::RosControllerRun(){
+	void roscontroller::GetRobotId()
+	{
+        
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
-        mavros_msgs::ParamGet::Response robot_id_srv_response;
-
-        /*
+        	mavros_msgs::ParamGet::Response robot_id_srv_response;
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
-    			ros::spinOnce();
-			ros::Rate loop_rate(10);
-			loop_rate.sleep();
+			ros::Duration(0.1).sleep();
 			ROS_ERROR("Waiting for Xbee to respond to get device ID");
 		}
 
 		robot_id=robot_id_srv_response.value.integer;
-		*/
-        robot_id = 32;
 
-        //robot_id = 84;
+	}
+
+	/*-------------------------------------------------
+	/rosbuzz_node loop method executed once every step
+	/--------------------------------------------------*/
+	void roscontroller::RosControllerRun(){
+
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
@@ -69,7 +70,7 @@ namespace rosbzz_node{
 				/*Check updater state and step code*/
   				update_routine(bcfname.c_str(), dbgfname.c_str());
 				/*Step buzz script */
-      			buzz_utility::buzz_script_step();
+      				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
 		  		prepare_msg_and_publish();
 				/*call flight controler service to set command long*/
@@ -380,7 +381,6 @@ namespace rosbzz_node{
 		/*FC call for takeoff,land, gohome and arm/disarm*/
 		int tmp = buzzuav_closures::bzz_cmd();
 		double* goto_pos = buzzuav_closures::getgoto();
-		ros::Rate loop_rate(0.25);
 		if (tmp == buzzuav_closures::COMMAND_TAKEOFF || tmp== buzzuav_closures::COMMAND_LAND || tmp==buzzuav_closures::COMMAND_GOHOME) {
 			cmd_srv.request.param7 = goto_pos[2];
 			cmd_srv.request.command =  buzzuav_closures::getcmd();
@@ -401,7 +401,7 @@ namespace rosbzz_node{
 					SetMode("LOITER", 0);
 					armstate = 1;
 					Arm();
-					loop_rate.sleep();
+					ros::Duration(0.1).sleep();
 				}
 				if(current_mode != "GUIDED")
 					SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
@@ -526,9 +526,9 @@ namespace rosbzz_node{
 		// TODO: Handle landing
 		std::cout << "Message: " << msg->mode << std::endl;
 		if(msg->mode == "GUIDED")
-			buzzuav_closures::flight_status_update(1);
+			buzzuav_closures::flight_status_update(2);
 		else if (msg->mode == "LAND")
-			buzzuav_closures::flight_status_update(4);
+			buzzuav_closures::flight_status_update(1);
 		else // ground standby = LOITER?
 			buzzuav_closures::flight_status_update(7);//?
 	}
@@ -543,7 +543,7 @@ namespace rosbzz_node{
 	/ Update current position into BVM from subscriber
 	/-------------------------------------------------------------*/
 	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
-		ROS_INFO("Altitude out: %f", cur_rel_altitude);
+		//ROS_INFO("Altitude out: %f", cur_rel_altitude);
 		set_cur_pos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
 		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
 	}
@@ -551,7 +551,7 @@ namespace rosbzz_node{
 	/ Update altitude into BVM from subscriber
 	/-------------------------------------------------------------*/
 	void roscontroller::current_rel_alt(const std_msgs::Float64::ConstPtr& msg){
-		ROS_INFO("Altitude in: %f", msg->data);
+		//ROS_INFO("Altitude in: %f", msg->data);
 		cur_rel_altitude = (double)msg->data;
 
 	}
@@ -811,7 +811,7 @@ namespace rosbzz_node{
 
 		while(!stream_client.call(message)){
 			ROS_INFO("Set stream rate call failed!, trying again...");
-			std::this_thread::sleep_for( std::chrono::milliseconds ( 2000 ) );
+			ros::Duration(0.1).sleep();
 		}
 		ROS_INFO("Set stream rate call successful");
 	}
