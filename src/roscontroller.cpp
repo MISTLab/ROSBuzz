@@ -712,9 +712,9 @@ namespace rosbzz_node{
 				old_val=neighbours_pos_map.size()+1;
 			
 			}			
-			else if(old_val==neighbours_pos_map.size()+1){
+			else if(no_cnt!=0 && old_val==neighbours_pos_map.size()+1){
 				no_cnt++;
-				if(no_cnt==3){
+				if(no_cnt>=4){
 					no_of_robots=neighbours_pos_map.size()+1;
 					no_cnt=0;
 				}

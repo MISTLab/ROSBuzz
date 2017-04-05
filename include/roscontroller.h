@@ -72,10 +72,10 @@ private:
 	int armstate;
 	int barrier;
 	int message_number=0;
-	int no_of_robots=0;
+	uint8_t no_of_robots=0;
 	/*tmp to be corrected*/
-	int no_cnt=0;
-	int old_val=0;	
+	uint8_t no_cnt=0;
+	uint8_t old_val=0;	
 	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name;
 	std::string stream_client_name;
 	std::string relative_altitude_sub_name;
