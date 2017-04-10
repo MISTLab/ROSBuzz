@@ -473,18 +473,18 @@ namespace buzz_utility{
 	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 	   /* look into this currently we don't have swarm feature tested */
 	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-	   usleep(10000);
+//	   usleep(10000);
 	   /*Print swarm*/
 	   buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
 	   /* Check swarm state */
-	     int status = 1;
+/*	     int status = 1;
 	   buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
 	   if(status == 1 &&
 	      buzzdict_size(VM->swarmmembers) < 9)
 	      status = 2;
 	   buzzvm_pushs(VM, buzzvm_string_register(VM, "swarm_status", 1));
 	   buzzvm_pushi(VM, status);
-	   buzzvm_gstore(VM);
+	   buzzvm_gstore(VM);*/
 	}
 
 	/****************************************/
