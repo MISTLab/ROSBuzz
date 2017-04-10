@@ -470,13 +470,13 @@ namespace buzz_utility{
 		      buzz_error_info());
 	      buzzvm_dump(VM);
 	   }
-	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-	   /* look into this currently we don't have swarm feature tested */
-	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 //	   usleep(10000);
 	   /*Print swarm*/
 	   buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
-	   /* Check swarm state */
+	   int SwarmSize = buzzdict_size(VM->swarmmembers)+1;
+	   fprintf(stderr, "Real Swarm Size: %i\n",SwarmSize);
+
+	   /* Check swarm state -- SOMETHING CRASHING HERE!! */
 /*	     int status = 1;
 	   buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
 	   if(status == 1 &&
