@@ -144,6 +144,9 @@ function land() {
 
 # Executed once at init time.
 function init() {
+	s = swarm.create(1)
+#	s.select(1)
+	s.join()
 	statef=idle
 	CURSTATE = "IDLE"
 }

@@ -470,13 +470,14 @@ namespace buzz_utility{
 		      buzz_error_info());
 	      buzzvm_dump(VM);
 	   }
-	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-	   /* look into this currently we don't have swarm feature tested */
-	   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+//	   usleep(10000);
 	   /*Print swarm*/
-	   //buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
-	   /* Check swarm state */
-	   /*  int status = 1;
+	   buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
+	   int SwarmSize = buzzdict_size(VM->swarmmembers)+1;
+	   fprintf(stderr, "Real Swarm Size: %i\n",SwarmSize);
+
+	   /* Check swarm state -- SOMETHING CRASHING HERE!! */
+/*	     int status = 1;
 	   buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
 	   if(status == 1 &&
 	      buzzdict_size(VM->swarmmembers) < 9)
@@ -533,16 +534,16 @@ namespace buzz_utility{
 		return a == BUZZVM_STATE_READY;
 	}
 
-	uint16_t get_robotid() {
-		/* Get hostname */
+/*	uint16_t get_robotid() {
+		// Get hostname
 		char hstnm[30];
 		gethostname(hstnm, 30);
-		/* Make numeric id from hostname */
-		/* NOTE: here we assume that the hostname is in the format Knn */
+		// Make numeric id from hostname
+		// NOTE: here we assume that the hostname is in the format Knn
 		int id = strtol(hstnm + 4, NULL, 10);
 		//fprintf(stdout, "Robot id from get rid buzz util:  %i\n",id);
 		return (uint16_t)id;
-	}
+	}*/
 
 	buzzvm_t get_vm() {
 		return VM;
