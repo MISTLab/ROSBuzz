@@ -43,15 +43,15 @@ function hexagon() {
     math.vec2.scale(accum, 1.0 / neighbors.count())
   # Move according to vector
   #print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
-  uav_moveto(accum.x,accum.y)
+#  uav_moveto(accum.x,accum.y)
 
-#  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
-#  	timeW =0
-#  	statef=land
-#  	} else {
-#  	timeW = timeW+1
-#  	uav_moveto(0.5,0.0)
-#  	}
+  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
+  	timeW =0
+  	statef=land
+  	} else {
+  	timeW = timeW+1
+  	uav_moveto(0.0,0.02)
+  	}
 }
  
 ########################################

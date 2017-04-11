@@ -18,6 +18,7 @@
 #include "mavros_msgs/PositionTarget.h"
 #include "mavros_msgs/StreamRate.h"
 #include "mavros_msgs/ParamGet.h"
+#include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/Float64.h"
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
@@ -79,6 +80,7 @@ private:
 	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name, setpoint_name;
 	std::string stream_client_name;
 	std::string relative_altitude_sub_name;
+	std::string setpoint_nonraw;
 	bool rcclient;
 	bool multi_msg;
 	Num_robot_count count_robots;
@@ -87,6 +89,7 @@ private:
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;
 	ros::Publisher localsetpoint_pub;
+	ros::Publisher localsetpoint_nonraw_pub;
 	ros::ServiceServer service;
 	ros::Subscriber current_position_sub;
 	ros::Subscriber battery_sub;
@@ -96,6 +99,9 @@ private:
 	ros::Subscriber Robot_id_sub;
 	ros::Subscriber relative_altitude_sub;
 	ros::ServiceClient stream_client;
+
+	int setpoint_counter;
+	double my_x = 0, my_y = 0;
 
 	/*Commands for flight controller*/
   	//mavros_msgs::CommandInt cmd_srv;
@@ -190,6 +196,8 @@ private:
 	void fc_command_setup();
 
 	void SetLocalPosition(float x, float y, float z, float yaw);
+
+	void SetLocalPositionNonRaw(float x, float y, float z, float yaw);
 
 	void SetStreamRate(int id, int rate, int on_off);
 	

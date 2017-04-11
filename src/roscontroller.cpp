@@ -24,6 +24,7 @@ namespace rosbzz_node{
 		SetStreamRate(0, 10, 1);
 		/// Get Robot Id - wait for Xbee to be started
 		GetRobotId();
+		setpoint_counter = 0;
 	}
 
 	/*---------------------
@@ -40,7 +41,7 @@ namespace rosbzz_node{
 
 	void roscontroller::GetRobotId()
 	{
-        
+        /*
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
         	mavros_msgs::ParamGet::Response robot_id_srv_response;
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
@@ -49,7 +50,8 @@ namespace rosbzz_node{
 		}
 
 		robot_id=robot_id_srv_response.value.integer;
-
+		*/
+		robot_id = 8;
 	}
 
 	/*-------------------------------------------------
@@ -178,6 +180,8 @@ namespace rosbzz_node{
   		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}  
   		if(node_handle.getParam("topics/stream", stream_client_name));
   		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}
+  		if(node_handle.getParam("topics/setpoint_nonraw", setpoint_nonraw));
+  		else {ROS_ERROR("Provide a mode setpoint non raw client in Launch file"); system("rosnode kill rosbuzz_node");}
 	}
 
 	/*--------------------------------------------------------
@@ -198,6 +202,7 @@ namespace rosbzz_node{
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);
 		localsetpoint_pub = n_c.advertise<mavros_msgs::PositionTarget>(setpoint_name,1000);
+		localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_nonraw,1000);
 		/* Service Clients*/
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
@@ -403,7 +408,7 @@ namespace rosbzz_node{
 					SetMode("LOITER", 0);
 					armstate = 1;
 					Arm();
-					ros::Duration(0.1).sleep();
+					ros::Duration(0.5).sleep();
 				}
 				if(current_mode != "GUIDED")
 					SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
@@ -443,7 +448,9 @@ namespace rosbzz_node{
 			}
 		} else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
 			/*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
-			roscontroller::SetLocalPosition(goto_pos[1], goto_pos[0], goto_pos[2], 0);
+			// roscontroller::SetLocalPosition(goto_pos[1], goto_pos[0], goto_pos[2], 0);
+
+			roscontroller::SetLocalPositionNonRaw(goto_pos[1], goto_pos[0], goto_pos[2], 0);
 		}
 	}
 	/*----------------------------------------------
@@ -773,19 +780,49 @@ namespace rosbzz_node{
 		moveMsg.coordinate_frame = mavros_msgs::PositionTarget::FRAME_LOCAL_OFFSET_NED;
 		moveMsg.type_mask = mavros_msgs::PositionTarget::IGNORE_AFX |
 		                                     mavros_msgs::PositionTarget::IGNORE_AFY |
-		                                     mavros_msgs::PositionTarget::IGNORE_AFZ |
-		                                     mavros_msgs::PositionTarget::IGNORE_VX  |
-		                                     mavros_msgs::PositionTarget::IGNORE_VY  |
-		                                     mavros_msgs::PositionTarget::IGNORE_VZ;
+		                                     mavros_msgs::PositionTarget::IGNORE_AFZ;
+		// alt: 0b0000111111111000
+		moveMsg.header.frame_id = 1;
+		moveMsg.header.seq = setpoint_counter++;
 		moveMsg.header.stamp = ros::Time::now();
-		moveMsg.position.x = x;
-		moveMsg.position.y = y;
-		moveMsg.position.z = z;
+		moveMsg.position.x = 0.5;
+		moveMsg.position.y = 0.0;
+		moveMsg.position.z = 2;
+		moveMsg.velocity.x = 0.5;
+		moveMsg.velocity.y = 0.0;
+		moveMsg.velocity.z = 0.5;
 		moveMsg.yaw = 0;
 
 		localsetpoint_pub.publish(moveMsg);
 
 		ROS_INFO("Sent local position message!");
+	}
+
+	void roscontroller::SetLocalPositionNonRaw(float x, float y, float z, float yaw){
+		// http://docs.ros.org/kinetic/api/mavros_msgs/html/msg/PositionTarget.html
+		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
+
+		geometry_msgs::PoseStamped moveMsg;
+		moveMsg.header.stamp = ros::Time::now();
+		moveMsg.header.seq = setpoint_counter++;
+		moveMsg.header.frame_id = 1;
+
+		my_x += x;
+		my_y += y;
+
+		moveMsg.pose.position.x = my_x;
+		moveMsg.pose.position.y = my_y;
+		moveMsg.pose.position.z = 3;
+
+		moveMsg.pose.orientation.x = 0;
+		moveMsg.pose.orientation.y = 0;
+		moveMsg.pose.orientation.z = 0;
+		moveMsg.pose.orientation.w = 1;
+
+
+		localsetpoint_nonraw_pub.publish(moveMsg);
+
+		ROS_INFO("Sent local NON RAW position message!");
 	}
 
 	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
