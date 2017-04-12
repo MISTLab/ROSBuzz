@@ -448,9 +448,9 @@ namespace rosbzz_node{
 			}
 		} else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
 			/*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
-			// roscontroller::SetLocalPosition(goto_pos[1], goto_pos[0], goto_pos[2], 0);
+			roscontroller::SetLocalPosition(goto_pos[1], goto_pos[0], goto_pos[2], 0);
 
-			roscontroller::SetLocalPositionNonRaw(goto_pos[1], goto_pos[0], goto_pos[2], 0);
+			//roscontroller::SetLocalPositionNonRaw(goto_pos[1], goto_pos[0], goto_pos[2], 0);
 		}
 	}
 	/*----------------------------------------------
@@ -777,21 +777,29 @@ namespace rosbzz_node{
 		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
 
 		mavros_msgs::PositionTarget moveMsg;
+		const uint16_t ignore_all_except_xyz_y = (1 << 11) | (7 << 6) | (7 << 3);
+
 		moveMsg.coordinate_frame = mavros_msgs::PositionTarget::FRAME_LOCAL_OFFSET_NED;
-		moveMsg.type_mask = mavros_msgs::PositionTarget::IGNORE_AFX |
-		                                     mavros_msgs::PositionTarget::IGNORE_AFY |
-		                                     mavros_msgs::PositionTarget::IGNORE_AFZ;
-		// alt: 0b0000111111111000
+		moveMsg.type_mask = ignore_all_except_xyz_y;
+
 		moveMsg.header.frame_id = 1;
 		moveMsg.header.seq = setpoint_counter++;
 		moveMsg.header.stamp = ros::Time::now();
-		moveMsg.position.x = 0.5;
-		moveMsg.position.y = 0.0;
-		moveMsg.position.z = 2;
-		moveMsg.velocity.x = 0.5;
-		moveMsg.velocity.y = 0.0;
-		moveMsg.velocity.z = 0.5;
-		moveMsg.yaw = 0;
+
+		my_x += x;
+		my_y += y;
+
+		moveMsg.position.x = x;
+		moveMsg.position.y = y;
+		moveMsg.position.z = 3;
+		moveMsg.yaw_rate = 0.0;
+		moveMsg.yaw = 0.0;
+
+
+		geometry_msgs::Vector3 zeroVec;
+		zeroVec.x = 0.0; zeroVec.y = 0.0; zeroVec.z = 0.0;
+		moveMsg.acceleration_or_force = zeroVec;
+		moveMsg.velocity = zeroVec;
 
 		localsetpoint_pub.publish(moveMsg);
 

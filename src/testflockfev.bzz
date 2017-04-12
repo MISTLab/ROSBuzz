@@ -50,7 +50,7 @@ function hexagon() {
   	statef=land
   	} else {
   	timeW = timeW+1
-  	uav_moveto(0.0,0.02)
+  	uav_moveto(0.0,0.35)
   	}
 }
  
