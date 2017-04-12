@@ -25,6 +25,7 @@ namespace rosbzz_node{
 		/// Get Robot Id - wait for Xbee to be started
 		GetRobotId();
 		setpoint_counter = 0;
+		fcu_timeout = TIMEOUT;
 	}
 
 	/*---------------------
@@ -76,7 +77,7 @@ namespace rosbzz_node{
 				/*Prepare messages and publish them in respective topic*/
 		  		prepare_msg_and_publish();
 				/*call flight controler service to set command long*/
-				flight_controler_service_call();
+				flight_controller_service_call();
 				/*Set multi message available after update*/
 				if(get_update_status()){
 					set_read_update_status();
@@ -94,6 +95,10 @@ namespace rosbzz_node{
 				/*loop rate of ros*/
 				 ros::Rate loop_rate(10);
 				 loop_rate.sleep();
+				 if(fcu_timeout<=0)
+					buzzuav_closures::rc_call(mavros_msgs::CommandCode::NAV_LAND);
+				 else
+					fcu_timeout -= 1/10;
  				/*sleep for the mentioned loop rate*/
     				timer_step+=1;
    				maintain_pos(timer_step);
@@ -178,8 +183,6 @@ namespace rosbzz_node{
   		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}  
   		if(node_handle.getParam("topics/stream", stream_client_name));
   		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}
-  		if(node_handle.getParam("topics/setpoint_nonraw", setpoint_nonraw));
-  		else {ROS_ERROR("Provide a mode setpoint non raw client in Launch file"); system("rosnode kill rosbuzz_node");}
 	}
 
 	/*--------------------------------------------------------
@@ -199,8 +202,7 @@ namespace rosbzz_node{
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);
-		localsetpoint_pub = n_c.advertise<mavros_msgs::PositionTarget>(setpoint_name,1000);
-		localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_nonraw,1000);
+		localsetpoint_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name,1000);
 		/* Service Clients*/
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
@@ -381,7 +383,7 @@ namespace rosbzz_node{
 	/*---------------------------------------------------------------------------------
 	/Flight controller service call every step if there is a command set from bzz script
 	/-------------------------------------------------------------------------------- */
-	void roscontroller::flight_controler_service_call() {
+	void roscontroller::flight_controller_service_call() {
 		/* flight controller client call if requested from Buzz*/
 		/*FC call for takeoff,land, gohome and arm/disarm*/
 		int tmp = buzzuav_closures::bzz_cmd();
@@ -506,15 +508,14 @@ namespace rosbzz_node{
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
 		out[1] = atan2(ned_y,ned_x);
 		out[2] = 0.0;
-/*		double lat1 = cur[0]*M_PI/180.0;
-		double lon1 = cur[1]*M_PI/180.0;
-		double lat2 = nei[0]*M_PI/180.0;
-		double lon2 = nei[1]*M_PI/180.0;
-		out[0] = acos(sin(lat1) * sin(lat2) +cos(lat2) * cos(lat1)*cos(lon2-lon1))*EARTH_RADIUS;
-		double y = sin(lon1-lon2)*cos(lat1);
-		double x =  cos(lat2)*sin(lat1) - sin(lat2)*cos(lat1)*cos(lon1-lon2);
-		out[1] = atan2(y,x)+M_PI;
-		out[2] = 0.0;*/
+	}
+
+	void roscontroller::cvt_ned_coordinates(double nei[], double out[], double cur[]){
+ 		double d_lon = nei[1] - cur[1];
+        	double d_lat = nei[0] - cur[0];
+        	out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
+        	out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+		out[2] = cur[2];
 	}
 
 	/*------------------------------------------------------
@@ -551,6 +552,12 @@ namespace rosbzz_node{
 	/-------------------------------------------------------------*/
 	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
 		//ROS_INFO("Altitude out: %f", cur_rel_altitude);
+		fcu_timeout = TIMEOUT;
+		if(home[0]==0){
+			home[0]=msg->latitude;
+			home[1]=msg->longitude;
+			home[2]=cur_rel_altitude;
+		}
 		set_cur_pos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
 		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
 	}
@@ -774,51 +781,15 @@ namespace rosbzz_node{
 		// http://docs.ros.org/kinetic/api/mavros_msgs/html/msg/PositionTarget.html
 		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
 
-		mavros_msgs::PositionTarget moveMsg;
-		const uint16_t ignore_all_except_xyz_y = (1 << 11) | (7 << 6) | (7 << 3);
-
-		moveMsg.coordinate_frame = mavros_msgs::PositionTarget::FRAME_LOCAL_OFFSET_NED;
-		moveMsg.type_mask = ignore_all_except_xyz_y;
-
-		moveMsg.header.frame_id = 1;
-		moveMsg.header.seq = setpoint_counter++;
-		moveMsg.header.stamp = ros::Time::now();
-
-		my_x += x;
-		my_y += y;
-
-		moveMsg.position.x = x;
-		moveMsg.position.y = y;
-		moveMsg.position.z = 3;
-		moveMsg.yaw_rate = 0.0;
-		moveMsg.yaw = 0.0;
-
-
-		geometry_msgs::Vector3 zeroVec;
-		zeroVec.x = 0.0; zeroVec.y = 0.0; zeroVec.z = 0.0;
-		moveMsg.acceleration_or_force = zeroVec;
-		moveMsg.velocity = zeroVec;
-
-		localsetpoint_pub.publish(moveMsg);
-
-		ROS_INFO("Sent local position message!");
-	}
-
-	void roscontroller::SetLocalPositionNonRaw(float x, float y, float z, float yaw){
-		// http://docs.ros.org/kinetic/api/mavros_msgs/html/msg/PositionTarget.html
-		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
-
 		geometry_msgs::PoseStamped moveMsg;
 		moveMsg.header.stamp = ros::Time::now();
 		moveMsg.header.seq = setpoint_counter++;
 		moveMsg.header.frame_id = 1;
-
-		my_x += x;
-		my_y += y;
-
-		moveMsg.pose.position.x = my_x;
-		moveMsg.pose.position.y = my_y;
-		moveMsg.pose.position.z = 3;
+		double local_pos[3];
+		cvt_ned_coordinates(cur_pos,local_pos,home);
+		moveMsg.pose.position.x = local_pos[0]+x;
+		moveMsg.pose.position.y = local_pos[1]+y;
+		moveMsg.pose.position.z = z;
 
 		moveMsg.pose.orientation.x = 0;
 		moveMsg.pose.orientation.y = 0;

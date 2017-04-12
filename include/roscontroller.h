@@ -37,6 +37,7 @@
 #define UPDATER_MESSAGE_CONSTANT 987654321
 #define XBEE_MESSAGE_CONSTANT 586782343
 #define XBEE_STOP_TRANSMISSION 4355356352
+#define TIMEOUT	60
 
 using namespace std;
 
@@ -61,6 +62,7 @@ private:
 	}; typedef struct num_robot_count Num_robot_count ;
 
  	double cur_pos[3];
+ 	double home[3];
  	double cur_rel_altitude;
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
@@ -70,6 +72,7 @@ private:
 	int robot_id=0;
         //int oldcmdID=0;
 	int rc_cmd;
+	float fcu_timeout;
 	int armstate;
 	int barrier;
 	int message_number=0;
@@ -127,7 +130,7 @@ private:
 	void Compile_bzz();
 
 	/*Flight controller service call*/
-	void flight_controler_service_call();
+	void flight_controller_service_call();
 	
 	/*Neighbours pos publisher*/
 	void neighbours_pos_publisher();
@@ -151,6 +154,7 @@ private:
 			 double altitude);
 	/*convert from spherical to cartesian coordinate system callback */
 	void cvt_rangebearing_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
+	void cvt_ned_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
 
 	/*battery status callback*/ 
 	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
