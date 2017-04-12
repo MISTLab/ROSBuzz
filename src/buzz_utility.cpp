@@ -477,9 +477,9 @@ namespace buzz_utility{
 	   fprintf(stderr, "Real Swarm Size: %i\n",SwarmSize);
 
 	   /* Check swarm state -- SOMETHING CRASHING HERE!! */
-/*	     int status = 1;
+	     int status = 1;
 	   buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
-	   if(status == 1 &&
+/*	   if(status == 1 &&
 	      buzzdict_size(VM->swarmmembers) < 9)
 	      status = 2;
 	   buzzvm_pushs(VM, buzzvm_string_register(VM, "swarm_status", 1));
