@@ -133,12 +133,10 @@ namespace rosbzz_node{
   		n_c.getParam("out_payload", out_payload);
 		/*Obtain in payload name*/
   		n_c.getParam("in_payload", in_payload);
-		/*Obtain Number of robots for barrier*/
-		n_c.getParam("No_of_Robots", barrier);
 		/*Obtain standby script to run during update*/
 		n_c.getParam("stand_by", stand_by);
 		n_c.getParam("xbee_status_srv", xbeesrv_name);
-		
+
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
 

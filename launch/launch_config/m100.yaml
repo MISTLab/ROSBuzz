@@ -4,6 +4,7 @@ topics:
   status   :   /flight_status
   fcclient :   /dji_mavcmd
   setpoint :   /setpoint_raw/local
+  setpoint_nonraw :   /setpoint_position/local
   armclient:   /dji_mavarm
   modeclient:  /dji_mavmode
   altitude: /rel_alt
