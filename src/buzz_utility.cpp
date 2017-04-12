@@ -425,6 +425,7 @@ namespace buzz_utility{
 	void check_swarm_members(const void* key, void* data, void* params) {
 	   buzzswarm_elem_t e = *(buzzswarm_elem_t*)data;
 	   int* status = (int*)params;
+	fprintf(stderr, "CHECKING SWARM MEMBERS\n");
 	   if(*status == 3) return;
 	   if(buzzdarray_size(e->swarms) != 1) {
 	      fprintf(stderr, "Swarm list size is not 1\n");
@@ -481,10 +482,10 @@ namespace buzz_utility{
 	   buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
 /*	   if(status == 1 &&
 	      buzzdict_size(VM->swarmmembers) < 9)
-	      status = 2;
+	      status = 2;*/
 	   buzzvm_pushs(VM, buzzvm_string_register(VM, "swarm_status", 1));
 	   buzzvm_pushi(VM, status);
-	   buzzvm_gstore(VM);*/
+	   buzzvm_gstore(VM);
 	}
 
 	/****************************************/
