@@ -91,7 +91,7 @@ namespace buzz_utility{
 		    			tot += unMsgSize;
 		 			}
 	      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
-		delete[] pl;
+		free(pl);
    		/* Process messages */
 		buzzvm_process_inmsgs(VM);
 	}
@@ -141,7 +141,7 @@ namespace buzz_utility{
    		uint64_t* payload_64 = new uint64_t[total_size];
  
    		memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
-		delete[] buff_send;
+		free(buff_send);
   		/*for(int i=0;i<total_size;i++){
    		cout<<" payload from out msg  "<<*(payload_64+i)<<endl;
    		}*/

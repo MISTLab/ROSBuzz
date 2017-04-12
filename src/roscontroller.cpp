@@ -350,7 +350,7 @@ namespace rosbzz_node{
 		    	uint16_t total_size =(ceil((float)(float)tot/(float)sizeof(uint64_t))); 
 		    	uint64_t* payload_64 = new uint64_t[total_size];
 	  	    	memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
-		    	delete[] buff_send;
+		    	free(buff_send);
 		    	/*Send a constant number to differenciate updater msgs*/
 		    	update_packets.payload64.push_back((uint64_t)UPDATER_MESSAGE_CONSTANT);
 		    	for(int i=0;i<total_size;i++){
@@ -558,7 +558,7 @@ namespace rosbzz_node{
 			      	code_message_inqueue_process();
 				//fprintf(stdout,"after in queue process : utils\n");
 			}
-   			delete[] pl;
+   			free(pl);
 		}
 		/*BVM FIFO message*/
 		else if(msg->payload64.size() > 3){
