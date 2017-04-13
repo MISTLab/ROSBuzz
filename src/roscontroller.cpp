@@ -42,6 +42,7 @@ namespace rosbzz_node{
 
 	void roscontroller::GetRobotId()
 	{
+
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
         	mavros_msgs::ParamGet::Response robot_id_srv_response;
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
@@ -50,6 +51,8 @@ namespace rosbzz_node{
 		}
 
 		robot_id=robot_id_srv_response.value.integer;
+
+		//robot_id = 8;
 	}
 
 	/*-------------------------------------------------
@@ -793,8 +796,7 @@ namespace rosbzz_node{
 		moveMsg.pose.orientation.z = 0;
 		moveMsg.pose.orientation.w = 1;
 
-
-		localsetpoint_nonraw_pub.publish(moveMsg);
+		localsetpoint_pub.publish(moveMsg);
 
 		ROS_INFO("Sent local NON RAW position message!");
 	}

@@ -92,7 +92,6 @@ private:
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;
 	ros::Publisher localsetpoint_pub;
-	ros::Publisher localsetpoint_nonraw_pub;
 	ros::ServiceServer service;
 	ros::Subscriber current_position_sub;
 	ros::Subscriber battery_sub;
