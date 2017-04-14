@@ -73,6 +73,7 @@ private:
 	int old_val=0;	
 	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name;
 	bool rcclient;
+	bool xbeeplugged;
 	bool multi_msg;
 	Num_robot_count count_robots;
 	ros::ServiceClient mav_client;

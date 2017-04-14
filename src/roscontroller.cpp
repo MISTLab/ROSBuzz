@@ -123,11 +123,11 @@ namespace rosbzz_node{
   		n_c.getParam("out_payload", out_payload);
 		/*Obtain in payload name*/
   		n_c.getParam("in_payload", in_payload);
-		/*Obtain Number of robots for barrier*/
-		n_c.getParam("No_of_Robots", barrier);
 		/*Obtain standby script to run during update*/
 		n_c.getParam("stand_by", stand_by);
 		n_c.getParam("xbee_status_srv", xbeesrv_name);
+  		if(n_c.getParam("xbee_plugged", xbeeplugged));
+  		else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}  
 		
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
@@ -140,7 +140,8 @@ namespace rosbzz_node{
 		//todo: make it as an array in yaml?
 		m_sMySubscriptions.clear();
 		std::string gps_topic, gps_type;
-		node_handle.getParam("topics/gps", gps_topic);
+  		if(node_handle.getParam("topics/gps", gps_topic));
+  		else {ROS_ERROR("Provide a gps topic in Launch file"); system("rosnode kill rosbuzz_node");}  
 		node_handle.getParam("type/gps", gps_type);
 		m_smTopic_infos.insert(pair <std::string, std::string>(gps_topic, gps_type));
 
