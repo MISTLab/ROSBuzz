@@ -13,8 +13,13 @@
 #include "mavros_msgs/Mavlink.h"
 #include "mavros_msgs/PositionTarget.h"
 #include "sensor_msgs/NavSatStatus.h"
-#include <mavros_msgs/ParamGet.h>
-#include <mavros_msgs/ParamValue.h>
+#include "mavros_msgs/WaypointPush.h"
+#include "mavros_msgs/Waypoint.h"
+#include "mavros_msgs/PositionTarget.h"
+#include "mavros_msgs/StreamRate.h"
+#include "mavros_msgs/ParamGet.h"
+#include "geometry_msgs/PoseStamped.h"
+#include "std_msgs/Float64.h"
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
 #include <sstream>
@@ -32,6 +37,7 @@
 #define UPDATER_MESSAGE_CONSTANT 987654321
 #define XBEE_MESSAGE_CONSTANT 586782343
 #define XBEE_STOP_TRANSMISSION 4355356352
+#define TIMEOUT	60
 
 using namespace std;
 
@@ -56,6 +62,8 @@ private:
 	}; typedef struct num_robot_count Num_robot_count ;
 
  	double cur_pos[3];
+ 	double home[3];
+ 	double cur_rel_altitude;
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
 	std::map< int,  buzz_utility::Pos_struct> raw_neighbours_pos_map;
@@ -64,14 +72,18 @@ private:
 	int robot_id=0;
         //int oldcmdID=0;
 	int rc_cmd;
+	float fcu_timeout;
 	int armstate;
 	int barrier;
 	int message_number=0;
-	int no_of_robots=0;
+	uint8_t no_of_robots=0;
 	/*tmp to be corrected*/
-	int no_cnt=0;
-	int old_val=0;	
-	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name;
+	uint8_t no_cnt=0;
+	uint8_t old_val=0;	
+	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name, setpoint_name;
+	std::string stream_client_name;
+	std::string relative_altitude_sub_name;
+	std::string setpoint_nonraw;
 	bool rcclient;
 	bool xbeeplugged;
 	bool multi_msg;
@@ -87,7 +99,13 @@ private:
 	ros::Subscriber payload_sub;
 	ros::Subscriber flight_status_sub;
 	ros::Subscriber obstacle_sub;
-	//ros::Subscriber Robot_id_sub;
+	ros::Subscriber Robot_id_sub;
+	ros::Subscriber relative_altitude_sub;
+	ros::ServiceClient stream_client;
+
+	int setpoint_counter;
+	double my_x = 0, my_y = 0;
+
 	/*Commands for flight controller*/
   	//mavros_msgs::CommandInt cmd_srv;
   	mavros_msgs::CommandLong cmd_srv;
@@ -103,6 +121,8 @@ private:
 	/*Initialize publisher and subscriber, done in the constructor*/
 	void Initialize_pub_sub(ros::NodeHandle n_c);
 
+  	std::string current_mode; // SOLO SPECIFIC: just so you don't call the switch to same mode
+
 	/*Obtain data from ros parameter server*/	
 	void Rosparameters_get(ros::NodeHandle n_c);
 
@@ -110,7 +130,7 @@ private:
 	void Compile_bzz();
 
 	/*Flight controller service call*/
-	void flight_controler_service_call();
+	void flight_controller_service_call();
 	
 	/*Neighbours pos publisher*/
 	void neighbours_pos_publisher();
@@ -134,6 +154,7 @@ private:
 			 double altitude);
 	/*convert from spherical to cartesian coordinate system callback */
 	void cvt_rangebearing_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
+	void cvt_ned_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
 
 	/*battery status callback*/ 
 	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
@@ -146,6 +167,9 @@ private:
 	
 	/*current position callback*/
 	void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
+
+	/*current relative altitude callback*/
+	void current_rel_alt(const std_msgs::Float64::ConstPtr& msg);
 
 	/*payload callback callback*/
 	void payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg);
@@ -166,12 +190,23 @@ private:
 	void Arm();
 
 	/*set mode like guided for solo*/
-	void SetMode();
+	void SetMode(std::string mode, int delay_miliseconds);
 
 	/*Robot independent subscribers*/
 	void Subscribe(ros::NodeHandle n_c);
+
+	//void WaypointMissionSetup(float lat, float lng, float alt);
+
+	void fc_command_setup();
+
+	void SetLocalPosition(float x, float y, float z, float yaw);
+
+	void SetLocalPositionNonRaw(float x, float y, float z, float yaw);
+
+	void SetStreamRate(int id, int rate, int on_off);
 	
 	void get_number_of_robots();
+	void GetRobotId();
 };
 
 }

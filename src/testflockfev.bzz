@@ -11,7 +11,7 @@ function updated_neigh(){
 neighbors.broadcast(updated, update_no)
 }
 
-TARGET_ALTITUDE = 5.0
+TARGET_ALTITUDE = 3.0
 CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
@@ -43,7 +43,15 @@ function hexagon() {
     math.vec2.scale(accum, 1.0 / neighbors.count())
   # Move according to vector
   #print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
-  uav_moveto(accum.x, accum.y)
+#  uav_moveto(accum.x,accum.y)
+
+  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
+  	timeW =0
+  	statef=land
+  	} else {
+  	timeW = timeW+1
+  	uav_moveto(0.0,0.0)
+  	}
 }
  
 ########################################
@@ -78,7 +86,7 @@ function barrier_ready() {
 #
 # Executes the barrier
 #
-WAIT_TIMEOUT = 100
+WAIT_TIMEOUT = 200
 timeW=0
 function barrier_wait(threshold, transf) {
   barrier.get(id)
@@ -106,12 +114,14 @@ function takeoff() {
 	CURSTATE = "TAKEOFF"
 	statef=takeoff
 	log("TakeOff: ", flight.status)
+	log("Relative position: ", position.altitude)
+	
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 		barrier_set(ROBOTS,hexagon)
 		barrier_ready()
 		#statef=hexagon
 	}
-	else if( flight.status !=3){
+	else {
 		log("Altitude: ", TARGET_ALTITUDE)
 		neighbors.broadcast("cmd", 22)
 		uav_takeoff(TARGET_ALTITUDE)
@@ -126,6 +136,7 @@ function land() {
 		uav_land()
 	}
 	else {
+		timeW=0
 		barrier = nil
 		statef=idle
 	}
@@ -133,6 +144,9 @@ function land() {
 
 # Executed once at init time.
 function init() {
+	s = swarm.create(1)
+#	s.select(1)
+	s.join()
 	statef=idle
 	CURSTATE = "IDLE"
 }

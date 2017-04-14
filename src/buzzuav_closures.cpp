@@ -104,7 +104,7 @@ namespace buzzuav_closures{
 	   double d = sqrt(dx*dx+dy*dy);	//range
 	   goto_pos[0]=dx;
            goto_pos[1]=dy;
-           goto_pos[2]=0;
+           goto_pos[2]=height;
 	   /*double b = atan2(dy,dx);		//bearing
 	   printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
 	   gps_from_rb(d, b, goto_pos);
