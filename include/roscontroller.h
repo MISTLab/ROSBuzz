@@ -70,6 +70,7 @@ private:
 	//std::map< int, buzz_utility::Pos_struct> pub_neigh_pos;
 	int timer_step=0;
 	int robot_id=0;
+	std::string robot_name = "";
         //int oldcmdID=0;
 	int rc_cmd;
 	float fcu_timeout;

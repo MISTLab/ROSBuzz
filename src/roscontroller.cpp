@@ -23,7 +23,10 @@ namespace rosbzz_node{
 		// set stream rate - wait for the FC to be started
 		SetStreamRate(0, 10, 1);
 		/// Get Robot Id - wait for Xbee to be started
-		GetRobotId();
+		if(xbeeplugged)
+			GetRobotId();
+		else
+			robot_id=strtol(robot_name.c_str() + 5, NULL, 10);;
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
 	}
@@ -63,7 +66,10 @@ namespace rosbzz_node{
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
-			init_update_monitor(bcfname.c_str(),stand_by.c_str());
+			//init_update_monitor(bcfname.c_str(),stand_by.c_str());
+                        ///////////////////////////////////////////////////////
+                        // MAIN LOOP
+                        //////////////////////////////////////////////////////
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
       				/*Update neighbors position inside Buzz*/
@@ -71,7 +77,7 @@ namespace rosbzz_node{
 				/*Neighbours of the robot published with id in respective topic*/
 				neighbours_pos_publisher();
 				/*Check updater state and step code*/
-  				update_routine(bcfname.c_str(), dbgfname.c_str());
+  				//update_routine(bcfname.c_str(), dbgfname.c_str());
 				/*Step buzz script */
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
@@ -79,10 +85,10 @@ namespace rosbzz_node{
 				/*call flight controler service to set command long*/
 				flight_controller_service_call();
 				/*Set multi message available after update*/
-				if(get_update_status()){
+				/*if(get_update_status()){
 					set_read_update_status();
 					multi_msg=true;
-				}
+				}*/
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
 				//no_of_robots=get_number_of_robots();
 				get_number_of_robots();
@@ -142,7 +148,11 @@ namespace rosbzz_node{
 		n_c.getParam("stand_by", stand_by);
 		n_c.getParam("xbee_status_srv", xbeesrv_name);
   		if(n_c.getParam("xbee_plugged", xbeeplugged));
-  		else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}  
+  		else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");} 
+  		if(!xbeeplugged){
+                    if(n_c.getParam("name", robot_name));
+                    else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}
+                }
 
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
@@ -205,13 +215,13 @@ namespace rosbzz_node{
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);
-		localsetpoint_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name,1000);
+		localsetpoint_pub = n_c.advertise<geometry_msgs::PoseStamped>("/"+robot_name+setpoint_name,1000);
 		/* Service Clients*/
-		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
-		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
-		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
-		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
+		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>("/"+robot_name+armclient);
+		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>("/"+robot_name+modeclient);
+		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>("/"+robot_name+fcclient_name);
+		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>("/"+robot_name+xbeesrv_name);
+		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>("/"+robot_name+stream_client_name);
 
 		multi_msg=true;
 	}
@@ -222,19 +232,19 @@ namespace rosbzz_node{
 
   		for(std::map<std::string, std::string>::iterator it = m_smTopic_infos.begin(); it != m_smTopic_infos.end(); ++it){
   			if(it->second == "mavros_msgs/ExtendedState"){
-  				flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_extended_status_update, this);
+  				flight_status_sub = n_c.subscribe("/"+robot_name+it->first, 100, &roscontroller::flight_extended_status_update, this);
   			}
   			else if(it->second == "mavros_msgs/State"){
-  				flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_status_update, this);
+  				flight_status_sub = n_c.subscribe("/"+robot_name+it->first, 100, &roscontroller::flight_status_update, this);
   			}
   			else if(it->second == "mavros_msgs/BatteryStatus"){
-  		  		battery_sub = n_c.subscribe(it->first, 1000, &roscontroller::battery, this);
+  		  		battery_sub = n_c.subscribe("/"+robot_name+it->first, 1000, &roscontroller::battery, this);
   			}
   			else if(it->second == "sensor_msgs/NavSatFix"){
-  		  		current_position_sub = n_c.subscribe(it->first, 1000, &roscontroller::current_pos, this);
+  		  		current_position_sub = n_c.subscribe("/"+robot_name+it->first, 1000, &roscontroller::current_pos, this);
  			}
   			else if(it->second == "std_msgs/Float64"){
-  				relative_altitude_sub = n_c.subscribe(it->first, 1000, &roscontroller::current_rel_alt, this);
+  				relative_altitude_sub = n_c.subscribe("/"+robot_name+it->first, 1000, &roscontroller::current_rel_alt, this);
   			}
 
 	  		std::cout << "Subscribed to: " << it->first << endl;
@@ -344,35 +354,35 @@ namespace rosbzz_node{
     		delete[] out;
     		delete[] payload_out_ptr;
 		/*Check for updater message if present send*/
-		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
+		/*if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
 			uint8_t* buff_send = 0;
 	   		uint16_t updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());;
 			int tot=0;
 			mavros_msgs::Mavlink update_packets;
 			fprintf(stdout,"Transfering code \n");
 			fprintf(stdout,"Sent Update packet Size: %u \n",updater_msgSize);
-			/*allocate mem and clear it*/
+			// allocate mem and clear it
 			buff_send =(uint8_t*)malloc(sizeof(uint16_t)+updater_msgSize);
 			memset(buff_send, 0,sizeof(uint16_t)+updater_msgSize);
-		   	/*Append updater msg size*/
+		   	// Append updater msg size
 		  	 *(uint16_t*)(buff_send + tot)=updater_msgSize;
 		   	//fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
       		   	tot += sizeof(uint16_t);
-		   	/*Append updater msgs*/   	
+		   	// Append updater msgs
     		   	memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
 		   	tot += updater_msgSize;
-		   	/*Destroy the updater out msg queue*/
+		   	// Destroy the updater out msg queue
 		    	destroy_out_msg_queue();
 		    	uint16_t total_size =(ceil((float)(float)tot/(float)sizeof(uint64_t))); 
 		    	uint64_t* payload_64 = new uint64_t[total_size];
 	  	    	memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
 		    	free(buff_send);
-		    	/*Send a constant number to differenciate updater msgs*/
+		    	// Send a constant number to differenciate updater msgs
 		    	update_packets.payload64.push_back((uint64_t)UPDATER_MESSAGE_CONSTANT);
 		    	for(int i=0;i<total_size;i++){
 				update_packets.payload64.push_back(payload_64[i]);
 		    	}
-		    	/*Add Robot id and message number to the published message*/
+		    	// Add Robot id and message number to the published message
 		    	if (message_number < 0) message_number=0;
 		    	else message_number++;
 		    	update_packets.sysid=(uint8_t)robot_id;
@@ -380,7 +390,7 @@ namespace rosbzz_node{
 		    	payload_pub.publish(update_packets);
 		    	multi_msg=false;
 		    	delete[] payload_64;
-		}
+		}*/
 		
 	}
 	/*---------------------------------------------------------------------------------
@@ -807,7 +817,7 @@ namespace rosbzz_node{
 	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
 		// wait if necessary
 		if (delay_miliseconds != 0){
-			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
+			ros::Duration(delay_miliseconds/1000).sleep();
 		}
 		// set mode
 		mavros_msgs::SetMode set_mode_message;
