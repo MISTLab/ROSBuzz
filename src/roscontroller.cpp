@@ -26,6 +26,9 @@ namespace rosbzz_node{
 		GetRobotId();
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
+		home[0] = 0.0;
+		home[1] = 0.0;
+		home[2] = 0.0;
 	}
 
 	/*---------------------
@@ -43,6 +46,7 @@ namespace rosbzz_node{
 	void roscontroller::GetRobotId()
 	{
 
+		/*
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
         	mavros_msgs::ParamGet::Response robot_id_srv_response;
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
@@ -51,8 +55,8 @@ namespace rosbzz_node{
 		}
 
 		robot_id=robot_id_srv_response.value.integer;
-
-		//robot_id = 8;
+		*/
+		robot_id = 8;
 	}
 
 	/*-------------------------------------------------
@@ -512,9 +516,9 @@ namespace rosbzz_node{
 
 	void roscontroller::cvt_ned_coordinates(double nei[], double out[], double cur[]){
  		double d_lon = nei[1] - cur[1];
-        	double d_lat = nei[0] - cur[0];
-        	out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
-        	out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+		double d_lat = nei[0] - cur[0];
+		out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
+		out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
 		out[2] = cur[2];
 	}
 
@@ -795,6 +799,8 @@ namespace rosbzz_node{
 		moveMsg.pose.orientation.y = 0;
 		moveMsg.pose.orientation.z = 0;
 		moveMsg.pose.orientation.w = 1;
+
+		std::cout<<"Home (0,1,2): " << home[0] <<", " << home[1] << ", " << home[2] <<std::endl;
 
 		localsetpoint_pub.publish(moveMsg);
 

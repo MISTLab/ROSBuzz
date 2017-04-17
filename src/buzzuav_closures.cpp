@@ -109,6 +109,7 @@ namespace buzzuav_closures{
 	   printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
 	   gps_from_rb(d, b, goto_pos);
 	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
+       printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
 	   printf(" Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
 	   buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
 	   return buzzvm_ret0(vm);
