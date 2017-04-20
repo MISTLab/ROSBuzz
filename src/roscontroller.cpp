@@ -29,6 +29,7 @@ namespace rosbzz_node{
 			robot_id=strtol(robot_name.c_str() + 5, NULL, 10);;
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
+                home[0]=0.0;home[1]=0.0;home[2]=0.0;
 	}
 
 	/*---------------------
@@ -208,12 +209,12 @@ namespace rosbzz_node{
 
   		//current_position_sub = n_c.subscribe("/global_position", 1000, &roscontroller::current_pos,this);
   		//battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
-  		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
+  		payload_sub = n_c.subscribe("/"+robot_name+in_payload, 1000, &roscontroller::payload_obt,this);
 		//flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_extended_status_update,this);
 		//Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
   		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
-		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
+		payload_pub = n_c.advertise<mavros_msgs::Mavlink>("/"+robot_name+out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);
 		localsetpoint_pub = n_c.advertise<geometry_msgs::PoseStamped>("/"+robot_name+setpoint_name,1000);
 		/* Service Clients*/
@@ -797,7 +798,7 @@ namespace rosbzz_node{
 		geometry_msgs::PoseStamped moveMsg;
 		moveMsg.header.stamp = ros::Time::now();
 		moveMsg.header.seq = setpoint_counter++;
-		moveMsg.header.frame_id = 1;
+		moveMsg.header.frame_id = "/world";
 		double local_pos[3];
 		cvt_ned_coordinates(cur_pos,local_pos,home);
 		moveMsg.pose.position.x = local_pos[0]+x;
@@ -811,6 +812,9 @@ namespace rosbzz_node{
 
 		localsetpoint_pub.publish(moveMsg);
 
+		ROS_INFO("Home: %f %f %f", home[0],home[1],home[2]);
+		ROS_INFO("Current: %f %f %f", cur_pos[0],cur_pos[1],cur_pos[2]);
+                ROS_INFO("Offset NED: %f %f",  local_pos[0], local_pos[1]);
 		ROS_INFO("Sent local NON RAW position message!");
 	}
 

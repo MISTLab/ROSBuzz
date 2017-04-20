@@ -51,6 +51,9 @@ namespace buzz_utility{
 	return out;
 	}
 
+	int get_robotid() {
+          return Robot_id;
+        }
 	/***************************************************/
 	/*Appends obtained messages to buzz in message Queue*/
 	/***************************************************/
