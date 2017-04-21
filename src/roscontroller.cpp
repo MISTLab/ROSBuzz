@@ -461,8 +461,7 @@ namespace rosbzz_node{
 				Arm();
 			}
 		} else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
-			/*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
-			roscontroller::SetLocalPosition(goto_pos[1], goto_pos[0], goto_pos[2], 0);
+			roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
 
 			//roscontroller::SetLocalPositionNonRaw(goto_pos[1], goto_pos[0], goto_pos[2], 0);
 		}
@@ -695,8 +694,9 @@ namespace rosbzz_node{
 		double local_pos[3];
 		cvt_ned_coordinates(cur_pos,local_pos,home);
                 ROS_INFO("ROSBuzz LocalPos: %.7f,%.7f",local_pos[0],local_pos[1]);
-		moveMsg.pose.position.x = local_pos[0]+x;
-		moveMsg.pose.position.y = local_pos[1]+y;
+			/*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
+		moveMsg.pose.position.x = local_pos[1]+y;
+		moveMsg.pose.position.y = local_pos[0]+x;
 		moveMsg.pose.position.z = z;
 
 		moveMsg.pose.orientation.x = 0;
@@ -705,10 +705,10 @@ namespace rosbzz_node{
 		moveMsg.pose.orientation.w = 1;
 
 
-		if(fabs(x)>0.01 || fabs(y)>0.01) {
+		//if(fabs(x)>0.01 || fabs(y)>0.01) {
                     localsetpoint_nonraw_pub.publish(moveMsg);
                     ROS_INFO("Sent local NON RAW position message!");
-                }
+                //}
 	}
 
 	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
