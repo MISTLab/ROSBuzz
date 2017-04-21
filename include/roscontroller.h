@@ -80,18 +80,18 @@ private:
 	/*tmp to be corrected*/
 	uint8_t no_cnt=0;
 	uint8_t old_val=0;	
-	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name, setpoint_name;
+	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name, setpoint_name, robot_name;
 	std::string stream_client_name;
 	std::string relative_altitude_sub_name;
 	std::string setpoint_nonraw;
 	bool rcclient;
+	bool xbeeplugged = false;
 	bool multi_msg;
 	Num_robot_count count_robots;
 	ros::ServiceClient mav_client;
 	ros::ServiceClient xbeestatus_srv;
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;
-	ros::Publisher localsetpoint_pub;
 	ros::Publisher localsetpoint_nonraw_pub;
 	ros::ServiceServer service;
 	ros::Subscriber current_position_sub;

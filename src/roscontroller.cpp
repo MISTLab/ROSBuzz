@@ -23,9 +23,13 @@ namespace rosbzz_node{
 		// set stream rate - wait for the FC to be started
 		SetStreamRate(0, 10, 1);
 		/// Get Robot Id - wait for Xbee to be started
-		GetRobotId();
+		if(xbeeplugged)
+                    GetRobotId();
+                else
+                    robot_id = strtol(robot_name.c_str()+4, NULL, 10); 
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
+                home[0]=0;home[1]=0;home[2]=0;
 	}
 
 	/*---------------------
@@ -137,7 +141,11 @@ namespace rosbzz_node{
   		n_c.getParam("in_payload", in_payload);
 		/*Obtain standby script to run during update*/
 		n_c.getParam("stand_by", stand_by);
+                
+  		if(n_c.getParam("xbee_plugged", xbeeplugged));
+  		else {ROS_ERROR("Provide the xbee_plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}  
 		n_c.getParam("xbee_status_srv", xbeesrv_name);
+		n_c.getParam("robot_name", robot_name);
 
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
@@ -197,15 +205,15 @@ namespace rosbzz_node{
 		//Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
   		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
-		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
+		payload_pub = n_c.advertise<mavros_msgs::Mavlink>("/"+robot_name+out_payload, 1000);
 		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);
-		localsetpoint_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name,1000);
+		localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>("/"+robot_name+setpoint_name,1000);
 		/* Service Clients*/
-		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
-		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
-		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
-		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
+		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>("/"+robot_name+armclient);
+		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>("/"+robot_name+modeclient);
+		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>("/"+robot_name+fcclient_name);
+		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>("/"+robot_name+xbeesrv_name);
+		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>("/"+robot_name+stream_client_name);
 
 		multi_msg=true;
 	}
@@ -216,22 +224,22 @@ namespace rosbzz_node{
 
   		for(std::map<std::string, std::string>::iterator it = m_smTopic_infos.begin(); it != m_smTopic_infos.end(); ++it){
   			if(it->second == "mavros_msgs/ExtendedState"){
-  				flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_extended_status_update, this);
+  				flight_status_sub = n_c.subscribe("/"+robot_name+it->first, 100, &roscontroller::flight_extended_status_update, this);
   			}
   			else if(it->second == "mavros_msgs/State"){
-  				flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_status_update, this);
+  				flight_status_sub = n_c.subscribe("/"+robot_name+it->first, 100, &roscontroller::flight_status_update, this);
   			}
   			else if(it->second == "mavros_msgs/BatteryStatus"){
-  		  		battery_sub = n_c.subscribe(it->first, 1000, &roscontroller::battery, this);
+  		  		battery_sub = n_c.subscribe("/"+robot_name+it->first, 1000, &roscontroller::battery, this);
   			}
   			else if(it->second == "sensor_msgs/NavSatFix"){
-  		  		current_position_sub = n_c.subscribe(it->first, 1000, &roscontroller::current_pos, this);
+  		  		current_position_sub = n_c.subscribe("/"+robot_name+it->first, 1000, &roscontroller::current_pos, this);
  			}
   			else if(it->second == "std_msgs/Float64"){
-  				relative_altitude_sub = n_c.subscribe(it->first, 1000, &roscontroller::current_rel_alt, this);
+  				relative_altitude_sub = n_c.subscribe("/"+robot_name+it->first, 1000, &roscontroller::current_rel_alt, this);
   			}
 
-	  		std::cout << "Subscribed to: " << it->first << endl;
+	  		std::cout << "Subscribed to: " << "/"+robot_name+it->first << endl;
   		}
 	}
 
@@ -503,7 +511,9 @@ namespace rosbzz_node{
         	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
         	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
+                out[0] = std::floor(out[0] * 1000000) / 1000000;
 		out[1] = atan2(ned_y,ned_x);
+                out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = 0.0;
 	}
 
@@ -511,7 +521,9 @@ namespace rosbzz_node{
  		double d_lon = nei[1] - cur[1];
         	double d_lat = nei[0] - cur[0];
         	out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
+                out[0] = std::floor(out[0] * 1000000) / 1000000;
         	out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+                out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = cur[2];
 	}
 
@@ -550,13 +562,15 @@ namespace rosbzz_node{
 	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
 		//ROS_INFO("Altitude out: %f", cur_rel_altitude);
 		fcu_timeout = TIMEOUT;
-		if(home[0]==0){
-			home[0]=msg->latitude;
-			home[1]=msg->longitude;
+                double lat = std::floor(msg->latitude * 1000000) / 1000000;
+                double lon = std::floor(msg->longitude * 1000000) / 1000000;
+		if(cur_rel_altitude<0.2){
+			home[0]=lat;
+			home[1]=lon;
 			home[2]=cur_rel_altitude;
 		}
-		set_cur_pos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
-		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
+		set_cur_pos(lat,lon, cur_rel_altitude);//msg->altitude);
+		buzzuav_closures::set_currentpos(lat,lon, cur_rel_altitude);//msg->altitude);
 	}
 	/*-------------------------------------------------------------
 	/ Update altitude into BVM from subscriber
@@ -574,6 +588,62 @@ namespace rosbzz_node{
 		for(int i=0;i<5;i++)
 			obst[i]=msg->ranges[i];
 		buzzuav_closures::set_obstacle_dist(obst);
+	}
+	
+	void roscontroller::SetLocalPosition(float x, float y, float z, float yaw){
+		// http://docs.ros.org/kinetic/api/mavros_msgs/html/msg/PositionTarget.html
+		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
+
+		geometry_msgs::PoseStamped moveMsg;
+		moveMsg.header.stamp = ros::Time::now();
+		moveMsg.header.seq = setpoint_counter++;
+		moveMsg.header.frame_id = 1;
+		double local_pos[3];
+		cvt_ned_coordinates(cur_pos,local_pos,home);
+		moveMsg.pose.position.x = local_pos[0]+x;
+		moveMsg.pose.position.y = local_pos[1]+y;
+		moveMsg.pose.position.z = z;
+
+		moveMsg.pose.orientation.x = 0;
+		moveMsg.pose.orientation.y = 0;
+		moveMsg.pose.orientation.z = 0;
+		moveMsg.pose.orientation.w = 1;
+
+
+		if(fabs(x)>0.01 && fabs(y)>0.01) {
+                    localsetpoint_nonraw_pub.publish(moveMsg);
+                    ROS_INFO("Sent local NON RAW position message!");
+                }
+	}
+
+	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
+		// wait if necessary
+		if (delay_miliseconds != 0){
+			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
+		}
+		// set mode
+		mavros_msgs::SetMode set_mode_message;
+		set_mode_message.request.base_mode = 0;
+		set_mode_message.request.custom_mode = mode;
+		current_mode = mode;
+		if(mode_client.call(set_mode_message)) {
+			ROS_INFO("Set Mode Service call successful!");
+		} else {
+			ROS_INFO("Set Mode Service call failed!");
+		}
+	}
+
+	void roscontroller::SetStreamRate(int id, int rate, int on_off){
+		mavros_msgs::StreamRate message;
+		message.request.stream_id = id;
+		message.request.message_rate = rate;
+		message.request.on_off = on_off;
+
+		while(!stream_client.call(message)){
+			ROS_INFO("Set stream rate call failed!, trying again...");
+			ros::Duration(0.1).sleep();
+		}
+		ROS_INFO("Set stream rate call successful");
 	}
 
 	/*-------------------------------------------------------------
@@ -770,65 +840,5 @@ namespace rosbzz_node{
 		}
 		*/
 	}
-	/*
-	 * SOLO SPECIFIC FUNCTIONS
-	 */
-
-	void roscontroller::SetLocalPosition(float x, float y, float z, float yaw){
-		// http://docs.ros.org/kinetic/api/mavros_msgs/html/msg/PositionTarget.html
-		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
-
-		geometry_msgs::PoseStamped moveMsg;
-		moveMsg.header.stamp = ros::Time::now();
-		moveMsg.header.seq = setpoint_counter++;
-		moveMsg.header.frame_id = 1;
-		double local_pos[3];
-		cvt_ned_coordinates(cur_pos,local_pos,home);
-		moveMsg.pose.position.x = local_pos[0]+x;
-		moveMsg.pose.position.y = local_pos[1]+y;
-		moveMsg.pose.position.z = z;
-
-		moveMsg.pose.orientation.x = 0;
-		moveMsg.pose.orientation.y = 0;
-		moveMsg.pose.orientation.z = 0;
-		moveMsg.pose.orientation.w = 1;
-
-
-		localsetpoint_nonraw_pub.publish(moveMsg);
-
-		ROS_INFO("Sent local NON RAW position message!");
-	}
-
-	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
-		// wait if necessary
-		if (delay_miliseconds != 0){
-			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
-		}
-		// set mode
-		mavros_msgs::SetMode set_mode_message;
-		set_mode_message.request.base_mode = 0;
-		set_mode_message.request.custom_mode = mode;
-		current_mode = mode;
-		if(mode_client.call(set_mode_message)) {
-			ROS_INFO("Set Mode Service call successful!");
-		} else {
-			ROS_INFO("Set Mode Service call failed!");
-		}
-	}
-
-	void roscontroller::SetStreamRate(int id, int rate, int on_off){
-		mavros_msgs::StreamRate message;
-		message.request.stream_id = id;
-		message.request.message_rate = rate;
-		message.request.on_off = on_off;
-
-		while(!stream_client.call(message)){
-			ROS_INFO("Set stream rate call failed!, trying again...");
-			ros::Duration(0.1).sleep();
-		}
-		ROS_INFO("Set stream rate call successful");
-	}
-
-
 
 }
