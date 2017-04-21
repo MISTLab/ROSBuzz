@@ -1,0 +1,207 @@
+# We need this for 2D vectors
+# Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
+include "/home/ubuntu/buzz/src/include/vec2.bzz"
+####################################################################################################
+# Updater related
+# This should be here for the updater to work, changing position of code will crash the updater
+####################################################################################################
+updated="update_ack"
+update_no=0
+function updated_neigh(){
+neighbors.broadcast(updated, update_no)
+}
+
+TARGET_ALTITUDE = 5.0
+CURSTATE = "TURNEDOFF"
+ 
+# Lennard-Jones parameters
+TARGET     = 10.0
+EPSILON    = 8.0
+ 
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+  return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
+ 
+# Neighbor data to LJ interaction vector
+function lj_vector(rid, data) {
+  return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
+}
+ 
+# Accumulator of neighbor LJ interactions
+function lj_sum(rid, data, accum) {
+  return math.vec2.add(data, accum)
+}
+ 
+# Calculates and actuates the flocking interaction
+function hexagon() {
+  statef=hexagon
+  CURSTATE = "HEXAGON"
+  # Calculate accumulator
+  var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
+  if(neighbors.count() > 0)
+    math.vec2.scale(accum, 1.0 / neighbors.count())
+  # Move according to vector
+  #print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
+  uav_moveto(accum.x,accum.y)
+
+#  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
+#  	timeW =0
+#  	statef=land
+#  	} else {
+#  	timeW = timeW+1
+#  	uav_moveto(0.0,0.0)
+#  	}
+}
+ 
+########################################
+#
+# BARRIER-RELATED FUNCTIONS
+#
+########################################
+
+#
+# Constants
+#
+BARRIER_VSTIG = 1
+
+#
+# Sets a barrier
+#
+function barrier_set(threshold, transf) {
+  statef = function() {
+    barrier_wait(threshold, transf);
+  }
+  barrier = stigmergy.create(BARRIER_VSTIG)
+}
+
+#
+# Make yourself ready
+#
+function barrier_ready() {
+  barrier.put(id, 1)
+}
+
+#
+# Executes the barrier
+#
+WAIT_TIMEOUT = 200
+timeW=0
+function barrier_wait(threshold, transf) {
+  barrier.get(id)
+  CURSTATE = "BARRIERWAIT"
+  if(barrier.size() >= threshold) {
+    barrier = nil
+    transf()
+  } else if(timeW>=WAIT_TIMEOUT) {
+    barrier = nil
+    statef=land
+    timeW=0
+  }
+  timeW = timeW+1
+}
+
+# flight status
+
+function idle() {
+statef=idle
+CURSTATE = "IDLE"
+   
+}
+
+function takeoff() {
+	CURSTATE = "TAKEOFF"
+	statef=takeoff
+	log("TakeOff: ", flight.status)
+	log("Relative position: ", position.altitude)
+	
+	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+		barrier_set(ROBOTS,hexagon)
+		barrier_ready()
+		#statef=hexagon
+	}
+	else {
+		log("Altitude: ", TARGET_ALTITUDE)
+		neighbors.broadcast("cmd", 22)
+		uav_takeoff(TARGET_ALTITUDE)
+	}
+}
+function land() {
+	CURSTATE = "LAND"
+	statef=land
+	log("Land: ", flight.status)
+	if(flight.status == 2 or flight.status == 3){
+		neighbors.broadcast("cmd", 21)
+		uav_land()
+	}
+	else {
+		timeW=0
+		barrier = nil
+		statef=idle
+	}
+}
+
+# Executed once at init time.
+function init() {
+	s = swarm.create(1)
+#	s.select(1)
+	s.join()
+	statef=idle
+	CURSTATE = "IDLE"
+}
+
+# Executed at each time step.
+function step() {
+	if(flight.rc_cmd==22) {
+		log("cmd 22")
+		flight.rc_cmd=0
+		statef = takeoff
+		CURSTATE = "TAKEOFF"		
+		neighbors.broadcast("cmd", 22)
+	} else if(flight.rc_cmd==21) {
+		log("cmd 21")
+		log("To land")
+		flight.rc_cmd=0
+		statef = land
+		CURSTATE = "LAND"
+		neighbors.broadcast("cmd", 21)
+	} else if(flight.rc_cmd==16) {
+		flight.rc_cmd=0
+		statef = idle
+		uav_goto()
+	} else if(flight.rc_cmd==400) {
+		flight.rc_cmd=0
+		uav_arm()
+		neighbors.broadcast("cmd", 400)
+	} else if (flight.rc_cmd==401){
+		flight.rc_cmd=0
+		uav_disarm()
+		neighbors.broadcast("cmd", 401)
+	}
+neighbors.listen("cmd",
+   function(vid, value, rid) {
+      print("Got (", vid, ",", value, ") from robot #", rid)
+	if(value==22 and CURSTATE=="IDLE") {
+		statef=takeoff
+	} else if(value==21) {
+		statef=land
+	} else if(value==400 and CURSTATE=="IDLE") {
+		uav_arm()
+	} else if(value==401 and CURSTATE=="IDLE"){
+		uav_disarm()
+	}
+   }
+
+)
+	statef()
+	log("Current state: ", CURSTATE)
+	log("Swarm size: ",ROBOTS)
+}
+ 
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+ 
+# Executed once at the end of experiment.
+function destroy() {
+}
