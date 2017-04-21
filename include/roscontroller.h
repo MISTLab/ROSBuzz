@@ -39,6 +39,19 @@
 #define XBEE_STOP_TRANSMISSION 4355356352
 #define TIMEOUT	60
 
+/** Semi-major axis of the Earth, \f$ a \f$, in meters.
+ * This is a defining parameter of the WGS84 ellipsoid. */
+#define WGS84_A 6378137.0
+/** Inverse flattening of the Earth, \f$ 1/f \f$.
+ * This is a defining parameter of the WGS84 ellipsoid. */
+#define WGS84_IF 298.257223563
+/** The flattening of the Earth, \f$ f \f$. */
+#define WGS84_F (1/WGS84_IF)
+/** Semi-minor axis of the Earth in meters, \f$ b = a(1-f) \f$. */
+#define WGS84_B (WGS84_A*(1-WGS84_F))
+/** Eccentricity of the Earth, \f$ e \f$ where \f$ e^2 = 2f - f^2 \f$ */
+#define WGS84_E (sqrt(2*WGS84_F - WGS84_F*WGS84_F))
+
 using namespace std;
 
 namespace rosbzz_node{
@@ -60,6 +73,14 @@ private:
   		num_robot_count(){}
 	  
 	}; typedef struct num_robot_count Num_robot_count ;
+
+        // WGS84 constants
+        double equatorial_radius = 6378137.0;
+        double flattening = 1.0/298.257223563;
+        double excentrity2 = 2*flattening - flattening*flattening;
+        // default reference position
+        double DEFAULT_REFERENCE_LATITUDE  = 45.457817;
+        double DEFAULT_REFERENCE_LONGITUDE = -73.636075;
 
  	double cur_pos[3];
  	double home[3];

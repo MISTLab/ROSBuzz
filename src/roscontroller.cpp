@@ -151,7 +151,7 @@ namespace rosbzz_node{
   		if(n_c.getParam("xbee_plugged", xbeeplugged));
   		else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");} 
   		if(!xbeeplugged){
-                    if(n_c.getParam("robot_name", robot_name));
+                    if(n_c.getParam("name", robot_name));
                     else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}
                 }
 
@@ -514,26 +514,111 @@ namespace rosbzz_node{
 	----------------------------------------------------------- */
 	#define EARTH_RADIUS (double) 6371000.0
 	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
+	
+	void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
+            double hyp_az, hyp_el;
+            double sin_el, cos_el, sin_az, cos_az;
+
+            /* Convert reference point to spherical earth centered coordinates. */
+            hyp_az = sqrt(ref_ecef[0]*ref_ecef[0] + ref_ecef[1]*ref_ecef[1]);
+            hyp_el = sqrt(hyp_az*hyp_az + ref_ecef[2]*ref_ecef[2]);
+            sin_el = ref_ecef[2] / hyp_el;
+            cos_el = hyp_az / hyp_el;
+            sin_az = ref_ecef[1] / hyp_az;
+            cos_az = ref_ecef[0] / hyp_az;
+
+            M[0][0] = -sin_el * cos_az;
+            M[0][1] = -sin_el * sin_az;
+            M[0][2] = cos_el;
+            M[1][0] = -sin_az;
+            M[1][1] = cos_az;
+            M[1][2] = 0.0;
+            M[2][0] = -cos_el * cos_az;
+            M[2][1] = -cos_el * sin_az;
+            M[2][2] = -sin_el;
+            }
+            void matrix_multiply(uint32_t n, uint32_t m, uint32_t p, const double *a,
+                            const double *b, double *c)
+            {
+            uint32_t i, j, k;
+            for (i = 0; i < n; i++)
+                for (j = 0; j < p; j++) {
+                c[p*i + j] = 0;
+                for (k = 0; k < m; k++)
+                    c[p*i + j] += a[m*i+k] * b[p*k + j];
+                }
+            }
+
 	void roscontroller::cvt_rangebearing_coordinates(double nei[], double out[], double cur[]){
+            
+  // calculate earth radii
+  double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
+  double prime_vertical_radius = equatorial_radius * sqrt(temp);
+  double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
+  double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));
+  
  		double d_lon = nei[1] - cur[1];
         	double d_lat = nei[0] - cur[0];
-        	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
-        	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
-		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
+                double ned[3];
+        	ned[0] = DEG2RAD(d_lat) * radius_north;//EARTH_RADIUS;
+        	ned[1] = -DEG2RAD(d_lon) * radius_east; //EARTH_RADIUS
+                /*double ecef[3];
+                double llh[3];llh[0]=DEG2RAD(cur[0]);llh[1]=DEG2RAD(cur[1]);llh[2]=cur[2];
+                double d = WGS84_E * sin(llh[0]);
+                double N = WGS84_A / sqrt(1. - d*d);
+                ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
+                ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
+                ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
+                double ref_ecef[3];
+                llh[0]=DEG2RAD(nei[0]);llh[1]=DEG2RAD(nei[1]);llh[2]=nei[2];
+                d = WGS84_E * sin(llh[0]);
+                N = WGS84_A / sqrt(1. - d*d);
+                ref_ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
+                ref_ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
+                ref_ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
+                double M[3][3];
+                ecef2ned_matrix(ref_ecef, M);
+                double ned[3];
+                matrix_multiply(3, 3, 1, (double *)M, ecef, ned);*/
+		out[0] = sqrt(ned[0]*ned[0]+ned[1]*ned[1]);
                 out[0] = std::floor(out[0] * 1000000) / 1000000;
-		out[1] = atan2(ned_y,ned_x);
+		out[1] = atan2(ned[1],ned[0]);
                 out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = 0.0;
 	}
 
 	void roscontroller::cvt_ned_coordinates(double nei[], double out[], double cur[]){
+              // calculate earth radii
+  double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
+  double prime_vertical_radius = equatorial_radius * sqrt(temp);
+  double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
+  double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));
+  
  		double d_lon = nei[1] - cur[1];
         	double d_lat = nei[0] - cur[0];
-        	out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
+        	out[0] = DEG2RAD(d_lat) * radius_north;//EARTH_RADIUS;
                 out[0] = std::floor(out[0] * 1000000) / 1000000;
-        	out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+        	out[1] = -DEG2RAD(d_lon) * radius_east; //EARTH_RADIUS
                 out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = cur[2];
+                // Using functions of the library Swift Nav (https://github.com/swift-nav/libswiftnav)
+                /*double ecef[3];
+                double llh[3];llh[0]=DEG2RAD(cur[0]);llh[1]=DEG2RAD(cur[1]);llh[2]=cur[2];
+                double d = WGS84_E * sin(llh[0]);
+                double N = WGS84_A / sqrt(1. - d*d);
+                ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
+                ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
+                ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
+                double ref_ecef[3];
+                llh[0]=DEG2RAD(nei[0]);llh[1]=DEG2RAD(nei[1]);llh[2]=nei[2];
+                d = WGS84_E * sin(llh[0]);
+                N = WGS84_A / sqrt(1. - d*d);
+                ref_ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
+                ref_ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
+                ref_ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
+                double M[3][3];
+                ecef2ned_matrix(ref_ecef, M);
+                matrix_multiply(3, 3, 1, (double *)M, ecef, out);*/
 	}
 
 	/*------------------------------------------------------
@@ -609,6 +694,7 @@ namespace rosbzz_node{
 		moveMsg.header.frame_id = 1;
 		double local_pos[3];
 		cvt_ned_coordinates(cur_pos,local_pos,home);
+                ROS_INFO("ROSBuzz LocalPos: %.7f,%.7f",local_pos[0],local_pos[1]);
 		moveMsg.pose.position.x = local_pos[0]+x;
 		moveMsg.pose.position.y = local_pos[1]+y;
 		moveMsg.pose.position.z = z;
@@ -619,7 +705,7 @@ namespace rosbzz_node{
 		moveMsg.pose.orientation.w = 1;
 
 
-		if(fabs(x)>0.01 && fabs(y)>0.01) {
+		if(fabs(x)>0.01 || fabs(y)>0.01) {
                     localsetpoint_nonraw_pub.publish(moveMsg);
                     ROS_INFO("Sent local NON RAW position message!");
                 }
