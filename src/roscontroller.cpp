@@ -24,12 +24,12 @@ namespace rosbzz_node{
 		SetStreamRate(0, 10, 1);
 		/// Get Robot Id - wait for Xbee to be started
 		if(xbeeplugged)
-                    GetRobotId();
-                else
-                    robot_id = strtol(robot_name.c_str()+4, NULL, 10); 
+			GetRobotId();
+		else
+			robot_id=strtol(robot_name.c_str() + 5, NULL, 10);;
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
-                home[0]=0;home[1]=0;home[2]=0;
+                home[0]=0.0;home[1]=0.0;home[2]=0.0;
 	}
 
 	/*---------------------
@@ -46,6 +46,7 @@ namespace rosbzz_node{
 
 	void roscontroller::GetRobotId()
 	{
+
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
         	mavros_msgs::ParamGet::Response robot_id_srv_response;
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
@@ -54,6 +55,8 @@ namespace rosbzz_node{
 		}
 
 		robot_id=robot_id_srv_response.value.integer;
+
+		//robot_id = 8;
 	}
 
 	/*-------------------------------------------------
@@ -64,7 +67,10 @@ namespace rosbzz_node{
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
-			init_update_monitor(bcfname.c_str(),stand_by.c_str());
+			//init_update_monitor(bcfname.c_str(),stand_by.c_str());
+                        ///////////////////////////////////////////////////////
+                        // MAIN LOOP
+                        //////////////////////////////////////////////////////
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
       				/*Update neighbors position inside Buzz*/
@@ -72,7 +78,7 @@ namespace rosbzz_node{
 				/*Neighbours of the robot published with id in respective topic*/
 				neighbours_pos_publisher();
 				/*Check updater state and step code*/
-  				update_routine(bcfname.c_str(), dbgfname.c_str());
+  				//update_routine(bcfname.c_str(), dbgfname.c_str());
 				/*Step buzz script */
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
@@ -80,10 +86,10 @@ namespace rosbzz_node{
 				/*call flight controler service to set command long*/
 				flight_controller_service_call();
 				/*Set multi message available after update*/
-				if(get_update_status()){
+				/*if(get_update_status()){
 					set_read_update_status();
 					multi_msg=true;
-				}
+				}*/
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
 				//no_of_robots=get_number_of_robots();
 				get_number_of_robots();
@@ -143,9 +149,11 @@ namespace rosbzz_node{
 		n_c.getParam("stand_by", stand_by);
                 
   		if(n_c.getParam("xbee_plugged", xbeeplugged));
-  		else {ROS_ERROR("Provide the xbee_plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}  
-		n_c.getParam("xbee_status_srv", xbeesrv_name);
-		n_c.getParam("robot_name", robot_name);
+  		else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");} 
+  		if(!xbeeplugged){
+                    if(n_c.getParam("robot_name", robot_name));
+                    else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}
+                }
 
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
@@ -158,7 +166,8 @@ namespace rosbzz_node{
 		//todo: make it as an array in yaml?
 		m_sMySubscriptions.clear();
 		std::string gps_topic, gps_type;
-		node_handle.getParam("topics/gps", gps_topic);
+  		if(node_handle.getParam("topics/gps", gps_topic));
+  		else {ROS_ERROR("Provide a gps topic in Launch file"); system("rosnode kill rosbuzz_node");}  
 		node_handle.getParam("type/gps", gps_type);
 		m_smTopic_infos.insert(pair <std::string, std::string>(gps_topic, gps_type));
 
@@ -200,7 +209,7 @@ namespace rosbzz_node{
 
   		//current_position_sub = n_c.subscribe("/global_position", 1000, &roscontroller::current_pos,this);
   		//battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
-  		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
+  		payload_sub = n_c.subscribe("/"+robot_name+in_payload, 1000, &roscontroller::payload_obt,this);
 		//flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_extended_status_update,this);
 		//Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
   		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
@@ -346,35 +355,35 @@ namespace rosbzz_node{
     		delete[] out;
     		delete[] payload_out_ptr;
 		/*Check for updater message if present send*/
-		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
+		/*if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
 			uint8_t* buff_send = 0;
 	   		uint16_t updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());;
 			int tot=0;
 			mavros_msgs::Mavlink update_packets;
 			fprintf(stdout,"Transfering code \n");
 			fprintf(stdout,"Sent Update packet Size: %u \n",updater_msgSize);
-			/*allocate mem and clear it*/
+			// allocate mem and clear it
 			buff_send =(uint8_t*)malloc(sizeof(uint16_t)+updater_msgSize);
 			memset(buff_send, 0,sizeof(uint16_t)+updater_msgSize);
-		   	/*Append updater msg size*/
+		   	// Append updater msg size
 		  	 *(uint16_t*)(buff_send + tot)=updater_msgSize;
 		   	//fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
       		   	tot += sizeof(uint16_t);
-		   	/*Append updater msgs*/   	
+		   	// Append updater msgs
     		   	memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
 		   	tot += updater_msgSize;
-		   	/*Destroy the updater out msg queue*/
+		   	// Destroy the updater out msg queue
 		    	destroy_out_msg_queue();
 		    	uint16_t total_size =(ceil((float)(float)tot/(float)sizeof(uint64_t))); 
 		    	uint64_t* payload_64 = new uint64_t[total_size];
 	  	    	memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
 		    	free(buff_send);
-		    	/*Send a constant number to differenciate updater msgs*/
+		    	// Send a constant number to differenciate updater msgs
 		    	update_packets.payload64.push_back((uint64_t)UPDATER_MESSAGE_CONSTANT);
 		    	for(int i=0;i<total_size;i++){
 				update_packets.payload64.push_back(payload_64[i]);
 		    	}
-		    	/*Add Robot id and message number to the published message*/
+		    	// Add Robot id and message number to the published message
 		    	if (message_number < 0) message_number=0;
 		    	else message_number++;
 		    	update_packets.sysid=(uint8_t)robot_id;
@@ -382,7 +391,7 @@ namespace rosbzz_node{
 		    	payload_pub.publish(update_packets);
 		    	multi_msg=false;
 		    	delete[] payload_64;
-		}
+		}*/
 		
 	}
 	/*---------------------------------------------------------------------------------

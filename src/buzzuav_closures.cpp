@@ -30,6 +30,7 @@ namespace buzzuav_closures{
 	int buzzros_print(buzzvm_t vm) {
 	int i;
 	char buffer [50] = "";
+        sprintf(buffer,"%s [%i]", buffer, (int)buzz_utility::get_robotid());
 	   for(i = 1; i < buzzdarray_size(vm->lsyms->syms); ++i) {
 	      buzzvm_lload(vm, i);
 	      buzzobj_t o = buzzvm_stack_at(vm, 1);

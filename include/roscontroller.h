@@ -70,6 +70,7 @@ private:
 	//std::map< int, buzz_utility::Pos_struct> pub_neigh_pos;
 	int timer_step=0;
 	int robot_id=0;
+	std::string robot_name = "";
         //int oldcmdID=0;
 	int rc_cmd;
 	float fcu_timeout;
@@ -80,7 +81,7 @@ private:
 	/*tmp to be corrected*/
 	uint8_t no_cnt=0;
 	uint8_t old_val=0;	
-	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name, setpoint_name, robot_name;
+	std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name, setpoint_name;
 	std::string stream_client_name;
 	std::string relative_altitude_sub_name;
 	std::string setpoint_nonraw;
