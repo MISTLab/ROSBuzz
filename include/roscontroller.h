@@ -39,19 +39,6 @@
 #define XBEE_STOP_TRANSMISSION 4355356352
 #define TIMEOUT	60
 
-/** Semi-major axis of the Earth, \f$ a \f$, in meters.
- * This is a defining parameter of the WGS84 ellipsoid. */
-#define WGS84_A 6378137.0
-/** Inverse flattening of the Earth, \f$ 1/f \f$.
- * This is a defining parameter of the WGS84 ellipsoid. */
-#define WGS84_IF 298.257223563
-/** The flattening of the Earth, \f$ f \f$. */
-#define WGS84_F (1/WGS84_IF)
-/** Semi-minor axis of the Earth in meters, \f$ b = a(1-f) \f$. */
-#define WGS84_B (WGS84_A*(1-WGS84_F))
-/** Eccentricity of the Earth, \f$ e \f$ where \f$ e^2 = 2f - f^2 \f$ */
-#define WGS84_E (sqrt(2*WGS84_F - WGS84_F*WGS84_F))
-
 using namespace std;
 
 namespace rosbzz_node{
@@ -117,6 +104,7 @@ private:
 	ros::Publisher localsetpoint_nonraw_pub;
 	ros::ServiceServer service;
 	ros::Subscriber current_position_sub;
+	ros::Subscriber users_sub;
 	ros::Subscriber battery_sub;
 	ros::Subscriber payload_sub;
 	ros::Subscriber flight_status_sub;
@@ -189,6 +177,7 @@ private:
 	
 	/*current position callback*/
 	void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
+        void users_pos(const rosbuzz::neigh_pos msg);
 
 	/*current relative altitude callback*/
 	void current_rel_alt(const std_msgs::Float64::ConstPtr& msg);

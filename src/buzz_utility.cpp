@@ -20,6 +20,8 @@ namespace buzz_utility{
 	static uint8_t      MSG_SIZE        = 50;   // Only 100 bytes of Buzz messages every step
 	static int          MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
 	static int 	    Robot_id        = 0;
+        buzzobj_t           usersvstig;
+        buzzobj_t           key;
 	
 	/****************************************/
 	/*adds neighbours position*/
@@ -302,6 +304,30 @@ namespace buzz_utility{
       		fprintf(stderr, "%s: Error registering hooks\n\n", bo_filename);
       		return 0;
    	}
+
+   	
+buzzvm_dup(VM);
+   	// usersvstig = stigmergy.create(123)
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "v", 1));
+        // value of the stigmergy id
+        buzzvm_pushi(VM, 5);
+        // get the stigmergy table from the global scope
+//        buzzvm_pushs(VM, buzzvm_string_register(VM, "stigmergy", 1));
+//        buzzvm_gload(VM);
+        // get the create method from the stigmergy table
+//        buzzvm_pushs(VM, buzzvm_string_register(VM, "create", 1));
+//        buzzvm_tget(VM);
+        // call the stigmergy.create() method
+//        buzzvm_closure_call(VM, 1);
+        // now the stigmergy is at the top of the stack - save it for future reference
+//        usersvstig = buzzvm_stack_at(VM, 0);
+//buzzvm_pop(VM);
+        // assign the virtual stigmergy to the global symbol v
+        // create also a global variable for it, so the garbage collector does not remove it
+//buzzvm_pushs(VM, buzzvm_string_register(VM, "v", 1));
+//buzzvm_push(VM, usersvstig);
+        buzzvm_gstore(VM);
+        
    	/* Save bytecode file name */
    	BO_FNAME = strdup(bo_filename);
    	/* Execute the global part of the script */
@@ -309,9 +335,25 @@ namespace buzz_utility{
    	/* Call the Init() function */
    	buzzvm_function_call(VM, "init", 0);
    	/* All OK */
+
    	return 1;//buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
 	}
-
+        
+        int buzz_update_users_stigmergy(buzzobj_t tbl){
+            // push the key (here it's an int with value 46)
+            buzzvm_pushi(VM, 46);
+            // push the table
+            buzzvm_push(VM, tbl);
+            // the stigmergy is stored in the vstig variable
+            // let's push it on the stack
+            buzzvm_push(VM, usersvstig);
+            // get the put method from myvstig
+            buzzvm_pushs(VM, buzzvm_string_register(VM, "put", 1));
+            buzzvm_tget(VM);
+            // call the vstig.put() method
+            buzzvm_closure_call(VM, 2);
+            return 1;
+        }
 	/****************************************/
 	/*Sets a new update                     */
 	/****************************************/
@@ -447,7 +489,12 @@ namespace buzz_utility{
 	   buzzuav_closures::buzzuav_update_battery(VM);
 	   buzzuav_closures::buzzuav_update_prox(VM);
 	   buzzuav_closures::buzzuav_update_currentpos(VM);
+	   buzzobj_t tbl = buzzuav_closures::buzzuav_update_userspos(VM);
 	   buzzuav_closures::buzzuav_update_flight_status(VM);
+           
+           //buzz_update_users_stigmergy(tbl);
+           
+           
 	    /*
 	    * Call Buzz step() function
 	    */

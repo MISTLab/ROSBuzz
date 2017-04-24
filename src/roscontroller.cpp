@@ -223,7 +223,9 @@ namespace rosbzz_node{
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>("/"+robot_name+fcclient_name);
 		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>("/"+robot_name+xbeesrv_name);
 		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>("/"+robot_name+stream_client_name);
-
+                
+  		users_sub = n_c.subscribe("/"+robot_name+"/users_pos", 1000, &roscontroller::users_pos,this);
+                
 		multi_msg=true;
 	}
 	/*---------------------------------------
@@ -424,6 +426,8 @@ namespace rosbzz_node{
 					Arm();
 					ros::Duration(0.5).sleep();
 				}
+				// Registering HOME POINT.
+				home[0] = cur_pos[0];home[1] = cur_pos[1];home[2] = cur_pos[2];
 				if(current_mode != "GUIDED")
 					SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
 				if (mav_client.call(cmd_srv))
@@ -578,20 +582,32 @@ namespace rosbzz_node{
                 double M[3][3];
                 ecef2ned_matrix(ref_ecef, M);
                 double ned[3];
-                matrix_multiply(3, 3, 1, (double *)M, ecef, ned);*/
+                matrix_multiply(3, 3, 1, (double *)M, ecef, ned);   
+                
+                double d_lon = nei[1] - cur[1];
+        	double d_lat = nei[0] - cur[0];
+        	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
+        	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
+                out[0] = std::floor(out[0] * 1000000) / 1000000;
+		out[1] = atan2(ned_y,ned_x);
+                out[1] = std::floor(out[1] * 1000000) / 1000000;
+		out[2] = 0.0;*/
+                
 		out[0] = sqrt(ned[0]*ned[0]+ned[1]*ned[1]);
                 out[0] = std::floor(out[0] * 1000000) / 1000000;
 		out[1] = atan2(ned[1],ned[0]);
                 out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = 0.0;
+
 	}
 
 	void roscontroller::cvt_ned_coordinates(double nei[], double out[], double cur[]){
-              // calculate earth radii
-  double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
-  double prime_vertical_radius = equatorial_radius * sqrt(temp);
-  double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
-  double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));
+                // calculate earth radii
+                double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
+                double prime_vertical_radius = equatorial_radius * sqrt(temp);
+                double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
+                double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));
   
  		double d_lon = nei[1] - cur[1];
         	double d_lat = nei[0] - cur[0];
@@ -617,7 +633,15 @@ namespace rosbzz_node{
                 ref_ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
                 double M[3][3];
                 ecef2ned_matrix(ref_ecef, M);
-                matrix_multiply(3, 3, 1, (double *)M, ecef, out);*/
+                matrix_multiply(3, 3, 1, (double *)M, ecef, out);
+                
+                double d_lon = nei[1] - cur[1];
+        	double d_lat = nei[0] - cur[0];
+        	out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
+                out[0] = std::floor(out[0] * 1000000) / 1000000;
+        	out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+                out[1] = std::floor(out[1] * 1000000) / 1000000;
+		out[2] = 0.0;*/
 	}
 
 	/*------------------------------------------------------
@@ -657,13 +681,34 @@ namespace rosbzz_node{
 		fcu_timeout = TIMEOUT;
                 double lat = std::floor(msg->latitude * 1000000) / 1000000;
                 double lon = std::floor(msg->longitude * 1000000) / 1000000;
-		if(cur_rel_altitude<0.2){
+		/*if(cur_rel_altitude<1.2){
 			home[0]=lat;
 			home[1]=lon;
 			home[2]=cur_rel_altitude;
-		}
+		}*/
 		set_cur_pos(lat,lon, cur_rel_altitude);//msg->altitude);
 		buzzuav_closures::set_currentpos(lat,lon, cur_rel_altitude);//msg->altitude);
+	}
+	void roscontroller::users_pos(const rosbuzz::neigh_pos data){
+		//ROS_INFO("Altitude out: %f", cur_rel_altitude);
+
+                double us[3];
+                int n = data.pos_neigh.size();
+        //	ROS_INFO("Neighbors array size: %i\n", n);
+                if(n>0)
+                {
+                        for(int it=0; it<n; ++it)
+                        {
+                                us[0] = data.pos_neigh[it].latitude;
+                                us[1] = data.pos_neigh[it].longitude;
+                                us[2] = data.pos_neigh[it].altitude;
+                                double out[3];
+                                cvt_rangebearing_coordinates(us, out, cur_pos);
+                                buzzuav_closures::set_userspos(out[0], out[1], out[2]);
+                        }
+
+                }
+		
 	}
 	/*-------------------------------------------------------------
 	/ Update altitude into BVM from subscriber
@@ -694,7 +739,8 @@ namespace rosbzz_node{
 		double local_pos[3];
 		cvt_ned_coordinates(cur_pos,local_pos,home);
                 ROS_INFO("ROSBuzz LocalPos: %.7f,%.7f",local_pos[0],local_pos[1]);
-			/*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
+                    
+                /*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
 		moveMsg.pose.position.x = local_pos[1]+y;
 		moveMsg.pose.position.y = local_pos[0]+x;
 		moveMsg.pose.position.z = z;
@@ -704,11 +750,11 @@ namespace rosbzz_node{
 		moveMsg.pose.orientation.z = 0;
 		moveMsg.pose.orientation.w = 1;
 
-
-		//if(fabs(x)>0.01 || fabs(y)>0.01) {
+                // To prevent drifting from stable position.
+		if(fabs(x)>0.01 || fabs(y)>0.01) {
                     localsetpoint_nonraw_pub.publish(moveMsg);
                     ROS_INFO("Sent local NON RAW position message!");
-                //}
+                }
 	}
 
 	void roscontroller::SetMode(std::string mode, int delay_miliseconds){

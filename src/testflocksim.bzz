@@ -11,11 +11,11 @@ function updated_neigh(){
 neighbors.broadcast(updated, update_no)
 }
 
-TARGET_ALTITUDE = 5.0
+TARGET_ALTITUDE = 10.0
 CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
-TARGET     = 10.0
+TARGET     = 12.0
 EPSILON    = 8.0
  
 # Lennard-Jones interaction magnitude
@@ -196,6 +196,12 @@ neighbors.listen("cmd",
 	statef()
 	log("Current state: ", CURSTATE)
 	log("Swarm size: ",ROBOTS)
+	log("User position: ", users.range)
+	
+	# Read a value from the structure
+        #x = usersvstig.get(46)
+        # Get the number of keys in the structure
+        #log("The vstig has ", usersvstig.size(), " elements")
 }
  
 # Executed once when the robot (or the simulator) is reset.
