@@ -5,11 +5,11 @@ namespace rosbzz_node{
 	/*---------------
 	/Constructor
 	---------------*/
-	roscontroller::roscontroller(ros::NodeHandle n_c)	
+	roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)	
 	{
 		ROS_INFO("Buzz_node");
 		/*Obtain parameters from ros parameter server*/
-	  	Rosparameters_get(n_c);
+	  	Rosparameters_get(n_c_priv);
 		/*Initialize publishers, subscribers and client*/
   		Initialize_pub_sub(n_c);
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
@@ -120,7 +120,7 @@ namespace rosbzz_node{
 	/*--------------------------------------------------------
 	/ Get all required parameters from the ROS launch file
 	/-------------------------------------------------------*/
-	void roscontroller::Rosparameters_get(ros::NodeHandle n_c){
+	void roscontroller::Rosparameters_get(ros::NodeHandle& n_c){
 		
 		/*Obtain .bzz file name from parameter server*/
 	  	if(n_c.getParam("bzzfile_name", bzzfile_name));
@@ -129,11 +129,8 @@ namespace rosbzz_node{
 	  	if(n_c.getParam("rcclient", rcclient)){
 		     	if(rcclient==true){
 			    	/*Service*/
-			    	if(n_c.getParam("rcservice_name", rcservice_name)){
-				        service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback,this);
-				    	ROS_INFO("Ready to receive Mav Commands from RC client");
-			        }
-			        else{ROS_ERROR("Provide a name topic name for rc service in Launch file"); system("rosnode kill rosbuzz_node");}
+			    	if(!n_c.getParam("rcservice_name", rcservice_name))
+                                    {ROS_ERROR("Provide a name topic name for rc service in Launch file"); system("rosnode kill rosbuzz_node");}
 		        }
      			else if(rcclient==false){ROS_INFO("RC service is disabled");}
   		}
@@ -162,7 +159,7 @@ namespace rosbzz_node{
 	/*-----------------------------------------------------------------------------------
 	/Obtains publisher, subscriber and services from yml file based on the robot used
 	/-----------------------------------------------------------------------------------*/
-	void roscontroller::GetSubscriptionParameters(ros::NodeHandle node_handle){
+	void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle){
 		//todo: make it as an array in yaml?
 		m_sMySubscriptions.clear();
 		std::string gps_topic, gps_type;
@@ -202,55 +199,58 @@ namespace rosbzz_node{
 	/*--------------------------------------------------------
 	/ Create all required subscribers, publishers and ROS service clients
 	/-------------------------------------------------------*/
-	void roscontroller::Initialize_pub_sub(ros::NodeHandle n_c){
+	void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c){
 		/*subscribers*/
 
 		Subscribe(n_c);
 
   		//current_position_sub = n_c.subscribe("/global_position", 1000, &roscontroller::current_pos,this);
   		//battery_sub = n_c.subscribe("/power_status", 1000, &roscontroller::battery,this);
-  		payload_sub = n_c.subscribe("/"+robot_name+in_payload, 1000, &roscontroller::payload_obt,this);
+  		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
 		//flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_extended_status_update,this);
 		//Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
-  		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
+  		obstacle_sub= n_c.subscribe("guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
-		payload_pub = n_c.advertise<mavros_msgs::Mavlink>("/"+robot_name+out_payload, 1000);
-		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);
-		localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>("/"+robot_name+setpoint_name,1000);
+		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
+		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos",1000);
+		localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name,1000);
 		/* Service Clients*/
-		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>("/"+robot_name+armclient);
-		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>("/"+robot_name+modeclient);
-		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>("/"+robot_name+fcclient_name);
-		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>("/"+robot_name+xbeesrv_name);
-		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>("/"+robot_name+stream_client_name);
+		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
+		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
+		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
+                if(rcclient==true)
+                    service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback,this);
+		ROS_INFO("Ready to receive Mav Commands from RC client");
+		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
+		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
                 
-  		users_sub = n_c.subscribe("/"+robot_name+"/users_pos", 1000, &roscontroller::users_pos,this);
+  		users_sub = n_c.subscribe("users_pos", 1000, &roscontroller::users_pos,this);
                 
 		multi_msg=true;
 	}
 	/*---------------------------------------
 	/Robot independent subscribers
 	/--------------------------------------*/
-	void roscontroller::Subscribe(ros::NodeHandle n_c){
+	void roscontroller::Subscribe(ros::NodeHandle& n_c){
 
   		for(std::map<std::string, std::string>::iterator it = m_smTopic_infos.begin(); it != m_smTopic_infos.end(); ++it){
   			if(it->second == "mavros_msgs/ExtendedState"){
-  				flight_status_sub = n_c.subscribe("/"+robot_name+it->first, 100, &roscontroller::flight_extended_status_update, this);
+  				flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_extended_status_update, this);
   			}
   			else if(it->second == "mavros_msgs/State"){
-  				flight_status_sub = n_c.subscribe("/"+robot_name+it->first, 100, &roscontroller::flight_status_update, this);
+  				flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_status_update, this);
   			}
   			else if(it->second == "mavros_msgs/BatteryStatus"){
-  		  		battery_sub = n_c.subscribe("/"+robot_name+it->first, 1000, &roscontroller::battery, this);
+  		  		battery_sub = n_c.subscribe(it->first, 1000, &roscontroller::battery, this);
   			}
   			else if(it->second == "sensor_msgs/NavSatFix"){
-  		  		current_position_sub = n_c.subscribe("/"+robot_name+it->first, 1000, &roscontroller::current_pos, this);
+  		  		current_position_sub = n_c.subscribe(it->first, 1000, &roscontroller::current_pos, this);
  			}
   			else if(it->second == "std_msgs/Float64"){
-  				relative_altitude_sub = n_c.subscribe("/"+robot_name+it->first, 1000, &roscontroller::current_rel_alt, this);
+  				relative_altitude_sub = n_c.subscribe(it->first, 1000, &roscontroller::current_rel_alt, this);
   			}
 
-	  		std::cout << "Subscribed to: " << "/"+robot_name+it->first << endl;
+	  		std::cout << "Subscribed to: " << it->first << endl;
   		}
 	}
 
@@ -425,9 +425,9 @@ namespace rosbzz_node{
 					armstate = 1;
 					Arm();
 					ros::Duration(0.5).sleep();
+                                        // Registering HOME POINT.
+                                        home[0] = cur_pos[0];home[1] = cur_pos[1];home[2] = cur_pos[2];
 				}
-				// Registering HOME POINT.
-				home[0] = cur_pos[0];home[1] = cur_pos[1];home[2] = cur_pos[2];
 				if(current_mode != "GUIDED")
 					SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
 				if (mav_client.call(cmd_srv))
@@ -751,7 +751,7 @@ namespace rosbzz_node{
 		moveMsg.pose.orientation.w = 1;
 
                 // To prevent drifting from stable position.
-		if(fabs(x)>0.01 || fabs(y)>0.01) {
+		if(fabs(x)>0.1 || fabs(y)>0.1) {
                     localsetpoint_nonraw_pub.publish(moveMsg);
                     ROS_INFO("Sent local NON RAW position message!");
                 }

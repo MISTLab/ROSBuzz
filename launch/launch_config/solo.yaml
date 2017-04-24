@@ -1,13 +1,13 @@
 topics:
-  gps     :   /mavros/global_position/global
-  battery :   /mavros/battery
-  status  :   /mavros/state
-  fcclient:   /mavros/cmd/command
-  setpoint:   /mavros/setpoint_position/local
-  armclient:  /mavros/cmd/arming
-  modeclient: /mavros/set_mode
-  stream:  /mavros/set_stream_rate
-  altitude: /mavros/global_position/rel_alt
+  gps     :   mavros/global_position/global
+  battery :   mavros/battery
+  status  :   mavros/state
+  fcclient:   mavros/cmd/command
+  setpoint:   mavros/setpoint_position/local
+  armclient:  mavros/cmd/arming
+  modeclient: mavros/set_mode
+  stream:  mavros/set_stream_rate
+  altitude: mavros/global_position/rel_alt
 type:
   gps  :  sensor_msgs/NavSatFix
   # for SITL Solo 

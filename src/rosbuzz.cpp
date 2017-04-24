@@ -16,8 +16,9 @@ int main(int argc, char **argv)
 {
   /*Initialize rosBuzz node*/
   ros::init(argc, argv, "rosBuzz"); 
-  ros::NodeHandle n_c("~");
-  rosbzz_node::roscontroller RosController(n_c);
+  ros::NodeHandle nh_priv("~");
+  ros::NodeHandle nh;
+  rosbzz_node::roscontroller RosController(nh, nh_priv);
   /*Register ros controller object inside buzz*/
   //buzzuav_closures::set_ros_controller_ptr(&RosController);
   RosController.RosControllerRun(); 

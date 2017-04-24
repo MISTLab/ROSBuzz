@@ -46,7 +46,7 @@ namespace rosbzz_node{
 class roscontroller{
 
 public:
-	roscontroller(ros::NodeHandle n_c);
+	roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv);
 	~roscontroller();
 	//void RosControllerInit();
 	void RosControllerRun();
@@ -129,12 +129,12 @@ private:
   	ros::ServiceClient mode_client;
 	
 	/*Initialize publisher and subscriber, done in the constructor*/
-	void Initialize_pub_sub(ros::NodeHandle n_c);
+	void Initialize_pub_sub(ros::NodeHandle& n_c);
 
   	std::string current_mode; // SOLO SPECIFIC: just so you don't call the switch to same mode
 
 	/*Obtain data from ros parameter server*/	
-	void Rosparameters_get(ros::NodeHandle n_c);
+	void Rosparameters_get(ros::NodeHandle& n_c_priv);
 
 	/*compiles buzz script from the specified .bzz file*/
 	void Compile_bzz();
@@ -195,7 +195,7 @@ private:
 	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 
 	/*Get publisher and subscriber from YML file*/
-	void GetSubscriptionParameters(ros::NodeHandle node_handle);
+	void GetSubscriptionParameters(ros::NodeHandle& node_handle);
 
 	/*Arm/disarm method that can be called from buzz*/
 	void Arm();
@@ -204,7 +204,7 @@ private:
 	void SetMode(std::string mode, int delay_miliseconds);
 
 	/*Robot independent subscribers*/
-	void Subscribe(ros::NodeHandle n_c);
+	void Subscribe(ros::NodeHandle& n_c);
 
 	//void WaypointMissionSetup(float lat, float lng, float alt);
 
