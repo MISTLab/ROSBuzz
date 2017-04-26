@@ -411,8 +411,11 @@ namespace rosbzz_node{
 			// SOLO SPECIFIC: SITL DOES NOT USE 21 TO LAND -- workaround: set to LAND mode
 			switch(buzzuav_closures::getcmd()){
 			case mavros_msgs::CommandCode::NAV_LAND:
-				if(current_mode != "LAND")
-					{SetMode("LAND", 0);}
+				if(current_mode != "LAND") {
+                                    SetMode("LAND", 0);
+                                    armstate = 0;
+                                    Arm();
+                                }
 				if (mav_client.call(cmd_srv)){
 					ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
 				} else
@@ -560,12 +563,12 @@ namespace rosbzz_node{
   double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
   double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));
   
- 		double d_lon = nei[1] - cur[1];
+ 		/*double d_lon = nei[1] - cur[1];
         	double d_lat = nei[0] - cur[0];
                 double ned[3];
         	ned[0] = DEG2RAD(d_lat) * radius_north;//EARTH_RADIUS;
         	ned[1] = -DEG2RAD(d_lon) * radius_east; //EARTH_RADIUS
-                /*double ecef[3];
+                double ecef[3];
                 double llh[3];llh[0]=DEG2RAD(cur[0]);llh[1]=DEG2RAD(cur[1]);llh[2]=cur[2];
                 double d = WGS84_E * sin(llh[0]);
                 double N = WGS84_A / sqrt(1. - d*d);
@@ -584,27 +587,29 @@ namespace rosbzz_node{
                 double ned[3];
                 matrix_multiply(3, 3, 1, (double *)M, ecef, ned);   
                 
+                out[0] = sqrt(ned[0]*ned[0]+ned[1]*ned[1]);
+                out[0] = std::floor(out[0] * 1000000) / 1000000;
+		out[1] = atan2(ned[1],ned[0]);
+                out[1] = std::floor(out[1] * 1000000) / 1000000;
+		out[2] = 0.0;*/
+                
                 double d_lon = nei[1] - cur[1];
         	double d_lat = nei[0] - cur[0];
         	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
         	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
-                out[0] = std::floor(out[0] * 1000000) / 1000000;
+                //out[0] = std::floor(out[0] * 1000000) / 1000000;
 		out[1] = atan2(ned_y,ned_x);
-                out[1] = std::floor(out[1] * 1000000) / 1000000;
-		out[2] = 0.0;*/
-                
-		out[0] = sqrt(ned[0]*ned[0]+ned[1]*ned[1]);
-                out[0] = std::floor(out[0] * 1000000) / 1000000;
-		out[1] = atan2(ned[1],ned[0]);
-                out[1] = std::floor(out[1] * 1000000) / 1000000;
+                //out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = 0.0;
+                
+
 
 	}
 
 	void roscontroller::cvt_ned_coordinates(double nei[], double out[], double cur[]){
                 // calculate earth radii
-                double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
+                /*double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
                 double prime_vertical_radius = equatorial_radius * sqrt(temp);
                 double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
                 double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));
@@ -617,7 +622,7 @@ namespace rosbzz_node{
                 out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = cur[2];
                 // Using functions of the library Swift Nav (https://github.com/swift-nav/libswiftnav)
-                /*double ecef[3];
+                double ecef[3];
                 double llh[3];llh[0]=DEG2RAD(cur[0]);llh[1]=DEG2RAD(cur[1]);llh[2]=cur[2];
                 double d = WGS84_E * sin(llh[0]);
                 double N = WGS84_A / sqrt(1. - d*d);
@@ -633,15 +638,15 @@ namespace rosbzz_node{
                 ref_ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
                 double M[3][3];
                 ecef2ned_matrix(ref_ecef, M);
-                matrix_multiply(3, 3, 1, (double *)M, ecef, out);
+                matrix_multiply(3, 3, 1, (double *)M, ecef, out);*/
                 
                 double d_lon = nei[1] - cur[1];
         	double d_lat = nei[0] - cur[0];
         	out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
-                out[0] = std::floor(out[0] * 1000000) / 1000000;
+                //out[0] = std::floor(out[0] * 1000000) / 1000000;
         	out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
-                out[1] = std::floor(out[1] * 1000000) / 1000000;
-		out[2] = 0.0;*/
+                //out[1] = std::floor(out[1] * 1000000) / 1000000;
+		out[2] = 0.0;
 	}
 
 	/*------------------------------------------------------
@@ -679,15 +684,15 @@ namespace rosbzz_node{
 	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
 		//ROS_INFO("Altitude out: %f", cur_rel_altitude);
 		fcu_timeout = TIMEOUT;
-                double lat = std::floor(msg->latitude * 1000000) / 1000000;
-                double lon = std::floor(msg->longitude * 1000000) / 1000000;
+                //double lat = std::floor(msg->latitude * 1000000) / 1000000;
+                //double lon = std::floor(msg->longitude * 1000000) / 1000000;
 		/*if(cur_rel_altitude<1.2){
 			home[0]=lat;
 			home[1]=lon;
 			home[2]=cur_rel_altitude;
 		}*/
-		set_cur_pos(lat,lon, cur_rel_altitude);//msg->altitude);
-		buzzuav_closures::set_currentpos(lat,lon, cur_rel_altitude);//msg->altitude);
+		set_cur_pos(msg->latitude, msg->longitude, cur_rel_altitude);//msg->altitude);
+		buzzuav_closures::set_currentpos(msg->latitude, msg->longitude, cur_rel_altitude);//msg->altitude);
 	}
 	void roscontroller::users_pos(const rosbuzz::neigh_pos data){
 		//ROS_INFO("Altitude out: %f", cur_rel_altitude);
@@ -738,7 +743,8 @@ namespace rosbzz_node{
 		moveMsg.header.frame_id = 1;
 		double local_pos[3];
 		cvt_ned_coordinates(cur_pos,local_pos,home);
-                ROS_INFO("ROSBuzz LocalPos: %.7f,%.7f",local_pos[0],local_pos[1]);
+                ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0], home[1]);
+                ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id, local_pos[0], local_pos[1]);
                     
                 /*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
 		moveMsg.pose.position.x = local_pos[1]+y;

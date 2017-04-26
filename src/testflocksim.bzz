@@ -16,7 +16,7 @@ CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
 TARGET     = 12.0
-EPSILON    = 10.0
+EPSILON    = 12.0
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
