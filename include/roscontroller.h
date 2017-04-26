@@ -46,7 +46,7 @@ namespace rosbzz_node{
 class roscontroller{
 
 public:
-	roscontroller(ros::NodeHandle n_c);
+	roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv);
 	~roscontroller();
 	//void RosControllerInit();
 	void RosControllerRun();
@@ -61,6 +61,14 @@ private:
 	  
 	}; typedef struct num_robot_count Num_robot_count ;
 
+        // WGS84 constants
+        double equatorial_radius = 6378137.0;
+        double flattening = 1.0/298.257223563;
+        double excentrity2 = 2*flattening - flattening*flattening;
+        // default reference position
+        double DEFAULT_REFERENCE_LATITUDE  = 45.457817;
+        double DEFAULT_REFERENCE_LONGITUDE = -73.636075;
+
  	double cur_pos[3];
  	double home[3];
  	double cur_rel_altitude;
@@ -70,6 +78,7 @@ private:
 	//std::map< int, buzz_utility::Pos_struct> pub_neigh_pos;
 	int timer_step=0;
 	int robot_id=0;
+	std::string robot_name = "";
         //int oldcmdID=0;
 	int rc_cmd;
 	float fcu_timeout;
@@ -85,15 +94,17 @@ private:
 	std::string relative_altitude_sub_name;
 	std::string setpoint_nonraw;
 	bool rcclient;
+	bool xbeeplugged = false;
 	bool multi_msg;
 	Num_robot_count count_robots;
 	ros::ServiceClient mav_client;
 	ros::ServiceClient xbeestatus_srv;
 	ros::Publisher payload_pub;
 	ros::Publisher neigh_pos_pub;
-	ros::Publisher localsetpoint_pub;
+	ros::Publisher localsetpoint_nonraw_pub;
 	ros::ServiceServer service;
 	ros::Subscriber current_position_sub;
+	ros::Subscriber users_sub;
 	ros::Subscriber battery_sub;
 	ros::Subscriber payload_sub;
 	ros::Subscriber flight_status_sub;
@@ -118,12 +129,12 @@ private:
   	ros::ServiceClient mode_client;
 	
 	/*Initialize publisher and subscriber, done in the constructor*/
-	void Initialize_pub_sub(ros::NodeHandle n_c);
+	void Initialize_pub_sub(ros::NodeHandle& n_c);
 
   	std::string current_mode; // SOLO SPECIFIC: just so you don't call the switch to same mode
 
 	/*Obtain data from ros parameter server*/	
-	void Rosparameters_get(ros::NodeHandle n_c);
+	void Rosparameters_get(ros::NodeHandle& n_c_priv);
 
 	/*compiles buzz script from the specified .bzz file*/
 	void Compile_bzz();
@@ -166,6 +177,7 @@ private:
 	
 	/*current position callback*/
 	void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
+        void users_pos(const rosbuzz::neigh_pos msg);
 
 	/*current relative altitude callback*/
 	void current_rel_alt(const std_msgs::Float64::ConstPtr& msg);
@@ -183,7 +195,7 @@ private:
 	void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
 
 	/*Get publisher and subscriber from YML file*/
-	void GetSubscriptionParameters(ros::NodeHandle node_handle);
+	void GetSubscriptionParameters(ros::NodeHandle& node_handle);
 
 	/*Arm/disarm method that can be called from buzz*/
 	void Arm();
@@ -192,7 +204,7 @@ private:
 	void SetMode(std::string mode, int delay_miliseconds);
 
 	/*Robot independent subscribers*/
-	void Subscribe(ros::NodeHandle n_c);
+	void Subscribe(ros::NodeHandle& n_c);
 
 	//void WaypointMissionSetup(float lat, float lng, float alt);
 

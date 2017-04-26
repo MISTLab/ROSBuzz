@@ -30,6 +30,8 @@ int buzz_listen(const char* type,
 
 void neighbour_pos_callback(std::map< int,  Pos_struct> neighbours_pos_map);
 
+int buzz_update_users_stigmergy(buzzobj_t tbl);
+
 void in_msg_process(uint64_t* payload);
 
 uint64_t* out_msg_process();
@@ -49,7 +51,7 @@ int buzz_script_done();
 
 int update_step_test();
 
-uint16_t get_robotid();
+int get_robotid();
 
 buzzvm_t get_vm();
 

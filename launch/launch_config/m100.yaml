@@ -1,13 +1,13 @@
 topics:
-  gps      :   /global_position
-  battery  :   /power_status
-  status   :   /flight_status
-  fcclient :   /dji_mavcmd
-  setpoint :   /setpoint_position/local
-  armclient:   /dji_mavarm
-  modeclient:  /dji_mavmode
-  altitude: /rel_alt
-  stream:  /set_stream_rate
+  gps      :   global_position
+  battery  :   power_status
+  status   :   flight_status
+  fcclient :   dji_mavcmd
+  setpoint :   setpoint_position/local
+  armclient:   dji_mavarm
+  modeclient:  dji_mavmode
+  altitude: rel_alt
+  stream:  set_stream_rate
 
 type:
   gps  :  sensor_msgs/NavSatFix

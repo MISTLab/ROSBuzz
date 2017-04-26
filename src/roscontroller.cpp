@@ -5,11 +5,11 @@ namespace rosbzz_node{
 	/*---------------
 	/Constructor
 	---------------*/
-	roscontroller::roscontroller(ros::NodeHandle n_c)	
+	roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)	
 	{
 		ROS_INFO("Buzz_node");
 		/*Obtain parameters from ros parameter server*/
-	  	Rosparameters_get(n_c);
+	  	Rosparameters_get(n_c_priv);
 		/*Initialize publishers, subscribers and client*/
   		Initialize_pub_sub(n_c);
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
@@ -23,12 +23,13 @@ namespace rosbzz_node{
 		// set stream rate - wait for the FC to be started
 		SetStreamRate(0, 10, 1);
 		/// Get Robot Id - wait for Xbee to be started
-		GetRobotId();
+		if(xbeeplugged)
+			GetRobotId();
+		else
+			robot_id=strtol(robot_name.c_str() + 5, NULL, 10);;
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
-		home[0] = 0.0;
-		home[1] = 0.0;
-		home[2] = 0.0;
+                home[0]=0.0;home[1]=0.0;home[2]=0.0;
 	}
 
 	/*---------------------
@@ -67,7 +68,10 @@ namespace rosbzz_node{
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
-			init_update_monitor(bcfname.c_str(),stand_by.c_str());
+			//init_update_monitor(bcfname.c_str(),stand_by.c_str());
+                        ///////////////////////////////////////////////////////
+                        // MAIN LOOP
+                        //////////////////////////////////////////////////////
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
       				/*Update neighbors position inside Buzz*/
@@ -75,7 +79,7 @@ namespace rosbzz_node{
 				/*Neighbours of the robot published with id in respective topic*/
 				neighbours_pos_publisher();
 				/*Check updater state and step code*/
-  				update_routine(bcfname.c_str(), dbgfname.c_str());
+  				//update_routine(bcfname.c_str(), dbgfname.c_str());
 				/*Step buzz script */
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
@@ -83,10 +87,10 @@ namespace rosbzz_node{
 				/*call flight controler service to set command long*/
 				flight_controller_service_call();
 				/*Set multi message available after update*/
-				if(get_update_status()){
+				/*if(get_update_status()){
 					set_read_update_status();
 					multi_msg=true;
-				}
+				}*/
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
 				//no_of_robots=get_number_of_robots();
 				get_number_of_robots();
@@ -117,7 +121,7 @@ namespace rosbzz_node{
 	/*--------------------------------------------------------
 	/ Get all required parameters from the ROS launch file
 	/-------------------------------------------------------*/
-	void roscontroller::Rosparameters_get(ros::NodeHandle n_c){
+	void roscontroller::Rosparameters_get(ros::NodeHandle& n_c){
 		
 		/*Obtain .bzz file name from parameter server*/
 	  	if(n_c.getParam("bzzfile_name", bzzfile_name));
@@ -126,11 +130,8 @@ namespace rosbzz_node{
 	  	if(n_c.getParam("rcclient", rcclient)){
 		     	if(rcclient==true){
 			    	/*Service*/
-			    	if(n_c.getParam("rcservice_name", rcservice_name)){
-				        service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback,this);
-				    	ROS_INFO("Ready to receive Mav Commands from RC client");
-			        }
-			        else{ROS_ERROR("Provide a name topic name for rc service in Launch file"); system("rosnode kill rosbuzz_node");}
+			    	if(!n_c.getParam("rcservice_name", rcservice_name))
+                                    {ROS_ERROR("Provide a name topic name for rc service in Launch file"); system("rosnode kill rosbuzz_node");}
 		        }
      			else if(rcclient==false){ROS_INFO("RC service is disabled");}
   		}
@@ -144,7 +145,13 @@ namespace rosbzz_node{
   		n_c.getParam("in_payload", in_payload);
 		/*Obtain standby script to run during update*/
 		n_c.getParam("stand_by", stand_by);
-		n_c.getParam("xbee_status_srv", xbeesrv_name);
+                
+  		if(n_c.getParam("xbee_plugged", xbeeplugged));
+  		else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");} 
+  		if(!xbeeplugged){
+                    if(n_c.getParam("name", robot_name));
+                    else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}
+                }
 
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
@@ -153,11 +160,12 @@ namespace rosbzz_node{
 	/*-----------------------------------------------------------------------------------
 	/Obtains publisher, subscriber and services from yml file based on the robot used
 	/-----------------------------------------------------------------------------------*/
-	void roscontroller::GetSubscriptionParameters(ros::NodeHandle node_handle){
+	void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle){
 		//todo: make it as an array in yaml?
 		m_sMySubscriptions.clear();
 		std::string gps_topic, gps_type;
-		node_handle.getParam("topics/gps", gps_topic);
+  		if(node_handle.getParam("topics/gps", gps_topic));
+  		else {ROS_ERROR("Provide a gps topic in Launch file"); system("rosnode kill rosbuzz_node");}  
 		node_handle.getParam("type/gps", gps_type);
 		m_smTopic_infos.insert(pair <std::string, std::string>(gps_topic, gps_type));
 
@@ -192,7 +200,7 @@ namespace rosbzz_node{
 	/*--------------------------------------------------------
 	/ Create all required subscribers, publishers and ROS service clients
 	/-------------------------------------------------------*/
-	void roscontroller::Initialize_pub_sub(ros::NodeHandle n_c){
+	void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c){
 		/*subscribers*/
 
 		Subscribe(n_c);
@@ -202,24 +210,29 @@ namespace rosbzz_node{
   		payload_sub = n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt,this);
 		//flight_status_sub =n_c.subscribe("/flight_status",100, &roscontroller::flight_extended_status_update,this);
 		//Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000, &roscontroller::set_robot_id,this);
-  		obstacle_sub= n_c.subscribe("/guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
+  		obstacle_sub= n_c.subscribe("guidance/obstacle_distance",100, &roscontroller::obstacle_dist,this);
   		/*publishers*/
 		payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
-		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("/neighbours_pos",1000);
-		localsetpoint_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name,1000);
+		neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos",1000);
+		localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name,1000);
 		/* Service Clients*/
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
+                if(rcclient==true)
+                    service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback,this);
+		ROS_INFO("Ready to receive Mav Commands from RC client");
 		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
 		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
-
+                
+  		users_sub = n_c.subscribe("users_pos", 1000, &roscontroller::users_pos,this);
+                
 		multi_msg=true;
 	}
 	/*---------------------------------------
 	/Robot independent subscribers
 	/--------------------------------------*/
-	void roscontroller::Subscribe(ros::NodeHandle n_c){
+	void roscontroller::Subscribe(ros::NodeHandle& n_c){
 
   		for(std::map<std::string, std::string>::iterator it = m_smTopic_infos.begin(); it != m_smTopic_infos.end(); ++it){
   			if(it->second == "mavros_msgs/ExtendedState"){
@@ -345,35 +358,35 @@ namespace rosbzz_node{
     		delete[] out;
     		delete[] payload_out_ptr;
 		/*Check for updater message if present send*/
-		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
+		/*if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
 			uint8_t* buff_send = 0;
 	   		uint16_t updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());;
 			int tot=0;
 			mavros_msgs::Mavlink update_packets;
 			fprintf(stdout,"Transfering code \n");
 			fprintf(stdout,"Sent Update packet Size: %u \n",updater_msgSize);
-			/*allocate mem and clear it*/
+			// allocate mem and clear it
 			buff_send =(uint8_t*)malloc(sizeof(uint16_t)+updater_msgSize);
 			memset(buff_send, 0,sizeof(uint16_t)+updater_msgSize);
-		   	/*Append updater msg size*/
+		   	// Append updater msg size
 		  	 *(uint16_t*)(buff_send + tot)=updater_msgSize;
 		   	//fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
       		   	tot += sizeof(uint16_t);
-		   	/*Append updater msgs*/   	
+		   	// Append updater msgs
     		   	memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
 		   	tot += updater_msgSize;
-		   	/*Destroy the updater out msg queue*/
+		   	// Destroy the updater out msg queue
 		    	destroy_out_msg_queue();
 		    	uint16_t total_size =(ceil((float)(float)tot/(float)sizeof(uint64_t))); 
 		    	uint64_t* payload_64 = new uint64_t[total_size];
 	  	    	memcpy((void*)payload_64, (void*)buff_send, total_size*sizeof(uint64_t));
 		    	free(buff_send);
-		    	/*Send a constant number to differenciate updater msgs*/
+		    	// Send a constant number to differenciate updater msgs
 		    	update_packets.payload64.push_back((uint64_t)UPDATER_MESSAGE_CONSTANT);
 		    	for(int i=0;i<total_size;i++){
 				update_packets.payload64.push_back(payload_64[i]);
 		    	}
-		    	/*Add Robot id and message number to the published message*/
+		    	// Add Robot id and message number to the published message
 		    	if (message_number < 0) message_number=0;
 		    	else message_number++;
 		    	update_packets.sysid=(uint8_t)robot_id;
@@ -381,7 +394,7 @@ namespace rosbzz_node{
 		    	payload_pub.publish(update_packets);
 		    	multi_msg=false;
 		    	delete[] payload_64;
-		}
+		}*/
 		
 	}
 	/*---------------------------------------------------------------------------------
@@ -399,8 +412,11 @@ namespace rosbzz_node{
 			// SOLO SPECIFIC: SITL DOES NOT USE 21 TO LAND -- workaround: set to LAND mode
 			switch(buzzuav_closures::getcmd()){
 			case mavros_msgs::CommandCode::NAV_LAND:
-				if(current_mode != "LAND")
-					{SetMode("LAND", 0);}
+				if(current_mode != "LAND") {
+                                    SetMode("LAND", 0);
+                                    armstate = 0;
+                                    Arm();
+                                }
 				if (mav_client.call(cmd_srv)){
 					ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
 				} else
@@ -413,6 +429,8 @@ namespace rosbzz_node{
 					armstate = 1;
 					Arm();
 					ros::Duration(0.5).sleep();
+                                        // Registering HOME POINT.
+                                        home[0] = cur_pos[0];home[1] = cur_pos[1];home[2] = cur_pos[2];
 				}
 				if(current_mode != "GUIDED")
 					SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
@@ -451,8 +469,7 @@ namespace rosbzz_node{
 				Arm();
 			}
 		} else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
-			/*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
-			roscontroller::SetLocalPosition(goto_pos[1], goto_pos[0], goto_pos[2], 0);
+			roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
 
 			//roscontroller::SetLocalPositionNonRaw(goto_pos[1], goto_pos[0], goto_pos[2], 0);
 		}
@@ -504,22 +521,133 @@ namespace rosbzz_node{
 	----------------------------------------------------------- */
 	#define EARTH_RADIUS (double) 6371000.0
 	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
+	
+	void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
+            double hyp_az, hyp_el;
+            double sin_el, cos_el, sin_az, cos_az;
+
+            /* Convert reference point to spherical earth centered coordinates. */
+            hyp_az = sqrt(ref_ecef[0]*ref_ecef[0] + ref_ecef[1]*ref_ecef[1]);
+            hyp_el = sqrt(hyp_az*hyp_az + ref_ecef[2]*ref_ecef[2]);
+            sin_el = ref_ecef[2] / hyp_el;
+            cos_el = hyp_az / hyp_el;
+            sin_az = ref_ecef[1] / hyp_az;
+            cos_az = ref_ecef[0] / hyp_az;
+
+            M[0][0] = -sin_el * cos_az;
+            M[0][1] = -sin_el * sin_az;
+            M[0][2] = cos_el;
+            M[1][0] = -sin_az;
+            M[1][1] = cos_az;
+            M[1][2] = 0.0;
+            M[2][0] = -cos_el * cos_az;
+            M[2][1] = -cos_el * sin_az;
+            M[2][2] = -sin_el;
+            }
+            void matrix_multiply(uint32_t n, uint32_t m, uint32_t p, const double *a,
+                            const double *b, double *c)
+            {
+            uint32_t i, j, k;
+            for (i = 0; i < n; i++)
+                for (j = 0; j < p; j++) {
+                c[p*i + j] = 0;
+                for (k = 0; k < m; k++)
+                    c[p*i + j] += a[m*i+k] * b[p*k + j];
+                }
+            }
+
 	void roscontroller::cvt_rangebearing_coordinates(double nei[], double out[], double cur[]){
- 		double d_lon = nei[1] - cur[1];
+            
+  // calculate earth radii
+  double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
+  double prime_vertical_radius = equatorial_radius * sqrt(temp);
+  double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
+  double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));
+  
+ 		/*double d_lon = nei[1] - cur[1];
+        	double d_lat = nei[0] - cur[0];
+                double ned[3];
+        	ned[0] = DEG2RAD(d_lat) * radius_north;//EARTH_RADIUS;
+        	ned[1] = -DEG2RAD(d_lon) * radius_east; //EARTH_RADIUS
+                double ecef[3];
+                double llh[3];llh[0]=DEG2RAD(cur[0]);llh[1]=DEG2RAD(cur[1]);llh[2]=cur[2];
+                double d = WGS84_E * sin(llh[0]);
+                double N = WGS84_A / sqrt(1. - d*d);
+                ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
+                ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
+                ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
+                double ref_ecef[3];
+                llh[0]=DEG2RAD(nei[0]);llh[1]=DEG2RAD(nei[1]);llh[2]=nei[2];
+                d = WGS84_E * sin(llh[0]);
+                N = WGS84_A / sqrt(1. - d*d);
+                ref_ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
+                ref_ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
+                ref_ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
+                double M[3][3];
+                ecef2ned_matrix(ref_ecef, M);
+                double ned[3];
+                matrix_multiply(3, 3, 1, (double *)M, ecef, ned);   
+                
+                out[0] = sqrt(ned[0]*ned[0]+ned[1]*ned[1]);
+                out[0] = std::floor(out[0] * 1000000) / 1000000;
+		out[1] = atan2(ned[1],ned[0]);
+                out[1] = std::floor(out[1] * 1000000) / 1000000;
+		out[2] = 0.0;*/
+                
+                double d_lon = nei[1] - cur[1];
         	double d_lat = nei[0] - cur[0];
         	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
         	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
+                //out[0] = std::floor(out[0] * 1000000) / 1000000;
 		out[1] = atan2(ned_y,ned_x);
+                //out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = 0.0;
+                
+
+
 	}
 
 	void roscontroller::cvt_ned_coordinates(double nei[], double out[], double cur[]){
+                // calculate earth radii
+                /*double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
+                double prime_vertical_radius = equatorial_radius * sqrt(temp);
+                double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
+                double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));
+  
  		double d_lon = nei[1] - cur[1];
-		double d_lat = nei[0] - cur[0];
-		out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
-		out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+        	double d_lat = nei[0] - cur[0];
+        	out[0] = DEG2RAD(d_lat) * radius_north;//EARTH_RADIUS;
+                out[0] = std::floor(out[0] * 1000000) / 1000000;
+        	out[1] = -DEG2RAD(d_lon) * radius_east; //EARTH_RADIUS
+                out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = cur[2];
+                // Using functions of the library Swift Nav (https://github.com/swift-nav/libswiftnav)
+                double ecef[3];
+                double llh[3];llh[0]=DEG2RAD(cur[0]);llh[1]=DEG2RAD(cur[1]);llh[2]=cur[2];
+                double d = WGS84_E * sin(llh[0]);
+                double N = WGS84_A / sqrt(1. - d*d);
+                ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
+                ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
+                ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
+                double ref_ecef[3];
+                llh[0]=DEG2RAD(nei[0]);llh[1]=DEG2RAD(nei[1]);llh[2]=nei[2];
+                d = WGS84_E * sin(llh[0]);
+                N = WGS84_A / sqrt(1. - d*d);
+                ref_ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
+                ref_ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
+                ref_ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
+                double M[3][3];
+                ecef2ned_matrix(ref_ecef, M);
+                matrix_multiply(3, 3, 1, (double *)M, ecef, out);*/
+                
+                double d_lon = nei[1] - cur[1];
+        	double d_lat = nei[0] - cur[0];
+        	out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
+                //out[0] = std::floor(out[0] * 1000000) / 1000000;
+        	out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+                //out[1] = std::floor(out[1] * 1000000) / 1000000;
+		out[2] = 0.0;
 	}
 
 	/*------------------------------------------------------
@@ -557,13 +685,36 @@ namespace rosbzz_node{
 	void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg){
 		//ROS_INFO("Altitude out: %f", cur_rel_altitude);
 		fcu_timeout = TIMEOUT;
-		if(home[0]==0){
-			home[0]=msg->latitude;
-			home[1]=msg->longitude;
+                //double lat = std::floor(msg->latitude * 1000000) / 1000000;
+                //double lon = std::floor(msg->longitude * 1000000) / 1000000;
+		/*if(cur_rel_altitude<1.2){
+			home[0]=lat;
+			home[1]=lon;
 			home[2]=cur_rel_altitude;
-		}
-		set_cur_pos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
-		buzzuav_closures::set_currentpos(msg->latitude,msg->longitude, cur_rel_altitude);//msg->altitude);
+		}*/
+		set_cur_pos(msg->latitude, msg->longitude, cur_rel_altitude);//msg->altitude);
+		buzzuav_closures::set_currentpos(msg->latitude, msg->longitude, cur_rel_altitude);//msg->altitude);
+	}
+	void roscontroller::users_pos(const rosbuzz::neigh_pos data){
+		//ROS_INFO("Altitude out: %f", cur_rel_altitude);
+
+                double us[3];
+                int n = data.pos_neigh.size();
+        //	ROS_INFO("Neighbors array size: %i\n", n);
+                if(n>0)
+                {
+                        for(int it=0; it<n; ++it)
+                        {
+                                us[0] = data.pos_neigh[it].latitude;
+                                us[1] = data.pos_neigh[it].longitude;
+                                us[2] = data.pos_neigh[it].altitude;
+                                double out[3];
+                                cvt_rangebearing_coordinates(us, out, cur_pos);
+                                buzzuav_closures::set_userspos(out[0], out[1], out[2]);
+                        }
+
+                }
+		
 	}
 	/*-------------------------------------------------------------
 	/ Update altitude into BVM from subscriber
@@ -581,6 +732,66 @@ namespace rosbzz_node{
 		for(int i=0;i<5;i++)
 			obst[i]=msg->ranges[i];
 		buzzuav_closures::set_obstacle_dist(obst);
+	}
+	
+	void roscontroller::SetLocalPosition(float x, float y, float z, float yaw){
+		// http://docs.ros.org/kinetic/api/mavros_msgs/html/msg/PositionTarget.html
+		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
+
+		geometry_msgs::PoseStamped moveMsg;
+		moveMsg.header.stamp = ros::Time::now();
+		moveMsg.header.seq = setpoint_counter++;
+		moveMsg.header.frame_id = 1;
+		double local_pos[3];
+		cvt_ned_coordinates(cur_pos,local_pos,home);
+                ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0], home[1]);
+                ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id, local_pos[0], local_pos[1]);
+                    
+                /*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
+		moveMsg.pose.position.x = local_pos[1]+y;
+		moveMsg.pose.position.y = local_pos[0]+x;
+		moveMsg.pose.position.z = z;
+
+		moveMsg.pose.orientation.x = 0;
+		moveMsg.pose.orientation.y = 0;
+		moveMsg.pose.orientation.z = 0;
+		moveMsg.pose.orientation.w = 1;
+
+                // To prevent drifting from stable position.
+		if(fabs(x)>0.1 || fabs(y)>0.1) {
+                    localsetpoint_nonraw_pub.publish(moveMsg);
+                    ROS_INFO("Sent local NON RAW position message!");
+                }
+	}
+
+	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
+		// wait if necessary
+		if (delay_miliseconds != 0){
+			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
+		}
+		// set mode
+		mavros_msgs::SetMode set_mode_message;
+		set_mode_message.request.base_mode = 0;
+		set_mode_message.request.custom_mode = mode;
+		current_mode = mode;
+		if(mode_client.call(set_mode_message)) {
+			ROS_INFO("Set Mode Service call successful!");
+		} else {
+			ROS_INFO("Set Mode Service call failed!");
+		}
+	}
+
+	void roscontroller::SetStreamRate(int id, int rate, int on_off){
+		mavros_msgs::StreamRate message;
+		message.request.stream_id = id;
+		message.request.message_rate = rate;
+		message.request.on_off = on_off;
+
+		while(!stream_client.call(message)){
+			ROS_INFO("Set stream rate call failed!, trying again...");
+			ros::Duration(0.1).sleep();
+		}
+		ROS_INFO("Set stream rate call successful");
 	}
 
 	/*-------------------------------------------------------------
@@ -777,66 +988,5 @@ namespace rosbzz_node{
 		}
 		*/
 	}
-	/*
-	 * SOLO SPECIFIC FUNCTIONS
-	 */
-
-	void roscontroller::SetLocalPosition(float x, float y, float z, float yaw){
-		// http://docs.ros.org/kinetic/api/mavros_msgs/html/msg/PositionTarget.html
-		// http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html#copter-commands-in-guided-mode-set-position-target-local-ned
-
-		geometry_msgs::PoseStamped moveMsg;
-		moveMsg.header.stamp = ros::Time::now();
-		moveMsg.header.seq = setpoint_counter++;
-		moveMsg.header.frame_id = 1;
-		double local_pos[3];
-		cvt_ned_coordinates(cur_pos,local_pos,home);
-		moveMsg.pose.position.x = local_pos[0]+x;
-		moveMsg.pose.position.y = local_pos[1]+y;
-		moveMsg.pose.position.z = z;
-
-		moveMsg.pose.orientation.x = 0;
-		moveMsg.pose.orientation.y = 0;
-		moveMsg.pose.orientation.z = 0;
-		moveMsg.pose.orientation.w = 1;
-
-		std::cout<<"Home (0,1,2): " << home[0] <<", " << home[1] << ", " << home[2] <<std::endl;
-
-		localsetpoint_pub.publish(moveMsg);
-
-		ROS_INFO("Sent local NON RAW position message!");
-	}
-
-	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
-		// wait if necessary
-		if (delay_miliseconds != 0){
-			std::this_thread::sleep_for( std::chrono::milliseconds ( delay_miliseconds ) );
-		}
-		// set mode
-		mavros_msgs::SetMode set_mode_message;
-		set_mode_message.request.base_mode = 0;
-		set_mode_message.request.custom_mode = mode;
-		current_mode = mode;
-		if(mode_client.call(set_mode_message)) {
-			ROS_INFO("Set Mode Service call successful!");
-		} else {
-			ROS_INFO("Set Mode Service call failed!");
-		}
-	}
-
-	void roscontroller::SetStreamRate(int id, int rate, int on_off){
-		mavros_msgs::StreamRate message;
-		message.request.stream_id = id;
-		message.request.message_rate = rate;
-		message.request.on_off = on_off;
-
-		while(!stream_client.call(message)){
-			ROS_INFO("Set stream rate call failed!, trying again...");
-			ros::Duration(0.1).sleep();
-		}
-		ROS_INFO("Set stream rate call successful");
-	}
-
-
 
 }

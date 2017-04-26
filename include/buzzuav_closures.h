@@ -46,6 +46,7 @@ void rc_call(int rc_cmd);
 void set_battery(float voltage,float current,float remaining);
 /* sets current position */
 void set_currentpos(double latitude, double longitude, double altitude);
+void set_userspos(double latitude, double longitude, double altitude);
 /*retuns the current go to position */
 double* getgoto();
 /* updates flight status*/
@@ -82,7 +83,7 @@ int buzzuav_update_battery(buzzvm_t vm);
  * Updates current position in Buzz
  */
 int buzzuav_update_currentpos(buzzvm_t vm);
-
+buzzobj_t buzzuav_update_userspos(buzzvm_t vm);
 
 /*
  * Updates flight status and rc command in Buzz, put it in a tabel to acess it 
