@@ -49,8 +49,12 @@ function hexagon() {
   	timeW =0
   	statef=land
   	} else {
-  	timeW = timeW+1
-  	uav_moveto(0.2,0.0)
+  		if(timeW >= (WAIT_TIMEOUT / 2)){
+  			uav_moveto(5.0,0.0)
+  		} else {
+  			uav_moveto(0.0,5.0)
+  		}
+  		timeW = timeW+1
   	}
 }
  
@@ -86,7 +90,7 @@ function barrier_ready() {
 #
 # Executes the barrier
 #
-WAIT_TIMEOUT = 200
+WAIT_TIMEOUT = 300
 timeW=0
 function barrier_wait(threshold, transf) {
   barrier.get(id)

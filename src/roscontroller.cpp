@@ -74,6 +74,7 @@ namespace rosbzz_node{
                         //////////////////////////////////////////////////////
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
+				std::cout<<std::setprecision(17)<<"Home: " << home[0] << home[1] << std::endl;
       				/*Update neighbors position inside Buzz*/
      				buzz_utility::neighbour_pos_callback(neighbours_pos_map);
 				/*Neighbours of the robot published with id in respective topic*/
@@ -219,8 +220,8 @@ namespace rosbzz_node{
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-                if(rcclient==true)
-                    service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback,this);
+		if(rcclient==true)
+			service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback,this);
 		ROS_INFO("Ready to receive Mav Commands from RC client");
 		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
 		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
@@ -425,12 +426,19 @@ namespace rosbzz_node{
 				break;
 			case mavros_msgs::CommandCode::NAV_TAKEOFF:
 				if(!armstate){
+
 					SetMode("LOITER", 0);
 					armstate = 1;
 					Arm();
 					ros::Duration(0.5).sleep();
-                                        // Registering HOME POINT.
-                                        home[0] = cur_pos[0];home[1] = cur_pos[1];home[2] = cur_pos[2];
+					// Registering HOME POINT.
+					if(home[0] == 0){
+						//test #1: set home only once -- ok
+						home[0] = cur_pos[0]; home[1] = cur_pos[1]; home[2] = cur_pos[2];
+						//test #2: set home mavros -- nope
+						//SetMavHomePosition(cur_pos[0], cur_pos[1], cur_pos[2]);
+
+					}
 				}
 				if(current_mode != "GUIDED")
 					SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
@@ -510,9 +518,9 @@ namespace rosbzz_node{
 	void roscontroller::set_cur_pos(double latitude,
 			 double longitude,
 			 double altitude){
-		cur_pos [0] =latitude;
-		cur_pos [1] =longitude;
-		cur_pos [2] =altitude;
+		cur_pos [0] = latitude;
+		cur_pos [1] = longitude;
+		cur_pos [2] = altitude;
 	}
 
 	/*-----------------------------------------------------------
@@ -780,6 +788,7 @@ namespace rosbzz_node{
 			ROS_INFO("Set Mode Service call failed!");
 		}
 	}
+
 
 	void roscontroller::SetStreamRate(int id, int rate, int on_off){
 		mavros_msgs::StreamRate message;
