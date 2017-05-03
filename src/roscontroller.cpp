@@ -150,7 +150,8 @@ namespace rosbzz_node{
   		if(!xbeeplugged){
                     if(n_c.getParam("name", robot_name));
                     else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}
-                }
+                }else
+			n_c.getParam("xbee_status_srv", xbeesrv_name);
 
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
