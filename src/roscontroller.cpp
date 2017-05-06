@@ -26,7 +26,7 @@ namespace rosbzz_node{
 		if(xbeeplugged)
 			GetRobotId();
 		else
-			robot_id=strtol(robot_name.c_str() + 5, NULL, 10);;
+			robot_id= strtol(robot_name.c_str() + 5, NULL, 10);;
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
                 home[0]=0.0;home[1]=0.0;home[2]=0.0;
@@ -268,16 +268,16 @@ namespace rosbzz_node{
 		bzzfile_in_compile.str("");
 		std::string  name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
  		name = name.substr(0,name.find_last_of("."));
-		bzzfile_in_compile << "bzzparse "<<bzzfile_name<<" "<<path<< name<<".basm";
+		bzzfile_in_compile << "bzzc "<<bzzfile_name; //<<" "<<path<< name<<".basm";
    		system(bzzfile_in_compile.str().c_str());
-		bzzfile_in_compile.str("");
-           	bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo "<<path<<name<<".bdbg";
-   		system(bzzfile_in_compile.str().c_str());
+		//bzzfile_in_compile.str("");
+           	//bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo "<<path<<name<<".bdbg";
+   		//system(bzzfile_in_compile.str().c_str());
 		bzzfile_in_compile.str("");
 		bzzfile_in_compile <<path<<name<<".bo";
 		bcfname = bzzfile_in_compile.str();
 		bzzfile_in_compile.str("");
-		bzzfile_in_compile <<path<<name<<".bdbg";
+		bzzfile_in_compile <<path<<name<<".bdb";
 		dbgfname = bzzfile_in_compile.str();
    		
 	}

@@ -450,8 +450,8 @@ buzzvm_dup(VM);
 	   buzzswarm_elem_t e = *(buzzswarm_elem_t*)data;
 	   int* status = (int*)params;
 	   if(*status == 3) return;
-	fprintf(stderr, "CHECKING SWARM MEMBERS:%i\n",buzzdarray_get(e->swarms, 0, uint16_t));
-	   if(buzzdarray_size(e->swarms) != 1) {
+	fprintf(stderr, "CHECKING SWARM :%i, memeber: %i, age: %i \n",buzzdarray_get(e->swarms, 0, 			uint16_t), *(uint16_t*)key, e->age);
+             if(buzzdarray_size(e->swarms) != 1) {
 	      fprintf(stderr, "Swarm list size is not 1\n");
 	      *status = 3;
 	   }
@@ -504,16 +504,18 @@ buzzvm_dup(VM);
 		      buzz_error_info());
 	      buzzvm_dump(VM);
 	   }
+	   /* Update swarm membership */
+           buzzswarm_members_update(VM->swarmmembers);
 	   //buzzvm_process_outmsgs(VM); //--> done in  out_msg_process() function called each step
 	   //usleep(10000);
 	   /*Print swarm*/
-	   //buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
+	   buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
 	   //int SwarmSize = buzzdict_size(VM->swarmmembers)+1;
 	   //fprintf(stderr, "Real Swarm Size: %i\n",SwarmSize);
 
 	   /* Check swarm state -- Not crashing thanks to test added in check_swarm_members */
-//	   int status = 1;
-//	   buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
+	   int status = 1;
+	   buzzdict_foreach(VM->swarmmembers, check_swarm_members, &status);
 	}
 
 	/****************************************/

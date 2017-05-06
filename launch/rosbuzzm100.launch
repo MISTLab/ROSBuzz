@@ -2,15 +2,17 @@
 
 <launch>
 		<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
-		<param name="bzzfile_name" value="$(env ROS_WS)/src/ROSBuzz/src/test1.bzz" />
+		<rosparam file="$(find rosbuzz)/launch/launch_config/m100.yaml"/>
+		<param name="bzzfile_name" value="$(env ROS_WS)/src/testflockfev.bzz" />
                 <param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="/buzzcmd" />
-		<param name="fcclient_name" value="/dji_mavcmd" />
+		<!--param name="fcclient_name" value="/dji_mavcmd" -->
 		<param name="in_payload" value="/inMavlink"/>
 		<param name="out_payload" value="/outMavlink"/>
 		<param name="xbee_status_srv" value="/xbee_status"/>
-		<param name="robot_id" value="3"/>
-		<param name="No_of_Robots" value="3"/>
+		<param name="xbee_plugged" value="true"/>
+		<!--param name="robot_id" value="3"-->
+		<!--param name="No_of_Robots" value="3"-->
 		<param name="stand_by" value="$(env ROS_WS)/src/ROSBuzz/src/stand_by.bo"/>
 		</node>
 		
