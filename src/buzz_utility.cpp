@@ -488,7 +488,15 @@ static int create_stig_tables() {
       		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
         	return 0;
    	}
-
+	//v-stig table
+	if(create_stig_tables() != BUZZVM_STATE_READY) {
+      		buzzvm_destroy(&VM);
+      		buzzdebug_destroy(&DBG_INFO);
+      		ROS_ERROR("[%i] Error creating stigmergy tables", Robot_id);
+			//cout << "ERROR!!!!   ----------  " << VM->errormsg << endl;
+			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
+      		return 0;
+   	}
    	// Execute the global part of the script
    	buzzvm_execute_script(VM);
    	// Call the Init() function
@@ -529,7 +537,15 @@ static int create_stig_tables() {
       		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
         	return 0;
    	}
-
+	//v-stig table
+	if(create_stig_tables() != BUZZVM_STATE_READY) {
+      		buzzvm_destroy(&VM);
+      		buzzdebug_destroy(&DBG_INFO);
+      		ROS_ERROR("[%i] Error creating stigmergy tables", Robot_id);
+			//cout << "ERROR!!!!   ----------  " << VM->errormsg << endl;
+			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
+      		return 0;
+   	}
    	// Execute the global part of the script
    	buzzvm_execute_script(VM);
    	// Call the Init() function
