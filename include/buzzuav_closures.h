@@ -51,7 +51,9 @@ void set_userspos(double latitude, double longitude, double altitude);
 double* getgoto();
 /* updates flight status*/
 void flight_status_update(uint8_t state);
-
+/* Update neighbors table */
+void neighbour_pos_callback(int id, float range, float bearing, float elevation);
+void update_neighbors(buzzvm_t vm);
 /*Flight status*/
 void set_obstacle_dist(float dist[]);
 

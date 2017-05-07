@@ -25,6 +25,10 @@ namespace buzzuav_closures{
 	static int rc_cmd=0;
 	static int buzz_cmd=0;
 	static float height=0;
+
+
+	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
+
 	/****************************************/
 	/****************************************/
 
@@ -244,6 +248,32 @@ namespace buzzuav_closures{
 	   cur_pos[0]=latitude;
 	   cur_pos[1]=longitude;
 	   cur_pos[2]=altitude;
+	}
+	/*adds neighbours position*/
+	void neighbour_pos_callback(int id, float range, float bearing, float elevation){
+		buzz_utility::Pos_struct pos_arr;
+		pos_arr.x=range;
+		pos_arr.y=bearing;
+		pos_arr.z=elevation;
+		map< int, buzz_utility::Pos_struct >::iterator it = neighbors_map.find(id);
+		if(it!=neighbors_map.end())
+			neighbors_map.erase(it);
+		neighbors_map.insert(make_pair(id, pos_arr));
+	}
+
+	/* update at each step the VM table */
+	void update_neighbors(buzzvm_t vm){
+		/* Reset neighbor information */
+    	buzzneighbors_reset(vm);
+  		/* Get robot id and update neighbor information */
+  	  	map< int, buzz_utility::Pos_struct >::iterator it;
+		for (it=neighbors_map.begin(); it!=neighbors_map.end(); ++it){
+			buzzneighbors_add(vm,
+								it->first,
+								(it->second).x,
+								(it->second).y,
+								(it->second).z);
+		}
 	}
 	void set_userspos(double latitude, double longitude, double altitude){
 		/*buzz_utility::Pos_struct pos_arr;
