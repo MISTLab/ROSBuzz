@@ -22,11 +22,11 @@ namespace rosbzz_node{
 		multi_msg = true;
 		// set stream rate - wait for the FC to be started
 		SetStreamRate(0, 10, 1);
-		/// Get Robot Id - wait for Xbee to be started
+		// Get Robot Id - wait for Xbee to be started
 		if(xbeeplugged)
 			GetRobotId();
 		else
-			robot_id= strtol(robot_name.c_str() + 5, NULL, 10);;
+			robot_id= strtol(robot_name.c_str() + 5, NULL, 10);
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
                 home[0]=0.0;home[1]=0.0;home[2]=0.0;
@@ -67,7 +67,7 @@ namespace rosbzz_node{
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
-			//init_update_monitor(bcfname.c_str(),stand_by.c_str());
+			init_update_monitor(bcfname.c_str(),stand_by.c_str());
                         ///////////////////////////////////////////////////////
                         // MAIN LOOP
                         //////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ namespace rosbzz_node{
 				/*Neighbours of the robot published with id in respective topic*/
 				neighbours_pos_publisher();
 				/*Check updater state and step code*/
-  				//update_routine(bcfname.c_str(), dbgfname.c_str());
+  				update_routine(bcfname.c_str(), dbgfname.c_str());
 				/*Step buzz script */
       				buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
@@ -86,10 +86,10 @@ namespace rosbzz_node{
 				/*call flight controler service to set command long*/
 				flight_controller_service_call();
 				/*Set multi message available after update*/
-				/*if(get_update_status()){
+				if(get_update_status()){
 					set_read_update_status();
 					multi_msg=true;
-				}*/
+				}
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
 				//no_of_robots=get_number_of_robots();
 				get_number_of_robots();
@@ -334,7 +334,7 @@ namespace rosbzz_node{
 	/*----------------------------------------------------------------------------------------------------*/	
 	void roscontroller::prepare_msg_and_publish(){
     		/*obtain Pay load to be sent*/  
-   		uint64_t* payload_out_ptr= buzz_utility::out_msg_process();
+   		uint64_t* payload_out_ptr= buzz_utility::obt_out_msg();
     		uint64_t  position[3];
   		/*Appened current position to message*/
     		memcpy(position, cur_pos, 3*sizeof(uint64_t));
@@ -358,7 +358,7 @@ namespace rosbzz_node{
     		delete[] out;
     		delete[] payload_out_ptr;
 		/*Check for updater message if present send*/
-		/*if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
+		if((int)get_update_mode()!=CODE_RUNNING && is_msg_present()==1 && multi_msg){
 			uint8_t* buff_send = 0;
 	   		uint16_t updater_msgSize=*(uint16_t*) (getupdate_out_msg_size());;
 			int tot=0;
@@ -394,7 +394,7 @@ namespace rosbzz_node{
 		    	payload_pub.publish(update_packets);
 		    	multi_msg=false;
 		    	delete[] payload_64;
-		}*/
+		}
 		
 	}
 	/*---------------------------------------------------------------------------------
@@ -855,7 +855,7 @@ namespace rosbzz_node{
 			raw_neighbours_pos_put((int)out[1],raw_neigh_pos);		
 			neighbours_pos_put((int)out[1],n_pos);
 			delete[] out;
-			buzz_utility::in_msg_process((message_obt+3));
+			buzz_utility::in_msg_append((message_obt+3));
 		}
 
 	}
