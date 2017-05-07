@@ -21,6 +21,12 @@ struct pos_struct
   pos_struct(){}
 };
 
+#define function_register(TABLE, FNAME, FPOINTER)               \
+   buzzvm_push(VM, (TABLE));                                    \
+   buzzvm_pushs(VM, buzzvm_string_register(VM, (FNAME), 1));    \
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, (FPOINTER))); \
+   buzzvm_tput(VM);
+
 typedef struct pos_struct Pos_struct ;
 
 uint16_t* u64_cvt_u16(uint64_t u64);
@@ -29,6 +35,12 @@ int buzz_listen(const char* type,
                        int msg_size);
 
 void neighbour_pos_callback(std::map< int,  Pos_struct> neighbours_pos_map);
+void update_neighbors();
+void add_user(int id, double latitude, double longitude, float altitude);
+void update_users();
+int make_table(buzzobj_t* t);
+int buzzusers_add(int id, double latitude, double longitude, double altitude);
+int buzzusers_reset();
 
 int buzz_update_users_stigmergy(buzzobj_t tbl);
 

@@ -141,6 +141,12 @@ function land() {
 	}
 }
 
+function table_print(t) {
+  foreach(t, function(key, value) {
+      log(key, " -> ", value)
+    })
+}
+
 # Executed once at init time.
 function init() {
 	s = swarm.create(1)
@@ -199,9 +205,13 @@ neighbors.listen("cmd",
 	log("User position: ", users.range)
 	
 	# Read a value from the structure
-        #x = usersvstig.get(46)
+        t = vt.get("p")
+				log(t)
+				#table_print(t)        
+				#t = vt.get("u")
+				#table_print(t)
         # Get the number of keys in the structure
-        #log("The vstig has ", usersvstig.size(), " elements")
+        log("The vstig has ", vt.size(), " elements")
 }
  
 # Executed once when the robot (or the simulator) is reset.

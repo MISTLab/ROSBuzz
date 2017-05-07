@@ -29,7 +29,8 @@ namespace rosbzz_node{
 			robot_id=strtol(robot_name.c_str() + 5, NULL, 10);;
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
-                home[0]=0.0;home[1]=0.0;home[2]=0.0;
+        
+		home[0]=0.0;home[1]=0.0;home[2]=0.0;
 	}
 
 	/*---------------------
@@ -48,7 +49,7 @@ namespace rosbzz_node{
 	{
 
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
-        	mavros_msgs::ParamGet::Response robot_id_srv_response;
+        mavros_msgs::ParamGet::Response robot_id_srv_response;
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
 			ros::Duration(0.1).sleep();
 			ROS_ERROR("Waiting for Xbee to respond to get device ID");
@@ -73,14 +74,14 @@ namespace rosbzz_node{
                         //////////////////////////////////////////////////////
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
-      				/*Update neighbors position inside Buzz*/
-     				buzz_utility::neighbour_pos_callback(neighbours_pos_map);
+      			/*Update neighbors position inside Buzz*/
+     			buzz_utility::neighbour_pos_callback(neighbours_pos_map);
 				/*Neighbours of the robot published with id in respective topic*/
 				neighbours_pos_publisher();
 				/*Check updater state and step code*/
   				//update_routine(bcfname.c_str(), dbgfname.c_str());
 				/*Step buzz script */
-      				buzz_utility::buzz_script_step();
+      			buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
 		  		prepare_msg_and_publish();
 				/*call flight controler service to set command long*/
@@ -97,8 +98,8 @@ namespace rosbzz_node{
 				buzz_utility::set_robot_var(no_of_robots);
 				/*Set no of robots for updates*/
 				updates_set_robots(no_of_robots);
-    				/*run once*/
-    				ros::spinOnce();
+    			/*run once*/
+    			ros::spinOnce();
 				/*loop rate of ros*/
 				 ros::Rate loop_rate(10);
 				 loop_rate.sleep();
@@ -107,10 +108,9 @@ namespace rosbzz_node{
 				 else
 					fcu_timeout -= 1/10;
  				/*sleep for the mentioned loop rate*/
-    				timer_step+=1;
+    			timer_step+=1;
    				maintain_pos(timer_step);
-				
-				
+								
 			}
 			/* Destroy updater and Cleanup */
     			//update_routine(bcfname.c_str(), dbgfname.c_str(),1);
@@ -218,8 +218,8 @@ namespace rosbzz_node{
 		arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
 		mode_client =  n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
 		mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-                if(rcclient==true)
-                    service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback,this);
+        if(rcclient==true)
+        	service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback,this);
 		ROS_INFO("Ready to receive Mav Commands from RC client");
 		xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
 		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
@@ -261,7 +261,7 @@ namespace rosbzz_node{
 		/*TODO: change to bzzc instead of bzzparse and also add -I for includes*/
 		/*Compile the buzz code .bzz to .bo*/
 		stringstream bzzfile_in_compile;
-	        std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/"));
+	    std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/"));
 		bzzfile_in_compile<<path<<"/";
 		path = bzzfile_in_compile.str();
 		bzzfile_in_compile.str("");
@@ -270,7 +270,7 @@ namespace rosbzz_node{
 		bzzfile_in_compile << "bzzparse "<<bzzfile_name<<" "<<path<< name<<".basm";
    		system(bzzfile_in_compile.str().c_str());
 		bzzfile_in_compile.str("");
-           	bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo "<<path<<name<<".bdbg";
+        bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo "<<path<<name<<".bdbg";
    		system(bzzfile_in_compile.str().c_str());
 		bzzfile_in_compile.str("");
 		bzzfile_in_compile <<path<<name<<".bo";
@@ -490,7 +490,7 @@ namespace rosbzz_node{
 	void roscontroller::neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr ){
 		map< int, buzz_utility::Pos_struct >::iterator it = neighbours_pos_map.find(id);
 		if(it!=neighbours_pos_map.end())
-		neighbours_pos_map.erase(it);
+			neighbours_pos_map.erase(it);
 		neighbours_pos_map.insert(make_pair(id, pos_arr));
 		}
 	/*-----------------------------------------------------------------------------------
@@ -499,7 +499,7 @@ namespace rosbzz_node{
 	void roscontroller::raw_neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr ){
 		map< int, buzz_utility::Pos_struct >::iterator it = raw_neighbours_pos_map.find(id);
 		if(it!=raw_neighbours_pos_map.end())
-		raw_neighbours_pos_map.erase(it);
+			raw_neighbours_pos_map.erase(it);
 		raw_neighbours_pos_map.insert(make_pair(id, pos_arr));
 		}
 
@@ -709,7 +709,8 @@ namespace rosbzz_node{
                                 us[2] = data.pos_neigh[it].altitude;
                                 double out[3];
                                 cvt_rangebearing_coordinates(us, out, cur_pos);
-                                buzzuav_closures::set_userspos(out[0], out[1], out[2]);
+                                //buzzuav_closures::set_userspos(out[0], out[1], out[2]);
+								buzz_utility::add_user(data.pos_neigh[it].position_covariance_type,data.pos_neigh[it].latitude, data.pos_neigh[it].longitude, data.pos_neigh[it].altitude);
                         }
 
                 }
@@ -757,7 +758,7 @@ namespace rosbzz_node{
 		moveMsg.pose.orientation.w = 1;
 
                 // To prevent drifting from stable position.
-		if(fabs(x)>0.1 || fabs(y)>0.1) {
+		if(fabs(x)>0.01 || fabs(y)>0.01) {
                     localsetpoint_nonraw_pub.publish(moveMsg);
                     ROS_INFO("Sent local NON RAW position message!");
                 }

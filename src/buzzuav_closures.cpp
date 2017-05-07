@@ -7,7 +7,7 @@
  */
 //#define _GNU_SOURCE
 #include "buzzuav_closures.h"
-//#include "roscontroller.h"
+
 namespace buzzuav_closures{
 
 	// TODO: Minimize the required global variables and put them in the header
@@ -246,6 +246,14 @@ namespace buzzuav_closures{
 	   cur_pos[2]=altitude;
 	}
 	void set_userspos(double latitude, double longitude, double altitude){
+		/*buzz_utility::Pos_struct pos_arr;
+		pos_arr.x=latitude;
+		pos_arr.y=longitude;
+		pos_arr.z=altitude;
+		map< int, buzz_utility::Pos_struct >::iterator it = users_map.find(id);
+		if(it!=users_map.end())
+			users_map.erase(it);
+		users_map.insert(make_pair(id, pos_arr));*/
 	   users_pos[0]=latitude;
 	   users_pos[1]=longitude;
 	   users_pos[2]=altitude;
@@ -270,6 +278,9 @@ namespace buzzuav_closures{
 	   return vm->state;
 	}
 	buzzobj_t buzzuav_update_userspos(buzzvm_t vm) {
+		/*map< int, buzz_utility::Pos_struct >::iterator it;
+		for (it=users_map.begin(); it!=users_map.end(); ++it){
+		}*/
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "users", 1));
 	   buzzvm_pusht(vm);
 	   buzzvm_dup(vm);
@@ -284,9 +295,10 @@ namespace buzzuav_closures{
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "height", 1));
 	   buzzvm_pushf(vm, users_pos[2]);
 	   buzzvm_tput(vm);
+	   buzzobj_t tbl = buzzvm_stack_at(vm, 0);
 	   buzzvm_gstore(vm);
            
-           return buzzvm_stack_at(vm, 0);
+           return tbl;
 	   //return vm->state;
 	}
 

@@ -6,7 +6,7 @@
  *  @copyright 2016 MistLab. All rights reserved.
  */
 
-#include <buzz_utility.h>
+#include "buzz_utility.h"
 
 namespace buzz_utility{
 
@@ -19,38 +19,146 @@ namespace buzz_utility{
 	static buzzdebug_t  DBG_INFO        = 0;
 	static uint8_t      MSG_SIZE        = 50;   // Only 100 bytes of Buzz messages every step
 	static int          MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
-	static int 	    Robot_id        = 0;
-        buzzobj_t           usersvstig;
-        buzzobj_t           key;
+	static int 	    	Robot_id        = 0;
+
+	std::map< int,  Pos_struct> users_map;
+	std::map< int,  Pos_struct> neighbors_map;
 	
 	/****************************************/
 	/*adds neighbours position*/
 	void neighbour_pos_callback(std::map< int,  Pos_struct> neighbours_pos_map){
+		neighbors_map.clear();
+		map< int, Pos_struct >::iterator it;
+		for (it=neighbours_pos_map.begin(); it!=neighbours_pos_map.end(); ++it){
+			neighbors_map.insert(make_pair(it->first,it->second));
+		}
+	}
+
+	/* update at each step the VM table */
+	void update_neighbors(){
 		/* Reset neighbor information */
-    		buzzneighbors_reset(VM);
+    	buzzneighbors_reset(VM);
   		/* Get robot id and update neighbor information */
   	  	map< int, Pos_struct >::iterator it;
-    		for (it=neighbours_pos_map.begin(); it!=neighbours_pos_map.end(); ++it){
-    			buzzneighbors_add(VM,
-                        		  it->first,
-                        		  (it->second).x,
-                        		  (it->second).y,
-                        		  (it->second).z);
-    		}
+		for (it=neighbors_map.begin(); it!=neighbors_map.end(); ++it){
+			buzzneighbors_add(VM,
+								it->first,
+								(it->second).x,
+								(it->second).y,
+								(it->second).z);
+		}
+	}
+
+	void add_user(int id, double latitude, double longitude, float altitude)
+	{
+		Pos_struct pos_arr;
+		pos_arr.x=latitude;
+		pos_arr.y=longitude;
+		pos_arr.z=altitude;
+		map< int, buzz_utility::Pos_struct >::iterator it = users_map.find(id);
+		if(it!=users_map.end())
+			users_map.erase(it);
+		ROS_INFO("Buzz_utility got new user: %i", id);
+		users_map.insert(make_pair(id, pos_arr));
+	}
+
+	void update_users(){
+		/* Reset neighbor information */
+    	buzzusers_reset();
+  		/* Get robot id and update neighbor information */
+  	  	map< int, Pos_struct >::iterator it;
+		for (it=users_map.begin(); it!=users_map.end(); ++it){
+			buzzusers_add(it->first,
+								(it->second).x,
+								(it->second).y,
+								(it->second).z);
+		}
+	}
+
+	int buzzusers_reset() {
+		if(VM->state != BUZZVM_STATE_READY) return VM->state;
+		/* Make new table */
+		buzzobj_t t = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
+		//make_table(&t);
+		if(VM->state != BUZZVM_STATE_READY) return VM->state;
+		/* Register table as global symbol */
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
+		buzzvm_gload(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "put", 1));
+        buzzvm_tget(VM);
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "p", 1));
+		//buzzvm_gload(VM);
+		buzzvm_push(VM, t);
+        buzzvm_pushi(VM, 2);
+		buzzvm_call(VM, 0);
+		//buzzvm_gstore(VM);
+		return VM->state;
+	}
+
+	int buzzusers_add(int id, double latitude, double longitude, double altitude) {
+		if(VM->state != BUZZVM_STATE_READY) return VM->state;
+		/* Get users "p" table */
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
+		buzzvm_gload(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "get", 1));
+        buzzvm_tget(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "p", 1));
+		buzzvm_gload(VM);
+        buzzvm_pushi(VM, 1);
+		buzzvm_call(VM, 0);
+		buzzvm_type_assert(VM, 1, BUZZTYPE_TABLE);
+		buzzobj_t nbr = buzzvm_stack_at(VM, 1);
+		/* Get "data" field */
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "data", 1));
+		buzzvm_tget(VM);
+		if(buzzvm_stack_at(VM, 1)->o.type == BUZZTYPE_NIL) {
+			/* Empty data, create a new table */
+			buzzvm_pop(VM);
+			buzzvm_push(VM, nbr);
+			buzzvm_pushs(VM, buzzvm_string_register(VM, "data", 1));
+			buzzvm_pusht(VM);
+			buzzobj_t data = buzzvm_stack_at(VM, 1);
+			buzzvm_tput(VM);
+			buzzvm_push(VM, data);
+		}
+		/* When we get here, the "data" table is on top of the stack */
+		/* Push user id */
+		buzzvm_pushi(VM, id);
+		/* Create entry table */
+		buzzobj_t entry = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
+		/* Insert latitude */
+		buzzvm_push(VM, entry);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "la", 1));
+		buzzvm_pushf(VM, latitude);
+		buzzvm_tput(VM);
+		/* Insert longitude */
+		buzzvm_push(VM, entry);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "lo", 1));
+		buzzvm_pushf(VM, longitude);
+		buzzvm_tput(VM);
+		/* Insert altitude */
+		buzzvm_push(VM, entry);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "al", 1));
+		buzzvm_pushf(VM, altitude);
+		buzzvm_tput(VM);
+		/* Save entry into data table */
+		buzzvm_push(VM, entry);
+		buzzvm_tput(VM);
+		return VM->state;
 	}
 	/**************************************************************************/
 	/*Deserializes uint64_t into 4 uint16_t, freeing out is left to the user  */
 	/**************************************************************************/
 	uint16_t* u64_cvt_u16(uint64_t u64){
-   	uint16_t* out = new uint16_t[4];
-   	uint32_t int32_1 = u64 & 0xFFFFFFFF;
-   	uint32_t int32_2 = (u64 & 0xFFFFFFFF00000000 ) >> 32;
-   	 out[0] = int32_1 & 0xFFFF;
-   	 out[1] = (int32_1 & (0xFFFF0000) ) >> 16;
-   	 out[2] = int32_2 & 0xFFFF;
-   	 out[3] = (int32_2 & (0xFFFF0000) ) >> 16;
-   	//cout << " values " <<out[0] <<"  "<<out[1] <<"  "<<out[2] <<"  "<<out[3] <<"  ";
-	return out;
+		uint16_t* out = new uint16_t[4];
+		uint32_t int32_1 = u64 & 0xFFFFFFFF;
+		uint32_t int32_2 = (u64 & 0xFFFFFFFF00000000 ) >> 32;
+		out[0] = int32_1 & 0xFFFF;
+		out[1] = (int32_1 & (0xFFFF0000) ) >> 16;
+		out[2] = int32_2 & 0xFFFF;
+		out[3] = (int32_2 & (0xFFFF0000) ) >> 16;
+		//cout << " values " <<out[0] <<"  "<<out[1] <<"  "<<out[2] <<"  "<<out[3] <<"  ";
+		return out;
 	}
 
 	int get_robotid() {
@@ -189,15 +297,15 @@ namespace buzz_utility{
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
    		buzzvm_gstore(VM);
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "log", 1));
-                buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
-                buzzvm_gstore(VM);
-                buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_moveto", 1));
+        buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
+        buzzvm_gstore(VM);
+        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_moveto", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_moveto));
    		buzzvm_gstore(VM);
-                buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_goto", 1));
+        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_goto", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_goto));
    		buzzvm_gstore(VM);
-                buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_arm", 1));
+        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_arm", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_arm));
    		buzzvm_gstore(VM);
 		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_disarm", 1));
@@ -212,7 +320,8 @@ namespace buzz_utility{
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_land", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_land));
    		buzzvm_gstore(VM);
-   	return BUZZVM_STATE_READY;
+
+   	return VM->state;
 	}
 
 	/**************************************************/
@@ -224,15 +333,15 @@ namespace buzz_utility{
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
    		buzzvm_gstore(VM);
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "log", 1));
-                buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
-                buzzvm_gstore(VM);
-                buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_moveto", 1));
+        buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
+        buzzvm_gstore(VM);
+        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_moveto", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
-                buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_goto", 1));
+        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_goto", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
-                buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_arm", 1));
+        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_arm", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
 		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_disarm", 1));
@@ -247,17 +356,59 @@ namespace buzz_utility{
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_land", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
-   	return BUZZVM_STATE_READY;
+
+   	return VM->state;
 	}
 
+static int create_stig_tables() {
 
+   		// usersvstig = stigmergy.create(123)
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
+        //buzzvm_gstore(VM);
+        // get the stigmergy table from the global scope
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "stigmergy", 1));
+        buzzvm_gload(VM);
+        // get the create method from the stigmergy table
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "create", 1));
+        buzzvm_tget(VM);
+        // value of the stigmergy id
+        buzzvm_pushi(VM, 5);
+        // call the stigmergy.create() method
+//        buzzvm_closure_call(VM, 1);
+		buzzvm_pushi(VM, 1);
+		buzzvm_call(VM, 0);
+        buzzvm_gstore(VM);
+
+		/*buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
+        buzzvm_gload(VM);
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "put", 1));
+        buzzvm_tget(VM);
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "p", 1));
+        buzzvm_pusht(VM);
+        buzzvm_pushi(VM, 2);
+		buzzvm_call(VM, 0);
+        //buzzvm_gstore(VM);*/
+		buzzusers_reset();
+
+		/*buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
+        buzzvm_gload(VM);
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "put", 1));
+        buzzvm_tget(VM);
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "u", 1));
+        buzzvm_pusht(VM);
+        buzzvm_pushi(VM, 2);
+		buzzvm_call(VM, 0);
+        buzzvm_gstore(VM);*/
+
+   	return VM->state;
+}
 	/****************************************/
 	/*Sets the .bzz and .bdbg file*/
 	/****************************************/
 
 	int buzz_script_set(const char* bo_filename,
 	                    const char* bdbg_filename, int robot_id) {
-   	cout << " Robot ID: " <<robot_id<< endl;
+   	ROS_INFO(" Robot ID: %i", robot_id);
    	/* Reset the Buzz VM */
    	if(VM) buzzvm_destroy(&VM);
 	Robot_id = robot_id;
@@ -294,39 +445,25 @@ namespace buzz_utility{
    	if(buzzvm_set_bcode(VM, BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stderr, "%s: Error loading Buzz script\n\n", bo_filename);
+      		ROS_ERROR("%s: Error loading Buzz script", bo_filename);
       		return 0;
    	}
    	/* Register hook functions */
    	if(buzz_register_hooks() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stderr, "%s: Error registering hooks\n\n", bo_filename);
+      		ROS_ERROR("[%i] Error registering hooks", Robot_id);
       		return 0;
    	}
 
-   	
-buzzvm_dup(VM);
-   	// usersvstig = stigmergy.create(123)
-        buzzvm_pushs(VM, buzzvm_string_register(VM, "v", 1));
-        // value of the stigmergy id
-        buzzvm_pushi(VM, 5);
-        // get the stigmergy table from the global scope
-//        buzzvm_pushs(VM, buzzvm_string_register(VM, "stigmergy", 1));
-//        buzzvm_gload(VM);
-        // get the create method from the stigmergy table
-//        buzzvm_pushs(VM, buzzvm_string_register(VM, "create", 1));
-//        buzzvm_tget(VM);
-        // call the stigmergy.create() method
-//        buzzvm_closure_call(VM, 1);
-        // now the stigmergy is at the top of the stack - save it for future reference
-//        usersvstig = buzzvm_stack_at(VM, 0);
-//buzzvm_pop(VM);
-        // assign the virtual stigmergy to the global symbol v
-        // create also a global variable for it, so the garbage collector does not remove it
-//buzzvm_pushs(VM, buzzvm_string_register(VM, "v", 1));
-//buzzvm_push(VM, usersvstig);
-        buzzvm_gstore(VM);
+	if(create_stig_tables() != BUZZVM_STATE_READY) {
+      		buzzvm_destroy(&VM);
+      		buzzdebug_destroy(&DBG_INFO);
+      		ROS_ERROR("[%i] Error creating stigmergy tables", Robot_id);
+			//cout << "ERROR!!!!   ----------  " << VM->errormsg << endl;
+			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
+      		return 0;
+   	}
         
    	/* Save bytecode file name */
    	BO_FNAME = strdup(bo_filename);
@@ -336,24 +473,47 @@ buzzvm_dup(VM);
    	buzzvm_function_call(VM, "init", 0);
    	/* All OK */
 
+    ROS_INFO("[%i] INIT DONE!!!", Robot_id);
+
    	return 1;//buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
 	}
         
-        int buzz_update_users_stigmergy(buzzobj_t tbl){
-            // push the key (here it's an int with value 46)
+	/****************************************/
+	/*Update users positions                */
+	/****************************************/
+
+    int buzz_update_users_stigmergy(buzzobj_t tbl){
+ /*           // push the key (here it's an int with value 46)
             buzzvm_pushi(VM, 46);
             // push the table
             buzzvm_push(VM, tbl);
             // the stigmergy is stored in the vstig variable
             // let's push it on the stack
-            buzzvm_push(VM, usersvstig);
+            buzzvm_push(VM, peoplevstig);
             // get the put method from myvstig
             buzzvm_pushs(VM, buzzvm_string_register(VM, "put", 1));
             buzzvm_tget(VM);
             // call the vstig.put() method
-            buzzvm_closure_call(VM, 2);
+            buzzvm_closure_call(VM, 2);*/
+
+
+			// put something in it....
+        //buzzvm_push(VM, peoplevstig);
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "p", 1));
+        buzzvm_gload(VM);
+        buzzvm_pushs(VM, buzzvm_string_register(VM, "put", 1));
+        buzzvm_tget(VM);
+        //buzzvm_pushs(VM, buzzvm_string_register(VM, "id", 1));
+        buzzvm_pushi(VM, Robot_id);
+        //buzzvm_gload(VM);
+        buzzvm_push(VM, tbl);
+        buzzvm_pushi(VM, 2);
+		buzzvm_call(VM, 0);
+        //buzzvm_closure_call(VM, 2);
+        //buzzvm_gstore(VM);
             return 1;
         }
+
 	/****************************************/
 	/*Sets a new update                     */
 	/****************************************/
@@ -489,10 +649,12 @@ buzzvm_dup(VM);
 	   buzzuav_closures::buzzuav_update_battery(VM);
 	   buzzuav_closures::buzzuav_update_prox(VM);
 	   buzzuav_closures::buzzuav_update_currentpos(VM);
-	   buzzobj_t tbl = buzzuav_closures::buzzuav_update_userspos(VM);
+	   update_neighbors();
+	   update_users();
+	   buzzuav_closures::buzzuav_update_userspos(VM);
 	   buzzuav_closures::buzzuav_update_flight_status(VM);
-           
-           //buzz_update_users_stigmergy(tbl);
+	   
+	   //buzz_update_users_stigmergy(tbl);
            
            
 	    /*
