@@ -515,7 +515,6 @@ static int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
    	}
-
    	// Execute the global part of the script
    	buzzvm_execute_script(VM);
    	// Call the Init() function
@@ -565,7 +564,6 @@ static int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
    	}
-
    	// Execute the global part of the script
    	buzzvm_execute_script(VM);
    	// Call the Init() function
