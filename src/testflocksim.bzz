@@ -206,10 +206,9 @@ neighbors.listen("cmd",
 	
 	# Read a value from the structure
         t = vt.get("p")
-				log(t)
-				#table_print(t)        
-				#t = vt.get("u")
-				#table_print(t)
+				log(t)       
+				table_print(t)
+				
         # Get the number of keys in the structure
         log("The vstig has ", vt.size(), " elements")
 }
