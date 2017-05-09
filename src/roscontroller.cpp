@@ -271,7 +271,7 @@ namespace rosbzz_node{
 		//bzzfile_in_compile.str("");
 		std::string  name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
  		name = name.substr(0,name.find_last_of("."));
-		bzzfile_in_compile << "bzzc -I " << path << "script/include/"; //<<" "<<path<< name<<".basm";
+		bzzfile_in_compile << "bzzc -I " << path << "include/"; //<<" "<<path<< name<<".basm";
 		//bzzfile_in_compile.str("");
         //bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo "<<path<<name<<".bdbg";
    		//system(bzzfile_in_compile.str().c_str());

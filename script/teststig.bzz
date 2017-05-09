@@ -1,3 +1,4 @@
+include "vec2.bzz"
 ####################################################################################################
 # Updater related
 # This should be here for the updater to work, changing position of code will crash the updater
@@ -12,8 +13,8 @@ function init(){
     s = swarm.create(1)
 	s.join()
     v = stigmergy.create(5)
-    #t= {}
-    #v.put("p",t)
+    t= {}
+    v.put("p",t)
     v.put("u",1)
 }
 
@@ -26,7 +27,7 @@ function step() {
         #v.put("p",tmp)
         v.put("u",2)
     }
-	#log(v.get("p"))
+	log(v.get("p"))
 }
 
 # Executed once when the robot (or the simulator) is reset.
