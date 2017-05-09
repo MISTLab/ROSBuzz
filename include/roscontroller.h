@@ -137,7 +137,7 @@ private:
 	void Rosparameters_get(ros::NodeHandle& n_c_priv);
 
 	/*compiles buzz script from the specified .bzz file*/
-	void Compile_bzz();
+	std::string Compile_bzz(std::string bzzfile_name);
 
 	/*Flight controller service call*/
 	void flight_controller_service_call();

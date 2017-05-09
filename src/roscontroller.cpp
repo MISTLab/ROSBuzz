@@ -13,7 +13,9 @@ namespace rosbzz_node{
 		/*Initialize publishers, subscribers and client*/
   		Initialize_pub_sub(n_c);
 		/*Compile the .bzz file to .basm, .bo and .bdbg*/
- 		Compile_bzz();
+		std::string fname = Compile_bzz(bzzfile_name);
+ 		bcfname = fname + ".bo";
+ 		dbgfname = fname + ".bdb";
 		set_bzz_file(bzzfile_name.c_str());
 		/*Initialize variables*/
 		// Solo things
@@ -68,7 +70,8 @@ namespace rosbzz_node{
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
 			fprintf(stdout, "Bytecode file found and set\n");
-			init_update_monitor(bcfname.c_str(),stand_by.c_str());
+			std::string standby_bo = Compile_bzz(stand_by) + ".bo";
+			init_update_monitor(bcfname.c_str(),standby_bo.c_str());
                         ///////////////////////////////////////////////////////
                         // MAIN LOOP
                         //////////////////////////////////////////////////////
@@ -95,7 +98,7 @@ namespace rosbzz_node{
 				//no_of_robots=get_number_of_robots();
 				get_number_of_robots();
 				//if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
-				buzz_utility::set_robot_var(no_of_robots);
+				//buzz_utility::set_robot_var(no_of_robots);
 				/*Set no of robots for updates*/
 				updates_set_robots(no_of_robots);
     			/*run once*/
@@ -258,28 +261,35 @@ namespace rosbzz_node{
 	/*--------------------------------------------------------
 	/ Create Buzz bytecode from the bzz script inputed
 	/-------------------------------------------------------*/
-	void roscontroller::Compile_bzz(){
+	std::string roscontroller::Compile_bzz(std::string bzzfile_name){
 		/*TODO: change to bzzc instead of bzzparse and also add -I for includes*/
 		/*Compile the buzz code .bzz to .bo*/
 		stringstream bzzfile_in_compile;
-	    std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/"));
-		bzzfile_in_compile<<path<<"/";
-		path = bzzfile_in_compile.str();
-		bzzfile_in_compile.str("");
+	    std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+		//bzzfile_in_compile << path << "/";
+		//path = bzzfile_in_compile.str();
+		//bzzfile_in_compile.str("");
 		std::string  name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
  		name = name.substr(0,name.find_last_of("."));
-		bzzfile_in_compile << "bzzc "<<bzzfile_name; //<<" "<<path<< name<<".basm";
-   		system(bzzfile_in_compile.str().c_str());
+		bzzfile_in_compile << "bzzc -I " << path << "script/include/"; //<<" "<<path<< name<<".basm";
 		//bzzfile_in_compile.str("");
         //bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo "<<path<<name<<".bdbg";
    		//system(bzzfile_in_compile.str().c_str());
-		bzzfile_in_compile.str("");
-		bzzfile_in_compile <<path<<name<<".bo";
-		bcfname = bzzfile_in_compile.str();
-		bzzfile_in_compile.str("");
-		bzzfile_in_compile <<path<<name<<".bdb";
-		dbgfname = bzzfile_in_compile.str();
-   		
+		//bzzfile_in_compile.str("");
+		bzzfile_in_compile << " -b " << path << name << ".bo";
+		//bcfname = bzzfile_in_compile.str();
+		//std::string tmp_bcfname = path + name + ".bo";
+		//bzzfile_in_compile.str("");
+		bzzfile_in_compile << " -d " << path << name << ".bdb ";
+		//bzzfile_in_compile << " -a " << path << name << ".asm ";
+		bzzfile_in_compile << bzzfile_name;
+		//std::string tmp_dbgfname = path + name + ".bdb";
+
+		ROS_WARN("Launching buzz compilation: %s", bzzfile_in_compile.str().c_str());
+
+   		system(bzzfile_in_compile.str().c_str());
+
+		return path + name;
 	}
 	/*----------------------------------------------------
 	/ Publish neighbours pos and id in neighbours pos topic
@@ -311,14 +321,13 @@ namespace rosbzz_node{
 	void roscontroller::Arm(){
 		mavros_msgs::CommandBool arming_message;
 		arming_message.request.value = armstate;
-		ROS_INFO("FC Arm Service called!------------------------------------------------------");
 		if(arm_client.call(arming_message)) {
 			if(arming_message.response.success==1)
-				ROS_INFO("FC Arm Service called!");
+				ROS_WARN("FC Arm Service called!");
 			else
-				ROS_INFO("FC Arm Service call failed!");
+				ROS_WARN("FC Arm Service call failed!");
 		} else {
-			ROS_INFO("FC Arm Service call failed!");
+			ROS_WARN("FC Arm Service call failed!");
 		}
 	}
 

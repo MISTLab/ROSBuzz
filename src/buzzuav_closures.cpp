@@ -19,7 +19,6 @@ namespace buzzuav_closures{
 	static float batt[3];
 	static float obst[5]={0,0,0,0,0};
 	static double cur_pos[3];
-	static double users_pos[3];
 	static uint8_t status;
 	static int cur_cmd = 0;
 	static int rc_cmd=0;
@@ -275,19 +274,7 @@ namespace buzzuav_closures{
 								(it->second).z);
 		}
 	}
-	void set_userspos(double latitude, double longitude, double altitude){
-		/*buzz_utility::Pos_struct pos_arr;
-		pos_arr.x=latitude;
-		pos_arr.y=longitude;
-		pos_arr.z=altitude;
-		map< int, buzz_utility::Pos_struct >::iterator it = users_map.find(id);
-		if(it!=users_map.end())
-			users_map.erase(it);
-		users_map.insert(make_pair(id, pos_arr));*/
-	   users_pos[0]=latitude;
-	   users_pos[1]=longitude;
-	   users_pos[2]=altitude;
-	}
+
 	/****************************************/
 	int buzzuav_update_currentpos(buzzvm_t vm) {
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "position", 1));
@@ -306,30 +293,6 @@ namespace buzzuav_closures{
 	   buzzvm_tput(vm);
 	   buzzvm_gstore(vm);
 	   return vm->state;
-	}
-	buzzobj_t buzzuav_update_userspos(buzzvm_t vm) {
-		/*map< int, buzz_utility::Pos_struct >::iterator it;
-		for (it=users_map.begin(); it!=users_map.end(); ++it){
-		}*/
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "users", 1));
-	   buzzvm_pusht(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "range", 1));
-	   buzzvm_pushf(vm, users_pos[0]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "bearing", 1));
-	   buzzvm_pushf(vm, users_pos[1]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "height", 1));
-	   buzzvm_pushf(vm, users_pos[2]);
-	   buzzvm_tput(vm);
-	   buzzobj_t tbl = buzzvm_stack_at(vm, 0);
-	   buzzvm_gstore(vm);
-           
-           return tbl;
-	   //return vm->state;
 	}
 
 	void flight_status_update(uint8_t state){
