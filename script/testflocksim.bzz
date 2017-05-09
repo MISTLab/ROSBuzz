@@ -141,10 +141,13 @@ function land() {
 	}
 }
 
-function table_print(t) {
-  foreach(t, function(key, value) {
-      log(key, " -> ", value)
-    })
+function users_print(t) {
+	if(size(t)>0) {
+		foreach(t, function(id, tab) {
+				log("id: ",id," Latitude ", tab.la, "Longitude ", tab.lo)
+				add_user_rb(id,tab.la,tab.lo)
+			})
+	}
 }
 
 ########################################
@@ -157,10 +160,9 @@ function table_print(t) {
 function init() {
 	s = swarm.create(1)
 	s.join()
-	v = stigmergy.create(5)
+	vt = stigmergy.create(5)
 	t = {}
-	v.put("p",t)
-	v.put("u",1)
+	vt.put("p",t)
 	statef=idle
 	CURSTATE = "IDLE"
 }
@@ -211,22 +213,18 @@ neighbors.listen("cmd",
 	statef()
 	log("Current state: ", CURSTATE)
 	log("Swarm size: ",ROBOTS)
-	#log("User position: ", users.range)
 	
 	# Read a value from the structure
-        #t = v.get("p")
 				log(users)      
-				table_print(users)
 				if(size(users)>0){
-					tmp = {2 3}
-					v.put("p", tmp)
-					v.put("u",2)
+					#users_print(users.dataG)
+					if(size(users.dataG)>0)
+						vt.put("p", users.dataG)
 				}
 				
         # Get the number of keys in the structure
-        log("The vstig has ", v.size(), " elements")
-				table_print(v.get("p"))
-				log(v.get("u"))
+        log("The vstig has ", vt.size(), " elements")
+				users_print(vt.get("p"))
 }
  
 # Executed once when the robot (or the simulator) is reset.

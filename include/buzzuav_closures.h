@@ -84,7 +84,7 @@ int buzzuav_update_battery(buzzvm_t vm);
  * Updates current position in Buzz
  */
 int buzzuav_update_currentpos(buzzvm_t vm);
-
+int buzzuav_adduserRB(buzzvm_t vm);
 /*
  * Updates flight status and rc command in Buzz, put it in a tabel to acess it 
  * use flight.status for flight status

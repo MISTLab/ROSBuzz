@@ -17,7 +17,7 @@ namespace buzz_utility{
 	static char*        BO_FNAME        = 0;
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
-	static uint8_t      MSG_SIZE        = 50;   // Only 100 bytes of Buzz messages every step
+	static uint8_t      MSG_SIZE        = 250;   // Only 100 bytes of Buzz messages every step
 	static int          MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
 	static int 	    	Robot_id        = 0;
 
@@ -57,6 +57,61 @@ namespace buzz_utility{
 			}
 		}else
 			ROS_INFO("[%i] No new users",Robot_id);
+
+		//compute_users_rb();
+	}
+
+	int compute_users_rb() {
+		if(VM->state != BUZZVM_STATE_READY) return VM->state;
+		/* Get users "userG" stigmergy table */
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
+		buzzvm_gload(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "get", 1));
+        buzzvm_tget(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "p", 1));
+        buzzvm_pushi(VM, 1);
+		buzzvm_callc(VM);
+		buzzvm_type_assert(VM, 1, BUZZTYPE_TABLE);
+		buzzobj_t nbr = buzzvm_stack_at(VM, 1);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "al", 1));
+		buzzvm_tget(VM);
+		buzzvm_type_assert(VM, 1, BUZZTYPE_INT);
+		int gid = buzzvm_stack_at(VM, 1)->i.value;
+		ROS_WARN("GOT ID %i FROM V.STIG", gid);
+		/* Get "data" field */
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
+		buzzvm_gload(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataL", 1));
+		buzzvm_tget(VM);
+		if(buzzvm_stack_at(VM, 1)->o.type == BUZZTYPE_NIL) {
+			ROS_INFO("Empty data, create a new table");
+			buzzvm_pop(VM);
+			buzzvm_push(VM, nbr);
+			buzzvm_pushs(VM, buzzvm_string_register(VM, "dataL", 1));
+			buzzvm_pusht(VM);
+			buzzobj_t data = buzzvm_stack_at(VM, 1);
+			buzzvm_tput(VM);
+			buzzvm_push(VM, data);
+		}
+		/* When we get here, the "data" table is on top of the stack */
+		/* Push user id */
+		buzzvm_pushi(VM, gid);
+		/* Create entry table */
+		buzzobj_t entry = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
+		/* Insert range */
+		buzzvm_push(VM, entry);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "r", 1));
+		buzzvm_pushf(VM, 0);
+		buzzvm_tput(VM);
+		/* Insert bearing */
+		buzzvm_push(VM, entry);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "b", 1));
+		buzzvm_pushf(VM, 0);
+		buzzvm_tput(VM);
+		/* Save entry into data table */
+		buzzvm_push(VM, entry);
+		buzzvm_tput(VM);
+		return VM->state;
 	}
 
 	int buzzusers_reset() {
@@ -92,13 +147,13 @@ namespace buzz_utility{
 		buzzvm_type_assert(VM, 1, BUZZTYPE_TABLE);
 		buzzobj_t nbr = buzzvm_stack_at(VM, 1);
 		/* Get "data" field */
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "data", 1));
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
 		buzzvm_tget(VM);
 		if(buzzvm_stack_at(VM, 1)->o.type == BUZZTYPE_NIL) {
 			ROS_INFO("Empty data, create a new table");
 			buzzvm_pop(VM);
 			buzzvm_push(VM, nbr);
-			buzzvm_pushs(VM, buzzvm_string_register(VM, "data", 1));
+			buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
 			buzzvm_pusht(VM);
 			buzzobj_t data = buzzvm_stack_at(VM, 1);
 			buzzvm_tput(VM);
@@ -314,6 +369,9 @@ namespace buzz_utility{
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_land", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_land));
    		buzzvm_gstore(VM);
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_user_rb", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_adduserRB));
+   		buzzvm_gstore(VM);
 
    	return VM->state;
 	}
@@ -348,6 +406,9 @@ namespace buzz_utility{
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_land", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM);
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_user_rb", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
 

@@ -108,14 +108,31 @@ namespace buzzuav_closures{
 	   float dx = buzzvm_stack_at(vm, 2)->f.value;
 	   double d = sqrt(dx*dx+dy*dy);	//range
 	   goto_pos[0]=dx;
-           goto_pos[1]=dy;
-           goto_pos[2]=height;
+       goto_pos[1]=dy;
+       goto_pos[2]=height;
 	   /*double b = atan2(dy,dx);		//bearing
 	   printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
 	   gps_from_rb(d, b, goto_pos);
 	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
 	   printf(" Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
 	   buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
+	   return buzzvm_ret0(vm);
+	}
+
+	int buzzuav_adduserRB(buzzvm_t vm) {
+	   buzzvm_lnum_assert(vm, 3);
+	   buzzvm_lload(vm, 1); /* longitude */
+	   buzzvm_lload(vm, 2); /* latitude */
+	   buzzvm_lload(vm, 3); /* id */
+	   buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+	   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+	   float lon = buzzvm_stack_at(vm, 1)->f.value;
+	   float lat = buzzvm_stack_at(vm, 2)->f.value;
+	   int uid = buzzvm_stack_at(vm, 3)->i.value;
+
+	   printf("\tGot new user from bzz stig: %i - %f, %f\n", uid, lat, lon);
+
 	   return buzzvm_ret0(vm);
 	}
 
