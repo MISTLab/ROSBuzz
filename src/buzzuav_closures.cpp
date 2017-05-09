@@ -7,7 +7,7 @@
  */
 //#define _GNU_SOURCE
 #include "buzzuav_closures.h"
-//#include "roscontroller.h"
+
 namespace buzzuav_closures{
 
 	// TODO: Minimize the required global variables and put them in the header
@@ -19,12 +19,15 @@ namespace buzzuav_closures{
 	static float batt[3];
 	static float obst[5]={0,0,0,0,0};
 	static double cur_pos[3];
-	static double users_pos[3];
 	static uint8_t status;
 	static int cur_cmd = 0;
 	static int rc_cmd=0;
 	static int buzz_cmd=0;
 	static float height=0;
+
+
+	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
+
 	/****************************************/
 	/****************************************/
 
@@ -246,11 +249,33 @@ namespace buzzuav_closures{
 	   cur_pos[1]=longitude;
 	   cur_pos[2]=altitude;
 	}
-	void set_userspos(double latitude, double longitude, double altitude){
-	   users_pos[0]=latitude;
-	   users_pos[1]=longitude;
-	   users_pos[2]=altitude;
+	/*adds neighbours position*/
+	void neighbour_pos_callback(int id, float range, float bearing, float elevation){
+		buzz_utility::Pos_struct pos_arr;
+		pos_arr.x=range;
+		pos_arr.y=bearing;
+		pos_arr.z=elevation;
+		map< int, buzz_utility::Pos_struct >::iterator it = neighbors_map.find(id);
+		if(it!=neighbors_map.end())
+			neighbors_map.erase(it);
+		neighbors_map.insert(make_pair(id, pos_arr));
 	}
+
+	/* update at each step the VM table */
+	void update_neighbors(buzzvm_t vm){
+		/* Reset neighbor information */
+    	buzzneighbors_reset(vm);
+  		/* Get robot id and update neighbor information */
+  	  	map< int, buzz_utility::Pos_struct >::iterator it;
+		for (it=neighbors_map.begin(); it!=neighbors_map.end(); ++it){
+			buzzneighbors_add(vm,
+								it->first,
+								(it->second).x,
+								(it->second).y,
+								(it->second).z);
+		}
+	}
+
 	/****************************************/
 	int buzzuav_update_currentpos(buzzvm_t vm) {
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "position", 1));
@@ -269,26 +294,6 @@ namespace buzzuav_closures{
 	   buzzvm_tput(vm);
 	   buzzvm_gstore(vm);
 	   return vm->state;
-	}
-	buzzobj_t buzzuav_update_userspos(buzzvm_t vm) {
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "users", 1));
-	   buzzvm_pusht(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "range", 1));
-	   buzzvm_pushf(vm, users_pos[0]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "bearing", 1));
-	   buzzvm_pushf(vm, users_pos[1]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "height", 1));
-	   buzzvm_pushf(vm, users_pos[2]);
-	   buzzvm_tput(vm);
-	   buzzvm_gstore(vm);
-           
-           return buzzvm_stack_at(vm, 0);
-	   //return vm->state;
 	}
 
 	void flight_status_update(uint8_t state){

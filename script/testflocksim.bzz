@@ -8,15 +8,15 @@ include "/home/ubuntu/buzz/src/include/vec2.bzz"
 updated="update_ack"
 update_no=0
 function updated_neigh(){
-neighbors.broadcast(updated, update_no)
+	neighbors.broadcast(updated, update_no)
 }
 
-TARGET_ALTITUDE = 3.0
+TARGET_ALTITUDE = 10.0
 CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
-TARGET     = 10.0	#0.000001001
-EPSILON    = 18.0	#0.001
+TARGET     = 12.0
+EPSILON    = 12.0
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -43,19 +43,15 @@ function hexagon() {
     math.vec2.scale(accum, 1.0 / neighbors.count())
   # Move according to vector
   #print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
-#  uav_moveto(accum.x,accum.y)
+  uav_moveto(accum.x,accum.y)
 
-  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
-  	timeW =0
-  	statef=land
-  	} else {
-  		if(timeW >= (WAIT_TIMEOUT / 2)){
-  			uav_moveto(5.0,0.0)
-  		} else {
-  			uav_moveto(0.0,5.0)
-  		}
-  		timeW = timeW+1
-  	}
+#  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
+#  	timeW =0
+#  	statef=land
+#  	} else {
+#  	timeW = timeW+1
+#  	uav_moveto(0.0,0.0)
+#  	}
 }
  
 ########################################
@@ -68,7 +64,6 @@ function hexagon() {
 # Constants
 #
 BARRIER_VSTIG = 1
-# ROBOTS = 3 # number of robots in the swarm
 
 #
 # Sets a barrier
@@ -90,7 +85,7 @@ function barrier_ready() {
 #
 # Executes the barrier
 #
-WAIT_TIMEOUT = 300
+WAIT_TIMEOUT = 200
 timeW=0
 function barrier_wait(threshold, transf) {
   barrier.get(id)
@@ -146,11 +141,26 @@ function land() {
 	}
 }
 
+function table_print(t) {
+  foreach(t, function(key, value) {
+      log(key, " -> ", value)
+    })
+}
+
+########################################
+#
+# MAIN FUNCTIONS
+#
+########################################
+
 # Executed once at init time.
 function init() {
 	s = swarm.create(1)
-#	s.select(1)
 	s.join()
+	v = stigmergy.create(5)
+	t = {}
+	v.put("p",t)
+	v.put("u",1)
 	statef=idle
 	CURSTATE = "IDLE"
 }
@@ -201,6 +211,22 @@ neighbors.listen("cmd",
 	statef()
 	log("Current state: ", CURSTATE)
 	log("Swarm size: ",ROBOTS)
+	#log("User position: ", users.range)
+	
+	# Read a value from the structure
+        #t = v.get("p")
+				log(users)      
+				table_print(users)
+				if(size(users)>0){
+					tmp = {2 3}
+					v.put("p", tmp)
+					v.put("u",2)
+				}
+				
+        # Get the number of keys in the structure
+        log("The vstig has ", v.size(), " elements")
+				table_print(v.get("p"))
+				log(v.get("u"))
 }
  
 # Executed once when the robot (or the simulator) is reset.
