@@ -19,8 +19,8 @@ namespace buzz_utility{
 	static buzzdebug_t  DBG_INFO        = 0;
 	static uint8_t      MSG_SIZE        = 250;   // Only 100 bytes of Buzz messages every step
 	static int          MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
-	static int 	    	Robot_id        = 0;
-
+	static int 	    Robot_id        = 0;
+	static std::vector<uint8_t*> IN_MSG;
 	std::map< int,  Pos_struct> users_map;
 	
 	/****************************************/
@@ -228,41 +228,55 @@ namespace buzz_utility{
 
 	void in_msg_append(uint64_t* payload){
 
-   		/* Go through messages and add them to the FIFO */
+   		/* Go through messages and append them to the vector */
    		uint16_t* data= u64_cvt_u16((uint64_t)payload[0]);
 		/*Size is at first 2 bytes*/
    		uint16_t size=data[0]*sizeof(uint64_t);
    		delete[] data;
    		uint8_t* pl =(uint8_t*)malloc(size);
-   		memset(pl, 0,size);
-   		/* Copy packet into temporary buffer */
-   		memcpy(pl, payload ,size);
-		/*size and robot id read*/
-   		size_t tot = sizeof(uint32_t);
-		/* Go through the messages until there's nothing else to read */
-      		uint16_t unMsgSize=0;
-		
-			/*Obtain Buzz messages only when they are present*/
-	      			do {
-		 			/* Get payload size */
-		 			unMsgSize = *(uint16_t*)(pl + tot);
-	   	 			tot += sizeof(uint16_t);
-		 			/* Append message to the Buzz input message queue */
-		 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
-		    			buzzinmsg_queue_append(VM,
-		                        buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
-		    			tot += unMsgSize;
-		 			}
-	      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
-		free(pl);
+		/* Copy packet into temporary buffer */
+	   	memcpy(pl, payload ,size);
+   		IN_MSG.push_back(pl);
    		
+	}
+	
+	void in_message_process(){
+		while(!IN_MSG.empty()){
+			uint8_t* first_INmsg = (uint8_t*)IN_MSG.front(); 
+			/* Go through messages and append them to the FIFO */
+   			uint16_t* data= u64_cvt_u16((uint64_t)first_INmsg[0]);
+			/*Size is at first 2 bytes*/
+   			uint16_t size=data[0]*sizeof(uint64_t);
+   			delete[] data;
+			/*size and robot id read*/
+	   		size_t tot = sizeof(uint32_t);
+			/* Go through the messages until there's nothing else to read */
+	      		uint16_t unMsgSize=0;
+				/*Obtain Buzz messages push it into queue*/
+		      			do {
+			 			/* Get payload size */
+			 			unMsgSize = *(uint16_t*)(first_INmsg + tot);
+		   	 			tot += sizeof(uint16_t);
+			 			/* Append message to the Buzz input message queue */
+			 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
+			    			buzzinmsg_queue_append(VM,
+				                buzzmsg_payload_frombuffer(first_INmsg +tot, unMsgSize));
+			    			tot += unMsgSize;
+			 			}
+		      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
+			IN_MSG.erase(IN_MSG.begin());
+			free(first_INmsg);
+		}
+		/* Process messages VM call*/
+		buzzvm_process_inmsgs(VM);
 	}
 	/***************************************************/
 	/*Obtains messages from buzz out message Queue*/
 	/***************************************************/
 
    	uint64_t* obt_out_msg(){
-
+		/* Process out messages */
+		buzzvm_process_outmsgs(VM); 
    		uint8_t* buff_send =(uint8_t*)malloc(MAX_MSG_SIZE);
    		memset(buff_send, 0, MAX_MSG_SIZE);
 		/*Taking into consideration the sizes included at the end*/
@@ -699,8 +713,8 @@ static int create_stig_tables() {
 	}
 
 	void buzz_script_step() {
-		/* Process messages */
-		buzzvm_process_inmsgs(VM);
+		/*Process available messages*/
+		in_message_process();
 		/*Update sensors*/
 		update_sensors();
 		/* Call Buzz step() function */
@@ -710,8 +724,7 @@ static int create_stig_tables() {
 		      buzz_error_info());
 		buzzvm_dump(VM);
 		}
-		/* Process out messages */
-		buzzvm_process_outmsgs(VM); 
+		
 		/*Print swarm*/
 		//buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
 		//int SwarmSize = buzzdict_size(VM->swarmmembers)+1;
