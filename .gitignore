@@ -1,7 +1,7 @@
 src/test*
-.cproject
-.project
-.basm
-.bo
-.bdb
-.bdbg
+*.cproject
+*.project
+*.basm
+*.bo
+*.bdb
+*.bdbg
