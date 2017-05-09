@@ -27,15 +27,15 @@
 	<!-- run rosbuzz -->
 	<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
 		<rosparam file="/home/ivan/catkin_ws/src/rosbuzz/launch/launch_config/solo.yaml"/>
-		<param name="bzzfile_name" value="/home/ivan/catkin_ws/src/rosbuzz/src/testflockfev.bzz" />
+		<param name="bzzfile_name" value="/home/ivan/catkin_ws/src/rosbuzz/script/testalone.bzz" />
 		<param name="rcclient" value="true" /> 
-		<param name="rcservice_name" value="/buzzcmd" />
-		<param name="in_payload" value="/inMavlink"/>
-		<param name="out_payload" value="/outMavlink"/>
-		<param name="xbee_status_srv" value="/xbee_status"/>
+		<param name="rcservice_name" value="buzzcmd" />
+		<param name="in_payload" value="inMavlink"/>
+		<param name="out_payload" value="outMavlink"/>
+		<param name="xbee_status_srv" value="xbee_status"/>
 		<param name="xbee_plugged" value="false"/>
 		<param name="name" value="solos1"/>
-		<param name="stand_by" value="/home/ivan/catkin_ws/src/rosbuzz/src/stand_by.bo"/>
+		<param name="stand_by" value="/home/ivan/catkin_ws/src/rosbuzz/script/stand_by.bzz"/>
 	</node>
 	
 	<!--	

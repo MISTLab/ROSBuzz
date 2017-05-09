@@ -114,7 +114,8 @@ namespace rosbzz_node{
  				/*sleep for the mentioned loop rate*/
     			timer_step+=1;
    				maintain_pos(timer_step);
-								
+
+   				std::cout<< "HOME: " << home[0] << ", " << home[1] <<std::endl;
 			}
 			/* Destroy updater and Cleanup */
     			//update_routine(bcfname.c_str(), dbgfname.c_str(),1);

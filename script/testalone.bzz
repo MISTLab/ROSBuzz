@@ -1,7 +1,8 @@
 
 # We need this for 2D vectors
 # Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
-include "vec2.bzz"
+#include "/home/ubuntu/buzz/src/include/vec2.bzz"
+#include "vec2.bzz"
 ####################################################################################################
 # Updater related
 # This should be here for the updater to work, changing position of code will crash the updater
@@ -20,7 +21,7 @@ function init() {
 
 # Executed at each time step.
 function step() {
-
+	log("Altitude: ", position.altitude)
 	if(flight.rc_cmd==22) {
 		flight.rc_cmd=0
 		uav_takeoff(TARGET_ALTITUDE)		
@@ -31,7 +32,6 @@ function step() {
 		flight.rc_cmd=0
 		uav_goto()
 	}
-
 # test moveto cmd
 #if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0)
 #	uav_moveto(0.5, 0.5)

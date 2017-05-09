@@ -1,0 +1,862 @@
+!83
+'updated
+'update_ack
+'update_no
+'updated_neigh
+'neighbors
+'broadcast
+'TARGET_ALTITUDE
+'CURSTATE
+'TURNEDOFF
+'TARGET
+'EPSILON
+'lj_magnitude
+'lj_vector
+'math
+'vec2
+'newp
+'distance
+'azimuth
+'lj_sum
+'add
+'hexagon
+'statef
+'HEXAGON
+'map
+'reduce
+'new
+'count
+'scale
+'log
+'Time: 
+'timeW
+'WAIT_TIMEOUT
+'land
+'BARRIER_VSTIG
+'barrier_set
+'barrier_wait
+'barrier
+'stigmergy
+'create
+'barrier_ready
+'put
+'id
+'get
+'BARRIERWAIT
+'size
+'idle
+'IDLE
+'takeoff
+'TAKEOFF
+'TakeOff: 
+'flight
+'status
+'Relative position: 
+'position
+'altitude
+'ROBOTS
+'Altitude: 
+'cmd
+'uav_takeoff
+'LAND
+'Land: 
+'uav_land
+'init
+'s
+'swarm
+'join
+'step
+'rc_cmd
+'cmd 22
+'cmd 21
+'To land
+'uav_goto
+'uav_arm
+'uav_disarm
+'listen
+'print
+'Got (
+',
+') from robot #
+'Current state: 
+'Swarm size: 
+'reset
+'destroy
+
+	pushs 3
+	pushcn @__label_1
+	gstore
+	pushs 11
+	pushcn @__label_2
+	gstore
+	pushs 12
+	pushcn @__label_3
+	gstore
+	pushs 18
+	pushcn @__label_4
+	gstore
+	pushs 20
+	pushcn @__label_5
+	gstore
+	pushs 34
+	pushcn @__label_12
+	gstore
+	pushs 39
+	pushcn @__label_14
+	gstore
+	pushs 35
+	pushcn @__label_15
+	gstore
+	pushs 45
+	pushcn @__label_20
+	gstore
+	pushs 47
+	pushcn @__label_21
+	gstore
+	pushs 32
+	pushcn @__label_24
+	gstore
+	pushs 62
+	pushcn @__label_27
+	gstore
+	pushs 66
+	pushcn @__label_28
+	gstore
+	pushs 81
+	pushcn @__label_48
+	gstore
+	pushs 82
+	pushcn @__label_49
+	gstore
+	nop
+
+@__label_0
+	pushs 0	|8,7,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 1	|8,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|8,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 2	|9,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|9,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|9,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 6	|14,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushf 3.0	|14,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|14,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|15,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 8	|15,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|15,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 9	|18,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushf 10.0	|18,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|19,0,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 10	|19,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushf 18.0	|19,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|20,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 33	|72,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|72,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|72,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 31	|95,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 300	|95,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|95,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|96,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|96,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|96,7,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__exitpoint
+	done
+
+@__label_1
+	pushs 4	|11,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|11,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 5	|11,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|11,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 0	|11,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|11,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 2	|11,38,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|11,38,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|11,39,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|11,39,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|12,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_2
+	lload 3	|23,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 1	|23,25,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	div	|23,25,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	unm	|23,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|23,38,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 1	|23,44,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	div	|23,44,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 4	|23,46,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pow	|23,48,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|23,58,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 1	|23,64,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	div	|23,64,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|23,66,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pow	|23,67,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	sub	|23,67,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	mul	|23,68,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret1	|23,68,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|24,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_3
+	pushs 13	|28,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|28,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 14	|28,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|28,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 15	|28,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|28,23,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 11	|28,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|28,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|28,41,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 16	|28,42,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|28,50,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 9	|28,58,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|28,58,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 10	|28,67,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|28,67,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 3	|28,68,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|28,68,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|28,74,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 17	|28,75,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|28,82,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|28,83,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|28,83,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret1	|28,83,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|29,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_4
+	pushs 13	|33,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|33,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 14	|33,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|33,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 19	|33,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|33,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|33,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 3	|33,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|33,35,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|33,35,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret1	|33,35,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|34,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_5
+	pushs 21	|38,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 20	|38,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|38,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|38,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|39,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 22	|39,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|39,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|41,23,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|41,23,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 23	|41,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|41,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 12	|41,37,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|41,37,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|41,38,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|41,38,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 24	|41,39,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|41,45,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 18	|41,52,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|41,52,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 13	|41,58,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|41,58,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 14	|41,59,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|41,63,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 25	|41,64,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|41,67,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushf 0.0	|41,68,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushf 0.0	|41,73,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|41,77,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|41,77,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|41,78,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|41,78,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lstore 1	|41,78,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|42,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|42,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 26	|42,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|42,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|42,23,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|42,23,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|42,25,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gt	|42,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_6	|42,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 13	|43,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|43,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 14	|43,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|43,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 27	|43,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|43,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 1	|43,25,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushf 1.0	|43,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|43,42,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|43,42,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 26	|43,43,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|43,48,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|43,50,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|43,50,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	div	|43,50,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|43,51,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|43,51,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_6	|48,2,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|48,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|48,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 29	|48,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|48,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|48,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|48,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|48,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|49,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|49,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 31	|49,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|49,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gte	|49,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_8	|49,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|50,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|50,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|50,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|51,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 32	|51,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|51,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|51,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_9	|52,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_8	|52,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|53,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|53,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 31	|53,30,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|53,30,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|53,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	div	|53,33,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gte	|53,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_10	|53,35,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_11	|55,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_10	|55,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_11	|58,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|59,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|59,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|59,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|59,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	add	|59,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|59,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_9	|60,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|61,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_12
+	pushs 21	|79,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushl @__label_13	|79,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|81,3,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 36	|82,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 37	|82,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|82,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 38	|82,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|82,28,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 33	|82,42,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|82,42,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|82,43,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|82,43,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|82,43,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|83,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_13
+	pushs 35	|80,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|80,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 1	|80,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|80,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|80,35,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|80,35,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|81,3,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_14
+	pushs 36	|89,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|89,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 40	|89,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|89,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 41	|89,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|89,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|89,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|89,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|89,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|90,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_15
+	pushs 36	|98,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|98,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 42	|98,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|98,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 41	|98,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|98,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|98,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|98,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|99,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 43	|99,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|99,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 36	|100,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|100,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 44	|100,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|100,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|100,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|100,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 1	|100,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gte	|100,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_16	|100,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 36	|101,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushnil	|101,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|101,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|102,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|102,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|102,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_17	|103,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_16	|103,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|103,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|103,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 31	|103,31,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|103,31,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gte	|103,31,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_18	|103,33,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 36	|104,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushnil	|104,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|104,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|105,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 32	|105,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|105,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|105,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|106,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|106,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|106,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_18	|108,2,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_17	|108,2,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|108,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|108,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|108,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|108,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	add	|108,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|108,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|109,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_20
+	pushs 21	|114,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 45	|114,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|114,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|114,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|115,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 46	|115,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|115,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|117,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_21
+	pushs 7	|120,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 48	|120,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|120,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|121,7,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 47	|121,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|121,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|121,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|122,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|122,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 49	|122,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|122,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|122,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 51	|122,25,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|122,31,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|122,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|122,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|123,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|123,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 52	|123,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 53	|123,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|123,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 54	|123,37,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|123,45,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|123,46,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|123,46,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|125,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|125,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 51	|125,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|125,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|125,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|125,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 53	|125,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|125,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 54	|125,37,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|125,46,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 6	|125,64,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|125,64,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 6	|125,80,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|125,80,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushf 20.0	|125,81,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	div	|125,85,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	sub	|125,85,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gte	|125,85,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	and	|125,85,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_22	|125,87,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 34	|126,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|126,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 55	|126,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|126,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 20	|126,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|126,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|126,30,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|126,30,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 39	|128,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|128,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|128,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|128,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_23	|131,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_22	|131,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|132,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|132,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 56	|132,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 6	|132,35,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|132,35,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|132,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|132,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|133,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|133,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 5	|133,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|133,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 57	|133,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 22	|133,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|133,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|133,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 58	|134,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|134,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 6	|134,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|134,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|134,30,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|134,30,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_23	|135,2,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|136,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_24
+	pushs 7	|138,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 59	|138,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|138,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|139,7,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 32	|139,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|139,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|139,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|140,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|140,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 60	|140,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|140,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|140,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 51	|140,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|140,28,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|140,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|140,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|141,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|141,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 51	|141,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|141,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|141,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|141,23,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|141,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|141,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 51	|141,33,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|141,40,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 3	|141,43,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|141,44,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	or	|141,44,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_25	|141,45,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|142,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|142,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 5	|142,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|142,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 57	|142,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 21	|142,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|142,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|142,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 61	|143,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|143,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|143,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|143,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_26	|145,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_25	|145,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 30	|146,7,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|146,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|146,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 36	|147,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushnil	|147,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|147,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|148,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 45	|148,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|148,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|148,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_26	|149,2,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|150,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_27
+	pushs 63	|154,3,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 64	|154,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|154,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 38	|154,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|154,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|154,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|154,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|154,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|154,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 63	|156,2,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|156,2,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 65	|156,3,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|156,7,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|156,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|156,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|157,7,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 45	|157,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|157,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|157,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|158,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 46	|158,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|158,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|159,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_28
+	pushs 50	|163,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|163,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|163,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|163,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 22	|163,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|163,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_29	|163,23,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|164,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|164,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 68	|164,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|164,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|164,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|165,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|165,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|165,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|165,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tput	|165,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|166,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 47	|166,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|166,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|166,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|167,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 48	|167,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|167,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|168,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|168,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 5	|168,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|168,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 57	|168,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 22	|168,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|168,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|168,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_30	|169,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_29	|169,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|169,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|169,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|169,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|169,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 21	|169,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|169,28,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_31	|169,30,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|170,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|170,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 69	|170,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|170,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|170,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|171,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|171,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 70	|171,6,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 1	|171,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|171,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|172,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|172,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|172,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|172,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tput	|172,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|173,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 32	|173,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|173,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|173,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|174,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 59	|174,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|174,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|175,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|175,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 5	|175,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|175,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 57	|175,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 21	|175,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|175,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|175,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_32	|176,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_31	|176,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|176,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|176,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|176,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|176,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 16	|176,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|176,28,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_33	|176,30,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|177,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|177,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|177,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|177,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tput	|177,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|178,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 45	|178,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|178,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|178,15,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 71	|179,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|179,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|179,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|179,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_34	|180,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_33	|180,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|180,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|180,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|180,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|180,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 400	|180,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|180,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_35	|180,31,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|181,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|181,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|181,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|181,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tput	|181,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 72	|182,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|182,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|182,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|182,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|183,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|183,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 5	|183,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|183,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 57	|183,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 400	|183,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|183,33,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|183,33,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_36	|184,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_35	|184,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|184,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|184,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|184,19,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|184,25,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 401	|184,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|184,30,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_37	|184,31,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 50	|185,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|185,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 67	|185,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|185,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tput	|185,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 73	|186,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|186,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|186,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|186,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|187,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|187,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 5	|187,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|187,21,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 57	|187,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 401	|187,29,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|187,33,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|187,33,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_37	|189,0,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_36	|189,0,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_34	|189,0,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_32	|189,0,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_30	|189,0,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 4	|189,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|189,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 74	|189,10,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	tget	|189,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 57	|189,17,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushl @__label_39	|190,3,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|203,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|203,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|204,7,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|204,7,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|204,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|204,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|205,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|205,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 79	|205,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|205,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|205,32,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|205,33,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|205,33,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 28	|206,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|206,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 80	|206,5,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 55	|206,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|206,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 2	|206,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|206,27,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|207,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_39
+	pushs 75	|191,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|191,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 76	|191,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 1	|191,24,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 77	|191,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|191,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 78	|191,38,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 3	|191,59,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 6	|191,60,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|191,60,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|192,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 22	|192,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|192,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|192,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|192,26,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 46	|192,28,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|192,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	and	|192,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_40	|192,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|193,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 47	|193,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|193,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|193,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_41	|194,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_40	|194,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|194,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 21	|194,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|194,20,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_42	|194,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 21	|195,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 32	|195,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|195,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gstore	|195,13,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_43	|196,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_42	|196,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|196,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 400	|196,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|196,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|196,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|196,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 46	|196,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|196,42,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	and	|196,42,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_44	|196,44,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 72	|197,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|197,9,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|197,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|197,11,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jump @__label_45	|198,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_44	|198,8,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	lload 2	|198,16,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 401	|198,18,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|198,22,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 7	|198,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|198,34,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 46	|198,36,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	eq	|198,42,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	and	|198,42,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	jumpz @__label_46	|198,43,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushs 73	|199,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	gload	|199,12,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	pushi 0	|199,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	callc	|199,14,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_46	|201,3,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_45	|201,3,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_43	|201,3,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+@__label_41	|201,3,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+	ret0	|201,4,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_48
+	ret0	|211,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
+
+@__label_49
+	ret0	|215,1,/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz
