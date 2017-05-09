@@ -23,8 +23,8 @@ function step() {
     log("The vstig has ", v.size(), " elements")
     log(v.get("u"))
     if (id==1) {
-        #tmp = { .x=3 }
-        #v.put("p",tmp)
+        tmp = { }
+        v.put("p",tmp)
         v.put("u",2)
     }
 	log(v.get("p"))

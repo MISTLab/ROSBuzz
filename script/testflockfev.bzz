@@ -1,6 +1,6 @@
 # We need this for 2D vectors
 # Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
-include "/home/ubuntu/buzz/src/include/vec2.bzz"
+include "vec2.bzz"
 ####################################################################################################
 # Updater related
 # This should be here for the updater to work, changing position of code will crash the updater
@@ -145,7 +145,6 @@ function land() {
 # Executed once at init time.
 function init() {
 	s = swarm.create(1)
-#	s.select(1)
 	s.join()
 	statef=idle
 	CURSTATE = "IDLE"
