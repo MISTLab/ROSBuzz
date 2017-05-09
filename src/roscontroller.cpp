@@ -7,6 +7,11 @@ namespace rosbzz_node{
 	---------------*/
 	roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)	
 	{
+
+		home[0]=0.0;home[1]=0.0;home[2]=0.0;
+		target[0]=0.0;target[1]=0.0;target[2]=0.0;
+		cur_pos[0]=0.0;cur_pos[1]=0.0;cur_pos[2]=0.0;
+
 		ROS_INFO("Buzz_node");
 		/*Obtain parameters from ros parameter server*/
 	  	Rosparameters_get(n_c_priv);
@@ -32,7 +37,10 @@ namespace rosbzz_node{
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
         
-		home[0]=0.0;home[1]=0.0;home[2]=0.0;
+
+		//ros::Duration(0.1).sleep();
+
+
 	}
 
 	/*---------------------
@@ -115,7 +123,7 @@ namespace rosbzz_node{
     			timer_step+=1;
    				maintain_pos(timer_step);
 
-   				std::cout<< "HOME: " << home[0] << ", " << home[1] <<std::endl;
+   				std::cout<< "HOME: " << home[0] << ", " << home[1];
 			}
 			/* Destroy updater and Cleanup */
     			//update_routine(bcfname.c_str(), dbgfname.c_str(),1);
@@ -764,8 +772,10 @@ namespace rosbzz_node{
                 ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id, local_pos[0], local_pos[1]);
                     
                 /*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
-		moveMsg.pose.position.x = local_pos[1]+y;
-		moveMsg.pose.position.y = local_pos[0]+x;
+        target[0]+=y;
+		target[1]+=x;
+        moveMsg.pose.position.x = target[0];//local_pos[1]+y;
+		moveMsg.pose.position.y = target[1];
 		moveMsg.pose.position.z = z;
 
 		moveMsg.pose.orientation.x = 0;

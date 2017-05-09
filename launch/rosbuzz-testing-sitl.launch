@@ -27,7 +27,7 @@
 	<!-- run rosbuzz -->
 	<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
 		<rosparam file="/home/ivan/catkin_ws/src/rosbuzz/launch/launch_config/solo.yaml"/>
-		<param name="bzzfile_name" value="/home/ivan/catkin_ws/src/rosbuzz/script/testalone.bzz" />
+		<param name="bzzfile_name" value="/home/ivan/catkin_ws/src/rosbuzz/script/testsolo.bzz" />
 		<param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="buzzcmd" />
 		<param name="in_payload" value="inMavlink"/>

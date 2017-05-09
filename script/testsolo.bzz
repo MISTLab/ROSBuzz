@@ -51,10 +51,9 @@ function hexagon() {
   	statef=land
   	} else {
   		if(timeW >= (WAIT_TIMEOUT / 2)){
-  			#uav_moveto(4.0,0.0)
+  			uav_moveto(0.03,0.0)
   		} else {
-  			#uav_moveto(4.0,0.0)
-  			#uav_moveto(0.0,4.0)
+  			uav_moveto(0.0,0.03)
   		}
   		timeW = timeW+1
   	}
