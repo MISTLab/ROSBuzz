@@ -36,11 +36,12 @@ namespace rosbzz_node{
 			robot_id= strtol(robot_name.c_str() + 5, NULL, 10);
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
-        
 
-		//ros::Duration(0.1).sleep();
-
-
+		while(cur_pos[2] == 0.0f){
+			ROS_INFO("Waiting for GPS. ");
+			ros::Duration(0.5).sleep();
+			ros::spinOnce();
+		}
 	}
 
 	/*---------------------
@@ -58,7 +59,7 @@ namespace rosbzz_node{
 	void roscontroller::GetRobotId()
 	{
 
-		/*
+		///*
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
         mavros_msgs::ParamGet::Response robot_id_srv_response;
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
@@ -67,8 +68,8 @@ namespace rosbzz_node{
 		}
 
 		robot_id=robot_id_srv_response.value.integer;
-		*/
-		robot_id = 8;
+
+		//robot_id = 8;
 	}
 
 	/*-------------------------------------------------

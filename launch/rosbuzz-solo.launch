@@ -30,7 +30,7 @@
 	<!-- run rosbuzz -->
 	<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
 		<rosparam file="/home/pi/ros_catkinKin_ws/src/ROSBuzz/launch/launch_config/solo.yaml"/>
-		<param name="bzzfile_name" value="/home/pi/ros_catkinKin_ws/src/ROSBuzz/script/testflockfev.bzz" />
+		<param name="bzzfile_name" value="/home/pi/ros_catkinKin_ws/src/ROSBuzz/script/testsolo.bzz" />
 		<param name="rcclient" value="true" /> 
 		<param name="rcservice_name" value="/buzzcmd" />
 		<param name="in_payload" value="/inMavlink"/>
