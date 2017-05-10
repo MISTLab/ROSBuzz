@@ -528,9 +528,6 @@ namespace rosbzz_node{
 	/ Compute Range and Bearing of a neighbor in a local reference frame
 	/ from GPS coordinates
 	----------------------------------------------------------- */
-	#define EARTH_RADIUS (double) 6371000.0
-	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
-	
 	void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
             double hyp_az, hyp_el;
             double sin_el, cos_el, sin_az, cos_az;

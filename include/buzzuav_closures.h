@@ -9,6 +9,9 @@
 #include "buzz_utility.h"
 //#include "roscontroller.h"
 
+	#define EARTH_RADIUS (double) 6371000.0
+	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
+
 namespace buzzuav_closures{
 	typedef enum {
       		COMMAND_NIL = 0,     // Dummy command

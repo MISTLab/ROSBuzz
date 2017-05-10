@@ -57,61 +57,6 @@ namespace buzz_utility{
 			}
 		}else
 			ROS_INFO("[%i] No new users",Robot_id);
-
-		//compute_users_rb();
-	}
-
-	int compute_users_rb() {
-		if(VM->state != BUZZVM_STATE_READY) return VM->state;
-		/* Get users "userG" stigmergy table */
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
-		buzzvm_gload(VM);
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "get", 1));
-        buzzvm_tget(VM);
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "p", 1));
-        buzzvm_pushi(VM, 1);
-		buzzvm_callc(VM);
-		buzzvm_type_assert(VM, 1, BUZZTYPE_TABLE);
-		buzzobj_t nbr = buzzvm_stack_at(VM, 1);
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "al", 1));
-		buzzvm_tget(VM);
-		buzzvm_type_assert(VM, 1, BUZZTYPE_INT);
-		int gid = buzzvm_stack_at(VM, 1)->i.value;
-		ROS_WARN("GOT ID %i FROM V.STIG", gid);
-		/* Get "data" field */
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
-		buzzvm_gload(VM);
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataL", 1));
-		buzzvm_tget(VM);
-		if(buzzvm_stack_at(VM, 1)->o.type == BUZZTYPE_NIL) {
-			ROS_INFO("Empty data, create a new table");
-			buzzvm_pop(VM);
-			buzzvm_push(VM, nbr);
-			buzzvm_pushs(VM, buzzvm_string_register(VM, "dataL", 1));
-			buzzvm_pusht(VM);
-			buzzobj_t data = buzzvm_stack_at(VM, 1);
-			buzzvm_tput(VM);
-			buzzvm_push(VM, data);
-		}
-		/* When we get here, the "data" table is on top of the stack */
-		/* Push user id */
-		buzzvm_pushi(VM, gid);
-		/* Create entry table */
-		buzzobj_t entry = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
-		/* Insert range */
-		buzzvm_push(VM, entry);
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "r", 1));
-		buzzvm_pushf(VM, 0);
-		buzzvm_tput(VM);
-		/* Insert bearing */
-		buzzvm_push(VM, entry);
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "b", 1));
-		buzzvm_pushf(VM, 0);
-		buzzvm_tput(VM);
-		/* Save entry into data table */
-		buzzvm_push(VM, entry);
-		buzzvm_tput(VM);
-		return VM->state;
 	}
 
 	int buzzusers_reset() {
@@ -416,7 +361,7 @@ namespace buzz_utility{
 	}
 
 static int create_stig_tables() {
-
+/*
    		// usersvstig = stigmergy.create(123)
         buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
         // get the stigmergy table from the global scope
@@ -460,6 +405,24 @@ static int create_stig_tables() {
         buzzvm_pushi(VM, 2);
 		buzzvm_call(VM, 0);
         buzzvm_gstore(VM);*/
+
+		buzzobj_t t = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
+		buzzvm_push(VM,t);
+		buzzvm_gstore(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
+		buzzvm_pusht(VM);
+		buzzobj_t data = buzzvm_stack_at(VM, 1);
+		buzzvm_tput(VM);
+		buzzvm_push(VM, data);
+		
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
+		buzzvm_gload(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataL", 1));
+		buzzvm_pusht(VM);
+		data = buzzvm_stack_at(VM, 1);
+		buzzvm_tput(VM);
+		buzzvm_push(VM, data);
 
    	return VM->state;
 }
@@ -515,7 +478,7 @@ static int create_stig_tables() {
       		ROS_ERROR("[%i] Error registering hooks", Robot_id);
       		return 0;
    	}
-   	/* Create vstig tables 
+   	/* Create vstig tables */
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
@@ -523,12 +486,7 @@ static int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << VM->errormsg << endl;
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
-   	}*/
-
-	buzzobj_t t = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
-	buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
-	buzzvm_push(VM, t);
-	buzzvm_gstore(VM);
+   	}
         
    	/* Save bytecode file name */
    	BO_FNAME = strdup(bo_filename);
