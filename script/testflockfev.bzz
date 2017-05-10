@@ -15,8 +15,8 @@ TARGET_ALTITUDE = 3.0
 CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
-TARGET     = 10.0	#0.000001001
-EPSILON    = 18.0	#0.001
+TARGET     = 12.0	#0.000001001
+EPSILON    = 6.0	#0.001
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -48,9 +48,12 @@ function hexagon() {
 #  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
 #  	timeW =0
 #  	statef=land
+#  	} else if(timeW>=WAIT_TIMEOUT/2) {
+#  	timeW = timeW+1
+#  	uav_moveto(0.06,0.0)
 #  	} else {
 #  	timeW = timeW+1
-#  	uav_moveto(0.0,0.0)
+#  	uav_moveto(0.0,0.06)
 #  	}
 }
  
