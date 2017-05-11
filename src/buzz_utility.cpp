@@ -17,10 +17,10 @@ namespace buzz_utility{
 	static char*        BO_FNAME        = 0;
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
-	static uint8_t      MSG_SIZE        = 50;   // Only 100 bytes of Buzz messages every step
+	static uint8_t      MSG_SIZE        = 250;   // Only 100 bytes of Buzz messages every step
 	static int          MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
-	static int 	    	Robot_id        = 0;
-
+	static int 	    Robot_id        = 0;
+	static std::vector<uint8_t*> IN_MSG;
 	std::map< int,  Pos_struct> users_map;
 	
 	/****************************************/
@@ -50,13 +50,9 @@ namespace buzz_utility{
 									(it->second).x,
 									(it->second).y,
 									(it->second).z);
-				buzzusers_add(it->first+1,
-									(it->second).x,
-									(it->second).y,
-									(it->second).z);
 			}
-		}else
-			ROS_INFO("[%i] No new users",Robot_id);
+		}/*else
+			ROS_INFO("[%i] No new users",Robot_id);*/
 	}
 
 	int buzzusers_reset() {
@@ -92,13 +88,13 @@ namespace buzz_utility{
 		buzzvm_type_assert(VM, 1, BUZZTYPE_TABLE);
 		buzzobj_t nbr = buzzvm_stack_at(VM, 1);
 		/* Get "data" field */
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "data", 1));
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
 		buzzvm_tget(VM);
 		if(buzzvm_stack_at(VM, 1)->o.type == BUZZTYPE_NIL) {
-			ROS_INFO("Empty data, create a new table");
+			//ROS_INFO("Empty data, create a new table");
 			buzzvm_pop(VM);
 			buzzvm_push(VM, nbr);
-			buzzvm_pushs(VM, buzzvm_string_register(VM, "data", 1));
+			buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
 			buzzvm_pusht(VM);
 			buzzobj_t data = buzzvm_stack_at(VM, 1);
 			buzzvm_tput(VM);
@@ -173,41 +169,55 @@ namespace buzz_utility{
 
 	void in_msg_append(uint64_t* payload){
 
-   		/* Go through messages and add them to the FIFO */
+   		/* Go through messages and append them to the vector */
    		uint16_t* data= u64_cvt_u16((uint64_t)payload[0]);
 		/*Size is at first 2 bytes*/
    		uint16_t size=data[0]*sizeof(uint64_t);
    		delete[] data;
    		uint8_t* pl =(uint8_t*)malloc(size);
-   		memset(pl, 0,size);
-   		/* Copy packet into temporary buffer */
-   		memcpy(pl, payload ,size);
-		/*size and robot id read*/
-   		size_t tot = sizeof(uint32_t);
-		/* Go through the messages until there's nothing else to read */
-      		uint16_t unMsgSize=0;
-		
-			/*Obtain Buzz messages only when they are present*/
-	      			do {
-		 			/* Get payload size */
-		 			unMsgSize = *(uint16_t*)(pl + tot);
-	   	 			tot += sizeof(uint16_t);
-		 			/* Append message to the Buzz input message queue */
-		 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
-		    			buzzinmsg_queue_append(VM,
-		                        buzzmsg_payload_frombuffer(pl +tot, unMsgSize));
-		    			tot += unMsgSize;
-		 			}
-	      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
-		free(pl);
+		/* Copy packet into temporary buffer */
+	   	memcpy(pl, payload ,size);
+   		IN_MSG.push_back(pl);
    		
+	}
+	
+	void in_message_process(){
+		while(!IN_MSG.empty()){
+			uint8_t* first_INmsg = (uint8_t*)IN_MSG.front(); 
+			/* Go through messages and append them to the FIFO */
+   			uint16_t* data= u64_cvt_u16((uint64_t)first_INmsg[0]);
+			/*Size is at first 2 bytes*/
+   			uint16_t size=data[0]*sizeof(uint64_t);
+   			delete[] data;
+			/*size and robot id read*/
+	   		size_t tot = sizeof(uint32_t);
+			/* Go through the messages until there's nothing else to read */
+	      		uint16_t unMsgSize=0;
+				/*Obtain Buzz messages push it into queue*/
+		      			do {
+			 			/* Get payload size */
+			 			unMsgSize = *(uint16_t*)(first_INmsg + tot);
+		   	 			tot += sizeof(uint16_t);
+			 			/* Append message to the Buzz input message queue */
+			 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
+			    			buzzinmsg_queue_append(VM,
+				                buzzmsg_payload_frombuffer(first_INmsg +tot, unMsgSize));
+			    			tot += unMsgSize;
+			 			}
+		      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
+			IN_MSG.erase(IN_MSG.begin());
+			free(first_INmsg);
+		}
+		/* Process messages VM call*/
+		buzzvm_process_inmsgs(VM);
 	}
 	/***************************************************/
 	/*Obtains messages from buzz out message Queue*/
 	/***************************************************/
 
    	uint64_t* obt_out_msg(){
-
+		/* Process out messages */
+		buzzvm_process_outmsgs(VM); 
    		uint8_t* buff_send =(uint8_t*)malloc(MAX_MSG_SIZE);
    		memset(buff_send, 0, MAX_MSG_SIZE);
 		/*Taking into consideration the sizes included at the end*/
@@ -314,6 +324,9 @@ namespace buzz_utility{
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_land", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_land));
    		buzzvm_gstore(VM);
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_user_rb", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_adduserRB));
+   		buzzvm_gstore(VM);
 
    	return VM->state;
 	}
@@ -350,12 +363,15 @@ namespace buzz_utility{
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_land", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_user_rb", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM);
 
    	return VM->state;
 	}
 
 static int create_stig_tables() {
-
+/*
    		// usersvstig = stigmergy.create(123)
         buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
         // get the stigmergy table from the global scope
@@ -399,6 +415,26 @@ static int create_stig_tables() {
         buzzvm_pushi(VM, 2);
 		buzzvm_call(VM, 0);
         buzzvm_gstore(VM);*/
+
+		buzzobj_t t = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
+		buzzvm_push(VM,t);
+		buzzvm_gstore(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
+		buzzvm_gload(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
+		buzzvm_pusht(VM);
+		buzzobj_t data = buzzvm_stack_at(VM, 1);
+		buzzvm_tput(VM);
+		buzzvm_push(VM, data);
+		
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
+		buzzvm_gload(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataL", 1));
+		buzzvm_pusht(VM);
+		data = buzzvm_stack_at(VM, 1);
+		buzzvm_tput(VM);
+		buzzvm_push(VM, data);
 
    	return VM->state;
 }
@@ -454,7 +490,7 @@ static int create_stig_tables() {
       		ROS_ERROR("[%i] Error registering hooks", Robot_id);
       		return 0;
    	}
-   	/* Create vstig tables 
+   	/* Create vstig tables */
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
@@ -462,12 +498,7 @@ static int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << VM->errormsg << endl;
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
-   	}*/
-
-	buzzobj_t t = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
-	buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
-	buzzvm_push(VM, t);
-	buzzvm_gstore(VM);
+   	}
         
    	/* Save bytecode file name */
    	BO_FNAME = strdup(bo_filename);
@@ -638,8 +669,8 @@ static int create_stig_tables() {
 	}
 
 	void buzz_script_step() {
-		/* Process messages */
-		buzzvm_process_inmsgs(VM);
+		/*Process available messages*/
+		in_message_process();
 		/*Update sensors*/
 		update_sensors();
 		/* Call Buzz step() function */
@@ -649,8 +680,7 @@ static int create_stig_tables() {
 		      buzz_error_info());
 		buzzvm_dump(VM);
 		}
-		/* Process out messages */
-		buzzvm_process_outmsgs(VM); 
+		
 		/*Print swarm*/
 		//buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
 		//int SwarmSize = buzzdict_size(VM->swarmmembers)+1;

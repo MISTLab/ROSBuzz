@@ -552,9 +552,6 @@ namespace rosbzz_node{
 	/ Compute Range and Bearing of a neighbor in a local reference frame
 	/ from GPS coordinates
 	----------------------------------------------------------- */
-	#define EARTH_RADIUS (double) 6371000.0
-	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
-	
 	void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
             double hyp_az, hyp_el;
             double sin_el, cos_el, sin_az, cos_az;
@@ -775,8 +772,8 @@ namespace rosbzz_node{
 		moveMsg.header.frame_id = 1;
 		double local_pos[3];
 		cvt_ned_coordinates(cur_pos,local_pos,home);
-                ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0], home[1]);
-                ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id, local_pos[0], local_pos[1]);
+       //         ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0], home[1]);
+       //         ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id, local_pos[0], local_pos[1]);
                     
                 /*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
         target[0]+=y;
