@@ -30,10 +30,7 @@ namespace rosbzz_node{
 		// set stream rate - wait for the FC to be started
 		SetStreamRate(0, 10, 1);
 		// Get Robot Id - wait for Xbee to be started
-		if(xbeeplugged)
-			GetRobotId();
-		else
-			robot_id= strtol(robot_name.c_str() + 5, NULL, 10);
+
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
 
@@ -41,6 +38,13 @@ namespace rosbzz_node{
 			ROS_INFO("Waiting for GPS. ");
 			ros::Duration(0.5).sleep();
 			ros::spinOnce();
+		}
+
+
+		if(xbeeplugged){
+			GetRobotId();
+		} else {
+			robot_id= strtol(robot_name.c_str() + 5, NULL, 10);
 		}
 	}
 
@@ -59,7 +63,7 @@ namespace rosbzz_node{
 	void roscontroller::GetRobotId()
 	{
 
-		///*
+		
 		mavros_msgs::ParamGet::Request robot_id_srv_request; robot_id_srv_request.param_id="id";
         mavros_msgs::ParamGet::Response robot_id_srv_response;
 		while(!xbeestatus_srv.call(robot_id_srv_request,robot_id_srv_response)){
@@ -166,6 +170,8 @@ namespace rosbzz_node{
                     else {ROS_ERROR("Provide the xbee plugged boolean in Launch file"); system("rosnode kill rosbuzz_node");}
                 }else
 			n_c.getParam("xbee_status_srv", xbeesrv_name);
+
+		std::cout<< "////////////////// " << xbeesrv_name;
 
 		GetSubscriptionParameters(n_c);
 		// initialize topics to null?
