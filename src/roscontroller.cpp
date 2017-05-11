@@ -35,7 +35,6 @@ namespace rosbzz_node{
 			robot_id= strtol(robot_name.c_str() + 5, NULL, 10);
 		setpoint_counter = 0;
 		fcu_timeout = TIMEOUT;
-        
 	}
 
 	/*---------------------
@@ -754,8 +753,8 @@ namespace rosbzz_node{
        //         ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0], home[1]);
        //         ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id, local_pos[0], local_pos[1]);
                     
-                /*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
-				target[0]+=y;	target[1]+=x;
+		/*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
+		target[0]+=y;	target[1]+=x;
 		moveMsg.pose.position.x = target[0];//local_pos[1]+y;
 		moveMsg.pose.position.y = target[1];//local_pos[0]+x;
 		moveMsg.pose.position.z = z;
