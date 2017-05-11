@@ -71,6 +71,7 @@ private:
 
  	double cur_pos[3];
  	double home[3];
+ 	double target[3];
  	double cur_rel_altitude;
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;

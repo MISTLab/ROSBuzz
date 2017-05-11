@@ -139,7 +139,7 @@ namespace buzzuav_closures{
 		buzzvm_pushs(vm, buzzvm_string_register(vm, "dataL", 1));
 		buzzvm_tget(vm);
 		if(buzzvm_stack_at(vm, 1)->o.type == BUZZTYPE_NIL) {
-			ROS_INFO("Empty data, create a new table");
+			//ROS_INFO("Empty data, create a new table");
 			buzzvm_pop(vm);
 			buzzvm_push(vm, nbr);
 			buzzvm_pushs(vm, buzzvm_string_register(vm, "dataL", 1));

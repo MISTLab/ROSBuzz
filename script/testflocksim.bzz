@@ -153,8 +153,8 @@ function users_save(t) {
 # printing the contents of a table: a custom function
 function table_print(t) {
   if(size(t)>0) {
-		foreach(t, function(key, value) {
-				log(key, " -> ", value)
+		foreach(t, function(u, tab) {
+				log("id: ",u," Range ", tab.r, "Bearing ", tab.b)
 			})
 	}
 }
