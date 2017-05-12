@@ -215,7 +215,8 @@ namespace rosbzz_node{
   		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}  
   		if(node_handle.getParam("topics/stream", stream_client_name));
   		else {ROS_ERROR("Provide a mode client name in Launch file"); system("rosnode kill rosbuzz_node");}
-
+  		if(node_handle.getParam("topics/localpos", local_pos_sub_name));
+  		else {ROS_ERROR("Provide a localpos name in YAML file"); system("rosnode kill rosbuzz_node");}
 
 
 
@@ -250,9 +251,9 @@ namespace rosbzz_node{
 		stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
                 
   		users_sub = n_c.subscribe("users_pos", 1000, &roscontroller::users_pos,this);
+  		local_pos_sub = n_c.subscribe(local_pos_sub_name, 1000, &roscontroller::local_pos_callback, this);
 
-  		local_pos_sub = n_c.subscribe("/local_position", 1000, &roscontroller::local_pos_callback, this);
-                
+
 		multi_msg=true;
 	}
 	/*---------------------------------------
