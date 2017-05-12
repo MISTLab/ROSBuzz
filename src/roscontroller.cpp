@@ -7,10 +7,6 @@ namespace rosbzz_node{
 	---------------*/
 	roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)	
 	{
-		home[0]=0.0;home[1]=0.0;home[2]=0.0;
-		cur_pos[0]=0.0;cur_pos[1]=0.0;cur_pos[2]=0.0;
-		target[0]=0.0;target[1]=0.0;target[2]=0.0;
-
 		ROS_INFO("Buzz_node");
 		/*Obtain parameters from ros parameter server*/
 	  	Rosparameters_get(n_c_priv);
@@ -349,7 +345,8 @@ namespace rosbzz_node{
    		uint64_t* payload_out_ptr= buzz_utility::obt_out_msg();
     		uint64_t  position[3];
   		/*Appened current position to message*/
-    		memcpy(position, cur_pos, 3*sizeof(uint64_t));
+		  	double tmp[3];tmp[0]=cur_pos.latitude;tmp[1]=cur_pos.longitude;tmp[2]=cur_pos.altitude;
+    		memcpy(position, tmp, 3*sizeof(uint64_t));
     		mavros_msgs::Mavlink payload_out;
     		payload_out.payload64.push_back(position[0]);
     		payload_out.payload64.push_back(position[1]);
@@ -441,8 +438,8 @@ namespace rosbzz_node{
 					armstate = 1;
 					Arm();
 					ros::Duration(0.5).sleep();
-                                        // Registering HOME POINT.
-                                        home[0] = cur_pos[0];home[1] = cur_pos[1];home[2] = cur_pos[2];
+					// Registering HOME POINT.
+					home = cur_pos;
 				}
 				if(current_mode != "GUIDED")
 					SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it should always be in loiter after arm/disarm)
@@ -522,9 +519,9 @@ namespace rosbzz_node{
 	void roscontroller::set_cur_pos(double latitude,
 			 double longitude,
 			 double altitude){
-		cur_pos [0] =latitude;
-		cur_pos [1] =longitude;
-		cur_pos [2] =altitude;
+		cur_pos.latitude =latitude;
+		cur_pos.longitude =longitude;
+		cur_pos.altitude =altitude;
 	}
 
 	/*-----------------------------------------------------------
@@ -565,48 +562,10 @@ namespace rosbzz_node{
                 }
             }
 
-	void roscontroller::cvt_rangebearing_coordinates(double nei[], double out[], double cur[]){
-            
-		// calculate earth radii
-		/*double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
-		double prime_vertical_radius = equatorial_radius * sqrt(temp);
-		double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
-		double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));*/
-  
- 		/*double d_lon = nei[1] - cur[1];
-		double d_lat = nei[0] - cur[0];
-		double ned[3];
-		ned[0] = DEG2RAD(d_lat) * radius_north;//EARTH_RADIUS;
-		ned[1] = -DEG2RAD(d_lon) * radius_east; //EARTH_RADIUS
-		double ecef[3];
-		double llh[3];llh[0]=DEG2RAD(cur[0]);llh[1]=DEG2RAD(cur[1]);llh[2]=cur[2];
-		double d = WGS84_E * sin(llh[0]);
-		double N = WGS84_A / sqrt(1. - d*d);
-		ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
-		ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
-		ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
-		double ref_ecef[3];
-		llh[0]=DEG2RAD(nei[0]);llh[1]=DEG2RAD(nei[1]);llh[2]=nei[2];
-		d = WGS84_E * sin(llh[0]);
-		N = WGS84_A / sqrt(1. - d*d);
-		ref_ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
-		ref_ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
-		ref_ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
-		double M[3][3];
-		ecef2ned_matrix(ref_ecef, M);
-		double ned[3];
-		matrix_multiply(3, 3, 1, (double *)M, ecef, ned);   
-		
-		out[0] = sqrt(ned[0]*ned[0]+ned[1]*ned[1]);
-		out[0] = std::floor(out[0] * 1000000) / 1000000;
-		out[1] = atan2(ned[1],ned[0]);
-                out[1] = std::floor(out[1] * 1000000) / 1000000;
-		out[2] = 0.0;*/
-                
-       	double d_lon = nei[1] - cur[1];
-       	double d_lat = nei[0] - cur[0];
-        double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
-        double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+	void roscontroller::gps_rb(GPS nei_pos, double out[])
+    {
+        float ned_x=0.0, ned_y=0.0;
+		gps_ned_cur(ned_x, ned_y, nei_pos);
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
         //out[0] = std::floor(out[0] * 1000000) / 1000000;
 		out[1] = atan2(ned_y,ned_x);
@@ -614,47 +573,29 @@ namespace rosbzz_node{
 		out[2] = 0.0;
 	}
 
-	void roscontroller::cvt_ned_coordinates(double nei[], double out[], double cur[]){
-		// calculate earth radii
-		/*double temp = 1.0 / (1.0 - excentrity2 * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)) * sin(DEG2RAD(DEFAULT_REFERENCE_LATITUDE)));
-		double prime_vertical_radius = equatorial_radius * sqrt(temp);
-		double radius_north = prime_vertical_radius * (1 - excentrity2) * temp;
-		double radius_east  = prime_vertical_radius * cos(DEG2RAD(DEFAULT_REFERENCE_LATITUDE));
-
-		double d_lon = nei[1] - cur[1];
-		double d_lat = nei[0] - cur[0];
-		out[0] = DEG2RAD(d_lat) * radius_north;//EARTH_RADIUS;
-		out[0] = std::floor(out[0] * 1000000) / 1000000;
-		out[1] = -DEG2RAD(d_lon) * radius_east; //EARTH_RADIUS
-		out[1] = std::floor(out[1] * 1000000) / 1000000;
-		out[2] = cur[2];
-		// Using functions of the library Swift Nav (https://github.com/swift-nav/libswiftnav)
-		double ecef[3];
-		double llh[3];llh[0]=DEG2RAD(cur[0]);llh[1]=DEG2RAD(cur[1]);llh[2]=cur[2];
-		double d = WGS84_E * sin(llh[0]);
-		double N = WGS84_A / sqrt(1. - d*d);
-		ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
-		ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
-		ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
-		double ref_ecef[3];
-		llh[0]=DEG2RAD(nei[0]);llh[1]=DEG2RAD(nei[1]);llh[2]=nei[2];
-		d = WGS84_E * sin(llh[0]);
-		N = WGS84_A / sqrt(1. - d*d);
-		ref_ecef[0] = (N + llh[2]) * cos(llh[0]) * cos(llh[1]);
-		ref_ecef[1] = (N + llh[2]) * cos(llh[0]) * sin(llh[1]);
-		ref_ecef[2] = ((1 - WGS84_E*WGS84_E)*N + llh[2]) * sin(llh[0]);
-		double M[3][3];
-		ecef2ned_matrix(ref_ecef, M);
-		matrix_multiply(3, 3, 1, (double *)M, ecef, out);*/
-		
-		double d_lon = nei[1] - cur[1];
-		double d_lat = nei[0] - cur[0];
-		out[0] = DEG2RAD(d_lat) * EARTH_RADIUS;
-		//out[0] = std::floor(out[0] * 1000000) / 1000000;
-		out[1] = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
-		//out[1] = std::floor(out[1] * 1000000) / 1000000;
-		out[2] = 0.0;
+	void roscontroller::gps_ned_cur(float &ned_x, float &ned_y, GPS t)
+	{
+		gps_convert_ned(ned_x, ned_y,
+			t.longitude, t.latitude,
+			cur_pos.longitude, cur_pos.latitude);
 	}
+
+	void roscontroller::gps_ned_home(float &ned_x, float &ned_y)
+	{
+		gps_convert_ned(ned_x, ned_y,
+			cur_pos.longitude, cur_pos.latitude,
+			home.longitude, home.latitude);
+	}
+
+	void roscontroller::gps_convert_ned(float &ned_x, float &ned_y,
+			double gps_t_lon, double gps_t_lat,
+			double gps_r_lon, double gps_r_lat)
+	{
+		double d_lon = gps_t_lon - gps_r_lon;
+		double d_lat = gps_t_lat - gps_r_lat;
+		ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
+		ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(gps_t_lat));
+	};
 
 	/*------------------------------------------------------
 	/ Update battery status into BVM from subscriber
@@ -714,9 +655,7 @@ namespace rosbzz_node{
                                 us[0] = data.pos_neigh[it].latitude;
                                 us[1] = data.pos_neigh[it].longitude;
                                 us[2] = data.pos_neigh[it].altitude;
-                                double out[3];
-                                cvt_rangebearing_coordinates(us, out, cur_pos);
-                                //buzzuav_closures::set_userspos(out[0], out[1], out[2]);
+								
 								buzz_utility::add_user(data.pos_neigh[it].position_covariance_type,data.pos_neigh[it].latitude, data.pos_neigh[it].longitude, data.pos_neigh[it].altitude);
                         }
 
@@ -749,15 +688,15 @@ namespace rosbzz_node{
 		moveMsg.header.stamp = ros::Time::now();
 		moveMsg.header.seq = setpoint_counter++;
 		moveMsg.header.frame_id = 1;
-		double local_pos[3];
-		cvt_ned_coordinates(cur_pos,local_pos,home);
+		float ned_x, ned_y;
+		gps_ned_home(ned_x, ned_y);
        //         ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0], home[1]);
        //         ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id, local_pos[0], local_pos[1]);
                     
 		/*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD (then converted to NED)*/
-		target[0]+=y;	target[1]+=x;
-		moveMsg.pose.position.x = target[0];//local_pos[1]+y;
-		moveMsg.pose.position.y = target[1];//local_pos[0]+x;
+		//target[0]+=y;	target[1]+=x;
+		moveMsg.pose.position.x = ned_y+y;
+		moveMsg.pose.position.y = ned_x+x;
 		moveMsg.pose.position.z = z;
 
 		moveMsg.pose.orientation.x = 0;
@@ -851,9 +790,13 @@ namespace rosbzz_node{
 			double neighbours_pos_payload[3];
 			memcpy(neighbours_pos_payload, message_obt, 3*sizeof(uint64_t));
 			buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0],neighbours_pos_payload[1],neighbours_pos_payload[2]);
-	//		cout<<"Got" << neighbours_pos_payload[0] <<", " << neighbours_pos_payload[1] << ", " << neighbours_pos_payload[2] << endl;
+			GPS nei_pos;
+			nei_pos.latitude=neighbours_pos_payload[0];
+			nei_pos.longitude=neighbours_pos_payload[1];
+			nei_pos.altitude=neighbours_pos_payload[2];
 			double cvt_neighbours_pos_payload[3];
-			cvt_rangebearing_coordinates(neighbours_pos_payload, cvt_neighbours_pos_payload, cur_pos);
+	//		cout<<"Got" << neighbours_pos_payload[0] <<", " << neighbours_pos_payload[1] << ", " << neighbours_pos_payload[2] << endl;
+			gps_rb(nei_pos, cvt_neighbours_pos_payload);
 			/*Extract robot id of the neighbour*/
 	 		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));
 			cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[1] << ", "<< cvt_neighbours_pos_payload[2] << endl;

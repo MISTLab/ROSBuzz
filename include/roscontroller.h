@@ -52,7 +52,7 @@ public:
 	void RosControllerRun();
 	
 private:
-        struct num_robot_count
+    struct num_robot_count
 	{
 		uint8_t history[10];
 		uint8_t index=0;
@@ -61,18 +61,16 @@ private:
 	  
 	}; typedef struct num_robot_count Num_robot_count ;
 
-        // WGS84 constants
-        double equatorial_radius = 6378137.0;
-        double flattening = 1.0/298.257223563;
-        double excentrity2 = 2*flattening - flattening*flattening;
-        // default reference position
-        double DEFAULT_REFERENCE_LATITUDE  = 45.457817;
-        double DEFAULT_REFERENCE_LONGITUDE = -73.636075;
-
-	double target[3];
- 	double cur_pos[3];
- 	double home[3];
+	struct gps
+	{
+		double longitude=0.0;
+		double latitude=0.0;
+		float  altitude=0.0;
+	}; typedef struct gps GPS ;
+	
+	GPS target, home, cur_pos;
  	double cur_rel_altitude;
+
 	uint64_t payload;
 	std::map< int,  buzz_utility::Pos_struct> neighbours_pos_map;
 	std::map< int,  buzz_utility::Pos_struct> raw_neighbours_pos_map;
@@ -159,13 +157,17 @@ private:
 	/*Puts raw neighbours position in lat.,long.,alt. inside raw_neigbours_pos_map*/
 	void raw_neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr );
 
-        /*Set the current position of the robot callback*/
+    /*Set the current position of the robot callback*/
 	void set_cur_pos(double latitude,
 			 double longitude,
 			 double altitude);
 	/*convert from spherical to cartesian coordinate system callback */
-	void cvt_rangebearing_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
-	void cvt_ned_coordinates(double neighbours_pos_payload [], double out[], double pos[]);
+	void gps_rb(GPS nei_pos, double out[]);
+	void gps_ned_cur(float &ned_x, float &ned_y, GPS t);
+	void gps_ned_home(float &ned_x, float &ned_y);
+	void gps_convert_ned(float &ned_x, float &ned_y,
+			double gps_t_lon, double gps_t_lat,
+			double gps_r_lon, double gps_r_lat);
 
 	/*battery status callback*/ 
 	void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
@@ -178,7 +180,7 @@ private:
 	
 	/*current position callback*/
 	void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
-        void users_pos(const rosbuzz::neigh_pos msg);
+    void users_pos(const rosbuzz::neigh_pos msg);
 
 	/*current relative altitude callback*/
 	void current_rel_alt(const std_msgs::Float64::ConstPtr& msg);
