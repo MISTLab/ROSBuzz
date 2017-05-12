@@ -9,6 +9,8 @@ if(r. data < l. data or (r. data == l. data )) return l
 else return r
 })
 
+s = swarm.create(1)
+s.join()
 }
 
 function stand_by(){

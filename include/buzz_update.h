@@ -129,6 +129,8 @@ int get_update_status();
 
 void set_read_update_status();
 
+int compile_bzz();
+
 void updates_set_robots(int robots);
 
 #endif

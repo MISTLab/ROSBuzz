@@ -21,12 +21,6 @@ struct pos_struct
   pos_struct(){}
 };
 
-#define function_register(TABLE, FNAME, FPOINTER)               \
-   buzzvm_push(VM, (TABLE));                                    \
-   buzzvm_pushs(VM, buzzvm_string_register(VM, (FNAME), 1));    \
-   buzzvm_pushcc(VM, buzzvm_function_register(VM, (FPOINTER))); \
-   buzzvm_tput(VM);
-
 typedef struct pos_struct Pos_struct ;
 
 uint16_t* u64_cvt_u16(uint64_t u64);
