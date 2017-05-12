@@ -252,7 +252,8 @@ namespace rosbzz_node{
                 
   		users_sub = n_c.subscribe("users_pos", 1000, &roscontroller::users_pos,this);
   		local_pos_sub = n_c.subscribe(local_pos_sub_name, 1000, &roscontroller::local_pos_callback, this);
-                
+
+
 		multi_msg=true;
 	}
 	/*---------------------------------------
