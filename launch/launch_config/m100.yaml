@@ -1,6 +1,6 @@
 topics:
   gps      :   global_position
-  localpos :	local_position
+  localpos      :   local_position
   battery  :   power_status
   status   :   flight_status
   fcclient :   dji_mavcmd
