@@ -101,10 +101,11 @@ namespace rosbzz_node{
 				get_number_of_robots();
 				//if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
 				//buzz_utility::set_robot_var(no_of_robots);
-				/*Set no of robots for updates*/
+				/*Set no of robots for updates TODO only when not updating*/
+				//if(multi_msg)
 				updates_set_robots(no_of_robots);
-    			/*run once*/
-    			ros::spinOnce();
+	    			/*run once*/
+	    			ros::spinOnce();
 				/*loop rate of ros*/
 				 ros::Rate loop_rate(10);
 				 loop_rate.sleep();

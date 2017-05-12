@@ -1,6 +1,6 @@
 # We need this for 2D vectors
 # Make sure you pass the correct include path to "bzzc -I <path1:path2> ..."
-include "/home/ubuntu/buzz/src/include/vec2.bzz"
+include "vec2.bzz"
 ####################################################################################################
 # Updater related
 # This should be here for the updater to work, changing position of code will crash the updater
@@ -15,8 +15,8 @@ TARGET_ALTITUDE = 3.0
 CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
-TARGET     = 10.0	#0.000001001
-EPSILON    = 18.0	#0.001
+TARGET     = 12.0	#0.000001001
+EPSILON    = 3.0	#0.001
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -48,9 +48,12 @@ function hexagon() {
 #  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
 #  	timeW =0
 #  	statef=land
+#  	} else if(timeW>=WAIT_TIMEOUT/2) {
+#  	timeW = timeW+1
+#  	uav_moveto(0.06,0.0)
 #  	} else {
 #  	timeW = timeW+1
-#  	uav_moveto(0.0,0.0)
+#  	uav_moveto(0.0,0.06)
 #  	}
 }
  
@@ -142,11 +145,32 @@ function land() {
 	}
 }
 
+function users_save(t) {
+	if(size(t)>0) {
+		foreach(t, function(id, tab) {
+				#log("id: ",id," Latitude ", tab.la, "Longitude ", tab.lo)
+				add_user_rb(id,tab.la,tab.lo)
+			})
+	}
+}
+
+function table_print(t) {
+  if(size(t)>0) {
+		foreach(t, function(u, tab) {
+				log("id: ",u," Range ", tab.r, "Bearing ", tab.b)
+			})
+	}
+}
+
 # Executed once at init time.
 function init() {
 	s = swarm.create(1)
-#	s.select(1)
 	s.join()
+
+	vt = stigmergy.create(5)
+	t = {}
+	vt.put("p",t)
+
 	statef=idle
 	CURSTATE = "IDLE"
 }
@@ -197,6 +221,14 @@ neighbors.listen("cmd",
 	statef()
 	log("Current state: ", CURSTATE)
 	log("Swarm size: ",ROBOTS)
+
+	# Check local users and push to v.stig
+	if(size(users.dataG)>0)
+		vt.put("p", users.dataG)
+				
+        # Save locally the users and print RG
+	users_save(vt.get("p"))
+	table_print(users.dataL)
 }
  
 # Executed once when the robot (or the simulator) is reset.

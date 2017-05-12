@@ -502,13 +502,20 @@ static int create_stig_tables() {
         
    	/* Save bytecode file name */
    	BO_FNAME = strdup(bo_filename);
-   	/* Execute the global part of the script */
-   	buzzvm_execute_script(VM);
-   	/* Call the Init() function */
-   	buzzvm_function_call(VM, "init", 0);
+   	
+   	// Execute the global part of the script
+   	if(buzzvm_execute_script(VM)!= BUZZVM_STATE_DONE){
+		ROS_ERROR("Error executing global part, VM state : %i",VM->state);
+		return 0;
+	}
+   	// Call the Init() function
+   	if(buzzvm_function_call(VM, "init", 0) != BUZZVM_STATE_READY){
+		ROS_ERROR("Error in  calling init, VM state : %i", VM->state);
+		return 0;
+	}
    	/* All OK */
 
-    ROS_INFO("[%i] INIT DONE!!!", Robot_id);
+    	ROS_INFO("[%i] INIT DONE!!!", Robot_id);
 
    	return 1;//buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
 	}
@@ -554,10 +561,17 @@ static int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
    	}
+   	
    	// Execute the global part of the script
-   	buzzvm_execute_script(VM);
+   	if(buzzvm_execute_script(VM)!= BUZZVM_STATE_DONE){
+		ROS_ERROR("Error executing global part, VM state : %i",VM->state);
+		return 0;
+	}
    	// Call the Init() function
-   	buzzvm_function_call(VM, "init", 0);
+   	if(buzzvm_function_call(VM, "init", 0) != BUZZVM_STATE_READY){
+		ROS_ERROR("Error in  calling init, VM state : %i", VM->state);
+		return 0;
+	}
    	// All OK
    	return 1;
 	}
@@ -604,9 +618,15 @@ static int create_stig_tables() {
       		return 0;
    	}
    	// Execute the global part of the script
-   	buzzvm_execute_script(VM);
+   	if(buzzvm_execute_script(VM)!= BUZZVM_STATE_DONE){
+		ROS_ERROR("Error executing global part, VM state : %i",VM->state);
+		return 0;
+	}
    	// Call the Init() function
-   	buzzvm_function_call(VM, "init", 0);
+   	if(buzzvm_function_call(VM, "init", 0) != BUZZVM_STATE_READY){
+		ROS_ERROR("Error in  calling init, VM state : %i", VM->state);
+		return 0;
+	}
    	// All OK
    	return 1;
 	}
@@ -725,19 +745,25 @@ static int create_stig_tables() {
 	}
 
 	int update_step_test() {
-
+		/*Process available messages*/
+		in_message_process();
 		buzzuav_closures::buzzuav_update_battery(VM);
 		buzzuav_closures::buzzuav_update_prox(VM);
 		buzzuav_closures::buzzuav_update_currentpos(VM);
 	   	buzzuav_closures::update_neighbors(VM);
 	   	update_users();
 		buzzuav_closures::buzzuav_update_flight_status(VM);
+		//set_robot_var(buzzdict_size(VM->swarmmembers)+1);
 
 		int a = buzzvm_function_call(VM, "step", 0);
-		if(a != BUZZVM_STATE_READY) {
+
+		  if(a!= BUZZVM_STATE_READY) {
+			ROS_ERROR("%s: execution terminated abnormally: %s\n\n",
+					 BO_FNAME,
+					 buzz_error_info());
 			fprintf(stdout, "step test VM state %i\n",a);
-			fprintf(stdout, " execution terminated abnormally\n\n");
-		}
+		  }
+			
 		return a == BUZZVM_STATE_READY;
 	}
 
