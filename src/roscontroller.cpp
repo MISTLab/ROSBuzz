@@ -738,7 +738,7 @@ namespace rosbzz_node{
 		moveMsg.pose.orientation.w = 1;
 
                 // To prevent drifting from stable position.
-		if(fabs(x)>0.01 || fabs(y)>0.01) {
+		if(fabs(x)>0.05 || fabs(y)>0.05) {
                     localsetpoint_nonraw_pub.publish(moveMsg);
                     ROS_INFO("Sent local NON RAW position message!");
                 }
