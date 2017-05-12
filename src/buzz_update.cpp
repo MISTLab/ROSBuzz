@@ -29,7 +29,7 @@ static int updated=0;
 
 /*Initialize updater*/
 void init_update_monitor(const char* bo_filename, const char* stand_by_script){
-	fprintf(stdout,"intiialized file monitor.\n");
+	ROS_INFO("intiialized file monitor.\n");
 	fd=inotify_init1(IN_NONBLOCK);
 	if ( fd < 0 ) {
 		perror( "inotify_init error" );
@@ -48,7 +48,7 @@ void init_update_monitor(const char* bo_filename, const char* stand_by_script){
 	BO_BUF = (uint8_t*)malloc(bcode_size);
 	if(fread(BO_BUF, 1, bcode_size, fp) < bcode_size) {
 		perror(bo_filename);
-		fclose(fp);
+		//fclose(fp);
 	//return 0;
 	}
 	fclose(fp);
@@ -65,7 +65,7 @@ void init_update_monitor(const char* bo_filename, const char* stand_by_script){
 	STD_BO_BUF = (uint8_t*)malloc(stdby_bcode_size);
 	if(fread(STD_BO_BUF, 1, stdby_bcode_size, fp) < stdby_bcode_size) {
 		perror(stand_by_script);
-	fclose(fp);
+	//fclose(fp);
 	//return 0;
 	}
 	fclose(fp);
@@ -147,7 +147,7 @@ void code_message_outqueue_append(){
 
 void code_message_inqueue_append(uint8_t* msg,uint16_t size){
 	updater->inmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
-	fprintf(stdout,"in ms append code size %d\n", (int) size);
+	//ROS_INFO("[DEBUG] Updater append code of size %d\n", (int) size);
 	updater->inmsg_queue->queue = (uint8_t*)malloc(size);
 	updater->inmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));
 	memcpy(updater->inmsg_queue->queue, msg, size);
@@ -156,9 +156,9 @@ void code_message_inqueue_append(uint8_t* msg,uint16_t size){
 
 void code_message_inqueue_process(){
 	int size=0;
-	fprintf(stdout,"[debug]Updater mode %d \n", *(int*)(updater->mode) );
-	fprintf(stdout,"[debug] %u : current update number, %u : received update no \n",( *(uint16_t*) (updater->update_no) ), (*(uint16_t*)(updater->inmsg_queue->queue)) );
-	fprintf(stdout,"[debug]Updater code size %u \n",(*(uint16_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)) ) );
+	ROS_INFO("[Debug] Updater processing in msg with mode %d \n", *(int*)(updater->mode) );
+	ROS_INFO("[Debug] %u : Current update number, %u : Received update no \n",( *(uint16_t*) (updater->update_no) ), (*(uint16_t*)(updater->inmsg_queue->queue)) );
+	ROS_INFO("[Debug] Updater received code of size %u \n",(*(uint16_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)) ) );
 
 	if(  *(int*) (updater->mode) == CODE_RUNNING){		
 		//fprintf(stdout,"[debug]Inside inmsg code running");
@@ -191,7 +191,6 @@ void update_routine(const char* bcfname,
                            const char* dbgfname){
 	dbgf_name=(char*)dbgfname;
 	buzzvm_t  VM = buzz_utility::get_vm();
-
 	buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 				buzzvm_pushi(VM, *(uint16_t*)(updater->update_no));
 				buzzvm_gstore(VM);
@@ -199,37 +198,13 @@ void update_routine(const char* bcfname,
 	if(*(int*)updater->mode==CODE_RUNNING){
 		buzzvm_function_call(VM, "updated_neigh", 0);
 		if(check_update()){
-			std::string bzzfile_name(bzz_file);
-			stringstream bzzfile_in_compile;
-	        	std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/"));
-			bzzfile_in_compile<<path<<"/";
-			path = bzzfile_in_compile.str();
-			bzzfile_in_compile.str("");
-			std::string  name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
- 			name = name.substr(0,name.find_last_of("."));
-			bzzfile_in_compile << "bzzparse "<<bzzfile_name<<" "<<path<< name<<".basm";
-			FILE *fp;
-			int comp=0;
-			char buf[128];
-			fprintf(stdout,"Update found \nUpdating script ...\n");
-			if ((fp = popen(bzzfile_in_compile.str().c_str(), "r")) == NULL) { // to change file edit
-				fprintf(stdout,"Error opening pipe!\n");
-		 	}
- 	 	     	while (fgets(buf, 128, fp) != NULL) {
-				fprintf(stdout,"OUTPUT: %s \n", buf);
-				comp=1;		    		
+
+			
+			ROS_INFO("Update found \nUpdating script ...\n");
+			
+			if(compile_bzz()){ 
+				ROS_WARN("Errors in comipilg script so staying on old script\n");
 			}
-			bzzfile_in_compile.str("");
-           		bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo "<<path<<name<<".bdbg";
-			if ((fp = popen(bzzfile_in_compile.str().c_str(), "r")) == NULL) { // to change file edit
-				fprintf(stdout,"Error opening pipe!\n");
-		 	}
-		 	while (fgets(buf, 128, fp) != NULL) {
-				fprintf(stdout,"OUTPUT: %s \n", buf);
-		    	}
-	  		if(pclose(fp) || comp) {
-	     			fprintf(stdout,"Errors in comipilg script so staying on old script\n");
-	 		}
 	  		else {	
 				uint8_t*    BO_BUF          = 0;
 				FILE* fp = fopen(bcfname, "rb");  // to change file edit
@@ -250,12 +225,12 @@ void update_routine(const char* bcfname,
 					*(uint16_t*)(updater->update_no) =update_no +1;
 					code_message_outqueue_append();
 					VM = buzz_utility::get_vm();
-					fprintf(stdout,"Update no %d\n", *(uint16_t*)(updater->update_no));
+					ROS_INFO("Current Update no %d\n", *(uint16_t*)(updater->update_no));
 					buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 					buzzvm_pushi(VM, *(uint16_t*)(updater->update_no));
 					buzzvm_gstore(VM);
 					neigh=-1;
-					fprintf(stdout,"Sending code... \n");		
+					ROS_INFO("Sending code... \n");		
 					code_message_outqueue_append();
 				}
 				delete_p(BO_BUF);
@@ -268,7 +243,7 @@ void update_routine(const char* bcfname,
 	else{
 		//gettimeofday(&t1, NULL);
 		if(neigh==0 && (!is_msg_present())){ 
-			fprintf(stdout,"Sending code... \n");		
+			ROS_INFO("Sending code... \n");		
 			code_message_outqueue_append();
 		
 		}	
@@ -277,7 +252,7 @@ void update_routine(const char* bcfname,
             	buzzvm_gload(VM);
             	buzzobj_t tObj = buzzvm_stack_at(VM, 1);
             	buzzvm_pop(VM);
-		fprintf(stdout,"Barrier ..................... %i \n",tObj->i.value);
+		ROS_INFO("Barrier ..................... %i \n",tObj->i.value);
 		if(tObj->i.value==no_of_robot) { 
 			*(int*)(updater->mode) = CODE_RUNNING;
 			gettimeofday(&t2, NULL);
@@ -307,12 +282,12 @@ return (uint8_t*)updater->outmsg_queue->size;
 
 int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size ){
 	if(buzz_utility::buzz_update_init_test(BO_BUF, dbgfname,bcode_size)){
-		fprintf(stdout,"Initializtion of script test passed\n");
+		ROS_WARN("Initializtion of script test passed\n");
 		if(buzz_utility::update_step_test()){
 			/*data logging*/
 			//start =1;
 			/*data logging*/
-			fprintf(stdout,"Step test passed\n");
+			ROS_WARN("Step test passed\n");
 			*(int*) (updater->mode) = CODE_STANDBY;
 			//fprintf(stdout,"updater value = %i\n",updater->mode);
 			delete_p(updater->bcode);
@@ -330,12 +305,12 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size ){
 		/*Unable to step something wrong*/
 		else{
 			if(*(int*) (updater->mode) == CODE_RUNNING){
-			fprintf(stdout,"step test failed, stick to old script\n");
+			ROS_ERROR("step test failed, stick to old script\n");
 			buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (size_t)*(size_t*)(updater->bcode_size));
 			}
 			else{
 			/*You will never reach here*/
-			fprintf(stdout,"step test failed, Return to stand by\n");
+			ROS_ERROR("step test failed, Return to stand by\n");
 			buzz_utility::buzz_update_init_test((updater)->standby_bcode,
 			         (char*)dbgfname,(size_t) *(size_t*)(updater->standby_bcode_size));
 			buzzvm_t  VM = buzz_utility::get_vm();
@@ -350,12 +325,12 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size ){
 	}    
 	else {
 		if(*(int*) (updater->mode) == CODE_RUNNING){
-		fprintf(stdout,"Initialization test failed, stick to old script\n");
+		ROS_ERROR("Initialization test failed, stick to old script\n");
 		buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname,(int)*(size_t*) (updater->bcode_size));
 		}
 		else{
 		/*You will never reach here*/
-		fprintf(stdout,"Initialization test failed, Return to stand by\n");
+		ROS_ERROR("Initialization test failed, Return to stand by\n");
 			buzz_utility::buzz_update_init_test((updater)->standby_bcode,
 			         (char*)dbgfname,(size_t) *(size_t*)(updater->standby_bcode_size));
 			buzzvm_t  VM = buzz_utility::get_vm();
@@ -420,6 +395,23 @@ void updates_set_robots(int robots){
 	no_of_robot=robots;
 }
 
+/*--------------------------------------------------------
+/ Create Buzz bytecode from the bzz script inputed
+/-------------------------------------------------------*/
+int compile_bzz(){
+	/*Compile the buzz code .bzz to .bo*/
+	std::string bzzfile_name(bzz_file);
+	stringstream bzzfile_in_compile;
+	std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+	std::string  name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
+	name = name.substr(0,name.find_last_of("."));
+	bzzfile_in_compile << "bzzc -I " << path << "include/"; //<<" "<<path<< name<<".basm";
+	bzzfile_in_compile << " -b " << path << name << ".bo";
+	bzzfile_in_compile << " -d " << path << name << ".bdb ";
+	bzzfile_in_compile << bzzfile_name;
+	ROS_WARN("Launching buzz compilation for update: %s", bzzfile_in_compile.str().c_str());
+	return system(bzzfile_in_compile.str().c_str());
+}
 void collect_data(){
 	//fprintf(stdout,"start and end time in data collection Info : %f,%f",(double)begin,(double)end);
 	double time_spent =   (t2.tv_sec - t1.tv_sec) * 1000.0; //(double)(end - begin) / CLOCKS_PER_SEC;

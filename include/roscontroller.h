@@ -110,6 +110,11 @@ private:
 	ros::Subscriber obstacle_sub;
 	ros::Subscriber Robot_id_sub;
 	ros::Subscriber relative_altitude_sub;
+
+	ros::Subscriber local_pos_sub;
+	double local_pos_new[3];
+
+
 	ros::ServiceClient stream_client;
 
 	int setpoint_counter;
@@ -182,6 +187,7 @@ private:
 	void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
     void users_pos(const rosbuzz::neigh_pos msg);
 
+
 	/*current relative altitude callback*/
 	void current_rel_alt(const std_msgs::Float64::ConstPtr& msg);
 
@@ -208,6 +214,8 @@ private:
 
 	/*Robot independent subscribers*/
 	void Subscribe(ros::NodeHandle& n_c);
+
+	void local_pos_callback(const geometry_msgs::PoseStamped::ConstPtr& pose);
 
 	//void WaypointMissionSetup(float lat, float lng, float alt);
 
