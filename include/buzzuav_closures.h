@@ -9,6 +9,9 @@
 #include "buzz_utility.h"
 //#include "roscontroller.h"
 
+	#define EARTH_RADIUS (double) 6371000.0
+	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
+
 namespace buzzuav_closures{
 	typedef enum {
       		COMMAND_NIL = 0,     // Dummy command
@@ -46,12 +49,13 @@ void rc_call(int rc_cmd);
 void set_battery(float voltage,float current,float remaining);
 /* sets current position */
 void set_currentpos(double latitude, double longitude, double altitude);
-void set_userspos(double latitude, double longitude, double altitude);
 /*retuns the current go to position */
 double* getgoto();
 /* updates flight status*/
 void flight_status_update(uint8_t state);
-
+/* Update neighbors table */
+void neighbour_pos_callback(int id, float range, float bearing, float elevation);
+void update_neighbors(buzzvm_t vm);
 /*Flight status*/
 void set_obstacle_dist(float dist[]);
 
@@ -83,8 +87,7 @@ int buzzuav_update_battery(buzzvm_t vm);
  * Updates current position in Buzz
  */
 int buzzuav_update_currentpos(buzzvm_t vm);
-buzzobj_t buzzuav_update_userspos(buzzvm_t vm);
-
+int buzzuav_adduserRB(buzzvm_t vm);
 /*
  * Updates flight status and rc command in Buzz, put it in a tabel to acess it 
  * use flight.status for flight status

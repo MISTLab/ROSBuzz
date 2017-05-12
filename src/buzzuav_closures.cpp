@@ -7,7 +7,7 @@
  */
 //#define _GNU_SOURCE
 #include "buzzuav_closures.h"
-//#include "roscontroller.h"
+
 namespace buzzuav_closures{
 
 	// TODO: Minimize the required global variables and put them in the header
@@ -19,12 +19,15 @@ namespace buzzuav_closures{
 	static float batt[3];
 	static float obst[5]={0,0,0,0,0};
 	static double cur_pos[3];
-	static double users_pos[3];
 	static uint8_t status;
 	static int cur_cmd = 0;
 	static int rc_cmd=0;
 	static int buzz_cmd=0;
 	static float height=0;
+
+
+	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
+
 	/****************************************/
 	/****************************************/
 
@@ -74,7 +77,7 @@ namespace buzzuav_closures{
 	/*----------------------------------------/
 	/ Compute GPS destination from current position and desired Range and Bearing
 	/----------------------------------------*/
-	#define EARTH_RADIUS (double) 6371000.0
+
 	void gps_from_rb(double  range, double bearing, double out[3]) {
 		double lat = cur_pos[0]*M_PI/180.0;
 		double lon = cur_pos[1]*M_PI/180.0;
@@ -83,6 +86,16 @@ namespace buzzuav_closures{
 		out[0] = out[0]*180.0/M_PI;
 		out[1] = out[1]*180.0/M_PI;
 		out[2] = height; //constant height.
+	}
+
+	void rb_from_gps(double nei[], double out[], double cur[]){   
+       	double d_lon = nei[1] - cur[1];
+       	double d_lat = nei[0] - cur[0];
+        double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
+        double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
+		out[1] = atan2(ned_y,ned_x);
+		out[2] = 0.0;
 	}
 
 	// Hard coded GPS position in Park Maisonneuve, Montreal, Canada for simulation tests
@@ -105,15 +118,79 @@ namespace buzzuav_closures{
 	   float dx = buzzvm_stack_at(vm, 2)->f.value;
 	   double d = sqrt(dx*dx+dy*dy);	//range
 	   goto_pos[0]=dx;
-           goto_pos[1]=dy;
-           goto_pos[2]=height;
+       goto_pos[1]=dy;
+       goto_pos[2]=height;
 	   /*double b = atan2(dy,dx);		//bearing
 	   printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
 	   gps_from_rb(d, b, goto_pos);
 	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
+       printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
 	   printf(" Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
 	   buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
 	   return buzzvm_ret0(vm);
+	}
+
+	int users_add2localtable(buzzvm_t vm, int id, float range, float bearing) {
+		if(vm->state != BUZZVM_STATE_READY) return vm->state;
+		buzzvm_pushs(vm, buzzvm_string_register(vm, "users", 1));
+		buzzvm_gload(vm);
+		buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);
+		buzzobj_t nbr = buzzvm_stack_at(vm, 1);
+		/* Get "data" field */
+		buzzvm_pushs(vm, buzzvm_string_register(vm, "dataL", 1));
+		buzzvm_tget(vm);
+		if(buzzvm_stack_at(vm, 1)->o.type == BUZZTYPE_NIL) {
+			//ROS_INFO("Empty data, create a new table");
+			buzzvm_pop(vm);
+			buzzvm_push(vm, nbr);
+			buzzvm_pushs(vm, buzzvm_string_register(vm, "dataL", 1));
+			buzzvm_pusht(vm);
+			buzzobj_t data = buzzvm_stack_at(vm, 1);
+			buzzvm_tput(vm);
+			buzzvm_push(vm, data);
+		}
+		/* When we get here, the "data" table is on top of the stack */
+		/* Push user id */
+		buzzvm_pushi(vm, id);
+		/* Create entry table */
+		buzzobj_t entry = buzzheap_newobj(vm->heap, BUZZTYPE_TABLE);
+		/* Insert range */
+		buzzvm_push(vm, entry);
+		buzzvm_pushs(vm, buzzvm_string_register(vm, "r", 1));
+		buzzvm_pushf(vm, range);
+		buzzvm_tput(vm);
+		/* Insert longitude */
+		buzzvm_push(vm, entry);
+		buzzvm_pushs(vm, buzzvm_string_register(vm, "b", 1));
+		buzzvm_pushf(vm, bearing);
+		buzzvm_tput(vm);
+		/* Save entry into data table */
+		buzzvm_push(vm, entry);
+		buzzvm_tput(vm);
+		//printf("\tBuzz_closure saved new user: %i (%f,%f)\n", id, range, bearing);
+		return vm->state;
+	}
+
+	int buzzuav_adduserRB(buzzvm_t vm) {
+	   buzzvm_lnum_assert(vm, 3);
+	   buzzvm_lload(vm, 1); /* longitude */
+	   buzzvm_lload(vm, 2); /* latitude */
+	   buzzvm_lload(vm, 3); /* id */
+	   buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+	   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+	   double tmp[3];
+	   tmp[0] = buzzvm_stack_at(vm, 2)->f.value;
+	   tmp[1] = buzzvm_stack_at(vm, 1)->f.value;
+	   tmp[2] = 0.0;
+	   int uid = buzzvm_stack_at(vm, 3)->i.value;
+	   double rb[3];
+
+	   rb_from_gps(tmp, rb, cur_pos);
+
+	   //printf("\tGot new user from bzz stig: %i - %f, %f\n", uid, rb[0], rb[1]);
+
+	   return users_add2localtable(vm, uid, rb[0], rb[1]);
 	}
 
 	/*----------------------------------------/
@@ -245,11 +322,33 @@ namespace buzzuav_closures{
 	   cur_pos[1]=longitude;
 	   cur_pos[2]=altitude;
 	}
-	void set_userspos(double latitude, double longitude, double altitude){
-	   users_pos[0]=latitude;
-	   users_pos[1]=longitude;
-	   users_pos[2]=altitude;
+	/*adds neighbours position*/
+	void neighbour_pos_callback(int id, float range, float bearing, float elevation){
+		buzz_utility::Pos_struct pos_arr;
+		pos_arr.x=range;
+		pos_arr.y=bearing;
+		pos_arr.z=elevation;
+		map< int, buzz_utility::Pos_struct >::iterator it = neighbors_map.find(id);
+		if(it!=neighbors_map.end())
+			neighbors_map.erase(it);
+		neighbors_map.insert(make_pair(id, pos_arr));
 	}
+
+	/* update at each step the VM table */
+	void update_neighbors(buzzvm_t vm){
+		/* Reset neighbor information */
+    	buzzneighbors_reset(vm);
+  		/* Get robot id and update neighbor information */
+  	  	map< int, buzz_utility::Pos_struct >::iterator it;
+		for (it=neighbors_map.begin(); it!=neighbors_map.end(); ++it){
+			buzzneighbors_add(vm,
+								it->first,
+								(it->second).x,
+								(it->second).y,
+								(it->second).z);
+		}
+	}
+
 	/****************************************/
 	int buzzuav_update_currentpos(buzzvm_t vm) {
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "position", 1));
@@ -268,26 +367,6 @@ namespace buzzuav_closures{
 	   buzzvm_tput(vm);
 	   buzzvm_gstore(vm);
 	   return vm->state;
-	}
-	buzzobj_t buzzuav_update_userspos(buzzvm_t vm) {
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "users", 1));
-	   buzzvm_pusht(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "range", 1));
-	   buzzvm_pushf(vm, users_pos[0]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "bearing", 1));
-	   buzzvm_pushf(vm, users_pos[1]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "height", 1));
-	   buzzvm_pushf(vm, users_pos[2]);
-	   buzzvm_tput(vm);
-	   buzzvm_gstore(vm);
-           
-           return buzzvm_stack_at(vm, 0);
-	   //return vm->state;
 	}
 
 	void flight_status_update(uint8_t state){
