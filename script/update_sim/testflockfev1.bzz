@@ -26,7 +26,7 @@ function lj_magnitude(dist, target, epsilon) {
 # Neighbor data to LJ interaction vector
 function lj_vector(rid, data) {
   return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
-}cd sr	
+}
  
 # Accumulator of neighbor LJ interactions
 function lj_sum(rid, data, accum) {
