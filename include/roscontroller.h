@@ -111,6 +111,7 @@ private:
 	ros::Subscriber Robot_id_sub;
 	ros::Subscriber relative_altitude_sub;
 
+	std::string local_pos_sub_name;
 	ros::Subscriber local_pos_sub;
 	double local_pos_new[3];
 
