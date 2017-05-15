@@ -41,7 +41,8 @@ namespace buzz_utility{
 	void update_users(){
 		if(users_map.size()>0) {
 			/* Reset users information */
-			buzzusers_reset();
+//			buzzusers_reset();
+			create_stig_tables();
 			/* Get user id and update user information */
 			map< int, Pos_struct >::iterator it;
 			for (it=users_map.begin(); it!=users_map.end(); ++it){
@@ -370,7 +371,7 @@ namespace buzz_utility{
    	return VM->state;
 	}
 
-static int create_stig_tables() {
+int create_stig_tables() {
 /*
    		// usersvstig = stigmergy.create(123)
         buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));

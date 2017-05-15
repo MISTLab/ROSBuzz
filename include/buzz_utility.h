@@ -34,6 +34,7 @@ int make_table(buzzobj_t* t);
 int buzzusers_add(int id, double latitude, double longitude, double altitude);
 int buzzusers_reset();
 	int compute_users_rb();
+	int create_stig_tables();
 
 void in_msg_append(uint64_t* payload);
 

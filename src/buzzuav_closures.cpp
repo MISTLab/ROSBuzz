@@ -7,6 +7,7 @@
  */
 //#define _GNU_SOURCE
 #include "buzzuav_closures.h"
+#include "math.h"
 
 namespace buzzuav_closures{
 
@@ -89,10 +90,10 @@ namespace buzzuav_closures{
 	}
 
 	void rb_from_gps(double nei[], double out[], double cur[]){   
-       	double d_lon = nei[1] - cur[1];
-       	double d_lat = nei[0] - cur[0];
-        double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
-        double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+       		double d_lon = nei[1] - cur[1];
+       		double d_lat = nei[0] - cur[0];
+        	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
+        	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
 		out[1] = atan2(ned_y,ned_x);
 		out[2] = 0.0;
@@ -187,10 +188,13 @@ namespace buzzuav_closures{
 	   double rb[3];
 
 	   rb_from_gps(tmp, rb, cur_pos);
+	   if(fabs(rb[0])<100.0) {
+	   	printf("\tGot new user from bzz stig: %i - %f, %f\n", uid, rb[0], rb[1]);
+		return users_add2localtable(vm, uid, rb[0], rb[1]);
+	   } else
+		printf(" ---------- User too far %f\n",rb[0]);
 
-	   //printf("\tGot new user from bzz stig: %i - %f, %f\n", uid, rb[0], rb[1]);
-
-	   return users_add2localtable(vm, uid, rb[0], rb[1]);
+		return 0;
 	}
 
 	/*----------------------------------------/

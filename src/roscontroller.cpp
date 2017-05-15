@@ -676,20 +676,14 @@ namespace rosbzz_node{
 	}
 
 	void roscontroller::users_pos(const rosbuzz::neigh_pos data){
-		//ROS_INFO("Altitude out: %f", cur_rel_altitude);
 
-                double us[3];
                 int n = data.pos_neigh.size();
-        //	ROS_INFO("Neighbors array size: %i\n", n);
+        //	ROS_INFO("Users array size: %i\n", n);
                 if(n>0)
                 {
                         for(int it=0; it<n; ++it)
                         {
-                                us[0] = data.pos_neigh[it].latitude;
-                                us[1] = data.pos_neigh[it].longitude;
-                                us[2] = data.pos_neigh[it].altitude;
-								
-								buzz_utility::add_user(data.pos_neigh[it].position_covariance_type,data.pos_neigh[it].latitude, data.pos_neigh[it].longitude, data.pos_neigh[it].altitude);
+				buzz_utility::add_user(data.pos_neigh[it].position_covariance_type,data.pos_neigh[it].latitude, data.pos_neigh[it].longitude, data.pos_neigh[it].altitude);
                         }
 
                 }
