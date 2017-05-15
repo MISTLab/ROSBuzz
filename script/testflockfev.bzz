@@ -93,10 +93,11 @@ function barrier_ready() {
 WAIT_TIMEOUT = 200
 timeW=0
 function barrier_wait(threshold, transf) {
+  barrier.put(id, 1)
   barrier.get(id)
   CURSTATE = "BARRIERWAIT"
   if(barrier.size() >= threshold) {
-    barrier = nil
+#    barrier = nil
     transf()
   } else if(timeW>=WAIT_TIMEOUT) {
     barrier = nil
