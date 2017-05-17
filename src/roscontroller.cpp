@@ -113,7 +113,7 @@ namespace rosbzz_node{
 				//if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
 				//buzz_utility::set_robot_var(no_of_robots);
 				/*Set no of robots for updates TODO only when not updating*/
-				//if(multi_msg)
+				if(multi_msg)
 				updates_set_robots(no_of_robots);
 	    			/*run once*/
 	    			ros::spinOnce();
