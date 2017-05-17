@@ -259,8 +259,6 @@ void update_routine(const char* bcfname,
 			*(int*)(updater->mode) = CODE_RUNNING;
 			gettimeofday(&t2, NULL);
 			//collect_data();
-			timer_steps=0;
-			neigh=0;
 			buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
 			//buzzvm_function_call(m_tBuzzVM, "updated", 0);
 			updated=1;	
@@ -420,6 +418,8 @@ void collect_data(std::ofstream &logger){
 	time_spent += (t2.tv_usec - t1.tv_usec) / 1000.0;
 	//int bytecodesize=(int);
 	logger<<(int)no_of_robot<<","<<neigh<<","<<(double)time_spent<<","<<(int)timer_steps<<","<<*(size_t*)updater->bcode_size<<","<<(int)*(uint8_t*)updater->update_no;
+	timer_steps=0;
+	neigh=0;
 	//fprintf(stdout,"Data logger Info : %i , %i , %f , %ld , %i , %d \n",(int)no_of_robot,neigh,time_spent,*(size_t*)updater->bcode_size,(int)no_of_robot,*(uint8_t*)updater->update_no);
 	//FILE *Fileptr;
 	//Fileptr=fopen("/home/ubuntu/ROS_WS/update_logger.csv", "a");
