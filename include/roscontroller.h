@@ -120,6 +120,8 @@ private:
 
 	int setpoint_counter;
 	double my_x = 0, my_y = 0;
+	
+	std::ofstream log;
 
 	/*Commands for flight controller*/
   	//mavros_msgs::CommandInt cmd_srv;

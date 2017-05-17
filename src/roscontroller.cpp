@@ -45,6 +45,9 @@ namespace rosbzz_node{
 		} else {
 			robot_id= strtol(robot_name.c_str() + 5, NULL, 10);
 		}
+		std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+		path+="Update.log";
+		log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
 	}
 
 	/*---------------------
@@ -57,6 +60,7 @@ namespace rosbzz_node{
 		buzz_utility::buzz_script_destroy();
  		/* Stop the robot */
    		uav_done();
+		log.close();
 	}
 
 	void roscontroller::GetRobotId()
@@ -106,6 +110,9 @@ namespace rosbzz_node{
 				if(get_update_status()){
 					set_read_update_status();
 					multi_msg=true;
+					log<<cur_pos.latitude<<","<<cur_pos.longitude<<","<<cur_pos.altitude<<","; 
+					collect_data(log);
+					log<<std::endl;
 				}
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
 				//no_of_robots=get_number_of_robots();
