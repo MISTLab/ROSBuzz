@@ -931,7 +931,7 @@ namespace rosbzz_node{
 			}			
 			else if(no_cnt!=0 && old_val==neighbours_pos_map.size()+1){
 				no_cnt++;
-				if(no_cnt>=4){
+				if(no_cnt>=40){
 					no_of_robots=neighbours_pos_map.size()+1;
 					no_cnt=0;
 				}
