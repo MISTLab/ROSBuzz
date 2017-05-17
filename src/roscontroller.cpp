@@ -118,17 +118,17 @@ namespace rosbzz_node{
 	    			/*run once*/
 	    			ros::spinOnce();
 				/*loop rate of ros*/
-				 ros::Rate loop_rate(10);
+				 ros::Rate loop_rate(BUZZRATE);
 				 loop_rate.sleep();
 				 if(fcu_timeout<=0)
 					buzzuav_closures::rc_call(mavros_msgs::CommandCode::NAV_LAND);
 				 else
-					fcu_timeout -= 1/10;
+					fcu_timeout -= 1/BUZZRATE;
  				/*sleep for the mentioned loop rate*/
     			timer_step+=1;
    				maintain_pos(timer_step);
 
-   				std::cout<< "HOME: " << home.latitude << ", " << home.longitude;
+   				//std::cout<< "HOME: " << home.latitude << ", " << home.longitude;
 			}
 			/* Destroy updater and Cleanup */
     			//update_routine(bcfname.c_str(), dbgfname.c_str(),1);
@@ -513,7 +513,7 @@ namespace rosbzz_node{
 	/Refresh neighbours Position for every ten step
 	/---------------------------------------------*/
 	void roscontroller::maintain_pos(int tim_step){
-		if(timer_step >=10){
+		if(timer_step >=BUZZRATE){
 		neighbours_pos_map.clear();
 		//raw_neighbours_pos_map.clear(); // TODO: currently not a problem, but have to clear !
 		timer_step=0;
@@ -732,10 +732,10 @@ namespace rosbzz_node{
 		moveMsg.pose.orientation.w = 1;
 
                 // To prevent drifting from stable position.
-		if(fabs(x)>0.05 || fabs(y)>0.05) {
+		//if(fabs(x)>0.005 || fabs(y)>0.005) {
                     localsetpoint_nonraw_pub.publish(moveMsg);
-                    ROS_INFO("Sent local NON RAW position message!");
-                }
+                    //ROS_INFO("Sent local NON RAW position message!");
+        //        }
 	}
 
 	void roscontroller::SetMode(std::string mode, int delay_miliseconds){
@@ -827,7 +827,7 @@ namespace rosbzz_node{
 			gps_rb(nei_pos, cvt_neighbours_pos_payload);
 			/*Extract robot id of the neighbour*/
 	 		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));
-			cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[1] << ", "<< cvt_neighbours_pos_payload[2] << endl;
+			//cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[1] << ", "<< cvt_neighbours_pos_payload[2] << endl;
 			/*pass neighbour position to local maintaner*/
 			buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
 			/*Put RID and pos*/

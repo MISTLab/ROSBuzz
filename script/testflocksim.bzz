@@ -16,7 +16,7 @@ CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
 TARGET     = 12.0
-EPSILON    = 12.0
+EPSILON    = 0.5
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
@@ -224,13 +224,13 @@ neighbors.listen("cmd",
 	log("Swarm size: ",ROBOTS)
 	
 	# Read a value from the structure
-				log(users)      
+		#		log(users)      
 				#users_print(users.dataG)
 				if(size(users.dataG)>0)
 					vt.put("p", users.dataG)
 				
         # Get the number of keys in the structure
-        log("The vstig has ", vt.size(), " elements")
+        #log("The vstig has ", vt.size(), " elements")
 				users_save(vt.get("p"))
 				table_print(users.dataL)
 }
