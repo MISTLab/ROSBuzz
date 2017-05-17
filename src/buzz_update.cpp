@@ -24,7 +24,7 @@ static int no_of_robot;
 static char* dbgf_name;
 static const char* bzz_file;
 static int neigh=-1;
-static int 	    updater_msg_ready ;
+static int updater_msg_ready ;
 static int updated=0;
 
 /*Initialize updater*/
@@ -179,7 +179,7 @@ void code_message_inqueue_process(){
 				(char*) dbgf_name,(size_t)update_bcode_size) ) {
 				*(uint16_t*)(updater->update_no)=update_no;
 				neigh=1;
-				gettimeofday(&t1, NULL);
+				//gettimeofday(&t1, NULL);
 			}
 		}
 	}
@@ -247,7 +247,7 @@ void update_routine(const char* bcfname,
 		if(neigh==0 && (!is_msg_present())){ 
 			ROS_INFO("Sending code... \n");		
 			code_message_outqueue_append();
-			gettimeofday(&t1, NULL);
+			
 		}	
 		timer_steps++;
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "barrier_val",1));
@@ -297,6 +297,7 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size ){
 			buzz_utility::buzz_update_init_test((updater)->standby_bcode,
 			         (char*)dbgfname,(size_t) *(size_t*)(updater->standby_bcode_size));
 			buzzvm_t  VM = buzz_utility::get_vm();
+			gettimeofday(&t1, NULL);
 			buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
 			buzzvm_pushi(VM, no_of_robot);
 			buzzvm_gstore(VM);
