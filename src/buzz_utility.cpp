@@ -124,7 +124,7 @@ namespace buzz_utility{
 		/* Save entry into data table */
 		buzzvm_push(VM, entry);
 		buzzvm_tput(VM);
-		ROS_INFO("Buzz_utility saved new user: %i (%f,%f,%f)", id, latitude, longitude, altitude);
+		//ROS_INFO("Buzz_utility saved new user: %i (%f,%f,%f)", id, latitude, longitude, altitude);
 		// forcing the new table into the stigmergy....
 		/*buzzobj_t newt = buzzvm_stack_at(VM, 0);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
