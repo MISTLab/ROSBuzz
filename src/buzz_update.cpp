@@ -419,7 +419,7 @@ void collect_data(std::ofstream &logger){
 	double time_spent =   (t2.tv_sec - t1.tv_sec) * 1000.0; //(double)(end - begin) / CLOCKS_PER_SEC;
 	time_spent += (t2.tv_usec - t1.tv_usec) / 1000.0;
 	//int bytecodesize=(int);
-	logger<<(int)no_of_robot<<","<<neigh<<","<<(double)time_spent<<","<<(int)timer_steps<<","<<*(size_t*)updater->bcode_size<<","<<(int)no_of_robot<<","<<*(uint8_t*)updater->update_no;
+	logger<<(int)no_of_robot<<","<<neigh<<","<<(double)time_spent<<","<<(int)timer_steps<<","<<*(size_t*)updater->bcode_size<<","<<(int)*(uint8_t*)updater->update_no;
 	//fprintf(stdout,"Data logger Info : %i , %i , %f , %ld , %i , %d \n",(int)no_of_robot,neigh,time_spent,*(size_t*)updater->bcode_size,(int)no_of_robot,*(uint8_t*)updater->update_no);
 	//FILE *Fileptr;
 	//Fileptr=fopen("/home/ubuntu/ROS_WS/update_logger.csv", "a");
