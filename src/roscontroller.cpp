@@ -112,21 +112,27 @@ namespace rosbzz_node{
 					multi_msg=true;
 					log<<cur_pos.latitude<<","<<cur_pos.longitude<<","<<cur_pos.altitude<<","; 
 					collect_data(log);
+					map< int, buzz_utility::Pos_struct >::iterator it = neighbours_pos_map.begin();
+					log<<","<<neighbours_pos_map.size();
+					for(;it != neighbours_pos_map.end();++it){
+						log<<","<<(double)it->second.x<<","<<(double)it->second.y<<","<<(double)it->second.z;	
+					}
 					log<<std::endl;
 				}
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
 				//no_of_robots=get_number_of_robots();
 				get_number_of_robots();
+				buzz_utility::set_robot_var(no_of_robots);
 				//if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
 				//buzz_utility::set_robot_var(no_of_robots);
 				/*Set no of robots for updates TODO only when not updating*/
-				if(multi_msg)
+				//if(multi_msg)
 				updates_set_robots(no_of_robots);
 				ROS_INFO("ROBOTS: %i , acutal : %i",(int)no_of_robots,(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1); 
 	    			/*run once*/
 	    			ros::spinOnce();
 				/*loop rate of ros*/
-				 ros::Rate loop_rate(BUZZRATE);
+				ros::Rate loop_rate(BUZZRATE);
 				 loop_rate.sleep();
 				 if(fcu_timeout<=0)
 					buzzuav_closures::rc_call(mavros_msgs::CommandCode::NAV_LAND);

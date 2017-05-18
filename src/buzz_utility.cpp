@@ -706,7 +706,7 @@ int create_stig_tables() {
 		//buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
 		//int SwarmSize = buzzdict_size(VM->swarmmembers)+1;
 		//fprintf(stderr, "Real Swarm Size: %i\n",SwarmSize);
-		set_robot_var(buzzdict_size(VM->swarmmembers)+1);
+		
 
 		/* Check swarm state -- Not crashing thanks to test added in check_swarm_members */
 		//int status = 1;
