@@ -932,7 +932,7 @@ namespace rosbzz_node{
 			}			
 			else if(no_cnt!=0 && old_val==cur_robots){
 				no_cnt++;
-				if(no_cnt>=8){
+				if(no_cnt>=8 || cur_val	> no_of_robots){
 					no_of_robots=cur_robots;
 					no_cnt=0;
 				}
