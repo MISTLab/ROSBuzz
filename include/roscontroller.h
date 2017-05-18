@@ -38,7 +38,7 @@
 #define XBEE_MESSAGE_CONSTANT 586782343
 #define XBEE_STOP_TRANSMISSION 4355356352
 #define TIMEOUT	60
-#define BUZZRATE 50
+#define BUZZRATE 10
 
 using namespace std;
 
