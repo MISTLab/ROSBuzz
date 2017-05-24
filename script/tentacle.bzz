@@ -1,0 +1,430 @@
+include "vec2.bzz"
+updated="update_ack"
+update_no=0
+function updated_neigh(){
+	neighbors.broadcast(updated, update_no)
+}
+TARGET_ALTITUDE = 5.0
+CURSTATE = "TURNEDOFF"
+ 
+# Lennard-Jones parameters
+TARGET     = 12.0
+EPSILON    = 10.0
+
+#################################################
+### UTILITY FUNCTIONS ###########################
+#################################################
+
+# Write a table as if it was a matrix
+function write_knowledge(k, row, col, val) {
+    var key = string.concat(string.tostring(row),"-",string.tostring(col))
+    k[key] = val
+    log("Writing knowledge:", val, " to ", row, " ", col)
+}
+
+# Read a table as if it was a matrix
+function read_knowledge(k, row, col) {
+    var key = string.concat(string.tostring(row),"-",string.tostring(col))
+    if (k[key] == nil) {
+        log("Warning: reading 'nil' value from the knowledge table at", row, " ", col, ", returning -1")
+        return -1
+    } else {
+        return k[key]
+    }
+}
+
+# Int to String 
+function itos(i) {
+    
+    log("Use 'string.tostring(OJB)' instead")
+    
+    if (i==0) { return "0" }
+    if (i==1) { return "1" }
+    if (i==2) { return "2" }
+    if (i==3) { return "3" }
+    if (i==4) { return "4" }
+    if (i==5) { return "5" }
+    if (i==6) { return "6" }
+    if (i==7) { return "7" }
+    if (i==8) { return "8" }
+    if (i==9) { return "9" }
+    
+    log("Function 'itos' out of bounds, returning the answer (42)")
+    return "42"
+}
+
+# String to Int
+function stoi(s) {
+   if (s=='0') { return 0 }
+   if (s=='1') { return 1 }
+   if (s=='2') { return 2 }
+   if (s=='3') { return 3 }
+   if (s=='4') { return 4 }
+   if (s=='5') { return 5 }
+   if (s=='6') { return 6 }
+   if (s=='7') { return 7 }
+   if (s=='8') { return 8 }
+   if (s=='9') { return 9 }
+   
+   log("Function 'stoi' out of bounds, returning the answer (42)")
+   return 42
+   
+}
+
+# Rads to degrees
+function rtod(r) {
+   return (r*(180.0/math.pi))
+}
+
+# Degrees to rads
+function dtor(d) {
+   return (math.pi*(d/180.0))
+}
+
+# Force angles in the (-180,180) interval
+function degrees_interval(a) {
+    var temp = a
+    while ((temp>360.0) or (temp<0.0)) {
+        if (temp > 360.0) {
+            temp = temp - 360.0
+        } else if (temp < 0.0){
+            temp = temp + 360.0
+        }
+    }
+    if (temp > 180.0) {
+        temp = temp - 360.0
+    }
+    return temp
+}
+
+# Force angles in the (-pi,pi) interval
+function radians_interval(a) {
+    var temp = a
+    while ((temp>2.0*math.pi) or (temp<0.0)) {
+        if (temp > 2.0*math.pi) {
+            temp = temp - 2.0*math.pi
+        } else if (temp < 0.0){
+            temp = temp + 2.0*math.pi
+        }
+    }
+    if (temp > math.pi) {
+        temp = temp - 2.0*math.pi
+    }
+    return temp
+}
+
+#################################################
+### MOVEMENT/COMMUNICATION PRIMITIVES ###########
+#################################################
+
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+  return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
+# Neighbor data to LJ interaction vector
+function lj_vector(rid, data) {
+  return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
+}
+# Accumulator of neighbor LJ interactions
+function lj_sum(rid, data, accum) {
+  return math.vec2.add(data, accum)
+}
+
+# Calculates and actuates the flocking interaction
+function hexagon() {
+  # Calculate accumulator
+  var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
+  if(neighbors.count() > 0)
+    math.vec2.scale(accum, 1.0 / neighbors.count())
+  # Move according to vector
+  moveto(accum.x, accum.y)
+}
+
+function inform_your_neighborhood() {    
+    # Reset to 0 the visibility of all neighbors
+    foreach(knowledge, function(key, value) {
+          column = string.sub(key, string.length(key)-1,string.length(key))
+          if (column=='3') { 
+              knowledge[key] = 0 
+          }     
+    })    
+    neighbors.foreach( function(rid, data) {               
+        # For each neighbor, send a message with its azimuth, as seen by the broadcasting robot
+        message_id = string.tostring(rid)
+        neighbors.broadcast(message_id, rtod(data.azimuth))        
+        # Record the neighbor azimuth in my own knowledge table
+        write_knowledge(knowledge, rid, 0, rtod(data.azimuth))        
+        # Record the neighbor distance in my own knowledge table
+        write_knowledge(knowledge, rid, 2, data.distance)        
+        # Set neighbor as visible
+        write_knowledge(knowledge, rid, 3, 1)     
+    })    
+    # Send a message with the desired direction, as seen by the broadcasting robot
+    neighbors.broadcast("direction", local_dir)
+    
+}
+
+function listen_to_your_neighborhood() {    
+    # For all "senders" in my neighborhood, record my azimuth, as seen by them
+    message_id = string.tostring(id)
+    neighbors.listen(message_id, function(vid, value, rid) {
+        write_knowledge(knowledge, rid, 1, value)
+    })    
+}
+
+#################################################
+### ACTUAL CONTROLLERS ##########################
+#################################################
+
+function zero() {   
+  # Do not move
+  moveto(0.0,0.0) 
+  # Tell the neighbors of the center where to go
+  inform_your_neighborhood()       
+}
+
+function onetwo() {
+  if (id == 1) {
+      angle = 45
+  } else {
+      angle = -135
+  }
+  # Broadcast information
+  inform_your_neighborhood()   
+  # If the center 0 is in sight
+  if (read_knowledge(knowledge, 0, 3) == 1) {
+      arm_offset = degrees_interval(read_knowledge(knowledge, 0, 1) - angle)
+      if (arm_offset<3 and arm_offset>(-3)) {
+          hexagon()  # Underlying Lennard-Jones potential behavior
+      } else {
+      
+          local_rotation = degrees_interval( read_knowledge(knowledge, 0, 1) + (180.0 - read_knowledge(knowledge, 0, 0)) )
+          local_arm = degrees_interval(angle - local_rotation)
+          
+          if (read_knowledge(knowledge, 0, 2) > 250.0) { 
+              x_mov = math.cos(dtor(read_knowledge(knowledge, 0, 0)))
+              y_mov = math.sin(dtor(read_knowledge(knowledge, 0, 0)))       
+          } else if (read_knowledge(knowledge, 0, 2) < 30.0) {
+              x_mov = -math.cos(dtor(read_knowledge(knowledge, 0, 0)))
+              y_mov = -math.sin(dtor(read_knowledge(knowledge, 0, 0)))              
+          } else {
+              spiraling = 2.0+(id/10.0) # Fun stuff but be careful with this, it affects how a robots turns around a central node, use random number generation, eventually
+              if (arm_offset > 0) { # Clockwise
+
+                  x_mov = -math.sin(dtor(read_knowledge(knowledge, 0, 0)))
+                  y_mov = math.cos(dtor(read_knowledge(knowledge, 0, 0))) * spiraling
+              } else { # Counterclockwise
+                  x_mov = math.sin(dtor(read_knowledge(knowledge, 0, 0)))
+                  y_mov = -math.cos(dtor(read_knowledge(knowledge, 0, 0))) * spiraling
+              }
+          }
+          speed = 100
+          moveto(speed * x_mov,speed * y_mov)
+      }
+  } else {
+      hexagon()            
+  }            
+}
+
+########################################
+#
+# BARRIER-RELATED FUNCTIONS
+#
+########################################
+
+#
+# Constants
+#
+BARRIER_VSTIG = 1
+
+#
+# Sets a barrier
+#
+function barrier_set(threshold, transf) {
+  statef = function() {
+    barrier_wait(threshold, transf);
+  }
+  barrier = stigmergy.create(BARRIER_VSTIG)
+}
+
+#
+# Make yourself ready
+#
+function barrier_ready() {
+  barrier.put(id, 1)
+}
+
+#
+# Executes the barrier
+#
+WAIT_TIMEOUT = 200
+timeW=0
+function barrier_wait(threshold, transf) {
+  barrier.get(id)
+  barrier.put(id, 1)
+  CURSTATE = "BARRIERWAIT"
+  if(barrier.size() >= threshold) {
+    #barrier = nil
+    transf()
+  } else if(timeW>=WAIT_TIMEOUT) {
+    barrier = nil
+    statef=land
+    timeW=0
+  }
+  timeW = timeW+1
+}
+
+# flight status
+
+function idle() {
+statef=idle
+CURSTATE = "IDLE"
+   
+}
+
+function takeoff() {
+	CURSTATE = "TAKEOFF"
+	statef=takeoff
+	#log("TakeOff: ", flight.status)
+	#log("Relative position: ", position.altitude)
+	
+	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+		if(id==0)
+            barrier_set(ROBOTS, zero)
+        else
+            barrier_set(ROBOTS, onetwo)
+		barrier_ready()
+		#statef=hexagon
+	}
+	else {
+		log("Altitude: ", TARGET_ALTITUDE)
+		neighbors.broadcast("cmd", 22)
+		uav_takeoff(TARGET_ALTITUDE)
+	}
+}
+function land() {
+	CURSTATE = "LAND"
+	statef=land
+	#log("Land: ", flight.status)
+	if(flight.status == 2 or flight.status == 3){
+		neighbors.broadcast("cmd", 21)
+		uav_land()
+	}
+	else {
+		barrier_set(ROBOTS,idle)
+		barrier_ready()
+		timeW=0
+		#barrier = nil
+		#statef=idle
+	}
+}
+
+function users_save(t) {
+	if(size(t)>0) {
+		foreach(t, function(id, tab) {
+				#log("id: ",id," Latitude ", tab.la, "Longitude ", tab.lo)
+				add_user_rb(id,tab.la,tab.lo)
+			})
+	}
+}
+
+# printing the contents of a table: a custom function
+function table_print(t) {
+  if(size(t)>0) {
+		foreach(t, function(u, tab) {
+				log("id: ",u," Range ", tab.r, "Bearing ", tab.b)
+			})
+	}
+}
+
+#################################################
+### BUZZ FUNCTIONS ##############################
+#################################################
+
+# Executed at init time
+function init() {
+  s = swarm.create(0)
+  s.join()
+  # Local knowledge table
+  knowledge = {}
+  # Update local knowledge with information from the neighbors
+  listen_to_your_neighborhood()
+  # Variables initialization
+  iteration = 0 
+
+    vt = stigmergy.create(5)
+	t = {}
+	vt.put("p",t)
+	statef=idle
+	CURSTATE = "IDLE"
+}
+
+# Executed every time step
+function step() {
+    if(flight.rc_cmd==22) {
+		log("cmd 22")
+		flight.rc_cmd=0
+		statef = takeoff
+		CURSTATE = "TAKEOFF"		
+		neighbors.broadcast("cmd", 22)
+	} else if(flight.rc_cmd==21) {
+		log("cmd 21")
+		log("To land")
+		flight.rc_cmd=0
+		statef = land
+		CURSTATE = "LAND"
+		neighbors.broadcast("cmd", 21)
+	} else if(flight.rc_cmd==16) {
+		flight.rc_cmd=0
+		statef = idle
+		#uav_goto()
+		add_user_rb(10,rc_goto.latitude,rc_goto.longitude)
+	} else if(flight.rc_cmd==400) {
+		flight.rc_cmd=0
+		uav_arm()
+		neighbors.broadcast("cmd", 400)
+	} else if (flight.rc_cmd==401){
+		flight.rc_cmd=0
+		uav_disarm()
+		neighbors.broadcast("cmd", 401)
+	}
+neighbors.listen("cmd",
+   function(vid, value, rid) {
+      print("Got (", vid, ",", value, ") from robot #", rid)
+	if(value==22 and CURSTATE=="IDLE") {
+		statef=takeoff
+	} else if(value==21) {
+		statef=land
+	} else if(value==400 and CURSTATE=="IDLE") {
+		uav_arm()
+	} else if(value==401 and CURSTATE=="IDLE"){
+		uav_disarm()
+	}
+   }
+
+)
+	statef()
+	log("Current state: ", CURSTATE)
+	log("Swarm size: ",ROBOTS)
+	
+	# Read a value from the structure
+		#		log(users)      
+				#users_print(users.dataG)
+				if(size(users.dataG)>0)
+					vt.put("p", users.dataG)
+				
+        # Get the number of keys in the structure
+        #log("The vstig has ", vt.size(), " elements")
+				users_save(vt.get("p"))
+				#table_print(users.dataL)
+
+  # Count the number of steps
+  iteration = iteration + 1   
+}
+
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+# Execute at exit
+function destroy() {
+}

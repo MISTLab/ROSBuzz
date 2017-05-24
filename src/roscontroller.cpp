@@ -683,7 +683,7 @@ namespace rosbzz_node{
                 {
                         for(int it=0; it<n; ++it)
                         {
-				buzz_utility::add_user(data.pos_neigh[it].position_covariance_type,data.pos_neigh[it].latitude, data.pos_neigh[it].longitude, data.pos_neigh[it].altitude);
+							buzz_utility::add_user(data.pos_neigh[it].position_covariance_type,data.pos_neigh[it].latitude, data.pos_neigh[it].longitude, data.pos_neigh[it].altitude);
                         }
 
                 }
@@ -715,8 +715,8 @@ namespace rosbzz_node{
 		moveMsg.header.stamp = ros::Time::now();
 		moveMsg.header.seq = setpoint_counter++;
 		moveMsg.header.frame_id = 1;
-		float ned_x, ned_y;
-		gps_ned_home(ned_x, ned_y);
+//		float ned_x, ned_y;
+//		gps_ned_home(ned_x, ned_y);
        //         ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0], home[1]);
        //         ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id, local_pos[0], local_pos[1]);
                     
@@ -827,7 +827,7 @@ namespace rosbzz_node{
 			gps_rb(nei_pos, cvt_neighbours_pos_payload);
 			/*Extract robot id of the neighbour*/
 	 		uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t)*(message_obt+3));
-			//cout << "Rel Pos of " << (int)out[1] << ": " << cvt_neighbours_pos_payload[0] << ", "<< cvt_neighbours_pos_payload[1] << ", "<< cvt_neighbours_pos_payload[2] << endl;
+			ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
 			/*pass neighbour position to local maintaner*/
 			buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],cvt_neighbours_pos_payload[1],cvt_neighbours_pos_payload[2]);
 			/*Put RID and pos*/

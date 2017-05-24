@@ -16,11 +16,12 @@ CURSTATE = "TURNEDOFF"
  
 # Lennard-Jones parameters
 TARGET     = 12.0
-EPSILON    = 0.5
+EPSILON    = 14.0
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {
   return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+  #return -(4 * epsilon) * ((target / dist)^12 - (target / dist)^6)
 }
  
 # Neighbor data to LJ interaction vector
@@ -32,25 +33,51 @@ function lj_vector(rid, data) {
 function lj_sum(rid, data, accum) {
   return math.vec2.add(data, accum)
 }
+
+function user_attract(t) {
+	fus = math.vec2.new(0.0, 0.0)
+	if(size(t)>0) {
+		foreach(t, function(u, tab) {
+				#log("id: ",u," Range ", tab.r, "Bearing ", tab.b)
+				fus = math.vec2.add(fus, math.vec2.newp(lj_magnitude(tab.r, TARGET / 2.0, EPSILON * 2.0), tab.b))
+			})
+		math.vec2.scale(fus, 1.0 / size(t))
+	}
+	#print("User attract:", fus.x," ", fus.y, " [", size(t), "]")
+	return fus
+}
  
 # Calculates and actuates the flocking interaction
 function hexagon() {
   statef=hexagon
-  CURSTATE = "HEXAGON"
   # Calculate accumulator
   var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
-    math.vec2.scale(accum, 1.0 / neighbors.count())
+    accum = math.vec2.scale(accum, 1.0 / neighbors.count())
+
+  accum = math.vec2.add(accum, user_attract(users.dataL))
+  accum = math.vec2.scale(accum, 1.0 / 2.0)
+
+  if(math.vec2.length(accum) > 0.75) {
+  	  accum = math.vec2.scale(accum, 0.75 / math.vec2.length(accum))
+  }
+
   # Move according to vector
-  #print("Robot ", id, "must push ",accum.length, "; ", accum.angle)
-  uav_moveto(accum.x,accum.y)
+  print("Robot ", id, "must push ", math.vec2.length(accum) )#, "; ", math.vec2.angle(accum))
+  uav_moveto(accum.x, accum.y)
+  CURSTATE = "LENNARDJONES"
 
 #  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
 #  	timeW =0
 #  	statef=land
-#  	} else {
+#  	} else if(timeW>=WAIT_TIMEOUT/2) {
+#		  CURSTATE ="GOEAST"
 #  	timeW = timeW+1
-#  	uav_moveto(0.0,0.0)
+#  	uav_moveto(0.0,5.0)
+#  	} else {
+#		  CURSTATE ="GONORTH"
+#  	timeW = timeW+1
+#  	uav_moveto(5.0,0.0)
 #  	}
 }
  
@@ -89,9 +116,10 @@ WAIT_TIMEOUT = 200
 timeW=0
 function barrier_wait(threshold, transf) {
   barrier.get(id)
+  barrier.put(id, 1)
   CURSTATE = "BARRIERWAIT"
   if(barrier.size() >= threshold) {
-    barrier = nil
+    #barrier = nil
     transf()
   } else if(timeW>=WAIT_TIMEOUT) {
     barrier = nil
@@ -112,8 +140,8 @@ CURSTATE = "IDLE"
 function takeoff() {
 	CURSTATE = "TAKEOFF"
 	statef=takeoff
-	log("TakeOff: ", flight.status)
-	log("Relative position: ", position.altitude)
+	#log("TakeOff: ", flight.status)
+	#log("Relative position: ", position.altitude)
 	
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 		barrier_set(ROBOTS,hexagon)
@@ -129,15 +157,17 @@ function takeoff() {
 function land() {
 	CURSTATE = "LAND"
 	statef=land
-	log("Land: ", flight.status)
+	#log("Land: ", flight.status)
 	if(flight.status == 2 or flight.status == 3){
 		neighbors.broadcast("cmd", 21)
 		uav_land()
 	}
 	else {
+		barrier_set(ROBOTS,idle)
+		barrier_ready()
 		timeW=0
-		barrier = nil
-		statef=idle
+		#barrier = nil
+		#statef=idle
 	}
 }
 
@@ -194,7 +224,8 @@ function step() {
 	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
 		statef = idle
-		uav_goto()
+		#uav_goto()
+		add_user_rb(10,rc_goto.latitude,rc_goto.longitude)
 	} else if(flight.rc_cmd==400) {
 		flight.rc_cmd=0
 		uav_arm()

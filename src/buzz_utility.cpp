@@ -41,8 +41,8 @@ namespace buzz_utility{
 	void update_users(){
 		if(users_map.size()>0) {
 			/* Reset users information */
-//			buzzusers_reset();
-			create_stig_tables();
+			buzzusers_reset();
+//			create_stig_tables();
 			/* Get user id and update user information */
 			map< int, Pos_struct >::iterator it;
 			for (it=users_map.begin(); it!=users_map.end(); ++it){
@@ -68,6 +68,8 @@ namespace buzz_utility{
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "put", 1));
         buzzvm_tget(VM);*/
         buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
+		buzzvm_gload(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
 		buzzvm_push(VM, t);
 		buzzvm_gstore(VM);
         //buzzvm_pushi(VM, 2);
