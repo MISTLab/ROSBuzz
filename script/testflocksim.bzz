@@ -39,7 +39,7 @@ function user_attract(t) {
 	if(size(t)>0) {
 		foreach(t, function(u, tab) {
 				#log("id: ",u," Range ", tab.r, "Bearing ", tab.b)
-				fus = math.vec2.add(fus, math.vec2.newp(lj_magnitude(tab.r, TARGET / 2.0, EPSILON * 2.0), tab.b))
+				fus = math.vec2.add(fus, math.vec2.newp(lj_magnitude(tab.r, 3 * TARGET / 4.0, EPSILON * 2.0), tab.b))
 			})
 		math.vec2.scale(fus, 1.0 / size(t))
 	}
@@ -58,8 +58,8 @@ function hexagon() {
   accum = math.vec2.add(accum, user_attract(users.dataL))
   accum = math.vec2.scale(accum, 1.0 / 2.0)
 
-  if(math.vec2.length(accum) > 0.75) {
-  	  accum = math.vec2.scale(accum, 0.75 / math.vec2.length(accum))
+  if(math.vec2.length(accum) > 1.0) {
+  	  accum = math.vec2.scale(accum, 1.0 / math.vec2.length(accum))
   }
 
   # Move according to vector
