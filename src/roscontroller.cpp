@@ -45,6 +45,9 @@ namespace rosbzz_node{
 		} else {
 			robot_id= strtol(robot_name.c_str() + 5, NULL, 10);
 		}
+		std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+		path+="Update.log";
+		log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
 	}
 
 	/*---------------------
@@ -57,6 +60,7 @@ namespace rosbzz_node{
 		buzz_utility::buzz_script_destroy();
  		/* Stop the robot */
    		uav_done();
+		log.close();
 	}
 
 	void roscontroller::GetRobotId()
@@ -106,19 +110,29 @@ namespace rosbzz_node{
 				if(get_update_status()){
 					set_read_update_status();
 					multi_msg=true;
+					log<<cur_pos.latitude<<","<<cur_pos.longitude<<","<<cur_pos.altitude<<","; 
+					collect_data(log);
+					map< int, buzz_utility::Pos_struct >::iterator it = neighbours_pos_map.begin();
+					log<<","<<neighbours_pos_map.size();
+					for(;it != neighbours_pos_map.end();++it){
+						log<<","<<(double)it->second.x<<","<<(double)it->second.y<<","<<(double)it->second.z;	
+					}
+					log<<std::endl;
 				}
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
 				//no_of_robots=get_number_of_robots();
 				get_number_of_robots();
+				buzz_utility::set_robot_var(no_of_robots);
 				//if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
 				//buzz_utility::set_robot_var(no_of_robots);
 				/*Set no of robots for updates TODO only when not updating*/
-				if(multi_msg)
+				//if(multi_msg)
 				updates_set_robots(no_of_robots);
+				ROS_INFO("ROBOTS: %i , acutal : %i",(int)no_of_robots,(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1); 
 	    			/*run once*/
 	    			ros::spinOnce();
 				/*loop rate of ros*/
-				 ros::Rate loop_rate(BUZZRATE);
+				ros::Rate loop_rate(BUZZRATE);
 				 loop_rate.sleep();
 				 if(fcu_timeout<=0)
 					buzzuav_closures::rc_call(mavros_msgs::CommandCode::NAV_LAND);
@@ -911,21 +925,21 @@ namespace rosbzz_node{
 	
 	}*/
 	void roscontroller::get_number_of_robots(){
-		
+		int cur_robots=(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1;
 		if(no_of_robots==0){
-			no_of_robots=neighbours_pos_map.size()+1;
+			no_of_robots=cur_robots;
 						
 		}
 		else{
-			if(no_of_robots!=neighbours_pos_map.size()+1 && no_cnt==0){
+			if(no_of_robots!=cur_robots && no_cnt==0){
 				no_cnt++;
-				old_val=neighbours_pos_map.size()+1;
+				old_val=cur_robots;
 			
 			}			
-			else if(no_cnt!=0 && old_val==neighbours_pos_map.size()+1){
+			else if(no_cnt!=0 && old_val==cur_robots){
 				no_cnt++;
-				if(no_cnt>=4){
-					no_of_robots=neighbours_pos_map.size()+1;
+				if(no_cnt>=150 || cur_robots > no_of_robots){
+					no_of_robots=cur_robots;
 					no_cnt=0;
 				}
 			}

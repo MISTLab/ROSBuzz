@@ -6,7 +6,7 @@
 #include <buzz/buzzdict.h>
 #include <buzz/buzzdarray.h>
 #include <buzz/buzzvstig.h>
-
+#include <fstream>
 #define delete_p(p) do { free(p); p = NULL; } while(0)
 
 
@@ -133,4 +133,5 @@ int compile_bzz();
 
 void updates_set_robots(int robots);
 
+void collect_data(std::ofstream &logger);
 #endif
