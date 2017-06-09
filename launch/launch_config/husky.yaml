@@ -1,0 +1,17 @@
+topics:
+  gps      :   global_position
+  localpos      :   local_position
+  battery  :   power_status
+  status   :   flight_status
+  fcclient :   dji_mavcmd
+  setpoint :   setpoint_position/local
+  armclient:   dji_mavarm
+  modeclient:  dji_mavmode
+  altitude: rel_alt
+  stream:  set_stream_rate
+
+type:
+  gps  :  sensor_msgs/NavSatFix
+  battery :   mavros_msgs/BatteryStatus
+  status  :   mavros_msgs/ExtendedState
+  altitude: std_msgs/Float64

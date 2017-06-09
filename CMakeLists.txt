@@ -46,6 +46,8 @@ include_directories(
   include ${rosbuzz_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
+# set the path to the library folder
+link_directories(/usr/local/lib)
 
 # Executables 
 add_executable(rosbuzz_node src/rosbuzz.cpp

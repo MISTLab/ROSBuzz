@@ -128,7 +128,7 @@ namespace rosbzz_node{
 				/*Set no of robots for updates TODO only when not updating*/
 				//if(multi_msg)
 				updates_set_robots(no_of_robots);
-				ROS_INFO("ROBOTS: %i , acutal : %i",(int)no_of_robots,(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1); 
+				//ROS_INFO("ROBOTS: %i , acutal : %i",(int)no_of_robots,(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1); 
 	    			/*run once*/
 	    			ros::spinOnce();
 				/*loop rate of ros*/
