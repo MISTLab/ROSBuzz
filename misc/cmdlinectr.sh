@@ -16,6 +16,7 @@ function record {
 }
 function clean {
 	sudo rm /var/log/upstart/robot*
+	sudo rm /var/log/upstart/dji*
 	sudo rm /var/log/upstart/x3s*
 }
 function startrobot {
@@ -26,5 +27,5 @@ function stoprobot {
 }
 function updaterobot {
 #	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzynocam.launch
-	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzy.launch
+	rosrun robot_upstart install --logdir ~/ROS_WS/log/ dji_sdk_mistlab/launch/m100buzzy.launch
 }
