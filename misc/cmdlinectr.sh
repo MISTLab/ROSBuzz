@@ -5,8 +5,14 @@ function takeoff {
 function land {
 	rosservice call /buzzcmd 0 21 0 0 0 0 0 0 0 0
 }
+function arm {
+	rosservice call /buzzcmd 0 400 0 1 0 0 0 0 0 0
+}
+function disarm {
+	rosservice call /buzzcmd 0 400 0 0 0 0 0 0 0 0
+}
 function record {
-	rosbag record /flight_status /global_position /dji_sdk/local_position /neighbours_pos /power_status /guidance/obstacle_distance /guidance/front_depth_image/compressedDepth /guidance/right_depth_image/compressedDepth /guidance/left_depth_image/compressedDepth /guidance/bottom_depth_image/compressedDepth /guidance/back_depth_image/compressedDepth
+	rosbag record /flight_status /global_position /users_pos /dji_sdk/local_position /neighbours_pos /power_status /guidance/obstacle_distance /guidance/front/depth/image_rect/compressedDepth /guidance/right/depth/image_rect/compressedDepth /guidance/front/depth/points /guidance/right/depth/points /guidance/front/right/image_rect/compressed /guidance/front/left/image_rect/compressed /guidance/right/right/image_rect/compressed /guidance/right/left/image_rect/compressed /guidance/front/left/camera_info /guidance/front/right/camera_info /guidance/right/right/camera_info /guidance/right/left/camera_info
 }
 function clean {
 	sudo rm /var/log/upstart/robot*
@@ -17,4 +23,8 @@ function startrobot {
 }
 function stoprobot {
 	sudo service robot stop
+}
+function updaterobot {
+#	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzynocam.launch
+	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzy.launch
 }
