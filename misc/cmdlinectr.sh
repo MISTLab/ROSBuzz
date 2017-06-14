@@ -20,10 +20,10 @@ function clean {
 	sudo rm /var/log/upstart/x3s*
 }
 function startrobot {
-	sudo service robot start
+	sudo service dji start
 }
 function stoprobot {
-	sudo service robot stop
+	sudo service dji stop
 }
 function updaterobot {
 #	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzynocam.launch
