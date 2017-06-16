@@ -306,6 +306,9 @@ namespace buzz_utility{
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "log", 1));
         buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
         buzzvm_gstore(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "debug", 1));
+		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
+		buzzvm_gstore(VM);
         buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_moveto", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_moveto));
    		buzzvm_gstore(VM);
@@ -345,6 +348,9 @@ namespace buzz_utility{
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "log", 1));
         buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
         buzzvm_gstore(VM);
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "debug", 1));
+		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
+		buzzvm_gstore(VM);
         buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_moveto", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
@@ -446,7 +452,7 @@ int create_stig_tables() {
 	/****************************************/
 	int buzz_script_set(const char* bo_filename,
 	                    const char* bdbg_filename, int robot_id) {
-	   	ROS_INFO(" Robot ID: " , robot_id);
+	   	ROS_INFO(" Robot ID: %i" , robot_id);
 	   	/* Reset the Buzz VM */
 	   	if(VM) buzzvm_destroy(&VM);
 		Robot_id = robot_id;
@@ -493,7 +499,7 @@ int create_stig_tables() {
       		ROS_ERROR("[%i] Error registering hooks", Robot_id);
       		return 0;
    	}
-   	/* Create vstig tables */
+   	/* Create vstig tables 
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
@@ -501,7 +507,7 @@ int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << VM->errormsg << endl;
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
-   	}
+   	}*/
         
    	/* Save bytecode file name */
    	BO_FNAME = strdup(bo_filename);
@@ -555,7 +561,7 @@ int create_stig_tables() {
       		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
         	return 0;
    	}
-   	/* Create vstig tables */
+   	/* Create vstig tables 
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
@@ -563,7 +569,7 @@ int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << VM->errormsg << endl;
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
-   	}
+   	}*/
    	
    	// Execute the global part of the script
    	if(buzzvm_execute_script(VM)!= BUZZVM_STATE_DONE){
@@ -611,7 +617,7 @@ int create_stig_tables() {
       		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
         	return 0;
    	}
-   	/* Create vstig tables */
+   	/* Create vstig tables 
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
@@ -619,7 +625,7 @@ int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << VM->errormsg << endl;
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
-   	}
+   	}*/
    	// Execute the global part of the script
    	if(buzzvm_execute_script(VM)!= BUZZVM_STATE_DONE){
 		ROS_ERROR("Error executing global part, VM state : %i",VM->state);
@@ -687,7 +693,7 @@ int create_stig_tables() {
 	   	buzzuav_closures::buzzuav_update_prox(VM);
 	   	buzzuav_closures::buzzuav_update_currentpos(VM);
 	   	buzzuav_closures::update_neighbors(VM);
-	   	update_users();
+	   	//update_users();
 	   	buzzuav_closures::buzzuav_update_flight_status(VM);
 	}
 
@@ -698,7 +704,7 @@ int create_stig_tables() {
 		update_sensors();
 		/* Call Buzz step() function */
 		if(buzzvm_function_call(VM, "step", 0) != BUZZVM_STATE_READY) {
-		fprintf(stderr, "%s: execution terminated abnormally: %s\n\n",
+		ROS_ERROR("%s: execution terminated abnormally: %s",
 		      BO_FNAME,
 		      buzz_error_info());
 		buzzvm_dump(VM);
@@ -722,7 +728,7 @@ int create_stig_tables() {
 	void buzz_script_destroy() {
 	   if(VM) {
 		  if(VM->state != BUZZVM_STATE_READY) {
-			 fprintf(stderr, "%s: execution terminated abnormally: %s\n\n",
+			 ROS_ERROR("%s: execution terminated abnormally: %s",
 					 BO_FNAME,
 					 buzz_error_info());
 			 buzzvm_dump(VM);
@@ -732,7 +738,7 @@ int create_stig_tables() {
 		  free(BO_FNAME);
 		  buzzdebug_destroy(&DBG_INFO);
 	   }
-	   fprintf(stdout, "Script execution stopped.\n");
+	   ROS_INFO("Script execution stopped.");
 	}
 
 
@@ -754,7 +760,7 @@ int create_stig_tables() {
 		buzzuav_closures::buzzuav_update_prox(VM);
 		buzzuav_closures::buzzuav_update_currentpos(VM);
 	   	buzzuav_closures::update_neighbors(VM);
-	   	update_users();
+	   	//update_users();
 		buzzuav_closures::buzzuav_update_flight_status(VM);
 		//set_robot_var(buzzdict_size(VM->swarmmembers)+1);
 

@@ -257,13 +257,13 @@ neighbors.listen("cmd",
 	# Read a value from the structure
 		#		log(users)      
 				#users_print(users.dataG)
-				if(size(users.dataG)>0)
-					vt.put("p", users.dataG)
+	#			if(size(users.dataG)>0)
+	#				vt.put("p", users.dataG)
 				
         # Get the number of keys in the structure
         #log("The vstig has ", vt.size(), " elements")
-				users_save(vt.get("p"))
-				table_print(users.dataL)
+	#			users_save(vt.get("p"))
+	#			table_print(users.dataL)
 }
  
 # Executed once when the robot (or the simulator) is reset.

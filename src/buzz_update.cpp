@@ -29,7 +29,7 @@ static int updated=0;
 
 /*Initialize updater*/
 void init_update_monitor(const char* bo_filename, const char* stand_by_script){
-	ROS_INFO("intiialized file monitor.\n");
+	ROS_INFO("Initializing file monitor...");
 	fd=inotify_init1(IN_NONBLOCK);
 	if ( fd < 0 ) {
 		perror( "inotify_init error" );

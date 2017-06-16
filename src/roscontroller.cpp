@@ -86,12 +86,13 @@ namespace rosbzz_node{
 
 		/* Set the Buzz bytecode */
 		if(buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),robot_id)) {
-			fprintf(stdout, "Bytecode file found and set\n");
+			ROS_INFO("[%i] Bytecode file found and set", robot_id);
 			std::string standby_bo = Compile_bzz(stand_by) + ".bo";
 			init_update_monitor(bcfname.c_str(),standby_bo.c_str());
                         ///////////////////////////////////////////////////////
                         // MAIN LOOP
                         //////////////////////////////////////////////////////
+			ROS_INFO("[%i] STARTING MAIN LOOP!", robot_id);
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
       			/*Update neighbors position inside Buzz*/
