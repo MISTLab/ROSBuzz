@@ -17,9 +17,9 @@ namespace buzz_utility{
 	static char*        BO_FNAME        = 0;
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
-	static uint8_t      MSG_SIZE        = 250;   // Only 100 bytes of Buzz messages every step
-	static int          MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
-	static int 	    Robot_id        = 0;
+	static uint32_t     MSG_SIZE        = 600;//250;   // Only 100 bytes of Buzz messages every step
+	static uint32_t     MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
+	static uint8_t 	    Robot_id        = 0;
 	static std::vector<uint8_t*> IN_MSG;
 	std::map< int,  Pos_struct> users_map;
 	
@@ -214,10 +214,10 @@ namespace buzz_utility{
 		/* Process messages VM call*/
 		buzzvm_process_inmsgs(VM);
 	}
+
 	/***************************************************/
 	/*Obtains messages from buzz out message Queue*/
 	/***************************************************/
-
    	uint64_t* obt_out_msg(){
 		/* Process out messages */
 		buzzvm_process_outmsgs(VM); 
@@ -234,12 +234,11 @@ namespace buzz_utility{
 	      			if(buzzoutmsg_queue_isempty(VM)) break;
 	      			/* Get first message */
 	      			buzzmsg_payload_t m = buzzoutmsg_queue_first(VM);
-	      			/* Make sure the next message makes the data buffer with buzz messages to be less than 100 Bytes */
-	      			if(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)
-					>
-			 		MSG_SIZE) {
-			 		buzzmsg_payload_destroy(&m);
-			 		break;
+	      			/* Make sure the next message makes the data buffer with buzz messages to be less than MAX SIZE Bytes */
+					//ROS_INFO("read size : %i", (int)(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)));
+	      			if((uint32_t)(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)) > MSG_SIZE) {
+			 			buzzmsg_payload_destroy(&m);
+			 			break;
 	      			}
 
       			/* Add message length to data buffer */
@@ -248,7 +247,7 @@ namespace buzz_utility{
 
       			/* Add payload to data buffer */
       			memcpy(buff_send + tot, m->data, buzzmsg_payload_size(m));
-			tot += buzzmsg_payload_size(m);
+				tot += buzzmsg_payload_size(m);
 
       			/* Get rid of message */
       			buzzoutmsg_queue_next(VM);

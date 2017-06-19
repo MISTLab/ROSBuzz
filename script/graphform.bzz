@@ -12,9 +12,9 @@ include "uavstates.bzz"
 #parameters for set_wheels
 m_sWheelTurningParams={.MaxSpeed=1.0}
 
-ROBOT_RADIUS=1.0
+ROBOT_RADIUS=0.5
 ROBOT_DIAMETER=2.0*ROBOT_RADIUS
-ROBOT_SAFETYDIST=3.0*ROBOT_DIAMETER
+ROBOT_SAFETYDIST=2.0*ROBOT_DIAMETER
 
 #
 # Global variables
@@ -774,7 +774,7 @@ function init() {
 	#
 	m_unResponseTimeThreshold=10
 	m_unLabelSearchWaitTime=10
-	m_fTargetDistanceTolerance=15
+	m_fTargetDistanceTolerance=1.5
 	m_unJoiningLostPeriod=100
 
 	#
@@ -782,8 +782,9 @@ function init() {
 	#
 	s = swarm.create(1)
 	s.join()
+	#ROBOT_NUM=5
 	Reset();
-	statef=idle
+	statef=turnedoff
 }
 
 #

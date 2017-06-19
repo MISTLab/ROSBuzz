@@ -6,6 +6,11 @@
 TARGET_ALTITUDE = 5.0
 UAVSTATE = "TURNEDOFF"
 
+function turnedoff() {
+    statef=turnedoff
+    UAVSTATE = "TURNEDOFF"
+}
+
 function idle() {
     statef=idle
     UAVSTATE = "IDLE"
