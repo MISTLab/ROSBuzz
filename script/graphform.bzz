@@ -4,8 +4,8 @@
 include "string.bzz"
 include "vec2.bzz"
 include "update.bzz"
-include "barrier.bzz"	#don't use a stigmergy id=11 with this header.
-include "uavstates.bzz"
+include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
+include "uavstates.bzz"	# require an 'action' function to be defined here.
 
 #
 #Constant parameters, need to be adjust
@@ -275,7 +275,7 @@ function Get_DisAndAzi(id){
 neighbors.foreach(
   function(rid, data) {
 	if(rid==id){
-    m_receivedMessage.Range=data.distance
+    m_receivedMessage.Range=data.distance*100.0
     m_receivedMessage.Bearing=data.azimuth
     }
     })
@@ -370,7 +370,7 @@ v_tag.put(m_nLabel, 1)
 
 m_navigation.x=0.0
 m_navigation.y=0.0
-uav_moveto(m_navigation.x,m_navigation.y)
+uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 }
 
 #
@@ -384,7 +384,7 @@ m_vecNodes[m_nLabel].State="ASSIGNED"
 
 m_navigation.x=0.0
 m_navigation.y=0.0
-uav_moveto(m_navigation.x,m_navigation.y)
+uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 }
 
 #
@@ -444,7 +444,7 @@ function DoFree() {
 		tempvec_P=math.vec2.scale(tempvec_P,size(setJoinedIndexes))
 		tempvec_N=math.vec2.scale(tempvec_N,size(setJoinedIndexes))
 		m_navigation=math.vec2.add(tempvec_P,tempvec_N)
-		uav_moveto(m_navigation.x,m_navigation.y)
+		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 	}else{ #no joined robots in sight
 		i=0
 		var tempvec={.x=0.0,.y=0.0}
@@ -454,28 +454,10 @@ function DoFree() {
 			i=i+1
 		}
 		m_navigation=math.vec2.scale(tempvec,1.0/i)
-		uav_moveto(m_navigation.x,m_navigation.y)
+		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 	}
 
-	#collision avoidence
-	i=0
-	var turnAngle=0.0
-	var needHide=0
-	while(i<m_neighbourCunt){
-		#if there is a robot within tolerance before, turn 90 degree to hide
-		if(m_MessageRange[i]<ROBOT_SAFETYDIST){
-			turnAngle=m_MessageBearing[i]+math.pi/2.0
-			needHide=1
-		}
-		i=i+1
-	}
 
-	if(needHide==1){
-		m_navigation.x=0.0
-		m_navigation.y=0.0
-		m_navigation=math.vec2.newp(m_sWheelTurningParams.MaxSpeed,turnAngle)
-		uav_moveto(m_navigation.x,m_navigation.y)
-	}
 
 	#jump the first step
 	if(step_cunt<=1){
@@ -577,37 +559,21 @@ function DoJoining(){
 		m_bias=m_cMeToPred.Bearing-S2PGlobalBearing
 		S2Target_bearing=S2Target_bearing+m_bias
 		m_navigation=math.vec2.newp(S2Target_dis,S2Target_bearing)
-		uav_moveto(m_navigation.x,m_navigation.y)
+		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 
+		
 
 		#test if is already in desired position
 		if(math.abs(S2Target.x)<m_fTargetDistanceTolerance and math.abs(S2Target.y)<m_fTargetDistanceTolerance){
-			TransitionToJoined()
+		log(S2Target_dis,S2Target_bearing)	
+			#TransitionToJoined()
 			return
 		}
 	} else{ #miss pred, there is a change the another robot block the sight, keep moving as before for sometime
 		m_unWaitCount=m_unWaitCount-1
 	}
 
-	#avoide collision
-	i=0
-	var turnAngle=0.0
-	var needHide=0
-	while(i<m_neighbourCunt){
-		#if there is a robot within tolerance before, turn 90 degree to hide
-		if(m_MessageRange[i]<ROBOT_SAFETYDIST){
-			turnAngle=m_MessageBearing[i]+math.pi/2.0
-			needHide=1
-		}
-		i=i+1
-	}
 
-	if(needHide==1){
-		m_navigation.x=0.0
-		m_navigation.y=0.0
-		m_navigation=math.vec2.newp(m_sWheelTurningParams.MaxSpeed,turnAngle)
-		uav_moveto(m_navigation.x,m_navigation.y)
-	}
 	if(m_unWaitCount==0){
 		TransitionToFree()
 		return
@@ -689,14 +655,14 @@ function DoJoined(){
 
 	m_navigation.x=0.0
 	m_navigation.y=0.0
-	uav_moveto(m_navigation.x,m_navigation.y)
+	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 
 
 	#check if should to transists to lock
 
 
 	if(v_tag.size()==ROBOTS){
-		TransitionToLock()
+		#TransitionToLock()
 	}
 }
 
@@ -762,7 +728,11 @@ if(m_nLabel>1){
 	log(";",m_nLabel,";",mypred1.range-m_vecNodes_fixed[m_nLabel].d1)
 }
 #move
-uav_moveto(m_navigation.x,m_navigation.y)
+uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+}
+
+function action(){
+  statef=action
 }
 
 #
@@ -774,24 +744,22 @@ function init() {
 	#
 	m_unResponseTimeThreshold=10
 	m_unLabelSearchWaitTime=10
-	m_fTargetDistanceTolerance=1.5
+	m_fTargetDistanceTolerance=150
 	m_unJoiningLostPeriod=100
 
 	#
 	# Join Swarm
 	#
-	s = swarm.create(1)
-	s.join()
-	#ROBOT_NUM=5
+	uav_initswarm()
 	Reset();
-	statef=turnedoff
 }
 
 #
 # Executed every step
 #
 function step(){
-	uavcmd()
+	uav_rccmd()
+	uav_neicmd()
 	#update the graph
 	UpdateNodeInfo()
 	#reset message package to be sent

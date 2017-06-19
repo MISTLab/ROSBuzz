@@ -3,8 +3,6 @@ include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
 include "vstigenv.bzz"
-
-TARGET_ALTITUDE = 10.0
  
 # Lennard-Jones parameters
 TARGET     = 12.0
@@ -47,8 +45,8 @@ function action() {
   if(neighbors.count() > 0)
     accum = math.vec2.scale(accum, 1.0 / neighbors.count())
 
-  accum = math.vec2.add(accum, user_attract(users.dataL))
-  accum = math.vec2.scale(accum, 1.0 / 2.0)
+  #accum = math.vec2.add(accum, user_attract(users.dataL))
+  #accum = math.vec2.scale(accum, 1.0 / 2.0)
 
   if(math.vec2.length(accum) > 1.0) {
   	  accum = math.vec2.scale(accum, 1.0 / math.vec2.length(accum))
@@ -73,7 +71,6 @@ function action() {
 #  	}
 }
 
-
 ########################################
 #
 # MAIN FUNCTIONS
@@ -83,10 +80,6 @@ function action() {
 # Executed once at init time.
 function init() {
 	uav_initswarm()
-
-	vt = stigmergy.create(5)
-	t = {}
-	vt.put("p",t)
 }
 
 # Executed at each time step.
@@ -97,17 +90,7 @@ function step() {
 	statef()
 	log("Current state: ", UAVSTATE)
 	log("Swarm size: ",ROBOTS)
-	
-	# Read a value from the structure
-		#		log(users)      
-				#users_print(users.dataG)
-				if(size(users.dataG)>0)
-					vt.put("p", users.dataG)
-				
-        # Get the number of keys in the structure
-        #log("The vstig has ", vt.size(), " elements")
-				users_save(vt.get("p"))
-				table_print(users.dataL)
+
 }
  
 # Executed once when the robot (or the simulator) is reset.

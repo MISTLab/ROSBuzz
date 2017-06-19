@@ -1,0 +1,33 @@
+function checkusers() {
+    	# Read a value from the structure
+        if(size(users)>0)
+            log("Got a user!")
+
+		#		log(users)      
+				#users_print(users.dataG)
+	#			if(size(users.dataG)>0)
+	#				vt.put("p", users.dataG)
+				
+        # Get the number of keys in the structure
+        #log("The vstig has ", vt.size(), " elements")
+	#			users_save(vt.get("p"))
+	#			table_print(users.dataL)
+}
+
+function users_save(t) {
+	if(size(t)>0) {
+		foreach(t, function(id, tab) {
+				#log("id: ",id," Latitude ", tab.la, "Longitude ", tab.lo)
+				add_user_rb(id,tab.la,tab.lo)
+			})
+	}
+}
+
+# printing the contents of a table: a custom function
+function table_print(t) {
+  if(size(t)>0) {
+		foreach(t, function(u, tab) {
+				log("id: ",u," Range ", tab.r, "Bearing ", tab.b)
+			})
+	}
+}

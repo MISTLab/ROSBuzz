@@ -6,6 +6,13 @@
 TARGET_ALTITUDE = 5.0
 UAVSTATE = "TURNEDOFF"
 
+function uav_initswarm(){
+	s = swarm.create(1)
+	s.join()
+	statef=turnedoff
+	UAVSTATE = "TURNEDOFF"
+}
+
 function turnedoff() {
     statef=turnedoff
     UAVSTATE = "TURNEDOFF"
@@ -23,7 +30,7 @@ function takeoff() {
 	#log("Relative position: ", position.altitude)
 	
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-		barrier_set(ROBOTS,idle,land)
+		barrier_set(ROBOTS,action,land)
 		barrier_ready()
 		#statef=hexagon
 	}
@@ -51,7 +58,7 @@ function land() {
 	}
 }
 
-function uavcmd() {
+function uav_rccmd() {
     if(flight.rc_cmd==22) {
 		log("cmd 22")
 		flight.rc_cmd=0
@@ -79,7 +86,9 @@ function uavcmd() {
 		uav_disarm()
 		neighbors.broadcast("cmd", 401)
 	}
+}
 
+function uav_neicmd() {
     neighbors.listen("cmd",
     function(vid, value, rid) {
         print("Got (", vid, ",", value, ") from robot #", rid)
