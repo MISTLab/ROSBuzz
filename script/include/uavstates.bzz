@@ -1,0 +1,105 @@
+########################################
+#
+# FLIGHT-RELATED FUNCTIONS
+#
+########################################
+TARGET_ALTITUDE = 5.0
+UAVSTATE = "TURNEDOFF"
+
+function uav_initswarm(){
+	s = swarm.create(1)
+	s.join()
+	statef=turnedoff
+	UAVSTATE = "TURNEDOFF"
+}
+
+function turnedoff() {
+    statef=turnedoff
+    UAVSTATE = "TURNEDOFF"
+}
+
+function idle() {
+    statef=idle
+    UAVSTATE = "IDLE"
+}
+
+function takeoff() {
+	UAVSTATE = "TAKEOFF"
+	statef=takeoff
+	#log("TakeOff: ", flight.status)
+	#log("Relative position: ", position.altitude)
+	
+	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+		barrier_set(ROBOTS,action,land)
+		barrier_ready()
+		#statef=hexagon
+	}
+	else {
+		log("Altitude: ", TARGET_ALTITUDE)
+		neighbors.broadcast("cmd", 22)
+		uav_takeoff(TARGET_ALTITUDE)
+	}
+}
+
+function land() {
+	UAVSTATE = "LAND"
+	statef=land
+	#log("Land: ", flight.status)
+	if(flight.status == 2 or flight.status == 3){
+		neighbors.broadcast("cmd", 21)
+		uav_land()
+	}
+	else {
+		barrier_set(ROBOTS,idle,land)
+		barrier_ready()
+		timeW=0
+		#barrier = nil
+		#statef=idle
+	}
+}
+
+function uav_rccmd() {
+    if(flight.rc_cmd==22) {
+		log("cmd 22")
+		flight.rc_cmd=0
+		statef = takeoff
+		UAVSTATE = "TAKEOFF"		
+		neighbors.broadcast("cmd", 22)
+	} else if(flight.rc_cmd==21) {
+		log("cmd 21")
+		log("To land")
+		flight.rc_cmd=0
+		statef = land
+		UAVSTATE = "LAND"
+		neighbors.broadcast("cmd", 21)
+	} else if(flight.rc_cmd==16) {
+		flight.rc_cmd=0
+		statef = idle
+		#uav_goto()
+		add_user_rb(10,rc_goto.latitude,rc_goto.longitude)
+	} else if(flight.rc_cmd==400) {
+		flight.rc_cmd=0
+		uav_arm()
+		neighbors.broadcast("cmd", 400)
+	} else if (flight.rc_cmd==401){
+		flight.rc_cmd=0
+		uav_disarm()
+		neighbors.broadcast("cmd", 401)
+	}
+}
+
+function uav_neicmd() {
+    neighbors.listen("cmd",
+    function(vid, value, rid) {
+        print("Got (", vid, ",", value, ") from robot #", rid)
+        if(value==22 and UAVSTATE!="TAKEOFF") {
+            statef=takeoff
+        } else if(value==21) {
+            statef=land
+        } else if(value==400 and UAVSTATE=="IDLE") {
+            uav_arm()
+        } else if(value==401 and UAVSTATE=="IDLE"){
+            uav_disarm()
+        }
+    })
+}

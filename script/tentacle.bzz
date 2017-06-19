@@ -1,11 +1,7 @@
 include "vec2.bzz"
-updated="update_ack"
-update_no=0
-function updated_neigh(){
-	neighbors.broadcast(updated, update_no)
-}
-TARGET_ALTITUDE = 5.0
-CURSTATE = "TURNEDOFF"
+include "update.bzz"
+include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
+include "uavstates.bzz"	# require an 'action' function to be defined here.
  
 # Lennard-Jones parameters
 TARGET     = 12.0
@@ -226,125 +222,23 @@ function onetwo() {
   }            
 }
 
-########################################
-#
-# BARRIER-RELATED FUNCTIONS
-#
-########################################
-
-#
-# Constants
-#
-BARRIER_VSTIG = 1
-
-#
-# Sets a barrier
-#
-function barrier_set(threshold, transf) {
-  statef = function() {
-    barrier_wait(threshold, transf);
-  }
-  barrier = stigmergy.create(BARRIER_VSTIG)
-}
-
-#
-# Make yourself ready
-#
-function barrier_ready() {
-  barrier.put(id, 1)
-}
-
-#
-# Executes the barrier
-#
-WAIT_TIMEOUT = 200
-timeW=0
-function barrier_wait(threshold, transf) {
-  barrier.get(id)
-  barrier.put(id, 1)
-  CURSTATE = "BARRIERWAIT"
-  if(barrier.size() >= threshold) {
-    #barrier = nil
-    transf()
-  } else if(timeW>=WAIT_TIMEOUT) {
-    barrier = nil
-    statef=land
-    timeW=0
-  }
-  timeW = timeW+1
-}
-
-# flight status
-
-function idle() {
-statef=idle
-CURSTATE = "IDLE"
-   
-}
-
-function takeoff() {
-	CURSTATE = "TAKEOFF"
-	statef=takeoff
-	#log("TakeOff: ", flight.status)
-	#log("Relative position: ", position.altitude)
-	
-	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-		if(id==0)
-            barrier_set(ROBOTS, zero)
-        else
-            barrier_set(ROBOTS, onetwo)
-		barrier_ready()
-		#statef=hexagon
-	}
-	else {
-		log("Altitude: ", TARGET_ALTITUDE)
-		neighbors.broadcast("cmd", 22)
-		uav_takeoff(TARGET_ALTITUDE)
-	}
-}
-function land() {
-	CURSTATE = "LAND"
-	statef=land
-	#log("Land: ", flight.status)
-	if(flight.status == 2 or flight.status == 3){
-		neighbors.broadcast("cmd", 21)
-		uav_land()
-	}
-	else {
-		barrier_set(ROBOTS,idle)
-		barrier_ready()
-		timeW=0
-		#barrier = nil
-		#statef=idle
-	}
-}
-
-function users_save(t) {
-	if(size(t)>0) {
-		foreach(t, function(id, tab) {
-				#log("id: ",id," Latitude ", tab.la, "Longitude ", tab.lo)
-				add_user_rb(id,tab.la,tab.lo)
-			})
-	}
-}
-
-# printing the contents of a table: a custom function
-function table_print(t) {
-  if(size(t)>0) {
-		foreach(t, function(u, tab) {
-				log("id: ",u," Range ", tab.r, "Bearing ", tab.b)
-			})
-	}
-}
-
 #################################################
 ### BUZZ FUNCTIONS ##############################
 #################################################
 
+function action(){
+    if (id == 0)
+        statef=zero
+    else
+        statef=onetwo
+
+    UAVSTATE="TENTACLES"
+}
+
 # Executed at init time
 function init() {
-  s = swarm.create(0)
-  s.join()
+  uav_initswarm()
+
   # Local knowledge table
   knowledge = {}
   # Update local knowledge with information from the neighbors
@@ -352,71 +246,16 @@ function init() {
   # Variables initialization
   iteration = 0 
 
-    vt = stigmergy.create(5)
-	t = {}
-	vt.put("p",t)
-	statef=idle
-	CURSTATE = "IDLE"
 }
 
 # Executed every time step
 function step() {
-    if(flight.rc_cmd==22) {
-		log("cmd 22")
-		flight.rc_cmd=0
-		statef = takeoff
-		CURSTATE = "TAKEOFF"		
-		neighbors.broadcast("cmd", 22)
-	} else if(flight.rc_cmd==21) {
-		log("cmd 21")
-		log("To land")
-		flight.rc_cmd=0
-		statef = land
-		CURSTATE = "LAND"
-		neighbors.broadcast("cmd", 21)
-	} else if(flight.rc_cmd==16) {
-		flight.rc_cmd=0
-		statef = idle
-		#uav_goto()
-		add_user_rb(10,rc_goto.latitude,rc_goto.longitude)
-	} else if(flight.rc_cmd==400) {
-		flight.rc_cmd=0
-		uav_arm()
-		neighbors.broadcast("cmd", 400)
-	} else if (flight.rc_cmd==401){
-		flight.rc_cmd=0
-		uav_disarm()
-		neighbors.broadcast("cmd", 401)
-	}
-neighbors.listen("cmd",
-   function(vid, value, rid) {
-      print("Got (", vid, ",", value, ") from robot #", rid)
-	if(value==22 and CURSTATE=="IDLE") {
-		statef=takeoff
-	} else if(value==21) {
-		statef=land
-	} else if(value==400 and CURSTATE=="IDLE") {
-		uav_arm()
-	} else if(value==401 and CURSTATE=="IDLE"){
-		uav_disarm()
-	}
-   }
+    uav_rccmd()
+    uav_neicmd()
 
-)
 	statef()
 	log("Current state: ", CURSTATE)
 	log("Swarm size: ",ROBOTS)
-	
-	# Read a value from the structure
-		#		log(users)      
-				#users_print(users.dataG)
-				if(size(users.dataG)>0)
-					vt.put("p", users.dataG)
-				
-        # Get the number of keys in the structure
-        #log("The vstig has ", vt.size(), " elements")
-				users_save(vt.get("p"))
-				#table_print(users.dataL)
 
   # Count the number of steps
   iteration = iteration + 1   

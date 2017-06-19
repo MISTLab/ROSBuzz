@@ -1,0 +1,47 @@
+########################################
+#
+# BARRIER-RELATED FUNCTIONS
+#
+########################################
+
+#
+# Constants
+#
+BARRIER_VSTIG = 11
+
+#
+# Sets a barrier
+#
+function barrier_set(threshold, transf, resumef) {
+  statef = function() {
+    barrier_wait(threshold, transf, resumef);
+  }
+  barrier = stigmergy.create(BARRIER_VSTIG)
+}
+
+#
+# Make yourself ready
+#
+function barrier_ready() {
+  barrier.put(id, 1)
+}
+
+#
+# Executes the barrier
+#
+BARRIER_TIMEOUT = 200
+timeW=0
+function barrier_wait(threshold, transf, resumef) {
+  barrier.get(id)
+  barrier.put(id, 1)
+  UAVSTATE = "BARRIERWAIT"
+  if(barrier.size() >= threshold) {
+    #barrier = nil
+    transf()
+  } else if(timeW>=BARRIER_TIMEOUT) {
+    barrier = nil
+    resumef()
+    timeW=0
+  }
+  timeW = timeW+1
+}
