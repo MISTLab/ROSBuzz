@@ -1,7 +1,7 @@
 /** @file      buzz_utility.cpp
- *  @version   1.0 
+ *  @version   1.0
  *  @date      27.09.2016
- *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone. 
+ *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone.
  *  @author    Vivek Shankar Varadharajan
  *  @copyright 2016 MistLab. All rights reserved.
  */
@@ -18,11 +18,11 @@ namespace buzz_utility{
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
 	static uint32_t     MSG_SIZE        = 600;//250;   // Only 100 bytes of Buzz messages every step
-	static uint32_t     MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
+	static uint32_t     MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets
 	static uint8_t 	    Robot_id        = 0;
 	static std::vector<uint8_t*> IN_MSG;
 	std::map< int,  Pos_struct> users_map;
-	
+
 	/****************************************/
 
 	void add_user(int id, double latitude, double longitude, float altitude)
@@ -181,12 +181,12 @@ namespace buzz_utility{
 		/* Copy packet into temporary buffer */
 	   	memcpy(pl, payload ,size);
    		IN_MSG.push_back(pl);
-   		
+
 	}
-	
+
 	void in_message_process(){
 		while(!IN_MSG.empty()){
-			uint8_t* first_INmsg = (uint8_t*)IN_MSG.front(); 
+			uint8_t* first_INmsg = (uint8_t*)IN_MSG.front();
 			/* Go through messages and append them to the FIFO */
    			uint16_t* data= u64_cvt_u16((uint64_t)first_INmsg[0]);
 			/*Size is at first 2 bytes*/
@@ -220,7 +220,7 @@ namespace buzz_utility{
 	/***************************************************/
    	uint64_t* obt_out_msg(){
 		/* Process out messages */
-		buzzvm_process_outmsgs(VM); 
+		buzzvm_process_outmsgs(VM);
    		uint8_t* buff_send =(uint8_t*)malloc(MAX_MSG_SIZE);
    		memset(buff_send, 0, MAX_MSG_SIZE);
 		/*Taking into consideration the sizes included at the end*/
@@ -361,7 +361,7 @@ namespace buzz_utility{
    		buzzvm_gstore(VM);
 		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_disarm", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
-   		buzzvm_gstore(VM); 
+   		buzzvm_gstore(VM);
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_takeoff", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
@@ -414,7 +414,7 @@ int create_stig_tables() {
         //buzzvm_gstore(VM);
 		//buzzvm_dump(VM);
 
-		/*buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
+		buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
         buzzvm_gload(VM);
         buzzvm_pushs(VM, buzzvm_string_register(VM, "put", 1));
         buzzvm_tget(VM);
@@ -435,7 +435,7 @@ int create_stig_tables() {
 		buzzobj_t data = buzzvm_stack_at(VM, 1);
 		buzzvm_tput(VM);
 		buzzvm_push(VM, data);
-		
+
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
 		buzzvm_gload(VM);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataL", 1));
@@ -498,7 +498,7 @@ int create_stig_tables() {
       		ROS_ERROR("[%i] Error registering hooks", Robot_id);
       		return 0;
    	}
-   	/* Create vstig tables 
+   	/* Create vstig tables
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
@@ -507,10 +507,10 @@ int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
    	}*/
-        
+
    	/* Save bytecode file name */
    	BO_FNAME = strdup(bo_filename);
-   	
+
    	// Execute the global part of the script
    	if(buzzvm_execute_script(VM)!= BUZZVM_STATE_DONE){
 		ROS_ERROR("Error executing global part, VM state : %i",VM->state);
@@ -527,7 +527,7 @@ int create_stig_tables() {
 
    	return 1;//buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
 	}
-        
+
 	/****************************************/
 	/*Sets a new update                     */
 	/****************************************/
@@ -560,7 +560,7 @@ int create_stig_tables() {
       		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
         	return 0;
    	}
-   	/* Create vstig tables 
+   	/* Create vstig tables
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
@@ -569,7 +569,7 @@ int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
    	}*/
-   	
+
    	// Execute the global part of the script
    	if(buzzvm_execute_script(VM)!= BUZZVM_STATE_DONE){
 		ROS_ERROR("Error executing global part, VM state : %i",VM->state);
@@ -616,7 +616,7 @@ int create_stig_tables() {
       		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
         	return 0;
    	}
-   	/* Create vstig tables 
+   	/* Create vstig tables
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
@@ -708,12 +708,12 @@ int create_stig_tables() {
 		      buzz_error_info());
 		buzzvm_dump(VM);
 		}
-		
+
 		/*Print swarm*/
 		//buzzswarm_members_print(stdout, VM->swarmmembers, VM->robot);
 		//int SwarmSize = buzzdict_size(VM->swarmmembers)+1;
 		//fprintf(stderr, "Real Swarm Size: %i\n",SwarmSize);
-		
+
 
 		/* Check swarm state -- Not crashing thanks to test added in check_swarm_members */
 		//int status = 1;
@@ -771,7 +771,7 @@ int create_stig_tables() {
 					 buzz_error_info());
 			fprintf(stdout, "step test VM state %i\n",a);
 		  }
-			
+
 		return a == BUZZVM_STATE_READY;
 	}
 
@@ -785,5 +785,3 @@ int create_stig_tables() {
 		buzzvm_gstore(VM);
 	}
 }
-
-
