@@ -20,8 +20,15 @@ struct pos_struct
   pos_struct(double x,double y,double z):x(x),y(y),z(z){};
   pos_struct(){}
 };
+typedef struct pos_struct Pos_struct;
+struct rb_struct
+{
+  double r,b,la,lo;
+  rb_struct(double la, double lo, double r,double b):la(la),lo(lo),r(r),b(b){};
+  rb_struct(){}
+};
+typedef struct rb_struct RB_struct;
 
-typedef struct pos_struct Pos_struct ;
 
 uint16_t* u64_cvt_u16(uint64_t u64);
 

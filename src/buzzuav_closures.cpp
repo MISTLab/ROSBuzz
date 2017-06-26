@@ -25,8 +25,8 @@ namespace buzzuav_closures{
 	static int rc_cmd=0;
 	static int buzz_cmd=0;
 	static float height=0;
-
-
+	
+	std::map< int,  buzz_utility::RB_struct> targets_map;
 	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
 
 	/****************************************/
@@ -89,13 +89,20 @@ namespace buzzuav_closures{
 		out[2] = height; //constant height.
 	}
 
+	float constrainAngle(float x){
+			x = fmod(x,2*M_PI);
+			if (x < 0.0)
+				x += 2*M_PI;
+			return x;
+		}
+
 	void rb_from_gps(double nei[], double out[], double cur[]){   
        		double d_lon = nei[1] - cur[1];
        		double d_lat = nei[0] - cur[0];
         	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
         	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
-		out[1] = atan2(ned_y,ned_x);
+		out[1] = constrainAngle(atan2(ned_y,ned_x));
 		out[2] = 0.0;
 	}
 
@@ -126,57 +133,57 @@ namespace buzzuav_closures{
 	   gps_from_rb(d, b, goto_pos);
 	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
        //printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
-	   //printf(" Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f  \n",goto_pos[0], goto_pos[1], goto_pos[2]);
+	   //ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0], goto_pos[1], goto_pos[2]);
 	   buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
 	   return buzzvm_ret0(vm);
 	}
 
-	int users_add2localtable(buzzvm_t vm, int id, float range, float bearing) {
+	int buzzuav_update_targets(buzzvm_t vm) {
 		if(vm->state != BUZZVM_STATE_READY) return vm->state;
-		buzzvm_pushs(vm, buzzvm_string_register(vm, "users", 1));
-		buzzvm_gload(vm);
-		buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);
-		buzzobj_t nbr = buzzvm_stack_at(vm, 1);
-		/* Get "data" field */
-		buzzvm_pushs(vm, buzzvm_string_register(vm, "dataL", 1));
-		buzzvm_tget(vm);
-		if(buzzvm_stack_at(vm, 1)->o.type == BUZZTYPE_NIL) {
-			//ROS_INFO("Empty data, create a new table");
-			buzzvm_pop(vm);
-			buzzvm_push(vm, nbr);
-			buzzvm_pushs(vm, buzzvm_string_register(vm, "dataL", 1));
-			buzzvm_pusht(vm);
-			buzzobj_t data = buzzvm_stack_at(vm, 1);
+		buzzvm_pushs(vm, buzzvm_string_register(vm, "targets", 1));
+		//buzzobj_t t = buzzheap_newobj(vm->heap, BUZZTYPE_TABLE);
+		//buzzvm_push(vm, t);
+		buzzvm_pusht(vm);
+		buzzobj_t targettbl = buzzvm_stack_at(vm, 1);
+		//buzzvm_tput(vm);
+		//buzzvm_dup(vm);
+		double rb[3], tmp[3];
+		map< int, buzz_utility::RB_struct >::iterator it;
+		for (it=targets_map.begin(); it!=targets_map.end(); ++it){	   
+			tmp[0]=(it->second).la;tmp[1]=(it->second).lo;tmp[2]=height;
+	   		rb_from_gps(tmp, rb, cur_pos);
+			ROS_WARN("----------Pushing target id %i (%f,%f)", rb[0], rb[1]);
+			buzzvm_push(vm, targettbl);
+			/* When we get here, the "targets" table is on top of the stack */
+			//ROS_INFO("Buzz_utility will save user %i.", it->first);
+			/* Push user id */
+			buzzvm_pushi(vm, it->first);
+			/* Create entry table */
+			buzzobj_t entry = buzzheap_newobj(vm->heap, BUZZTYPE_TABLE);
+			/* Insert range */
+			buzzvm_push(vm, entry);
+			buzzvm_pushs(vm, buzzvm_string_register(vm, "range", 1));
+			buzzvm_pushf(vm, rb[0]);
 			buzzvm_tput(vm);
-			buzzvm_push(vm, data);
+			/* Insert longitude */
+			buzzvm_push(vm, entry);
+			buzzvm_pushs(vm, buzzvm_string_register(vm, "bearing", 1));
+			buzzvm_pushf(vm, rb[1]);
+			buzzvm_tput(vm);
+			/* Save entry into data table */
+			buzzvm_push(vm, entry);
+			buzzvm_tput(vm);
 		}
-		/* When we get here, the "data" table is on top of the stack */
-		/* Push user id */
-		buzzvm_pushi(vm, id);
-		/* Create entry table */
-		buzzobj_t entry = buzzheap_newobj(vm->heap, BUZZTYPE_TABLE);
-		/* Insert range */
-		buzzvm_push(vm, entry);
-		buzzvm_pushs(vm, buzzvm_string_register(vm, "r", 1));
-		buzzvm_pushf(vm, range);
-		buzzvm_tput(vm);
-		/* Insert longitude */
-		buzzvm_push(vm, entry);
-		buzzvm_pushs(vm, buzzvm_string_register(vm, "b", 1));
-		buzzvm_pushf(vm, bearing);
-		buzzvm_tput(vm);
-		/* Save entry into data table */
-		buzzvm_push(vm, entry);
-		buzzvm_tput(vm);
-		//printf("\tBuzz_closure saved new user: %i (%f,%f)\n", id, range, bearing);
+		buzzvm_gstore(vm);
+
 		return vm->state;
 	}
 
-	int buzzuav_adduserRB(buzzvm_t vm) {
+	int buzzuav_addtargetRB(buzzvm_t vm) {
 	   buzzvm_lnum_assert(vm, 3);
-	   buzzvm_lload(vm, 1); /* longitude */
-	   buzzvm_lload(vm, 2); /* latitude */
-	   buzzvm_lload(vm, 3); /* id */
+	   buzzvm_lload(vm, 1); // longitude
+	   buzzvm_lload(vm, 2); // latitude
+	   buzzvm_lload(vm, 3); // id
 	   buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
 	   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
 	   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
@@ -189,10 +196,20 @@ namespace buzzuav_closures{
 
 	   rb_from_gps(tmp, rb, cur_pos);
 	   if(fabs(rb[0])<100.0) {
-	   	//printf("\tGot new user from bzz stig: %i - %f, %f\n", uid, rb[0], rb[1]);
-		return users_add2localtable(vm, uid, rb[0], rb[1]);
+			//printf("\tGot new user from bzz stig: %i - %f, %f\n", uid, rb[0], rb[1]);
+			buzz_utility::RB_struct RB_arr;
+			RB_arr.la=tmp[0];
+			RB_arr.lo=tmp[1];
+			RB_arr.r=rb[0];
+			RB_arr.b=rb[1];
+			map< int, buzz_utility::RB_struct >::iterator it = targets_map.find(uid);
+			if(it!=targets_map.end())
+				targets_map.erase(it);
+			targets_map.insert(make_pair(uid, RB_arr));
+			//ROS_INFO("Buzz_utility got updated/new user: %i (%f,%f,%f)", id, latitude, longitude, altitude);
+			return vm->state;
 	   } else
-		printf(" ---------- User too far %f\n",rb[0]);
+		printf(" ---------- Target too far %f\n",rb[0]);
 
 		return 0;
 	}
@@ -427,7 +444,7 @@ namespace buzzuav_closures{
 
 	int buzzuav_update_prox(buzzvm_t vm) {
 
-	buzzvm_pushs(vm, buzzvm_string_register(vm, "proximity", 1));
+		buzzvm_pushs(vm, buzzvm_string_register(vm, "proximity", 1));
         buzzvm_pusht(vm);
         buzzobj_t tProxTable = buzzvm_stack_at(vm, 1);
         buzzvm_gstore(vm);

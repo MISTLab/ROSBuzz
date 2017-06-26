@@ -6,7 +6,7 @@ include "vstigenv.bzz"
  
 # Lennard-Jones parameters
 TARGET     = 12.0
-EPSILON    = 14.0
+EPSILON    = 18.0
  
 # Lennard-Jones interaction magnitude
 function lj_magnitude(dist, target, epsilon) {

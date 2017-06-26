@@ -11,6 +11,9 @@ function arm {
 function disarm {
 	rosservice call $1/buzzcmd 0 400 0 0 0 0 0 0 0 0
 }
+function testWP {
+	rosservice call $1/buzzcmd 0 16 0 0 0 0 0 45.45782 -- -73.63608 10
+}
 function record {
 	rosbag record $1/flight_status $1/global_position $1/users_pos $1/local_position $1/neighbours_pos /power_status /guidance/obstacle_distance /guidance/front/depth/image_rect/compressedDepth /guidance/right/depth/image_rect/compressedDepth /guidance/front/depth/points /guidance/right/depth/points /guidance/front/right/image_rect/compressed /guidance/front/left/image_rect/compressed /guidance/right/right/image_rect/compressed /guidance/right/left/image_rect/compressed /guidance/front/left/camera_info /guidance/front/right/camera_info /guidance/right/right/camera_info /guidance/right/left/camera_info
 }

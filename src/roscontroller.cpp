@@ -92,22 +92,28 @@ namespace rosbzz_node{
                         ///////////////////////////////////////////////////////
                         // MAIN LOOP
                         //////////////////////////////////////////////////////
-			ROS_INFO("[%i] STARTING MAIN LOOP!", robot_id);
+			//ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
 			while (ros::ok() && !buzz_utility::buzz_script_done())
   			{
       			/*Update neighbors position inside Buzz*/
      			//buzz_closure::neighbour_pos_callback(neighbours_pos_map);
 				/*Neighbours of the robot published with id in respective topic*/
+				//ROS_WARN("[%i]-----------NEIG", robot_id);
 				neighbours_pos_publisher();
 				/*Check updater state and step code*/
+				//ROS_WARN("[%i]-----------UPD", robot_id);
   				update_routine(bcfname.c_str(), dbgfname.c_str());
 				/*Step buzz script */
+				//ROS_WARN("[%i]-----------STEP", robot_id);
       			buzz_utility::buzz_script_step();
 				/*Prepare messages and publish them in respective topic*/
+				//ROS_WARN("[%i]-----------MSG", robot_id);
 		  		prepare_msg_and_publish();
 				/*call flight controler service to set command long*/
+				//ROS_WARN("[%i]-----------FC", robot_id);
 				flight_controller_service_call();
 				/*Set multi message available after update*/
+				//ROS_WARN("[%i]-----------UPD", robot_id);
 				if(get_update_status()){
 					set_read_update_status();
 					multi_msg=true;
@@ -122,6 +128,7 @@ namespace rosbzz_node{
 				}
 				/*Set ROBOTS variable for barrier in .bzz from neighbours count*/
 				//no_of_robots=get_number_of_robots();
+				//ROS_WARN("[%i]-----------ROBOTS", robot_id);
 				get_number_of_robots();
 				buzz_utility::set_robot_var(no_of_robots);
 				//if(neighbours_pos_map.size() >0) no_of_robots =neighbours_pos_map.size()+1;
@@ -603,13 +610,20 @@ namespace rosbzz_node{
                 }
             }
 
+		float roscontroller::constrainAngle(float x){
+			x = fmod(x,2*M_PI);
+			if (x < 0.0)
+				x += 2*M_PI;
+			return x;
+		}
+
 	void roscontroller::gps_rb(GPS nei_pos, double out[])
     {
         float ned_x=0.0, ned_y=0.0;
 		gps_ned_cur(ned_x, ned_y, nei_pos);
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
         //out[0] = std::floor(out[0] * 1000000) / 1000000;
-		out[1] = atan2(ned_y,ned_x);
+		out[1] = constrainAngle(atan2(ned_y,ned_x));
         //out[1] = std::floor(out[1] * 1000000) / 1000000;
 		out[2] = 0.0;
 	}

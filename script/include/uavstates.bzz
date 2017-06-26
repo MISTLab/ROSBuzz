@@ -50,10 +50,26 @@ function land() {
 		uav_land()
 	}
 	else {
-		barrier_set(ROBOTS,idle,land)
+		barrier_set(ROBOTS,turnedoff,land)
 		barrier_ready()
 		timeW=0
 		#barrier = nil
+		#statef=idle
+	}
+}
+
+function follow() {
+	if(size(targets)>0) {
+		UAVSTATE = "FOLLOW"
+		statef=follow
+		attractor=math.vec2.newp(0,0)
+		foreach(targets, function(id, tab) {
+			force=(0.05)*(tab.range)^4
+			attractor=math.vec2.add(attractor, math.vec2.newp(force, tab.bearing))
+		})
+		uav_moveto(attractor.x, attractor.y)
+	} else {
+		log("No target in local table!")
 		#statef=idle
 	}
 }
@@ -74,9 +90,11 @@ function uav_rccmd() {
 		neighbors.broadcast("cmd", 21)
 	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
-		statef = idle
+		UAVSTATE = "FOLLOW"
+		log(rc_goto.latitude, " ", rc_goto.longitude)
+		add_targetrb(0,rc_goto.latitude,rc_goto.longitude)
+		statef = follow
 		#uav_goto()
-		add_user_rb(10,rc_goto.latitude,rc_goto.longitude)
 	} else if(flight.rc_cmd==400) {
 		flight.rc_cmd=0
 		uav_arm()

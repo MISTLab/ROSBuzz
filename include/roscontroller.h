@@ -171,6 +171,7 @@ private:
 			 double longitude,
 			 double altitude);
 	/*convert from spherical to cartesian coordinate system callback */
+	float constrainAngle(float x);
 	void gps_rb(GPS nei_pos, double out[]);
 	void gps_ned_cur(float &ned_x, float &ned_y, GPS t);
 	void gps_ned_home(float &ned_x, float &ned_y);

@@ -40,10 +40,10 @@ namespace buzz_utility{
 
 	void update_users(){
 		if(users_map.size()>0) {
-			/* Reset users information */
-			buzzusers_reset();
+			// Reset users information
+//			buzzusers_reset();
 //			create_stig_tables();
-			/* Get user id and update user information */
+			// Get user id and update user information
 			map< int, Pos_struct >::iterator it;
 			for (it=users_map.begin(); it!=users_map.end(); ++it){
 				//ROS_INFO("Buzz_utility will save user %i.", it->first);
@@ -52,21 +52,20 @@ namespace buzz_utility{
 									(it->second).y,
 									(it->second).z);
 			}
-		}/*else
-			ROS_INFO("[%i] No new users",Robot_id);*/
+		}
 	}
 
-	int buzzusers_reset() {
+	/*int buzzusers_reset() {
 		if(VM->state != BUZZVM_STATE_READY) return VM->state;
-		/* Make new table */
+		//Make new table
 		buzzobj_t t = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
 		//make_table(&t);
 		if(VM->state != BUZZVM_STATE_READY) return VM->state;
-		/* Register table as global symbol */
-		/*buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
+		//Register table as global symbol
+		//buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
 		buzzvm_gload(VM);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "put", 1));
-        buzzvm_tget(VM);*/
+        buzzvm_tget(VM);
         buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
 		buzzvm_gload(VM);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
@@ -75,55 +74,47 @@ namespace buzz_utility{
         //buzzvm_pushi(VM, 2);
 		//buzzvm_callc(VM);
 		return VM->state;
-	}
+	}*/
 
 	int buzzusers_add(int id, double latitude, double longitude, double altitude) {
 		if(VM->state != BUZZVM_STATE_READY) return VM->state;
-		/* Get users "p" table */
+		// Get users "p" table 
 		/*buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
 		buzzvm_gload(VM);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "get", 1));
         buzzvm_tget(VM);*/
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
-		buzzvm_gload(VM);
-        //buzzvm_pushi(VM, 1);
-		//buzzvm_callc(VM);
-		buzzvm_type_assert(VM, 1, BUZZTYPE_TABLE);
-		buzzobj_t nbr = buzzvm_stack_at(VM, 1);
-		/* Get "data" field */
-		buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
 		buzzvm_tget(VM);
 		if(buzzvm_stack_at(VM, 1)->o.type == BUZZTYPE_NIL) {
 			//ROS_INFO("Empty data, create a new table");
 			buzzvm_pop(VM);
-			buzzvm_push(VM, nbr);
-			buzzvm_pushs(VM, buzzvm_string_register(VM, "dataG", 1));
+			buzzvm_pushs(VM, buzzvm_string_register(VM, "users", 1));
 			buzzvm_pusht(VM);
 			buzzobj_t data = buzzvm_stack_at(VM, 1);
 			buzzvm_tput(VM);
 			buzzvm_push(VM, data);
 		}
-		/* When we get here, the "data" table is on top of the stack */
-		/* Push user id */
+		// When we get here, the "data" table is on top of the stack 
+		// Push user id 
 		buzzvm_pushi(VM, id);
-		/* Create entry table */
+		// Create entry table
 		buzzobj_t entry = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
-		/* Insert latitude */
+		// Insert latitude
 		buzzvm_push(VM, entry);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "la", 1));
 		buzzvm_pushf(VM, latitude);
 		buzzvm_tput(VM);
-		/* Insert longitude */
+		// Insert longitude
 		buzzvm_push(VM, entry);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "lo", 1));
 		buzzvm_pushf(VM, longitude);
 		buzzvm_tput(VM);
-		/* Insert altitude */
+		// Insert altitude
 		buzzvm_push(VM, entry);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "al", 1));
 		buzzvm_pushf(VM, altitude);
 		buzzvm_tput(VM);
-		/* Save entry into data table */
+		// Save entry into data table
 		buzzvm_push(VM, entry);
 		buzzvm_tput(VM);
 		//ROS_INFO("Buzz_utility saved new user: %i (%f,%f,%f)", id, latitude, longitude, altitude);
@@ -329,8 +320,8 @@ namespace buzz_utility{
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_land", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_land));
    		buzzvm_gstore(VM);
-   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_user_rb", 1));
-   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_adduserRB));
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_targetrb", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_addtargetRB));
    		buzzvm_gstore(VM);
 
    	return VM->state;
@@ -371,7 +362,7 @@ namespace buzz_utility{
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_land", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
-   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_user_rb", 1));
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_targetrb", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
 
@@ -692,6 +683,7 @@ int create_stig_tables() {
 	   	buzzuav_closures::buzzuav_update_prox(VM);
 	   	buzzuav_closures::buzzuav_update_currentpos(VM);
 	   	buzzuav_closures::update_neighbors(VM);
+		buzzuav_closures::buzzuav_update_targets(VM);
 	   	//update_users();
 	   	buzzuav_closures::buzzuav_update_flight_status(VM);
 	}
