@@ -50,7 +50,11 @@ function land() {
 		uav_land()
 	}
 	else {
+<<<<<<< HEAD
 		barrier_set(ROBOTS,turnedoff,land)
+=======
+		barrier_set(ROBOTS,idle,land)
+>>>>>>> 8e5acd264dbf2b5fc3cafd00fb9a08a82a8095f7
 		barrier_ready()
 		timeW=0
 		#barrier = nil
@@ -58,6 +62,7 @@ function land() {
 	}
 }
 
+<<<<<<< HEAD
 function follow() {
 	if(size(targets)>0) {
 		UAVSTATE = "FOLLOW"
@@ -74,6 +79,8 @@ function follow() {
 	}
 }
 
+=======
+>>>>>>> 8e5acd264dbf2b5fc3cafd00fb9a08a82a8095f7
 function uav_rccmd() {
     if(flight.rc_cmd==22) {
 		log("cmd 22")
@@ -90,11 +97,17 @@ function uav_rccmd() {
 		neighbors.broadcast("cmd", 21)
 	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
+<<<<<<< HEAD
 		UAVSTATE = "FOLLOW"
 		log(rc_goto.latitude, " ", rc_goto.longitude)
 		add_targetrb(0,rc_goto.latitude,rc_goto.longitude)
 		statef = follow
 		#uav_goto()
+=======
+		statef = idle
+		#uav_goto()
+		add_user_rb(10,rc_goto.latitude,rc_goto.longitude)
+>>>>>>> 8e5acd264dbf2b5fc3cafd00fb9a08a82a8095f7
 	} else if(flight.rc_cmd==400) {
 		flight.rc_cmd=0
 		uav_arm()

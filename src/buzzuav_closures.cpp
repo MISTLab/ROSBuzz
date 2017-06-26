@@ -1,7 +1,7 @@
 /** @file      buzzuav_closures.cpp
- *  @version   1.0 
+ *  @version   1.0
  *  @date      27.09.2016
- *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone. 
+ *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone.
  *  @author    Vivek Shankar Varadharajan
  *  @copyright 2016 MistLab. All rights reserved.
  */
@@ -10,7 +10,6 @@
 #include "math.h"
 
 namespace buzzuav_closures{
-
 	// TODO: Minimize the required global variables and put them in the header
 	//static const rosbzz_node::roscontroller* roscontroller_ptr;
 	/*forward declaration of ros controller ptr storing function*/
@@ -448,7 +447,7 @@ namespace buzzuav_closures{
         buzzvm_pusht(vm);
         buzzobj_t tProxTable = buzzvm_stack_at(vm, 1);
         buzzvm_gstore(vm);
-      
+
         /* Fill into the proximity table */
         buzzobj_t tProxRead;
         float angle =0;
@@ -458,80 +457,80 @@ namespace buzzuav_closures{
            tProxRead = buzzvm_stack_at(vm, 1);
            buzzvm_pop(vm);
            /* Fill in the read */
-	   buzzvm_push(vm, tProxRead);
-   	   buzzvm_pushs(vm, buzzvm_string_register(vm, "value", 0));
-   	   buzzvm_pushf(vm, obst[i+1]);
-   	   buzzvm_tput(vm);
-	   buzzvm_push(vm, tProxRead);
-   	   buzzvm_pushs(vm, buzzvm_string_register(vm, "angle", 0));
-   	   buzzvm_pushf(vm, angle);
-   	   buzzvm_tput(vm);
+     buzzvm_push(vm, tProxRead);
+        buzzvm_pushs(vm, buzzvm_string_register(vm, "value", 0));
+        buzzvm_pushf(vm, obst[i+1]);
+        buzzvm_tput(vm);
+     buzzvm_push(vm, tProxRead);
+        buzzvm_pushs(vm, buzzvm_string_register(vm, "angle", 0));
+        buzzvm_pushf(vm, angle);
+        buzzvm_tput(vm);
            /* Store read table in the proximity table */
           buzzvm_push(vm, tProxTable);
-   	  buzzvm_pushi(vm, i);
-  	  buzzvm_push(vm, tProxRead);
- 	  buzzvm_tput(vm);
-	   angle+=1.5708;
+       buzzvm_pushi(vm, i);
+      buzzvm_push(vm, tProxRead);
+     buzzvm_tput(vm);
+     angle+=1.5708;
         }
-	/* Create table for bottom read */
-	 angle =-1;
+  /* Create table for bottom read */
+   angle =-1;
          buzzvm_pusht(vm);
          tProxRead = buzzvm_stack_at(vm, 1);
          buzzvm_pop(vm);
          /* Fill in the read */
-	 buzzvm_push(vm, tProxRead);
-   	 buzzvm_pushs(vm, buzzvm_string_register(vm, "value", 0));
-   	 buzzvm_pushf(vm, obst[0]);
-   	 buzzvm_tput(vm);
-	 buzzvm_push(vm, tProxRead);
-   	 buzzvm_pushs(vm, buzzvm_string_register(vm, "angle", 0));
-   	 buzzvm_pushf(vm, angle);
-   	 buzzvm_tput(vm);
-	 /*Store read table in the proximity table*/
-	 buzzvm_push(vm, tProxTable);
-   	 buzzvm_pushi(vm, 4);
-  	 buzzvm_push(vm, tProxRead);
- 	 buzzvm_tput(vm);
+   buzzvm_push(vm, tProxRead);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "value", 0));
+      buzzvm_pushf(vm, obst[0]);
+      buzzvm_tput(vm);
+   buzzvm_push(vm, tProxRead);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "angle", 0));
+      buzzvm_pushf(vm, angle);
+      buzzvm_tput(vm);
+   /*Store read table in the proximity table*/
+   buzzvm_push(vm, tProxTable);
+      buzzvm_pushi(vm, 4);
+     buzzvm_push(vm, tProxRead);
+    buzzvm_tput(vm);
 
-	 /*
-	  buzzvm_pushs(vm, buzzvm_string_register(vm, "proximity", 1));
-	   buzzvm_pusht(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "bottom", 1));
-	   buzzvm_pushf(vm, obst[0]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "front", 1));
-	   buzzvm_pushf(vm, obst[1]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "right", 1));
-	   buzzvm_pushf(vm, obst[2]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "back", 1));
-	   buzzvm_pushf(vm, obst[3]);
-	   buzzvm_tput(vm);
-	   buzzvm_dup(vm);
-	   buzzvm_pushs(vm, buzzvm_string_register(vm, "left", 1));
-	   buzzvm_pushf(vm, obst[4]);
-	   buzzvm_tput(vm);
-	   buzzvm_gstore(vm);*/
-	   return vm->state;
-	}
+   /*
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "proximity", 1));
+     buzzvm_pusht(vm);
+     buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "bottom", 1));
+     buzzvm_pushf(vm, obst[0]);
+     buzzvm_tput(vm);
+     buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "front", 1));
+     buzzvm_pushf(vm, obst[1]);
+     buzzvm_tput(vm);
+     buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "right", 1));
+     buzzvm_pushf(vm, obst[2]);
+     buzzvm_tput(vm);
+     buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "back", 1));
+     buzzvm_pushf(vm, obst[3]);
+     buzzvm_tput(vm);
+     buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "left", 1));
+     buzzvm_pushf(vm, obst[4]);
+     buzzvm_tput(vm);
+     buzzvm_gstore(vm);*/
+     return vm->state;
+  }
 
-	/**********************************************/
-	/*Dummy closure for use during update testing */
-	/**********************************************/
+  /**********************************************/
+  /*Dummy closure for use during update testing */
+  /**********************************************/
 
-	int dummy_closure(buzzvm_t vm){ return buzzvm_ret0(vm);}
+  int dummy_closure(buzzvm_t vm){ return buzzvm_ret0(vm);}
 
-	/***********************************************/
-	/* Store Ros controller object pointer           */
-	/***********************************************/
-	
-	//void set_ros_controller_ptr(const rosbzz_node::roscontroller* roscontroller_ptrin){
-	//roscontroller_ptr = roscontroller_ptrin;
-	//} 
+  /***********************************************/
+  /* Store Ros controller object pointer         */
+  /***********************************************/
+
+  //void set_ros_controller_ptr(const rosbzz_node::roscontroller* roscontroller_ptrin){
+  //roscontroller_ptr = roscontroller_ptrin;
+  //}
 
 }

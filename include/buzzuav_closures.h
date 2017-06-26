@@ -14,8 +14,8 @@
 
 namespace buzzuav_closures{
 	typedef enum {
-      		COMMAND_NIL = 0,     // Dummy command
-      		COMMAND_TAKEOFF,     // Take off
+		COMMAND_NIL = 0,     // Dummy command
+		COMMAND_TAKEOFF,     // Take off
 		COMMAND_LAND,
 		COMMAND_GOHOME,
 		COMMAND_ARM,
@@ -64,7 +64,7 @@ void set_obstacle_dist(float dist[]);
  */
 int buzzuav_takeoff(buzzvm_t vm);
 /*
- * Arm command from Buzz 
+ * Arm command from Buzz
  */
 int buzzuav_arm(buzzvm_t vm);
 /*
@@ -90,7 +90,7 @@ int buzzuav_update_currentpos(buzzvm_t vm);
 int buzzuav_update_targets(buzzvm_t vm);
 int buzzuav_addtargetRB(buzzvm_t vm);
 /*
- * Updates flight status and rc command in Buzz, put it in a tabel to acess it 
+ * Updates flight status and rc command in Buzz, put it in a tabel to acess it
  * use flight.status for flight status
  * use flight.rc_cmd for current rc cmd
  */
