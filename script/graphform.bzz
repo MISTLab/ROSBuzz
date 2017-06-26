@@ -88,7 +88,7 @@ step_cunt=0
 v_tag = stigmergy.create(1)
 
 # Lennard-Jones parameters
-EPSILON    = 3.5 #3.5
+EPSILON    = 13.5 #3.5
 
 # Lennard-Jones interaction magnitude
 
@@ -705,7 +705,7 @@ if(m_nLabel>1){
 	log(";",m_nLabel,";",mypred1.range-m_vecNodes_fixed[m_nLabel].d1)
 }
 #move
-uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+uav_moveto(m_navigation.x,m_navigation.y)
 }
 
 function action(){
