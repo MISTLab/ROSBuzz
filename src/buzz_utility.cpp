@@ -18,7 +18,7 @@ namespace buzz_utility{
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
 	static uint32_t     MSG_SIZE        = 600;//250;   // Only 100 bytes of Buzz messages every step
-	static uint32_t     MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets 
+	static uint32_t     MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets
 	static uint8_t 	    Robot_id        = 0;
 	static std::vector<uint8_t*> IN_MSG;
 	std::map< int,  Pos_struct> users_map;
@@ -78,7 +78,7 @@ namespace buzz_utility{
 
 	int buzzusers_add(int id, double latitude, double longitude, double altitude) {
 		if(VM->state != BUZZVM_STATE_READY) return VM->state;
-		// Get users "p" table 
+		// Get users "p" table
 		/*buzzvm_pushs(VM, buzzvm_string_register(VM, "vt", 1));
 		buzzvm_gload(VM);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "get", 1));
@@ -94,8 +94,8 @@ namespace buzz_utility{
 			buzzvm_tput(VM);
 			buzzvm_push(VM, data);
 		}
-		// When we get here, the "data" table is on top of the stack 
-		// Push user id 
+		// When we get here, the "data" table is on top of the stack
+		// Push user id
 		buzzvm_pushi(VM, id);
 		// Create entry table
 		buzzobj_t entry = buzzheap_newobj(VM->heap, BUZZTYPE_TABLE);
@@ -489,7 +489,7 @@ int create_stig_tables() {
       		ROS_ERROR("[%i] Error registering hooks", Robot_id);
       		return 0;
    	}
-	   
+
    	/* Create vstig tables
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
@@ -499,7 +499,7 @@ int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
    	}*/
-	   
+
    	/* Save bytecode file name */
    	BO_FNAME = strdup(bo_filename);
 
@@ -561,7 +561,7 @@ int create_stig_tables() {
 			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
       		return 0;
    	}*/
-	   
+
    	// Execute the global part of the script
    	if(buzzvm_execute_script(VM)!= BUZZVM_STATE_DONE){
 		ROS_ERROR("Error executing global part, VM state : %i",VM->state);
@@ -689,11 +689,22 @@ int create_stig_tables() {
 	   	buzzuav_closures::buzzuav_update_flight_status(VM);
 	}
 
+  void update_xbee_status(){
+  /* Update sensors*/
+    buzzuav_closures::buzzuav_update_deque_full(VM);
+    buzzuav_closures::buzzuav_update_rssi(VM);
+    buzzuav_closures::buzzuav_update_raw_packet_loss(VM);
+    buzzuav_closures::buzzuav_update_filtered_packet_loss(VM);
+    buzzuav_closures::buzzuav_update_api_rssi(VM);
+  }
+
 	void buzz_script_step() {
 		/*Process available messages*/
 		in_message_process();
 		/*Update sensors*/
 		update_sensors();
+
+    update_xbee_status();
 		/* Call Buzz step() function */
 		if(buzzvm_function_call(VM, "step", 0) != BUZZVM_STATE_READY) {
 		ROS_ERROR("%s: execution terminated abnormally: %s",

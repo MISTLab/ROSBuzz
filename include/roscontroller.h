@@ -244,6 +244,8 @@ private:
   bool GetRawPacketLoss(const uint8_t short_id, float &result);
   bool GetFilteredPacketLoss(const uint8_t short_id, float &result);
 
+  void get_xbee_status();
+
 };
 
 }

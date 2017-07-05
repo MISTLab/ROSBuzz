@@ -231,6 +231,7 @@ void roscontroller::RosControllerRun()
       updates_set_robots(no_of_robots);
       // ROS_INFO("ROBOTS: %i , acutal :
       // %i",(int)no_of_robots,(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1);
+      get_xbee_status();
       /*run once*/
       ros::spinOnce();
       /*loop rate of ros*/
@@ -1202,4 +1203,39 @@ void roscontroller::get_number_of_robots() {
   }
   */
 }
+
+void roscontroller::get_xbee_status()
+/* Description:
+ * Call all the xbee node services and update the xbee status
+ ------------------------------------------------------------------ */
+{
+  bool result_bool;
+  float result_float;
+  const uint8_t all_ids = 0xFF;
+  if(GetDequeFull(result_bool))
+  {
+    buzzuav_closures::set_deque_full(result_bool);
+  }
+  if(GetRssi(result_float))
+  {
+    buzzuav_closures::set_rssi(result_float);
+  }
+  if(GetRawPacketLoss(all_ids, result_float))
+  {
+    buzzuav_closures::set_raw_packet_loss(result_float);
+  }
+  if(GetFilteredPacketLoss(all_ids, result_float))
+  {
+    buzzuav_closures::set_filtered_packet_loss(result_float);
+  }
+  // This part needs testing since it can overload the xbee module
+  /*
+   * if(GetAPIRssi(all_ids, result_float))
+   * {
+   * buzzuav_closures::set_api_rssi(result_float);
+   * }
+   * TriggerAPIRssi(all_ids);
+   */
+}
+
 }

@@ -49,6 +49,8 @@ uint64_t* obt_out_msg();
 
 void update_sensors();
 
+void update_xbee_status();
+
 int buzz_script_set(const char* bo_filename,
                            const char* bdbg_filename, int robot_id);
 

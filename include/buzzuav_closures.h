@@ -47,6 +47,11 @@ void rc_set_goto(double pos[]);
 void rc_call(int rc_cmd);
 /* sets the battery state */
 void set_battery(float voltage,float current,float remaining);
+void set_deque_full(bool state);
+void set_rssi(float value);
+void set_raw_packet_loss(float value);
+void set_filtered_packet_loss(float value);
+void set_api_rssi(float value);
 /* sets current position */
 void set_currentpos(double latitude, double longitude, double altitude);
 /*retuns the current go to position */
@@ -83,6 +88,11 @@ int buzzuav_gohome(buzzvm_t vm);
  * Updates battery information in Buzz
  */
 int buzzuav_update_battery(buzzvm_t vm);
+int buzzuav_update_deque_full(buzzvm_t vm);
+int buzzuav_update_rssi(buzzvm_t vm);
+int buzzuav_update_raw_packet_loss(buzzvm_t vm);
+int buzzuav_update_filtered_packet_loss(buzzvm_t vm);
+int buzzuav_update_api_rssi(buzzvm_t vm);
 /*
  * Updates current position in Buzz
  */
