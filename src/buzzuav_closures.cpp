@@ -345,23 +345,9 @@ namespace buzzuav_closures{
    deque_full = state;
   }
 
-  int buzzuav_update_deque_full(buzzvm_t vm) {
-     buzzvm_pushs(vm, buzzvm_string_register(vm, "deque_full", 1));
-     buzzvm_pushi(vm, static_cast<uint8_t>(deque_full));
-     buzzvm_gstore(vm);
-     return vm->state;
-  }
-
   void set_rssi(float value)
   {
    rssi = value;
-  }
-
-  int buzzuav_update_rssi(buzzvm_t vm) {
-     buzzvm_pushs(vm, buzzvm_string_register(vm, "rssi", 1));
-     buzzvm_pushf(vm, rssi);
-     buzzvm_gstore(vm);
-     return vm->state;
   }
 
   void set_raw_packet_loss(float value)
@@ -369,23 +355,9 @@ namespace buzzuav_closures{
    raw_packet_loss = value;
   }
 
-  int buzzuav_update_raw_packet_loss(buzzvm_t vm) {
-     buzzvm_pushs(vm, buzzvm_string_register(vm, "raw_packet_loss", 1));
-     buzzvm_pushf(vm, raw_packet_loss);
-     buzzvm_gstore(vm);
-     return vm->state;
-  }
-
   void set_filtered_packet_loss(float value)
   {
    filtered_packet_loss = value;
-  }
-
-  int buzzuav_update_filtered_packet_loss(buzzvm_t vm) {
-     buzzvm_pushs(vm, buzzvm_string_register(vm, "filtered_packet_loss", 1));
-     buzzvm_pushf(vm, filtered_packet_loss);
-     buzzvm_gstore(vm);
-     return vm->state;
   }
 
   void set_api_rssi(float value)
@@ -393,9 +365,29 @@ namespace buzzuav_closures{
    api_rssi = value;
   }
 
-  int buzzuav_update_api_rssi(buzzvm_t vm) {
+  int buzzuav_update_xbee_status(buzzvm_t vm) {
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "xbee_status", 1));
+     buzzvm_pusht(vm);
+     buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "deque_full", 1));
+     buzzvm_pushi(vm, static_cast<uint8_t>(deque_full));
+     buzzvm_tput(vm);
+	   buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "rssi", 1));
+     buzzvm_pushf(vm, rssi);
+     buzzvm_tput(vm);
+	   buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "raw_packet_loss", 1));
+     buzzvm_pushf(vm, raw_packet_loss);
+     buzzvm_tput(vm);
+	   buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "filtered_packet_loss", 1));
+     buzzvm_pushf(vm, filtered_packet_loss);
+     buzzvm_tput(vm);
+	   buzzvm_dup(vm);
      buzzvm_pushs(vm, buzzvm_string_register(vm, "api_rssi", 1));
      buzzvm_pushf(vm, api_rssi);
+     buzzvm_tput(vm);
      buzzvm_gstore(vm);
      return vm->state;
   }

@@ -681,6 +681,7 @@ int create_stig_tables() {
    	void update_sensors(){
 		/* Update sensors*/
 		buzzuav_closures::buzzuav_update_battery(VM);
+    buzzuav_closures::buzzuav_update_xbee_status(VM);
 	   	buzzuav_closures::buzzuav_update_prox(VM);
 	   	buzzuav_closures::buzzuav_update_currentpos(VM);
 	   	buzzuav_closures::update_neighbors(VM);
@@ -689,22 +690,11 @@ int create_stig_tables() {
 	   	buzzuav_closures::buzzuav_update_flight_status(VM);
 	}
 
-  void update_xbee_status(){
-  /* Update sensors*/
-    buzzuav_closures::buzzuav_update_deque_full(VM);
-    buzzuav_closures::buzzuav_update_rssi(VM);
-    buzzuav_closures::buzzuav_update_raw_packet_loss(VM);
-    buzzuav_closures::buzzuav_update_filtered_packet_loss(VM);
-    buzzuav_closures::buzzuav_update_api_rssi(VM);
-  }
-
 	void buzz_script_step() {
 		/*Process available messages*/
 		in_message_process();
 		/*Update sensors*/
 		update_sensors();
-
-    update_xbee_status();
 		/* Call Buzz step() function */
 		if(buzzvm_function_call(VM, "step", 0) != BUZZVM_STATE_READY) {
 		ROS_ERROR("%s: execution terminated abnormally: %s",

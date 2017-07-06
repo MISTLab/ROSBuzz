@@ -88,11 +88,10 @@ int buzzuav_gohome(buzzvm_t vm);
  * Updates battery information in Buzz
  */
 int buzzuav_update_battery(buzzvm_t vm);
-int buzzuav_update_deque_full(buzzvm_t vm);
-int buzzuav_update_rssi(buzzvm_t vm);
-int buzzuav_update_raw_packet_loss(buzzvm_t vm);
-int buzzuav_update_filtered_packet_loss(buzzvm_t vm);
-int buzzuav_update_api_rssi(buzzvm_t vm);
+/*
+ * Updates xbee_status information in Buzz
+ */
+int buzzuav_update_xbee_status(buzzvm_t vm);
 /*
  * Updates current position in Buzz
  */
