@@ -793,9 +793,9 @@ function step(){
 #
 function Reset(){
     m_vecNodes={}
-    m_vecNodes = parse_graph("${CMAKE_CURRENT_SOURCE_DIR}/buzz_scripts/include/Graph_drone.graph")#change the .graph file when necessary
+    m_vecNodes = parse_graph("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_drone.graph")#change the .graph file when necessary
     m_vecNodes_fixed={}
-    m_vecNodes_fixed=parse_graph_fixed("${CMAKE_CURRENT_SOURCE_DIR}/buzz_scripts/include/Graph_fixed.graph")
+    m_vecNodes_fixed=parse_graph_fixed("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_fixed.graph")
     m_nLabel=-1
 
 	#start listening
