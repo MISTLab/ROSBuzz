@@ -113,7 +113,7 @@ bool roscontroller::TriggerAPIRssi(const uint8_t short_id)
     srv_request.param_id = "trig_rssi_api_" + std::to_string(short_id);
   }
   mavros_msgs::ParamGet::Response srv_response;
-  if(xbeestatus_srv.call(srv_request, srv_response)){return false;}
+  if(!xbeestatus_srv.call(srv_request, srv_response)){return false;}
 
   return srv_response.success;
 }
@@ -130,7 +130,7 @@ bool roscontroller::GetAPIRssi(const uint8_t short_id, float &result)
     srv_request.param_id = "get_rssi_api_" + std::to_string(short_id);
   }
   mavros_msgs::ParamGet::Response srv_response;
-  if(xbeestatus_srv.call(srv_request, srv_response)){return false;}
+  if(!xbeestatus_srv.call(srv_request, srv_response)){return false;}
 
   result = srv_response.value.real;
   return srv_response.success;
@@ -148,7 +148,7 @@ bool roscontroller::GetRawPacketLoss(const uint8_t short_id, float &result)
     srv_request.param_id = "pl_raw_" + std::to_string(short_id);
   }
   mavros_msgs::ParamGet::Response srv_response;
-  if(xbeestatus_srv.call(srv_request, srv_response)){return false;}
+  if(!xbeestatus_srv.call(srv_request, srv_response)){return false;}
 
   result = srv_response.value.real;
   return srv_response.success;
@@ -166,7 +166,7 @@ bool roscontroller::GetFilteredPacketLoss(const uint8_t short_id, float &result)
     srv_request.param_id = "pl_filtered_" + std::to_string(short_id);
   }
   mavros_msgs::ParamGet::Response srv_response;
-  if(xbeestatus_srv.call(srv_request, srv_response)){return false;}
+  if(!xbeestatus_srv.call(srv_request, srv_response)){return false;}
 
   result = srv_response.value.real;
   return srv_response.success;
