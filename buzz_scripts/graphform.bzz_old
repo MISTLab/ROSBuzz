@@ -7,8 +7,6 @@ include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
 
-include "shapes.bzz"
-
 ROBOT_RADIUS=50
 ROBOT_DIAMETER=2.0*ROBOT_RADIUS
 ROBOT_SAFETYDIST=2.0*ROBOT_DIAMETER
@@ -24,18 +22,18 @@ m_MessageState={}#store received neighbour message
 m_MessageLable={}#store received neighbour message
 m_MessageReqLable={}#store received neighbour message
 m_MessageReqID={}#store received neighbour message
+m_MessageSide={}#store received neighbour message
 m_MessageResponse={}#store received neighbour message
 m_MessageRange={}#store received neighbour message
 m_MessageBearing={}#store received neighbour message
 m_neighbourCunt=0#used to cunt neighbours
 #Save message from one neighbour
-#the indexes are as State(received state),Lable(received lable),ReqLable,ReqID,Response,Range,Bearing
-m_receivedMessage={.State=s2i("STATE_FREE"),.Lable=0,.ReqLable=0,.ReqID=0,.Response=r2i("REQ_NONE"),.Range=0,.Bearing=0}
-
+#the indexes are as State(received state),Lable(received lable),ReqLable,ReqID,Side,Response,Range,Bearing
+m_receivedMessage={.State="STATE_FREE",.Lable=0,.ReqLable=0,.ReqID=0,.Side=0,.Response="REQ_NONE",.Range=0,.Bearing=0}
 #
 #Save the message to send
-#The keys of the talbe is State(current state),Lable(current lable),ReqLable(requested lable),ReqID(request id),Response(reply message{REQ_NONE,REQ_GRANTED,REQ_RESEND})
-m_selfMessage={.State=s2i("STATE_FREE"),.Lable=0,.ReqLable=0,.ReqID=0,.Response=r2i("REQ_NONE")}
+#The keys of the talbe is State(current state),Lable(current lable),ReqLable(requested lable),ReqID(request id),Side(side),Response(reply message{REQ_NONE,REQ_GRANTED,REQ_RESEND})
+m_selfMessage={.State="STATE_FREE",.Lable=0,.ReqLable=0,.ReqID=0,.Side=0,.Response="REQ_NONE"}
 
 #Current robot state
 m_eState="STATE_FREE"
@@ -49,11 +47,18 @@ m_navigation={.x=0,.y=0}
 #Debug vector to draw
 #CVector2 m_cDebugVector
 
+#Table of the nodes in the graph
+m_vecNodes={}
+m_vecNodes_fixed={}
+
 #Current label being requested or chosen (-1 when none)
 m_nLabel=-1
 
 #Label request id
 m_unRequestId=0
+
+#Side
+m_unbSide=0
 
 #Global bias, used to map local coordinate to global coordinate
 m_bias=0
@@ -82,9 +87,8 @@ step_cunt=0
 #virtual stigmergy
 v_tag = stigmergy.create(1)
 
-# Lennard-Jones parameters, may need change
-EPSILON    = 13.5 #the LJ parameter for other robots
-EPSILON_FOR1 = 10.0 #the LJ parameter for the robot labeled 1
+# Lennard-Jones parameters
+EPSILON    = 13.5 #3.5
 
 # Lennard-Jones interaction magnitude
 
@@ -126,64 +130,6 @@ function count(table,value){
 	return number
 }
 
-#map from int to state
-function i2s(value){
-	if(value==1){
-	return "STATE_FREE"
-	}
-	else if(value==2){
-	return "STATE_ASKING"
-	}
-	else if(value==3){
-	return "STATE_JOINING"
-	}
-	else if(value==4){
-	return "STATE_JOINED"
-	}
-	else if(value==5){
-	return "STATE_LOCK"
-	}
-}
-
-#map from state to int
-function s2i(value){
-	if(value=="STATE_FREE"){
-	return 1
-	}
-	else if(value=="STATE_ASKING"){
-	return 2
-	}
-	else if(value=="STATE_JOINING"){
-	return 3
-	}
-	else if(value=="STATE_JOINED"){
-	return 4
-	}
-	else if(value=="STATE_LOCK"){
-	return 5
-	}
-}
-#map form int to response
-function i2r(value){
-	if(value==1){
-	return "REQ_NONE"
-	}
-	else if(value==2){
-	return "REQ_GRANTED"
-	}
-	
-}
-#map from response to int
-function r2i(value){
-	if(value=="REQ_NONE"){
-	return 1
-	}
-	else if(value=="REQ_GRANTED"){
-	return 2
-	}
-}
-
-
 #
 #return the index of value
 #
@@ -212,25 +158,90 @@ function pow(base,exponent){
 	}
 }
 
+#
+# Graph parsing
+#
+function parse_graph(fname) {
+	# Graph data
+	var gd = {}
+	# Open the file
+	var fd = io.fopen(fname, "r")
+	if(not fd) {
+		log("Can't open '", fname, "'")
+		return nil
+	}
+	# Parse the file line by line
+	var rrec # Record read from line
+	var grec # Record parsed into graph
+	io.fforeach(fd, function(line) {
+		  # Parse file line
+		  rrec = string.split(line, "\t ")
+		  # Make record
+		  gd[string.toint(rrec[0])] = {      # The .graph file is stored according the sequence of lable, predecessor, distance, bearing
+			  .Lable = string.toint(rrec[0]),   # Lable of the point
+			  .Pred = string.toint(rrec[1]),   # Lable of its predecessor
+			  .distance = string.tofloat(rrec[2]), # distance to the predecessor
+			  .bearing = string.tofloat(rrec[3]), # bearing form the predecessor to this dot
+			  .State="UNASSIGNED",
+              .StateAge=0
+		  }})
+	# All done
+	io.fclose(fd)
+	return gd
+}
+
+function parse_graph_fixed(fname) {
+	# Graph data
+	var gd = {}
+	# Open the file
+	var fd = io.fopen(fname, "r")
+	if(not fd) {
+		log("Can't open '", fname, "'")
+		return nil
+	}
+	# Parse the file line by line
+	var rrec # Record read from line
+	var grec # Record parsed into graph
+	io.fforeach(fd, function(line) {
+		  # Parse file line
+		  rrec = string.split(line, "\t ")
+		  # Make record
+		  gd[string.toint(rrec[0])] = {      # The .graph file is stored according the sequence of lable, pre1, dis2pr1, pre2, ids2pre2, side
+			  .Pred1 = string.toint(rrec[1]),   # Pred 1 lable
+			  .Pred2 = string.toint(rrec[3]),   # Pred 2 lable
+			  .d1 = string.tofloat(rrec[2]), # Pred 1 distance
+			  .d2 = string.tofloat(rrec[4]), # Pred 2 distance
+			  #.S  = string.toint(rrec[5]),   # Side
+			  .Lable=string.toint(rrec[0]),
+			  .State="UNASSIGNED",
+              .StateAge=0              
+		  }})
+	# All done
+	io.fclose(fd)
+	return gd
+}
+
 
 function start_listen(){
-neighbors.listen("m",
+neighbors.listen("msg",
     function(vid,value,rid){
     #store the received message
     var temp_id=rid
-    m_receivedMessage.State=i2s(value.State)
+    m_receivedMessage.State=value.State
     m_receivedMessage.Lable=value.Lable
     m_receivedMessage.ReqLable=value.ReqLable
     m_receivedMessage.ReqID=value.ReqID
-    m_receivedMessage.Response=i2r(value.Response)
+    m_receivedMessage.Side=value.Side
+    m_receivedMessage.Response=value.Response
     Get_DisAndAzi(temp_id)
     #add the received message
     #
-    m_MessageState[m_neighbourCunt]=i2s(value.State)
+    m_MessageState[m_neighbourCunt]=value.State
     m_MessageLable[m_neighbourCunt]=value.Lable
     m_MessageReqLable[m_neighbourCunt]=value.ReqLable
     m_MessageReqID[m_neighbourCunt]=value.ReqID
-    m_MessageResponse[m_neighbourCunt]=i2r(value.Response)
+    m_MessageSide[m_neighbourCunt]=value.Side
+    m_MessageResponse[m_neighbourCunt]=value.Response
     m_MessageRange[m_neighbourCunt]=m_receivedMessage.Range
     m_MessageBearing[m_neighbourCunt]=m_receivedMessage.Bearing
     m_neighbourCunt=m_neighbourCunt+1
@@ -285,7 +296,7 @@ function UpdateNodeInfo(){
 function TransitionToFree(){
 	m_eState="STATE_FREE"
 	m_unWaitCount=m_unLabelSearchWaitTime
-	m_selfMessage.State=s2i(m_eState)
+	m_selfMessage.State=m_eState
 }
 
 #
@@ -295,7 +306,7 @@ function TransitionToAsking(un_label){
 	m_eState="STATE_ASKING"
 	m_nLabel=un_label
 	m_unRequestId=rng.uniform(0,65536)+id#don't know why the random numbers are the same, add id to make the ReqID different
-	m_selfMessage.State=s2i(m_eState)
+	m_selfMessage.State=m_eState
 	m_selfMessage.ReqLable=m_nLabel
 	m_selfMessage.ReqID=m_unRequestId
 
@@ -307,15 +318,15 @@ function TransitionToAsking(un_label){
 #
 function TransitionToJoining(){
 	m_eState="STATE_JOINING"
-	m_selfMessage.State=s2i(m_eState) 
+	m_selfMessage.State=m_eState 
 	m_selfMessage.Lable=m_nLabel
 	m_unWaitCount=m_unJoiningLostPeriod
 
-	neighbors.listen("r",
+	neighbors.listen("reply",
 		function(vid,value,rid){
 		#store the received message
-		if(value.Label==m_nLabel){
-		m_cMeToPred.GlobalBearing=value.Bearing
+		if(value.Lable==m_nLabel){
+		m_cMeToPred.GlobalBearing=value.GlobalBearing
 
 		}
 	})
@@ -327,10 +338,10 @@ function TransitionToJoining(){
 #
 function TransitionToJoined(){
 	m_eState="STATE_JOINED"
-	m_selfMessage.State=s2i(m_eState)
+	m_selfMessage.State=m_eState
 	m_selfMessage.Lable=m_nLabel
 	m_vecNodes[m_nLabel].State="ASSIGNED"
-	neighbors.ignore("r")
+	neighbors.ignore("reply")
 
 	#write statues
 	v_tag.put(m_nLabel, 1)
@@ -345,7 +356,7 @@ function TransitionToJoined(){
 #
 function TransitionToLock(){
 	m_eState="STATE_LOCK"
-	m_selfMessage.State=s2i(m_eState)
+	m_selfMessage.State=m_eState
 	m_selfMessage.Lable=m_nLabel
 	m_vecNodes[m_nLabel].State="ASSIGNED"
 
@@ -358,8 +369,7 @@ function TransitionToLock(){
 # Do free
 #
 function DoFree() {
-	m_selfMessage.State=s2i(m_eState)
-
+	m_selfMessage.State=m_eState
 	#wait for a while before looking for a lable
 	if(m_unWaitCount>0)
 		m_unWaitCount=m_unWaitCount-1
@@ -432,8 +442,7 @@ function DoFree() {
 		uav_moveto(0.0,0.0)
 	}
 	#set message
-	m_selfMessage.State=s2i(m_eState)
-
+	m_selfMessage.State=m_eState
 }
 
 
@@ -461,7 +470,7 @@ function DoAsking(){
 	if(psResponse==-1){
 		#no response, wait
 		m_unWaitCount=m_unWaitCount-1
-		m_selfMessage.State=s2i(m_eState)
+		m_selfMessage.State=m_eState
 		m_selfMessage.ReqLable=m_nLabel
 		m_selfMessage.ReqID=m_unRequestId
 		if(m_unWaitCount==0){
@@ -511,7 +520,7 @@ function DoJoining(){
 		#attention, m_cMeToPred.GlobalBearing is the bearing of self wrt pred in global coordinate
 		var S2PGlobalBearing=0
 
-		m_cMeToPred.GlobalBearing=LimitAngle(m_cMeToPred.GlobalBearing)
+		#m_cMeToPred.GlobalBearing=LimitAngle(m_cMeToPred.GlobalBearing)
 
 		if(m_cMeToPred.GlobalBearing>math.pi)
 			S2PGlobalBearing=m_cMeToPred.GlobalBearing-math.pi
@@ -525,7 +534,7 @@ function DoJoining(){
 		#change the vector to local coordinate of self
 		var S2Target_bearing=Angle(S2Target)
 		m_bias=m_cMeToPred.Bearing-S2PGlobalBearing
-		S2Target_bearing=S2Target_bearing+m_bias # commented out by DS'06/17
+		#S2Target_bearing=S2Target_bearing+m_bias # commented out by DS'06/17
 		m_navigation=math.vec2.newp(math.vec2.length(S2Target),S2Target_bearing)
 		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 
@@ -548,7 +557,7 @@ function DoJoining(){
 	}
 
 	#pack the communication package
-	m_selfMessage.State=s2i(m_eState)
+	m_selfMessage.State=m_eState
 	m_selfMessage.Lable=m_nLabel
 
 }
@@ -557,7 +566,7 @@ function DoJoining(){
 #Do joined
 #
 function DoJoined(){
-	m_selfMessage.State=s2i(m_eState)
+	m_selfMessage.State=m_eState
 	m_selfMessage.Lable=m_nLabel
 
 	#collect all requests
@@ -581,8 +590,8 @@ function DoJoined(){
 			JoiningLable=m_MessageLable[i]
 			if(m_nLabel==m_vecNodes[JoiningLable].Pred){
 				##joining wrt this dot,send the global bearing
-				var m_messageForJoining={.Label=JoiningLable,.Bearing=m_MessageBearing[i]-m_bias}
-				neighbors.broadcast("r",m_messageForJoining)
+				var m_messageForJoining={.Lable=JoiningLable,.GlobalBearing=m_MessageBearing[i]-m_bias}
+				neighbors.broadcast("reply",m_messageForJoining)
 			}
 		}
 		#if it is the pred
@@ -608,7 +617,7 @@ function DoJoined(){
 		var ReqID=m_MessageReqID[mapRequests[ReqIndex]]
 		m_selfMessage.ReqLable=ReqLable
 		m_selfMessage.ReqID=ReqID
-		m_selfMessage.Response=r2i("REQ_GRANTED")
+		m_selfMessage.Response="REQ_GRANTED"
 	}
 
 	#lost pred, wait for some time and transit to free
@@ -629,16 +638,16 @@ function DoJoined(){
 	#check if should to transists to lock
 
 
-#	if(v_tag.size()==ROBOTS){
-#		TransitionToLock()
-#	}
+	if(v_tag.size()==ROBOTS){
+		TransitionToLock()
+	}
 }
 
 #
 #Do Lock
 #
 function DoLock(){
-m_selfMessage.State=s2i(m_eState)
+m_selfMessage.State=m_eState
 m_selfMessage.Lable=m_nLabel
 
 m_navigation.x=0.0
@@ -666,14 +675,14 @@ i=i+1
 
 #calculate motion vection
 if(m_nLabel==0){
-	m_navigation.x=0.0#change value so that robot 0 will move
+	m_navigation.x=0.0
 	m_navigation.y=0.0
 	log(";",m_nLabel,";",0)
 }
 
 if(m_nLabel==1){
 	var tempvec={.Range=0.0,.Bearing=0.0}
-	tempvec.Range=FlockInteraction(mypred1.range,m_vecNodes_fixed[m_nLabel].d1,EPSILON_FOR1)
+	tempvec.Range=FlockInteraction(mypred1.range,m_vecNodes_fixed[m_nLabel].d1,10)
 	#tempvec.Range=mypred1.range-m_vecNodes_fixed[m_nLabel].d1
 	tempvec.Bearing=mypred1.bearing
 	m_navigation=math.vec2.newp(tempvec.Range,tempvec.Bearing)
@@ -689,14 +698,14 @@ if(m_nLabel>1){
 	#cDir2=math.vec2.newp((mypred2.range-m_vecNodes_fixed[m_nLabel].d2),mypred2.bearing)
 	cDir=math.vec2.add(cDir1,cDir2)
 
-	cDir=math.vec2.scale(cDir,5)
+	cDir=math.vec2.scale(cDir,100)
 	m_navigation.x=cDir.x
 	m_navigation.y=cDir.y
 	#log(m_nLabel,"error:",mypred1.range-m_vecNodes_fixed[m_nLabel].d1,"and",mypred2.range-m_vecNodes_fixed[m_nLabel].d2)
 	log(";",m_nLabel,";",mypred1.range-m_vecNodes_fixed[m_nLabel].d1)
 }
 #move
-uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+uav_moveto(m_navigation.x,m_navigation.y)
 }
 
 function action(){
@@ -732,7 +741,7 @@ function step(){
 	#update the graph
 	UpdateNodeInfo()
 	#reset message package to be sent
-	m_selfMessage={.State=s2i("STATE_FREE"),.Lable=0,.ReqLable=0,.ReqID=0,.Response=r2i("REQ_NONE")}
+	m_selfMessage={.State="STATE_FREE",.Lable=0,.ReqLable=0,.ReqID=0,.Side=0,.Response="REQ_NONE"}
 	#
 	#act according to current state
 	#
@@ -760,7 +769,7 @@ function step(){
 	#navigation
 
 	#broadcast messag
-	neighbors.broadcast("m",m_selfMessage)
+	neighbors.broadcast("msg",m_selfMessage)
 
 	#
 	#clean message storage
@@ -768,6 +777,7 @@ function step(){
 	m_MessageLable={}#store received neighbour message
 	m_MessageReqLable={}#store received neighbour message
 	m_MessageReqID={}#store received neighbour message
+	m_MessageSide={}#store received neighbour message
 	m_MessageResponse={}#store received neighbour message
 	m_MessageRange={}#store received neighbour message
 	m_MessageBearing={}#store received neighbour message
@@ -782,8 +792,8 @@ function step(){
 # Executed when reset
 #
 function Reset(){
-    #m_vecNodes={}
-    #m_vecNodes = parse_graph("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_drone.graph")#change the .graph file when necessary
+    m_vecNodes={}
+    m_vecNodes = parse_graph("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_drone.graph")#change the .graph file when necessary
     m_vecNodes_fixed={}
     m_vecNodes_fixed=parse_graph_fixed("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_fixed.graph")
     m_nLabel=-1
@@ -812,5 +822,5 @@ function destroy() {
 	uav_moveto(0.0,0.0)
 	m_vecNodes={}
 	#stop listening 
-	neighbors.ignore("m")
+	neighbors.ignore("msg")
 }
