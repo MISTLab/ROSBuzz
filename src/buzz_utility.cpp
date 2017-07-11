@@ -182,6 +182,7 @@ namespace buzz_utility{
    			uint16_t* data= u64_cvt_u16((uint64_t)first_INmsg[0]);
 			/*Size is at first 2 bytes*/
    			uint16_t size=data[0]*sizeof(uint64_t);
+        uint16_t robot_id = data[1];
    			delete[] data;
 			/*size and robot id read*/
 	   		size_t tot = sizeof(uint32_t);
@@ -195,6 +196,7 @@ namespace buzz_utility{
 			 			/* Append message to the Buzz input message queue */
 			 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
 			    			buzzinmsg_queue_append(VM,
+                        robot_id,
 				                buzzmsg_payload_frombuffer(first_INmsg +tot, unMsgSize));
 			    			tot += unMsgSize;
 			 			}
