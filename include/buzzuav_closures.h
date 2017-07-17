@@ -14,8 +14,8 @@
 
 namespace buzzuav_closures{
 	typedef enum {
-      		COMMAND_NIL = 0,     // Dummy command
-      		COMMAND_TAKEOFF,     // Take off
+		COMMAND_NIL = 0,     // Dummy command
+		COMMAND_TAKEOFF,     // Take off
 		COMMAND_LAND,
 		COMMAND_GOHOME,
 		COMMAND_ARM,
@@ -47,6 +47,11 @@ void rc_set_goto(double pos[]);
 void rc_call(int rc_cmd);
 /* sets the battery state */
 void set_battery(float voltage,float current,float remaining);
+void set_deque_full(bool state);
+void set_rssi(float value);
+void set_raw_packet_loss(float value);
+void set_filtered_packet_loss(float value);
+void set_api_rssi(float value);
 /* sets current position */
 void set_currentpos(double latitude, double longitude, double altitude);
 /*retuns the current go to position */
@@ -64,7 +69,7 @@ void set_obstacle_dist(float dist[]);
  */
 int buzzuav_takeoff(buzzvm_t vm);
 /*
- * Arm command from Buzz 
+ * Arm command from Buzz
  */
 int buzzuav_arm(buzzvm_t vm);
 /*
@@ -84,12 +89,17 @@ int buzzuav_gohome(buzzvm_t vm);
  */
 int buzzuav_update_battery(buzzvm_t vm);
 /*
+ * Updates xbee_status information in Buzz
+ */
+int buzzuav_update_xbee_status(buzzvm_t vm);
+/*
  * Updates current position in Buzz
  */
 int buzzuav_update_currentpos(buzzvm_t vm);
-int buzzuav_adduserRB(buzzvm_t vm);
+int buzzuav_update_targets(buzzvm_t vm);
+int buzzuav_addtargetRB(buzzvm_t vm);
 /*
- * Updates flight status and rc command in Buzz, put it in a tabel to acess it 
+ * Updates flight status and rc command in Buzz, put it in a tabel to acess it
  * use flight.status for flight status
  * use flight.rc_cmd for current rc cmd
  */

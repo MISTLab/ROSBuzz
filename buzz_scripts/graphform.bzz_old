@@ -7,12 +7,7 @@ include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
 
-#
-#Constant parameters, need to be adjust
-#parameters for set_wheels
-m_sWheelTurningParams={.MaxSpeed=1.0}
-
-ROBOT_RADIUS=0.5
+ROBOT_RADIUS=50
 ROBOT_DIAMETER=2.0*ROBOT_RADIUS
 ROBOT_SAFETYDIST=2.0*ROBOT_DIAMETER
 
@@ -93,39 +88,22 @@ step_cunt=0
 v_tag = stigmergy.create(1)
 
 # Lennard-Jones parameters
-EPSILON    = 3.5 #3.5
+EPSILON    = 13.5 #3.5
 
 # Lennard-Jones interaction magnitude
 
 function FlockInteraction(dist,target,epsilon){
-var mag = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
-return mag
-}
-
-function Norm(vector) {
-  var l = math.vec2.length(vector)
-  return {
-    .x = vector.x / l,
-    .y = vector.y / l
-  }
+	var mag = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+	return mag
 }
 
 function LimitAngle(angle){
-if(angle>2*math.pi)
-return angle-2*math.pi
-else if (angle<0)
-return angle+2*math.pi
-else
-return angle
-}
-
-#
-# Calculates the length of the given vector2.
-# PARAM v: The vector2.
-# RETURN: The length of the vector.
-#
-Length = function(v) {
-  return math.sqrt(v.x * v.x + v.y * v.y)
+	if(angle>2*math.pi)
+		return angle-2*math.pi
+	else if (angle<0)
+		return angle+2*math.pi
+	else
+		return angle
 }
 
 #
@@ -141,43 +119,43 @@ Angle = function(v) {
 #return the number of value in table
 #
 function count(table,value){
-var number=0
-var i=0
-while(i<size(table)){
-if(table[i]==value){
-number=number+1
-}
-i=i+1
-}
-return number
+	var number=0
+	var i=0
+	while(i<size(table)){
+		if(table[i]==value){
+			number=number+1
+		}
+		i=i+1
+	}
+	return number
 }
 
 #
 #return the index of value
 #
 function find(table,value){
-var index=nil
-var i=0
-while(i<size(table)){
-if(table[i]==value)
-index=i
-i=i+1
-}
-return index
+	var index=nil
+	var i=0
+	while(i<size(table)){
+		if(table[i]==value)
+			index=i
+		i=i+1
+	}
+	return index
 }
 
 function pow(base,exponent){
-var i=0
-var renturn_val=1
-if(exponent==0)
-return 1
-else{
-    while(i<exponent){
-    renturn_val=renturn_val*base
-    i=i+1
-    }
-    return renturn_val
-    }
+	var i=0
+	var renturn_val=1
+	if(exponent==0)
+		return 1
+	else{
+		while(i<exponent){
+			renturn_val=renturn_val*base
+			i=i+1
+		}
+		return renturn_val
+	}
 }
 
 #
@@ -272,86 +250,86 @@ neighbors.listen("msg",
 #
 #Function used to get the station info of the sender of the message
 function Get_DisAndAzi(id){
-neighbors.foreach(
-  function(rid, data) {
-	if(rid==id){
-    m_receivedMessage.Range=data.distance*100.0
-    m_receivedMessage.Bearing=data.azimuth
-    }
-    })
+	neighbors.foreach(
+	function(rid, data) {
+		if(rid==id){
+		m_receivedMessage.Range=data.distance*100.0
+		m_receivedMessage.Bearing=data.azimuth
+		}
+		})
 }
 
 #
 #Update node info according to neighbour robots
 #
 function UpdateNodeInfo(){
-#Collect informaiton
-#Update information
-var i=0
+	#Collect informaiton
+	#Update information
+	var i=0
 
-while(i<m_neighbourCunt){
-if(m_MessageState[i]=="STATE_JOINED"){
-	m_vecNodes[m_MessageLable[i]].State="ASSIGNED"
-	m_vecNodes[m_MessageLable[i]].StateAge=m_unJoiningLostPeriod
-}
-else if(m_MessageState[i]=="STATE_JOINING"){
-	m_vecNodes[m_MessageLable[i]].State="ASSIGNING"
-	m_vecNodes[m_MessageLable[i]].StateAge=m_unJoiningLostPeriod
-}
-i=i+1
-}
-#Forget old information
-i=0
-while(i<size(m_vecNodes)){
-	if((m_vecNodes[i].StateAge>0) and (m_vecNodes[i].State=="ASSIGNING")){
-	m_vecNodes[i].StateAge=m_vecNodes[i].StateAge-1
-	if(m_vecNodes[i].StateAge==0)
-		m_vecNodes[i].State="UNASSIGNED"
+	while(i<m_neighbourCunt){
+		if(m_MessageState[i]=="STATE_JOINED"){
+			m_vecNodes[m_MessageLable[i]].State="ASSIGNED"
+			m_vecNodes[m_MessageLable[i]].StateAge=m_unJoiningLostPeriod
+		}
+		else if(m_MessageState[i]=="STATE_JOINING"){
+			m_vecNodes[m_MessageLable[i]].State="ASSIGNING"
+			m_vecNodes[m_MessageLable[i]].StateAge=m_unJoiningLostPeriod
+		}
+		i=i+1
 	}
-i=i+1
-}
+	#Forget old information
+	i=0
+	while(i<size(m_vecNodes)){
+		if((m_vecNodes[i].StateAge>0) and (m_vecNodes[i].State=="ASSIGNING")){
+		m_vecNodes[i].StateAge=m_vecNodes[i].StateAge-1
+		if(m_vecNodes[i].StateAge==0)
+			m_vecNodes[i].State="UNASSIGNED"
+		}
+	i=i+1
+	}
 }
 
 #
 #Transistion to state free
 #
 function TransitionToFree(){
-m_eState="STATE_FREE"
-m_unWaitCount=m_unLabelSearchWaitTime
-m_selfMessage.State=m_eState
+	m_eState="STATE_FREE"
+	m_unWaitCount=m_unLabelSearchWaitTime
+	m_selfMessage.State=m_eState
 }
 
 #
 #Transistion to state asking
 #
 function TransitionToAsking(un_label){
-m_eState="STATE_ASKING"
-m_nLabel=un_label
-m_unRequestId=rng.uniform(0,65536)+id#don't know why the random numbers are the same, add id to make the ReqID different
-m_selfMessage.State=m_eState
-m_selfMessage.ReqLable=m_nLabel
-m_selfMessage.ReqID=m_unRequestId
+	m_eState="STATE_ASKING"
+	m_nLabel=un_label
+	m_unRequestId=rng.uniform(0,65536)+id#don't know why the random numbers are the same, add id to make the ReqID different
+	m_selfMessage.State=m_eState
+	m_selfMessage.ReqLable=m_nLabel
+	m_selfMessage.ReqID=m_unRequestId
 
-m_unWaitCount=m_unResponseTimeThreshold
+	m_unWaitCount=m_unResponseTimeThreshold
 }
 
 #
 #Transistion to state joining
 #
 function TransitionToJoining(){
-m_eState="STATE_JOINING"
-m_selfMessage.State=m_eState 
-m_selfMessage.Lable=m_nLabel
-m_unWaitCount=m_unJoiningLostPeriod
+	m_eState="STATE_JOINING"
+	m_selfMessage.State=m_eState 
+	m_selfMessage.Lable=m_nLabel
+	m_unWaitCount=m_unJoiningLostPeriod
 
-neighbors.listen("reply",
-    function(vid,value,rid){
-    #store the received message
-    if(value.Lable==m_nLabel){
-	m_cMeToPred.GlobalBearing=value.GlobalBearing
+	neighbors.listen("reply",
+		function(vid,value,rid){
+		#store the received message
+		if(value.Lable==m_nLabel){
+		m_cMeToPred.GlobalBearing=value.GlobalBearing
 
-	}
-})
+		}
+	})
 
 }
 
@@ -359,32 +337,32 @@ neighbors.listen("reply",
 #Transistion to state joined
 #
 function TransitionToJoined(){
-m_eState="STATE_JOINED"
-m_selfMessage.State=m_eState
-m_selfMessage.Lable=m_nLabel
-m_vecNodes[m_nLabel].State="ASSIGNED"
-neighbors.ignore("reply")
+	m_eState="STATE_JOINED"
+	m_selfMessage.State=m_eState
+	m_selfMessage.Lable=m_nLabel
+	m_vecNodes[m_nLabel].State="ASSIGNED"
+	neighbors.ignore("reply")
 
-#write statues
-v_tag.put(m_nLabel, 1)
+	#write statues
+	v_tag.put(m_nLabel, 1)
 
-m_navigation.x=0.0
-m_navigation.y=0.0
-uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	m_navigation.x=0.0
+	m_navigation.y=0.0
+	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 }
 
 #
 #Transistion to state Lock, lock the current formation
 #
 function TransitionToLock(){
-m_eState="STATE_LOCK"
-m_selfMessage.State=m_eState
-m_selfMessage.Lable=m_nLabel
-m_vecNodes[m_nLabel].State="ASSIGNED"
+	m_eState="STATE_LOCK"
+	m_selfMessage.State=m_eState
+	m_selfMessage.Lable=m_nLabel
+	m_vecNodes[m_nLabel].State="ASSIGNED"
 
-m_navigation.x=0.0
-m_navigation.y=0.0
-uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	m_navigation.x=0.0
+	m_navigation.y=0.0
+	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 }
 
 #
@@ -554,19 +532,18 @@ function DoJoining(){
 		#the vector from self to target in global coordinate
 		var S2Target=math.vec2.add(S2Pred,P2Target)
 		#change the vector to local coordinate of self
-		var S2Target_dis=Length(S2Target)
 		var S2Target_bearing=Angle(S2Target)
 		m_bias=m_cMeToPred.Bearing-S2PGlobalBearing
-		S2Target_bearing=S2Target_bearing+m_bias
-		m_navigation=math.vec2.newp(S2Target_dis,S2Target_bearing)
+		#S2Target_bearing=S2Target_bearing+m_bias # commented out by DS'06/17
+		m_navigation=math.vec2.newp(math.vec2.length(S2Target),S2Target_bearing)
 		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 
 		
 
 		#test if is already in desired position
 		if(math.abs(S2Target.x)<m_fTargetDistanceTolerance and math.abs(S2Target.y)<m_fTargetDistanceTolerance){
-		log(S2Target_dis,S2Target_bearing)	
-			#TransitionToJoined()
+			#log(S2Target_dis,S2Target_bearing)	
+			TransitionToJoined()
 			return
 		}
 	} else{ #miss pred, there is a change the another robot block the sight, keep moving as before for sometime
@@ -662,7 +639,7 @@ function DoJoined(){
 
 
 	if(v_tag.size()==ROBOTS){
-		#TransitionToLock()
+		TransitionToLock()
 	}
 }
 
@@ -728,11 +705,12 @@ if(m_nLabel>1){
 	log(";",m_nLabel,";",mypred1.range-m_vecNodes_fixed[m_nLabel].d1)
 }
 #move
-uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+uav_moveto(m_navigation.x,m_navigation.y)
 }
 
 function action(){
   statef=action
+  UAVSTATE="GRAPH"
 }
 
 #
@@ -744,7 +722,7 @@ function init() {
 	#
 	m_unResponseTimeThreshold=10
 	m_unLabelSearchWaitTime=10
-	m_fTargetDistanceTolerance=150
+	m_fTargetDistanceTolerance=10
 	m_unJoiningLostPeriod=100
 
 	#
@@ -767,7 +745,7 @@ function step(){
 	#
 	#act according to current state
 	#
-	if(UAVSTATE=="IDLE"){
+	if(UAVSTATE=="GRAPH"){
 		if(m_eState=="STATE_FREE")
 			DoFree()
 		else if(m_eState=="STATE_ESCAPE")
@@ -815,9 +793,9 @@ function step(){
 #
 function Reset(){
     m_vecNodes={}
-    m_vecNodes = parse_graph("/home/dave/ROS_WS/src/rosbuzz/script/Graph_drone.graph")#change the .graph file when necessary
+    m_vecNodes = parse_graph("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_drone.graph")#change the .graph file when necessary
     m_vecNodes_fixed={}
-    m_vecNodes_fixed=parse_graph_fixed("/home/dave/ROS_WS/src/rosbuzz/script/Graph_fixed.graph")
+    m_vecNodes_fixed=parse_graph_fixed("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_fixed.graph")
     m_nLabel=-1
 
 	#start listening
