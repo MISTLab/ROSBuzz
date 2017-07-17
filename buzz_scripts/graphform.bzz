@@ -7,7 +7,7 @@ include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
 
-include "shapes.bzz"
+include "graphs/shapes_square.bzz"
 
 ROBOT_RADIUS=50
 ROBOT_DIAMETER=2.0*ROBOT_RADIUS
@@ -51,6 +51,10 @@ m_navigation={.x=0,.y=0}
 
 #Current label being requested or chosen (-1 when none)
 m_nLabel=-1
+m_messageID={}
+#neighbor distance to lock the current pattern
+lock_neighbor_id={}
+lock_neighbor_dis={}
 
 #Label request id
 m_unRequestId=0
@@ -212,27 +216,128 @@ function pow(base,exponent){
 	}
 }
 
+#
+#pack message into 1 number
+#
+function packmessage(send_table){
+    var send_value
+    send_value=10000*send_table.State+1000*send_table.Lable+100*send_table.ReqLable+10*send_table.ReqID+send_table.Response
+    return send_value
+}
+#
+#pack guide message into 1 number
+#
+function pack_guide_msg(send_table){
+    var send_value
+    var r_id=send_table.Label#id of target robot
+    var pon#positive or negative ,0 postive, 1 negative
+    if(send_table.Bearing>=0){
+    pon=0
+    }
+    else{
+    pon=1
+    }
+    var b=math.abs(send_table.Bearing) 
+    send_value=r_id*1000+pon*100+b
+    return send_value
+}
+#
+#unpack message
+#
+function unpackmessage(recv_value){
+    var wan=(recv_value-recv_value%10000)/10000
+    recv_value=recv_value-wan*10000
+    var qian=(recv_value-recv_value%1000)/1000
+    recv_value=recv_value-qian*1000
+    var bai=(recv_value-recv_value%100)/100
+    recv_value=recv_value-bai*100
+    var shi=(recv_value-recv_value%10)/10
+    recv_value=recv_value-shi*10
+    var ge=recv_value
+    var return_table={.State=0.0,.Lable=0.0,.Reqlable=0.0,.ReqID=0.0,.Response=0.0}
+    return_table.State=wan
+    return_table.Lable=qian
+    return_table.ReqLable=bai
+    return_table.ReqID=shi
+    return_table.Response=ge
+    return return_table
+}
+#
+#unpack guide message
+#
+function unpack_guide_msg(recv_value){
+log(id,"I pass value=",recv_value)
+    var qian=(recv_value-recv_value%1000)/1000
+    recv_value=recv_value-qian*1000
+    var bai=(recv_value-recv_value%100)/100
+    recv_value=recv_value-bai*100
+    var b=recv_value
+    var return_table={.Label=0.0,.Bearing=0.0}
+    return_table.Label=qian
+    if(bai==1){
+    b=b*-1.0
+    }
+    return_table.Bearing=b
+    return return_table
+}
+
+#get the target distance to neighbr nei_id
+function target4label(nei_id){
+    var return_val="miss"
+    var i=0
+    while(i<size(lock_neighbor_id)){
+    if(lock_neighbor_id[i]==nei_id){
+    return_val=lock_neighbor_dis[i]
+    }
+    i=i+1
+    }
+    return return_val
+}
+#calculate LJ vector for neibhor stored in i
+function LJ_vec(i){
+    var dis=m_MessageRange[i]
+    var bearing=m_MessageBearing[i]
+    var nei_id=m_messageID[i]
+    var target=target4label(nei_id)
+    var cDir={.x=0.0,.y=0.0}
+    if(target!="miss"){
+    cDir=math.vec2.newp(FlockInteraction(dis,target,EPSILON),bearing)   
+    }
+        #log(id,"dis=",dis,"target=",target,"label=",nei_id)
+    return cDir
+}
+#calculate the motion vector
+function motion_vector(){
+    var i=0
+    var m_vector={.x=0.0,.y=0.0}
+    while(i<m_neighbourCunt){
+    #calculate and add the motion vector
+    m_vector=math.vec2.add(m_vector,LJ_vec(i))
+    #log(id,"x=",m_vector.x,"y=",m_vector.y)    
+    i=i+1
+    }
+    m_vector=math.vec2.scale(m_vector,1000.0)
+    return m_vector
+}
+
 
 function start_listen(){
 neighbors.listen("m",
     function(vid,value,rid){
     #store the received message
     var temp_id=rid
-    m_receivedMessage.State=i2s(value.State)
-    m_receivedMessage.Lable=value.Lable
-    m_receivedMessage.ReqLable=value.ReqLable
-    m_receivedMessage.ReqID=value.ReqID
-    m_receivedMessage.Response=i2r(value.Response)
+    var recv_val=unpackmessage(value)
     Get_DisAndAzi(temp_id)
     #add the received message
     #
-    m_MessageState[m_neighbourCunt]=i2s(value.State)
-    m_MessageLable[m_neighbourCunt]=value.Lable
-    m_MessageReqLable[m_neighbourCunt]=value.ReqLable
-    m_MessageReqID[m_neighbourCunt]=value.ReqID
-    m_MessageResponse[m_neighbourCunt]=i2r(value.Response)
+    m_MessageState[m_neighbourCunt]=i2s(recv_val.State)
+    m_MessageLable[m_neighbourCunt]=recv_val.Lable
+    m_MessageReqLable[m_neighbourCunt]=recv_val.ReqLable
+    m_MessageReqID[m_neighbourCunt]=recv_val.ReqID
+    m_MessageResponse[m_neighbourCunt]=i2r(recv_val.Response)
     m_MessageRange[m_neighbourCunt]=m_receivedMessage.Range
     m_MessageBearing[m_neighbourCunt]=m_receivedMessage.Bearing
+	m_messageID[m_neighbourCunt]=rid
     m_neighbourCunt=m_neighbourCunt+1
 })
 }
@@ -294,7 +399,7 @@ function TransitionToFree(){
 function TransitionToAsking(un_label){
 	m_eState="STATE_ASKING"
 	m_nLabel=un_label
-	m_unRequestId=rng.uniform(0,65536)+id#don't know why the random numbers are the same, add id to make the ReqID different
+	m_unRequestId=id	#don't know why the random numbers are the same, add id to make the ReqID different
 	m_selfMessage.State=s2i(m_eState)
 	m_selfMessage.ReqLable=m_nLabel
 	m_selfMessage.ReqID=m_unRequestId
@@ -312,13 +417,14 @@ function TransitionToJoining(){
 	m_unWaitCount=m_unJoiningLostPeriod
 
 	neighbors.listen("r",
-		function(vid,value,rid){
-		#store the received message
-		if(value.Label==m_nLabel){
-		m_cMeToPred.GlobalBearing=value.Bearing
-
-		}
-	})
+        function(vid,value,rid){
+        var recv_table={.Label=0,.Bearing=0.0}      
+        recv_table=unpack_guide_msg(value)
+        #store the received message
+        if(recv_table.Label==m_nLabel){
+        m_cMeToPred.GlobalBearing=recv_table.Bearing
+        }
+    })
 
 }
 
@@ -343,15 +449,26 @@ function TransitionToJoined(){
 #
 #Transistion to state Lock, lock the current formation
 #
+#
+#Transistion to state Lock, lock the current formation
+#
 function TransitionToLock(){
-	m_eState="STATE_LOCK"
-	m_selfMessage.State=s2i(m_eState)
-	m_selfMessage.Lable=m_nLabel
-	m_vecNodes[m_nLabel].State="ASSIGNED"
-
-	m_navigation.x=0.0
-	m_navigation.y=0.0
-	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+    m_eState="STATE_LOCK"
+    m_selfMessage.State=s2i(m_eState)
+    m_selfMessage.Lable=m_nLabel
+    m_vecNodes[m_nLabel].State="ASSIGNED"
+    #record neighbor distance
+lock_neighbor_id={}
+lock_neighbor_dis={}
+var i=0
+while(i<m_neighbourCunt){
+  lock_neighbor_id[i]=m_messageID[i]
+  lock_neighbor_dis[i]=m_MessageRange[i]
+  i=i+1
+}
+    m_navigation.x=0.0
+    m_navigation.y=0.0
+    goto(m_navigation.x,m_navigation.y)
 }
 
 #
@@ -582,7 +699,7 @@ function DoJoined(){
 			if(m_nLabel==m_vecNodes[JoiningLable].Pred){
 				##joining wrt this dot,send the global bearing
 				var m_messageForJoining={.Label=JoiningLable,.Bearing=m_MessageBearing[i]-m_bias}
-				neighbors.broadcast("r",m_messageForJoining)
+				neighbors.broadcast("r",pack_guide_msg(m_messageForJoining))
 			}
 		}
 		#if it is the pred
@@ -629,9 +746,9 @@ function DoJoined(){
 	#check if should to transists to lock
 
 
-#	if(v_tag.size()==ROBOTS){
-#		TransitionToLock()
-#	}
+	if(v_tag.size()==ROBOTS){
+		TransitionToLock()
+	}
 }
 
 #
@@ -640,63 +757,19 @@ function DoJoined(){
 function DoLock(){
 m_selfMessage.State=s2i(m_eState)
 m_selfMessage.Lable=m_nLabel
-
 m_navigation.x=0.0
 m_navigation.y=0.0
-
-#collect preds information
-var i=0
-var mypred1={.range=0,.bearing=0}
-var mypred2={.range=0,.bearing=0}
-
-while(i<m_neighbourCunt){
-
-	#is the first predecessor
-	if(m_MessageLable[i]==m_vecNodes_fixed[m_nLabel].Pred1){
-		mypred1.range=m_MessageRange[i]
-		mypred1.bearing=m_MessageBearing[i]
-	}
-	#is the second predecessor
-	if(m_MessageLable[i]==m_vecNodes_fixed[m_nLabel].Pred2){
-		mypred2.range=m_MessageRange[i]
-		mypred2.bearing=m_MessageBearing[i]
-	}
-i=i+1
-}
-
 #calculate motion vection
 if(m_nLabel==0){
-	m_navigation.x=0.0#change value so that robot 0 will move
-	m_navigation.y=0.0
-	log(";",m_nLabel,";",0)
+    m_navigation.x=0.0#change value so that robot 0 will move
+    m_navigation.y=0.0
+    log(";",m_nLabel,";",0)
 }
-
-if(m_nLabel==1){
-	var tempvec={.Range=0.0,.Bearing=0.0}
-	tempvec.Range=FlockInteraction(mypred1.range,m_vecNodes_fixed[m_nLabel].d1,EPSILON_FOR1)
-	#tempvec.Range=mypred1.range-m_vecNodes_fixed[m_nLabel].d1
-	tempvec.Bearing=mypred1.bearing
-	m_navigation=math.vec2.newp(tempvec.Range,tempvec.Bearing)
-	log(";",m_nLabel,";",mypred1.range-m_vecNodes_fixed[m_nLabel].d1)
-}
-if(m_nLabel>1){
-	var cDir={.x=0.0,.y=0.0}
-	var cDir1={.x=0.0,.y=0.0}
-	var cDir2={.x=0.0,.y=0.0}
-	cDir1=math.vec2.newp(FlockInteraction(mypred1.range,m_vecNodes_fixed[m_nLabel].d1,EPSILON),mypred1.bearing)	
-	cDir2=math.vec2.newp(FlockInteraction(mypred2.range,m_vecNodes_fixed[m_nLabel].d2,EPSILON),mypred2.bearing)
-	#cDir1=math.vec2.newp((mypred1.range-m_vecNodes_fixed[m_nLabel].d1),mypred1.bearing)	
-	#cDir2=math.vec2.newp((mypred2.range-m_vecNodes_fixed[m_nLabel].d2),mypred2.bearing)
-	cDir=math.vec2.add(cDir1,cDir2)
-
-	cDir=math.vec2.scale(cDir,5)
-	m_navigation.x=cDir.x
-	m_navigation.y=cDir.y
-	#log(m_nLabel,"error:",mypred1.range-m_vecNodes_fixed[m_nLabel].d1,"and",mypred2.range-m_vecNodes_fixed[m_nLabel].d2)
-	log(";",m_nLabel,";",mypred1.range-m_vecNodes_fixed[m_nLabel].d1)
+if(m_nLabel!=0){
+    m_navigation=motion_vector()
 }
 #move
-uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+goto(m_navigation.x,m_navigation.y)
 }
 
 function action(){
@@ -760,7 +833,7 @@ function step(){
 	#navigation
 
 	#broadcast messag
-	neighbors.broadcast("m",m_selfMessage)
+	neighbors.broadcast("m",packmessage(m_selfMessage))
 
 	#
 	#clean message storage
@@ -784,8 +857,8 @@ function step(){
 function Reset(){
     #m_vecNodes={}
     #m_vecNodes = parse_graph("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_drone.graph")#change the .graph file when necessary
-    m_vecNodes_fixed={}
-    m_vecNodes_fixed=parse_graph_fixed("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_fixed.graph")
+#    m_vecNodes_fixed={}
+#    m_vecNodes_fixed=parse_graph_fixed("/home/dave/ROS_WS/src/rosbuzz/buzz_scripts/include/Graph_fixed.graph")
     m_nLabel=-1
 
 	#start listening
