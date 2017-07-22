@@ -1,6 +1,6 @@
 #Table of the nodes in the graph
 m_vecNodes={}
-m_vecNodes_fixed={}
+function Read_Graph(){
 m_vecNodes[0] = {      # The .graph file is stored according the sequence of lable, predecessor, distance, bearing
     .Lable = 0,   # Lable of the point
     .Pred = -1,   # Lable of its predecessor
@@ -30,7 +30,7 @@ m_vecNodes[2] = {
 }
 m_vecNodes[3] = {
     .Lable = 3, 
-    .Pred = 1,
+    .Pred = 0,
     .distance = 2000,
     .bearing = 4.71,
     .height = 9000,
@@ -54,4 +54,5 @@ m_vecNodes[5] = {
     .height = 14000,
     .State="UNASSIGNED",
     .StateAge=0
+}
 }

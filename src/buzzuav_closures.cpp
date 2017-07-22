@@ -24,7 +24,12 @@ namespace buzzuav_closures{
 	static int rc_cmd=0;
 	static int buzz_cmd=0;
 	static float height=0;
-	
+  static bool deque_full = false;
+  static float rssi = 0.0;
+  static float raw_packet_loss = 0.0;
+  static float filtered_packet_loss = 0.0;
+  static float api_rssi = 0.0;
+
 	std::map< int,  buzz_utility::RB_struct> targets_map;
 	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
 
@@ -95,7 +100,7 @@ namespace buzzuav_closures{
 			return x;
 		}
 
-	void rb_from_gps(double nei[], double out[], double cur[]){   
+	void rb_from_gps(double nei[], double out[], double cur[]){
        		double d_lon = nei[1] - cur[1];
        		double d_lat = nei[0] - cur[0];
         	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
@@ -148,7 +153,7 @@ namespace buzzuav_closures{
 		//buzzvm_dup(vm);
 		double rb[3], tmp[3];
 		map< int, buzz_utility::RB_struct >::iterator it;
-		for (it=targets_map.begin(); it!=targets_map.end(); ++it){	   
+		for (it=targets_map.begin(); it!=targets_map.end(); ++it){
 			tmp[0]=(it->second).la;tmp[1]=(it->second).lo;tmp[2]=height;
 	   		rb_from_gps(tmp, rb, cur_pos);
 			ROS_WARN("----------Pushing target id %i (%f,%f)", rb[0], rb[1]);
@@ -334,7 +339,60 @@ namespace buzzuav_closures{
 	   buzzvm_gstore(vm);
 	   return vm->state;
 	}
-	/****************************************/
+
+  void set_deque_full(bool state)
+  {
+   deque_full = state;
+  }
+
+  void set_rssi(float value)
+  {
+   rssi = value;
+  }
+
+  void set_raw_packet_loss(float value)
+  {
+   raw_packet_loss = value;
+  }
+
+  void set_filtered_packet_loss(float value)
+  {
+   filtered_packet_loss = value;
+  }
+
+  void set_api_rssi(float value)
+  {
+   api_rssi = value;
+  }
+
+  int buzzuav_update_xbee_status(buzzvm_t vm) {
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "xbee_status", 1));
+     buzzvm_pusht(vm);
+     buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "deque_full", 1));
+     buzzvm_pushi(vm, static_cast<uint8_t>(deque_full));
+     buzzvm_tput(vm);
+	   buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "rssi", 1));
+     buzzvm_pushf(vm, rssi);
+     buzzvm_tput(vm);
+	   buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "raw_packet_loss", 1));
+     buzzvm_pushf(vm, raw_packet_loss);
+     buzzvm_tput(vm);
+	   buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "filtered_packet_loss", 1));
+     buzzvm_pushf(vm, filtered_packet_loss);
+     buzzvm_tput(vm);
+	   buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "api_rssi", 1));
+     buzzvm_pushf(vm, api_rssi);
+     buzzvm_tput(vm);
+     buzzvm_gstore(vm);
+     return vm->state;
+  }
+
+	/***************************************/
 	/*current pos update*/
 	/***************************************/
 	void set_currentpos(double latitude, double longitude, double altitude){
@@ -409,7 +467,7 @@ namespace buzzuav_closures{
 	   rc_cmd=0;
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "status", 1));
 	   buzzvm_pushi(vm, status);
-	   buzzvm_tput(vm); 
+	   buzzvm_tput(vm);
 	   buzzvm_gstore(vm);
 	   //also set rc_controllers goto
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "rc_goto", 1));
@@ -434,7 +492,7 @@ namespace buzzuav_closures{
 
 	/******************************************************/
 	/*Create an obstacle Buzz table from proximity sensors*/
-	/*  Acessing proximity in buzz script 
+	/*  Acessing proximity in buzz script
 	    proximity[0].angle and proximity[0].value - front
 		""          ""          "" 	      - right and back
 	    proximity[3].angle and proximity[3].value - left

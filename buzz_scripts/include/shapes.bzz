@@ -1,0 +1,111 @@
+#Table of the nodes in the graph
+m_vecNodes={}
+m_vecNodes_fixed={}
+m_vecNodes[0] = {      # The .graph file is stored according the sequence of lable, predecessor, distance, bearing
+    .Lable = 0,   # Lable of the point
+    .Pred = -1,   # Lable of its predecessor
+    .distance = -1, # distance to the predecessor
+    .bearing = -1, # bearing form the predecessor to this dot
+    .height = 3000, # height of this dot
+    .State="UNASSIGNED",
+    .StateAge=0
+}
+m_vecNodes[1] = {     
+    .Lable = 1,
+    .Pred = 0,
+    .distance = 1000,
+    .bearing = 0.0,
+    .height = 5000,
+    .State="UNASSIGNED",
+    .StateAge=0
+}
+m_vecNodes[2] = {
+    .Lable = 2,
+    .Pred = 0,
+    .distance = 1000,
+    .bearing = 1.57,
+    .height = 7000, 
+    .State="UNASSIGNED",
+    .StateAge=0
+}
+m_vecNodes[3] = {
+    .Lable = 3, 
+    .Pred = 0,
+    .distance = 1000,
+    .bearing = 3.14,
+    .height = 9000,
+    .State="UNASSIGNED",
+    .StateAge=0
+}
+m_vecNodes[4] = {
+    .Lable = 4,
+    .Pred = 0,
+    .distance = 1000,
+    .bearing = 4.71,
+    .height = 11000,
+    .State="UNASSIGNED",
+    .StateAge=0
+}
+
+#
+# Graph parsing
+#
+function parse_graph(fname) {
+	# Graph data
+	var gd = {}
+	# Open the file
+	var fd = io.fopen(fname, "r")
+	if(not fd) {
+		log("Can't open '", fname, "'")
+		return nil
+	}
+	# Parse the file line by line
+	var rrec # Record read from line
+	var grec # Record parsed into graph
+	io.fforeach(fd, function(line) {
+		  # Parse file line
+		  rrec = string.split(line, "\t ")
+		  # Make record
+		  gd[string.toint(rrec[0])] = {      # The .graph file is stored according the sequence of lable, predecessor, distance, bearing
+			  .Lable = string.toint(rrec[0]),   # Lable of the point
+			  .Pred = string.toint(rrec[1]),   # Lable of its predecessor
+			  .distance = string.tofloat(rrec[2]), # distance to the predecessor
+			  .bearing = string.tofloat(rrec[3]), # bearing form the predecessor to this dot
+              .height = string.tofloat(rrec[4]), # height of this dot
+			  .State="UNASSIGNED",
+              .StateAge=0
+		  }})
+	# All done
+	io.fclose(fd)
+	return gd
+}
+
+function parse_graph_fixed(fname) {
+	# Graph data
+	var gd = {}
+	# Open the file
+	var fd = io.fopen(fname, "r")
+	if(not fd) {
+		log("Can't open '", fname, "'")
+		return nil
+	}
+	# Parse the file line by line
+	var rrec # Record read from line
+	var grec # Record parsed into graph
+	io.fforeach(fd, function(line) {
+		  # Parse file line
+		  rrec = string.split(line, "\t ")
+		  # Make record
+		  gd[string.toint(rrec[0])] = {      # The .graph file is stored according the sequence of lable, pre1, dis2pr1, pre2, ids2pre2
+			  .Pred1 = string.toint(rrec[1]),   # Pred 1 lable
+			  .Pred2 = string.toint(rrec[3]),   # Pred 2 lable
+			  .d1 = string.tofloat(rrec[2]), # Pred 1 distance
+			  .d2 = string.tofloat(rrec[4]), # Pred 2 distance
+			  .Lable=string.toint(rrec[0]),
+			  .State="UNASSIGNED",
+              .StateAge=0              
+		  }})
+	# All done
+	io.fclose(fd)
+	return gd
+}

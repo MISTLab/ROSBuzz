@@ -175,7 +175,6 @@ function i2r(value){
 	else if(value==2){
 	return "REQ_GRANTED"
 	}
-	
 }
 #map from response to int
 function r2i(value){
@@ -319,7 +318,6 @@ function motion_vector(){
     m_vector=math.vec2.scale(m_vector,1000.0)
     return m_vector
 }
-
 
 function start_listen(){
 neighbors.listen("m",
@@ -468,7 +466,7 @@ while(i<m_neighbourCunt){
 }
     m_navigation.x=0.0
     m_navigation.y=0.0
-    goto(m_navigation.x,m_navigation.y)
+    uav_moveto(m_navigation.x,m_navigation.y)
 }
 
 #
@@ -502,7 +500,7 @@ function DoFree() {
 	while(i<size(m_vecNodes) and (unFoundLable==0)){
 		#if the node is unassigned and the predecessor is insight
 		if(m_vecNodes[i].State=="UNASSIGNED" and count(setJoinedLables,m_vecNodes[i].Pred)==1){
-			unFoundLable=m_vecNodes[i].Lable 
+			unFoundLable=m_vecNodes[i].Lable
 			IDofPred=find(m_MessageLable,m_vecNodes[unFoundLable].Pred)
 		}
 		i=i+1
@@ -646,11 +644,11 @@ function DoJoining(){
 		m_navigation=math.vec2.newp(math.vec2.length(S2Target),S2Target_bearing)
 		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 
-		
+
 
 		#test if is already in desired position
 		if(math.abs(S2Target.x)<m_fTargetDistanceTolerance and math.abs(S2Target.y)<m_fTargetDistanceTolerance){
-			#log(S2Target_dis,S2Target_bearing)	
+			#log(S2Target_dis,S2Target_bearing)
 			TransitionToJoined()
 			return
 		}
@@ -705,7 +703,7 @@ function DoJoined(){
 		#if it is the pred
 		if(m_MessageState[i]=="STATE_JOINED" and m_MessageLable[i]==m_vecNodes[m_nLabel].Pred){
 			seenPred=1
-			m_unWaitCount=m_unJoiningLostPeriod 
+			m_unWaitCount=m_unJoiningLostPeriod
 		}
 		i=i+1
 	}
@@ -733,7 +731,7 @@ function DoJoined(){
 	#m_unWaitCount=m_unWaitCount-1
 	#if(m_unWaitCount==0){
 	#TransitionToFree()
-	#return 
+	#return
 	#}
 	#}
 
@@ -746,9 +744,9 @@ function DoJoined(){
 	#check if should to transists to lock
 
 
-	if(v_tag.size()==ROBOTS){
-		TransitionToLock()
-	}
+#	if(v_tag.size()==ROBOTS){
+#		TransitionToLock()
+#	}
 }
 
 #
@@ -769,7 +767,7 @@ if(m_nLabel!=0){
     m_navigation=motion_vector()
 }
 #move
-goto(m_navigation.x,m_navigation.y)
+uav_moveto(m_navigation.x,m_navigation.y)
 }
 
 function action(){
@@ -793,7 +791,8 @@ function init() {
 	# Join Swarm
 	#
 	uav_initswarm()
-	Reset();
+	Reset()
+	Read_Graph()
 }
 
 #

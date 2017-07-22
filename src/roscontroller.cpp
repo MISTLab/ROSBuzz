@@ -113,7 +113,7 @@ bool roscontroller::TriggerAPIRssi(const uint8_t short_id)
     srv_request.param_id = "trig_rssi_api_" + std::to_string(short_id);
   }
   mavros_msgs::ParamGet::Response srv_response;
-  if(xbeestatus_srv.call(srv_request, srv_response)){return false;}
+  if(!xbeestatus_srv.call(srv_request, srv_response)){return false;}
 
   return srv_response.success;
 }
@@ -130,7 +130,7 @@ bool roscontroller::GetAPIRssi(const uint8_t short_id, float &result)
     srv_request.param_id = "get_rssi_api_" + std::to_string(short_id);
   }
   mavros_msgs::ParamGet::Response srv_response;
-  if(xbeestatus_srv.call(srv_request, srv_response)){return false;}
+  if(!xbeestatus_srv.call(srv_request, srv_response)){return false;}
 
   result = srv_response.value.real;
   return srv_response.success;
@@ -148,7 +148,7 @@ bool roscontroller::GetRawPacketLoss(const uint8_t short_id, float &result)
     srv_request.param_id = "pl_raw_" + std::to_string(short_id);
   }
   mavros_msgs::ParamGet::Response srv_response;
-  if(xbeestatus_srv.call(srv_request, srv_response)){return false;}
+  if(!xbeestatus_srv.call(srv_request, srv_response)){return false;}
 
   result = srv_response.value.real;
   return srv_response.success;
@@ -166,7 +166,7 @@ bool roscontroller::GetFilteredPacketLoss(const uint8_t short_id, float &result)
     srv_request.param_id = "pl_filtered_" + std::to_string(short_id);
   }
   mavros_msgs::ParamGet::Response srv_response;
-  if(xbeestatus_srv.call(srv_request, srv_response)){return false;}
+  if(!xbeestatus_srv.call(srv_request, srv_response)){return false;}
 
   result = srv_response.value.real;
   return srv_response.success;
@@ -231,6 +231,7 @@ void roscontroller::RosControllerRun()
       updates_set_robots(no_of_robots);
       // ROS_INFO("ROBOTS: %i , acutal :
       // %i",(int)no_of_robots,(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1);
+      get_xbee_status();
       /*run once*/
       ros::spinOnce();
       /*loop rate of ros*/
@@ -1138,14 +1139,7 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request &req,
   }
   return true;
 }
-/*-----------------------------------------------------
-/Obtain robot id by subscribing to xbee robot id topic
-/ TODO: check for integrity of this subscriber call back
-/----------------------------------------------------*/
-/*void roscontroller::set_robot_id(const std_msgs::UInt8::ConstPtr& msg){
 
-
-}*/
 void roscontroller::get_number_of_robots() {
   int cur_robots = (int)buzzdict_size(buzz_utility::get_vm()->swarmmembers) + 1;
   if (no_of_robots == 0) {
@@ -1202,4 +1196,39 @@ void roscontroller::get_number_of_robots() {
   }
   */
 }
+
+void roscontroller::get_xbee_status()
+/* Description:
+ * Call all the xbee node services and update the xbee status
+ ------------------------------------------------------------------ */
+{
+  bool result_bool;
+  float result_float;
+  const uint8_t all_ids = 0xFF;
+  if(GetDequeFull(result_bool))
+  {
+    buzzuav_closures::set_deque_full(result_bool);
+  }
+  if(GetRssi(result_float))
+  {
+    buzzuav_closures::set_rssi(result_float);
+  }
+  if(GetRawPacketLoss(all_ids, result_float))
+  {
+    buzzuav_closures::set_raw_packet_loss(result_float);
+  }
+  if(GetFilteredPacketLoss(all_ids, result_float))
+  {
+    buzzuav_closures::set_filtered_packet_loss(result_float);
+  }
+  // This part needs testing since it can overload the xbee module
+  /*
+   * if(GetAPIRssi(all_ids, result_float))
+   * {
+   * buzzuav_closures::set_api_rssi(result_float);
+   * }
+   * TriggerAPIRssi(all_ids);
+   */
+}
+
 }
