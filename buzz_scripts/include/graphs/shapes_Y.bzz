@@ -1,9 +1,10 @@
 #Table of the nodes in the graph
 m_vecNodes={}
+m_vecNodes_fixed={}
 function Read_Graph(){
-m_vecNodes[0] = {      # The .graph file is stored according the sequence of lable, predecessor, distance, bearing
-    .Lable = 0,   # Lable of the point
-    .Pred = -1,   # Lable of its predecessor
+m_vecNodes[0] = {      # The .graph file is stored according the sequence of Label, predecessor, distance, bearing
+    .Label = 0,   # Label of the point
+    .Pred = -1,   # Label of its predecessor
     .distance = -1, # distance to the predecessor
     .bearing = -1, # bearing form the predecessor to this dot
     .height = 3000, # height of this dot
@@ -11,7 +12,7 @@ m_vecNodes[0] = {      # The .graph file is stored according the sequence of lab
     .StateAge=0
 }
 m_vecNodes[1] = {     
-    .Lable = 1,
+    .Label = 1,
     .Pred = 0,
     .distance = 2000,
     .bearing = 4.71,
@@ -20,7 +21,7 @@ m_vecNodes[1] = {
     .StateAge=0
 }
 m_vecNodes[2] = {
-    .Lable = 2,
+    .Label = 2,
     .Pred = 0,
     .distance = 1414,
     .bearing = 2.36,
@@ -29,7 +30,7 @@ m_vecNodes[2] = {
     .StateAge=0
 }
 m_vecNodes[3] = {
-    .Lable = 3, 
+    .Label = 3, 
     .Pred = 0,
     .distance = 1414,
     .bearing = 0.79,
@@ -38,7 +39,7 @@ m_vecNodes[3] = {
     .StateAge=0
 }
 m_vecNodes[4] = {
-    .Lable = 4,
+    .Label = 4,
     .Pred = 2,
     .distance = 1414,
     .bearing = 2.36,
@@ -47,7 +48,7 @@ m_vecNodes[4] = {
     .StateAge=0
 }
 m_vecNodes[5] = {
-    .Lable = 5,
+    .Label = 5,
     .Pred = 3,
     .distance = 1414,
     .bearing = 0.79,

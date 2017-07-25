@@ -1,12 +1,34 @@
+STATUS_VSTIG = 10
+GROUND_VSTIG = 11
+WAIT4STEP = 10
+v_status = {}
+v_ground = {}
+
+function uav_initstig() {
+	v_status = stigmergy.create(STATUS_VSTIG)
+	v_ground = stigmergy.create(GROUND_VSTIG)
+}
+
+counter=WAIT4STEP
+function uav_updatestig() {
+	if(counter<=0) {
+		var ls={.g=0,.b=battery.capacity,.x=xbee_status.rssi,.f=flight.status}
+	    log("Pushing ", ls, "on vstig with id:", id)
+	    v_status.put(id, ls)
+		counter=WAIT4STEP
+	} else
+		counter=counter-1
+}
+	
 function checkusers() {
     	# Read a value from the structure
         if(size(users)>0)
             log("Got a user!")
 
-		#		log(users)      
-				#users_print(users.dataG)
-	#			if(size(users.dataG)>0)
-	#				vt.put("p", users.dataG)
+#		log(users)      
+#		users_print(users.dataG)
+#		if(size(users.dataG)>0)
+#			vt.put("p", users.dataG)
 				
         # Get the number of keys in the structure
         #log("The vstig has ", vt.size(), " elements")
@@ -24,10 +46,27 @@ function users_save(t) {
 }
 
 # printing the contents of a table: a custom function
-function table_print(t) {
+function usertab_print(t) {
   if(size(t)>0) {
 		foreach(t, function(u, tab) {
 				log("id: ",u," Range ", tab.r, "Bearing ", tab.b)
 			})
+	}
+}
+
+function stattab_print() {
+	if(v_status.size()>0) {
+		u=0
+		while(u<8){
+			tab = v_status.get(u)
+			if(tab!=nil) {
+				log("id: ", u)
+				log("- GPS ", tab.g)
+				log("- Battery ", tab.b)
+				log("- Xbee ", tab.x)
+				log("- Status ", tab.f)
+			}
+			u=u+1
+		}
 	}
 }

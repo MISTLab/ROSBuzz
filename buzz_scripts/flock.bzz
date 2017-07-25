@@ -23,19 +23,6 @@ function lj_vector(rid, data) {
 function lj_sum(rid, data, accum) {
   return math.vec2.add(data, accum)
 }
-
-function user_attract(t) {
-	fus = math.vec2.new(0.0, 0.0)
-	if(size(t)>0) {
-		foreach(t, function(u, tab) {
-				#log("id: ",u," Range ", tab.r, "Bearing ", tab.b)
-				fus = math.vec2.add(fus, math.vec2.newp(lj_magnitude(tab.r, 3 * TARGET / 4.0, EPSILON * 2.0), tab.b))
-			})
-		math.vec2.scale(fus, 1.0 / size(t))
-	}
-	#print("User attract:", fus.x," ", fus.y, " [", size(t), "]")
-	return fus
-}
  
 # Calculates and actuates the flocking interaction
 function action() {
@@ -44,9 +31,6 @@ function action() {
   var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
     accum = math.vec2.scale(accum, 1.0 / neighbors.count())
-
-  #accum = math.vec2.add(accum, user_attract(users.dataL))
-  #accum = math.vec2.scale(accum, 1.0 / 2.0)
 
   if(math.vec2.length(accum) > 1.0) {
   	  accum = math.vec2.scale(accum, 1.0 / math.vec2.length(accum))
@@ -80,6 +64,7 @@ function action() {
 # Executed once at init time.
 function init() {
 	uav_initswarm()
+  uav_initstig()
 }
 
 # Executed at each time step.
@@ -88,9 +73,11 @@ function step() {
 	uav_neicmd()
 
 	statef()
+  uav_updatestig()
 	log("Current state: ", UAVSTATE)
 	log("Swarm size: ",ROBOTS)
-
+  if(id==0)
+    stattab_print()
 }
  
 # Executed once when the robot (or the simulator) is reset.

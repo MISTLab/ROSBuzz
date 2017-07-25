@@ -17,7 +17,7 @@ namespace buzz_utility{
 	static char*        BO_FNAME        = 0;
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
-	static uint32_t     MSG_SIZE        = 600;//250;   // Only 100 bytes of Buzz messages every step
+	static uint32_t     MSG_SIZE        = 500;   // Only 250 bytes of Buzz messages every step (limited to Xbee frame size)
 	static uint32_t     MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets
 	static uint8_t 	    Robot_id        = 0;
 	static std::vector<uint8_t*> IN_MSG;
@@ -175,18 +175,17 @@ namespace buzz_utility{
 
 	}
 
-	void in_message_process(){
+void in_message_process(){
 		while(!IN_MSG.empty()){
-			uint8_t* first_INmsg = (uint8_t*)IN_MSG.front();
 			/* Go through messages and append them to the FIFO */
-   			uint16_t* data= u64_cvt_u16((uint64_t)first_INmsg[0]);
+			uint8_t* first_INmsg = (uint8_t*)IN_MSG.front();
+			size_t tot =0;
 			/*Size is at first 2 bytes*/
-   			uint16_t size=data[0]*sizeof(uint64_t);
-            uint16_t neigh_id = data[1];
-			ROS_WARN("NEIG ID %i",neigh_id);
-   			delete[] data;
-			/*size and robot id read*/
-	   		size_t tot = sizeof(uint32_t);
+   			uint16_t size=(*(uint16_t*)first_INmsg)*sizeof(uint64_t);
+			tot += sizeof(uint16_t);
+			/*Decode neighbor Id*/
+        		uint16_t neigh_id =*(uint16_t*)(first_INmsg+tot);
+			tot+=sizeof(uint16_t);
 			/* Go through the messages until there's nothing else to read */
 	      		uint16_t unMsgSize=0;
 				/*Obtain Buzz messages push it into queue*/
@@ -197,13 +196,13 @@ namespace buzz_utility{
 			 			/* Append message to the Buzz input message queue */
 			 			if(unMsgSize > 0 && unMsgSize <= size - tot ) {
 			    			buzzinmsg_queue_append(VM,
-                                neigh_id,
+                        			neigh_id,
 				                buzzmsg_payload_frombuffer(first_INmsg +tot, unMsgSize));
 			    			tot += unMsgSize;
 			 			}
 		      			}while(size - tot > sizeof(uint16_t) && unMsgSize > 0);
-			IN_MSG.erase(IN_MSG.begin());
-			free(first_INmsg);
+				free(first_INmsg);			
+				IN_MSG.erase(IN_MSG.begin());			
 		}
 		/* Process messages VM call*/
 		buzzvm_process_inmsgs(VM);
