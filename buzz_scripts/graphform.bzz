@@ -6,6 +6,7 @@ include "vec2.bzz"
 include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
+include "vstigenv.bzz"
 
 include "graphs/shapes_L.bzz"
 
@@ -14,7 +15,7 @@ ROBOT_DIAMETER=2.0*ROBOT_RADIUS
 ROBOT_SAFETYDIST=2.0*ROBOT_DIAMETER
 
 # max velocity in cm/step
-ROBOT_MAXVEL = 500.0
+ROBOT_MAXVEL = 200.0
 
 #
 # Global variables
@@ -808,6 +809,7 @@ function init() {
 	#
 	uav_initswarm()
     v_tag = stigmergy.create(m_lockstig)
+  	uav_initstig()
 	Reset()
 	TARGET_ALTITUDE = 2.5 + id * 1.5
 }
@@ -818,6 +820,7 @@ function init() {
 function step(){
 	uav_rccmd()
 	uav_neicmd()
+  	uav_updatestig()
 	#update the graph
 	UpdateNodeInfo()
 	#reset message package to be sent
@@ -846,8 +849,10 @@ function step(){
 	debug(m_eState,m_nLabel)
 	log("Current state: ", UAVSTATE)
 	log("Swarm size: ", ROBOTS)
+	if(id==0)
+    	stattab_print()
+	
 	#navigation
-
 	#broadcast messag
 	neighbors.broadcast("m",packmessage(m_selfMessage))
 

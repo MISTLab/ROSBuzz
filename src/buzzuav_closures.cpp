@@ -25,9 +25,9 @@ namespace buzzuav_closures{
 	static int buzz_cmd=0;
 	static float height=0;
   static bool deque_full = false;
-  static float rssi = 0.0;
+  static int rssi = 0;
   static float raw_packet_loss = 0.0;
-  static float filtered_packet_loss = 0.0;
+  static int filtered_packet_loss = 0;
   static float api_rssi = 0.0;
 
 	std::map< int,  buzz_utility::RB_struct> targets_map;
@@ -247,7 +247,7 @@ namespace buzzuav_closures{
 	}
 
 	/*---------------------------------------/
-	/ Buss closure for basic UAV commands
+	/ Buzz closure for basic UAV commands
 	/---------------------------------------*/
 	int buzzuav_takeoff(buzzvm_t vm) {
 	   buzzvm_lnum_assert(vm, 1);
@@ -334,7 +334,7 @@ namespace buzzuav_closures{
 	   buzzvm_tput(vm);
 	   buzzvm_dup(vm);
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "capacity", 1));
-	   buzzvm_pushf(vm, batt[2]);
+	   buzzvm_pushi(vm, (int)batt[2]);
 	   buzzvm_tput(vm);
 	   buzzvm_gstore(vm);
 	   return vm->state;
@@ -347,7 +347,7 @@ namespace buzzuav_closures{
 
   void set_rssi(float value)
   {
-   rssi = value;
+   rssi = round(value);
   }
 
   void set_raw_packet_loss(float value)
@@ -357,7 +357,7 @@ namespace buzzuav_closures{
 
   void set_filtered_packet_loss(float value)
   {
-   filtered_packet_loss = value;
+   filtered_packet_loss = round(100*value);
   }
 
   void set_api_rssi(float value)
@@ -374,7 +374,7 @@ namespace buzzuav_closures{
      buzzvm_tput(vm);
 	   buzzvm_dup(vm);
      buzzvm_pushs(vm, buzzvm_string_register(vm, "rssi", 1));
-     buzzvm_pushf(vm, rssi);
+     buzzvm_pushi(vm, rssi);
      buzzvm_tput(vm);
 	   buzzvm_dup(vm);
      buzzvm_pushs(vm, buzzvm_string_register(vm, "raw_packet_loss", 1));
@@ -382,7 +382,7 @@ namespace buzzuav_closures{
      buzzvm_tput(vm);
 	   buzzvm_dup(vm);
      buzzvm_pushs(vm, buzzvm_string_register(vm, "filtered_packet_loss", 1));
-     buzzvm_pushf(vm, filtered_packet_loss);
+     buzzvm_pushi(vm, filtered_packet_loss);
      buzzvm_tput(vm);
 	   buzzvm_dup(vm);
      buzzvm_pushs(vm, buzzvm_string_register(vm, "api_rssi", 1));

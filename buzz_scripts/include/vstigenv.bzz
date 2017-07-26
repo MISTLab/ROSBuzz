@@ -3,6 +3,7 @@ GROUND_VSTIG = 11
 WAIT4STEP = 10
 v_status = {}
 v_ground = {}
+b_updating = 0
 
 function uav_initstig() {
 	v_status = stigmergy.create(STATUS_VSTIG)
@@ -11,29 +12,48 @@ function uav_initstig() {
 
 counter=WAIT4STEP
 function uav_updatestig() {
+	# TODO: Push values on update only.
 	if(counter<=0) {
-		var ls={.g=0,.b=battery.capacity,.x=xbee_status.rssi,.f=flight.status}
+		b_updating=1
+		#var ls={.1=0,.2=battery.capacity,.3=xbee_status.rssi,.4=flight.status}
+		ls = 50*1000000 + battery.capacity*1000 + xbee_status.rssi*10 + flight.status
 	    log("Pushing ", ls, "on vstig with id:", id)
 	    v_status.put(id, ls)
 		counter=WAIT4STEP
-	} else
+	} else {
+		b_updating=0
 		counter=counter-1
+	}
+}
+
+function unpackstatus(recv_value){
+    gps=(recv_value-recv_value%1000000)/1000000
+    recv_value=recv_value-gps*1000000
+    batt=(recv_value-recv_value%1000)/1000
+    recv_value=recv_value-batt*1000
+    xbee=(recv_value-recv_value%10)/10
+    recv_value=recv_value-xbee*10
+    fc=recv_value
+	log("- GPS ", gps)
+	log("- Battery ", batt)
+	log("- Xbee ", xbee)
+	log("- Status ", fc)
 }
 	
 function checkusers() {
-    	# Read a value from the structure
-        if(size(users)>0)
-            log("Got a user!")
+	# Read a value from the structure
+	if(size(users)>0)
+		log("Got a user!")
 
-#		log(users)      
-#		users_print(users.dataG)
-#		if(size(users.dataG)>0)
-#			vt.put("p", users.dataG)
-				
-        # Get the number of keys in the structure
-        #log("The vstig has ", vt.size(), " elements")
-	#			users_save(vt.get("p"))
-	#			table_print(users.dataL)
+#	log(users)      
+#	users_print(users.dataG)
+#	if(size(users.dataG)>0)
+#		vt.put("p", users.dataG)
+			
+	# Get the number of keys in the structure
+#	log("The vstig has ", vt.size(), " elements")
+#	users_save(vt.get("p"))
+#	table_print(users.dataL)
 }
 
 function users_save(t) {
@@ -56,17 +76,14 @@ function usertab_print(t) {
 
 function stattab_print() {
 	if(v_status.size()>0) {
-		u=0
-		while(u<8){
-			tab = v_status.get(u)
-			if(tab!=nil) {
-				log("id: ", u)
-				log("- GPS ", tab.g)
-				log("- Battery ", tab.b)
-				log("- Xbee ", tab.x)
-				log("- Status ", tab.f)
+		if(b_updating==0) {
+			u=0
+			while(u<8){
+				tab = v_status.get(u)
+				if(tab!=nil)
+					unpackstatus(tab)
+				u=u+1
 			}
-			u=u+1
 		}
 	}
 }
