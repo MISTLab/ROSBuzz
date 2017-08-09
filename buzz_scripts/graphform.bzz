@@ -6,15 +6,16 @@ include "vec2.bzz"
 include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
+include "vstigenv.bzz"
 
-include "graphs/shapes_L.bzz"
+include "graphs/shapes_Y.bzz"
 
 ROBOT_RADIUS=50
 ROBOT_DIAMETER=2.0*ROBOT_RADIUS
 ROBOT_SAFETYDIST=2.0*ROBOT_DIAMETER
 
 # max velocity in cm/step
-ROBOT_MAXVEL = 500.0
+ROBOT_MAXVEL = 250.0
 
 #
 # Global variables
@@ -90,8 +91,7 @@ step_cunt=0
 m_lockstig = 1
 
 # Lennard-Jones parameters, may need change
-EPSILON    = 13.5 #the LJ parameter for other robots
-EPSILON_FOR1 = 10.0 #the LJ parameter for the robot labeled 1
+EPSILON	= 4000 #13.5 the LJ parameter for other robots
 
 # Lennard-Jones interaction magnitude
 
@@ -277,7 +277,7 @@ log(id,"I pass value=",recv_value)
     var return_table={.Label=0.0,.Bearing=0.0}
     return_table.Label=qian
     if(bai==1){
-    b=b*-1.0
+    	b=b*-1.0
     }
     return_table.Bearing=b
     return return_table
@@ -288,10 +288,10 @@ function target4label(nei_id){
     var return_val="miss"
     var i=0
     while(i<size(lock_neighbor_id)){
-    if(lock_neighbor_id[i]==nei_id){
-    return_val=lock_neighbor_dis[i]
-    }
-    i=i+1
+		if(lock_neighbor_id[i]==nei_id){
+			return_val=lock_neighbor_dis[i]
+		}
+		i=i+1
     }
     return return_val
 }
@@ -303,9 +303,10 @@ function LJ_vec(i){
     var target=target4label(nei_id)
     var cDir={.x=0.0,.y=0.0}
     if(target!="miss"){
-    cDir=math.vec2.newp(FlockInteraction(dis,target,EPSILON),bearing)   
+    	cDir=math.vec2.newp(FlockInteraction(dis,target,EPSILON),bearing)   
     }
-        #log(id,"dis=",dis,"target=",target,"label=",nei_id)
+       #log(id,"dis=",dis,"target=",target,"label=",nei_id)
+		#log("x=",cDir.x,"y=",cDir.y)  
     return cDir
 }
 #calculate the motion vector
@@ -313,12 +314,13 @@ function motion_vector(){
     var i=0
     var m_vector={.x=0.0,.y=0.0}
     while(i<m_neighbourCount){
-    #calculate and add the motion vector
-    m_vector=math.vec2.add(m_vector,LJ_vec(i))
-    #log(id,"x=",m_vector.x,"y=",m_vector.y)    
-    i=i+1
+		#calculate and add the motion vector
+		m_vector=math.vec2.add(m_vector,LJ_vec(i))
+		#log(id,"x=",m_vector.x,"y=",m_vector.y)    
+		i=i+1
     }
     m_vector=math.vec2.scale(m_vector,1.0/m_neighbourCount)
+	#log(id,"fnal=","x=",m_vector.x,"y=",m_vector.y)    
     return m_vector
 }
 
@@ -531,8 +533,8 @@ function DoFree() {
 		tempvec_N=math.vec2.scale(tempvec_N,size(setJoinedIndexes))
 		m_navigation=math.vec2.add(tempvec_P,tempvec_N)
 		# Limit the mvt 
-		if(math.vec2.length(m_navigation)>ROBOT_MAXVEL)
-			m_navigation = math.vec2.scale(m_navigation, ROBOT_MAXVEL/math.vec2.length(m_navigation))
+		if(math.vec2.length(m_navigation)>ROBOT_MAXVEL*2)
+			m_navigation = math.vec2.scale(m_navigation, ROBOT_MAXVEL*2/math.vec2.length(m_navigation))
 		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
 	}else{ #no joined robots in sight
 		i=0
@@ -593,8 +595,11 @@ function DoAsking(){
 		}
 	}
 	else{
-	if(m_MessageReqID[psResponse]!=m_unRequestId)
-		TransitionToFree()
+		if(m_MessageReqID[psResponse]!=m_unRequestId){
+			m_vecNodes[m_nLabel].State="ASSIGNING"
+			m_vecNodes[m_nLabel].StateAge=m_unJoiningLostPeriod
+			TransitionToFree()
+    	}
 	if(m_MessageReqID[psResponse]==m_unRequestId){
 		if(m_MessageResponse[psResponse]=="REQ_GRANTED"){
 			TransitionToJoining()
@@ -662,8 +667,8 @@ function DoJoining(){
 
 
 		#test if is already in desired position
-		if(math.abs(S2Target.x)<m_fTargetDistanceTolerance and math.abs(S2Target.y)<m_fTargetDistanceTolerance){
-			log("LOCKING! ", math.vec2.length(S2Target), ", ", S2Target_bearing)
+		if(math.vec2.length(S2Target)<m_fTargetDistanceTolerance and S2Target_bearing<m_fTargetAngleTolerance){
+			log("JOINED! ", math.vec2.length(S2Target), ", ", S2Target_bearing)
 			TransitionToJoined()
 			return
 		}
@@ -716,7 +721,7 @@ function DoJoined(){
 			}
 		}
 		#if it is the pred
-		if(m_MessageState[i]=="STATE_JOINED" and m_MessageLabel[i]==m_vecNodes[m_nLabel].Pred){
+		if((m_MessageState[i]=="STATE_JOINED" or m_MessageState[i]=="STATE_LOCK") and m_MessageLabel[i]==m_vecNodes[m_nLabel].Pred){
 			seenPred=1
 			m_unWaitCount=m_unJoiningLostPeriod
 		}
@@ -739,6 +744,8 @@ function DoJoined(){
 		m_selfMessage.ReqLabel=ReqLabel
 		m_selfMessage.ReqID=ReqID
 		m_selfMessage.Response=r2i("REQ_GRANTED")
+		m_vecNodes[ReqLabel].State="ASSIGNING"
+    	m_vecNodes[ReqLabel].StateAge=m_unJoiningLostPeriod
 	}
 
 	#lost pred, wait for some time and transit to free
@@ -758,7 +765,7 @@ function DoJoined(){
 
 	#check if should to transists to lock
 	#write statues
-	#v_tag.put(m_nLabel, 1)
+	v_tag.get(m_nLabel)
 	log(v_tag.size(), " of ", ROBOTS, " ready to lock")
 	if(v_tag.size()==ROBOTS){
 		TransitionToLock()
@@ -775,9 +782,8 @@ m_navigation.x=0.0
 m_navigation.y=0.0
 #calculate motion vection
 if(m_nLabel==0){
-    m_navigation.x=0.0#change value so that robot 0 will move
+    m_navigation.x=0.25	#change value so that robot 0 will move
     m_navigation.y=0.0
-    log(";",m_nLabel,";",0)
 }
 if(m_nLabel!=0){
     m_navigation=motion_vector()
@@ -800,7 +806,8 @@ function init() {
 	#
 	m_unResponseTimeThreshold=10
 	m_unLabelSearchWaitTime=10
-	m_fTargetDistanceTolerance=1
+	m_fTargetDistanceTolerance=50
+	m_fTargetAngleTolerance=0.1
 	m_unJoiningLostPeriod=100
 
 	#
@@ -808,6 +815,7 @@ function init() {
 	#
 	uav_initswarm()
     v_tag = stigmergy.create(m_lockstig)
+  	uav_initstig()
 	Reset()
 	TARGET_ALTITUDE = 2.5 + id * 1.5
 }
@@ -818,6 +826,7 @@ function init() {
 function step(){
 	uav_rccmd()
 	uav_neicmd()
+  	uav_updatestig()
 	#update the graph
 	UpdateNodeInfo()
 	#reset message package to be sent
@@ -846,8 +855,10 @@ function step(){
 	debug(m_eState,m_nLabel)
 	log("Current state: ", UAVSTATE)
 	log("Swarm size: ", ROBOTS)
+#	if(id==0)
+#    	stattab_print()
+	
 	#navigation
-
 	#broadcast messag
 	neighbors.broadcast("m",packmessage(m_selfMessage))
 

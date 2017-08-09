@@ -25,13 +25,15 @@ namespace buzzuav_closures{
 	static int buzz_cmd=0;
 	static float height=0;
   static bool deque_full = false;
-  static float rssi = 0.0;
+  static int rssi = 0;
+  static int message_number = 0;
   static float raw_packet_loss = 0.0;
-  static float filtered_packet_loss = 0.0;
+  static int filtered_packet_loss = 0;
   static float api_rssi = 0.0;
 
 	std::map< int,  buzz_utility::RB_struct> targets_map;
 	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
+	std::map< int, buzz_utility::neighbors_status> neighbors_status_map;
 
 	/****************************************/
 	/****************************************/
@@ -218,6 +220,48 @@ namespace buzzuav_closures{
 		return 0;
 	}
 
+	int buzzuav_addNeiStatus(buzzvm_t vm){
+		buzzvm_lnum_assert(vm, 5);
+	   buzzvm_lload(vm, 1); // fc
+	   buzzvm_lload(vm, 2); // xbee
+	   buzzvm_lload(vm, 3); // batt
+	   buzzvm_lload(vm, 4); // gps
+	   buzzvm_lload(vm, 5); // id
+	   buzzvm_type_assert(vm, 5, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 4, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 2, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+		buzz_utility::neighbors_status newRS;
+		uint8_t id = buzzvm_stack_at(vm, 5)->i.value;
+    	newRS.gps_strenght= buzzvm_stack_at(vm, 4)->i.value;
+    	newRS.batt_lvl= buzzvm_stack_at(vm, 3)->i.value;
+    	newRS.xbee= buzzvm_stack_at(vm, 2)->i.value;
+    	newRS.flight_status= buzzvm_stack_at(vm, 1)->i.value;
+    	map< int, buzz_utility::neighbors_status >::iterator it = neighbors_status_map.find(id);
+		if(it!=neighbors_status_map.end())
+			neighbors_status_map.erase(it);
+		neighbors_status_map.insert(make_pair(id, newRS));
+		return vm->state;
+	}
+
+	mavros_msgs::Mavlink get_status(){
+		mavros_msgs::Mavlink payload_out;
+    	map< int, buzz_utility::neighbors_status >::iterator it;
+		for (it= neighbors_status_map.begin(); it!= neighbors_status_map.end(); ++it){
+			payload_out.payload64.push_back(it->first);
+			payload_out.payload64.push_back(it->second.gps_strenght);
+			payload_out.payload64.push_back(it->second.batt_lvl);
+			payload_out.payload64.push_back(it->second.xbee);
+			payload_out.payload64.push_back(it->second.flight_status);
+		}
+    	/*Add Robot id and message number to the published message*/
+		payload_out.sysid = (uint8_t)neighbors_status_map.size();
+		/*payload_out.msgid = (uint32_t)message_number;
+
+		message_number++;*/
+		return payload_out;
+	}
 	/*----------------------------------------/
 	/ Buzz closure to go directly to a GPS destination from the Mission Planner
 	/----------------------------------------*/
@@ -247,7 +291,7 @@ namespace buzzuav_closures{
 	}
 
 	/*---------------------------------------/
-	/ Buss closure for basic UAV commands
+	/ Buzz closure for basic UAV commands
 	/---------------------------------------*/
 	int buzzuav_takeoff(buzzvm_t vm) {
 	   buzzvm_lnum_assert(vm, 1);
@@ -334,7 +378,7 @@ namespace buzzuav_closures{
 	   buzzvm_tput(vm);
 	   buzzvm_dup(vm);
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "capacity", 1));
-	   buzzvm_pushf(vm, batt[2]);
+	   buzzvm_pushi(vm, (int)batt[2]);
 	   buzzvm_tput(vm);
 	   buzzvm_gstore(vm);
 	   return vm->state;
@@ -347,7 +391,7 @@ namespace buzzuav_closures{
 
   void set_rssi(float value)
   {
-   rssi = value;
+   rssi = round(value);
   }
 
   void set_raw_packet_loss(float value)
@@ -357,7 +401,7 @@ namespace buzzuav_closures{
 
   void set_filtered_packet_loss(float value)
   {
-   filtered_packet_loss = value;
+   filtered_packet_loss = round(100*value);
   }
 
   void set_api_rssi(float value)
@@ -374,7 +418,7 @@ namespace buzzuav_closures{
      buzzvm_tput(vm);
 	   buzzvm_dup(vm);
      buzzvm_pushs(vm, buzzvm_string_register(vm, "rssi", 1));
-     buzzvm_pushf(vm, rssi);
+     buzzvm_pushi(vm, rssi);
      buzzvm_tput(vm);
 	   buzzvm_dup(vm);
      buzzvm_pushs(vm, buzzvm_string_register(vm, "raw_packet_loss", 1));
@@ -382,7 +426,7 @@ namespace buzzuav_closures{
      buzzvm_tput(vm);
 	   buzzvm_dup(vm);
      buzzvm_pushs(vm, buzzvm_string_register(vm, "filtered_packet_loss", 1));
-     buzzvm_pushf(vm, filtered_packet_loss);
+     buzzvm_pushi(vm, filtered_packet_loss);
      buzzvm_tput(vm);
 	   buzzvm_dup(vm);
      buzzvm_pushs(vm, buzzvm_string_register(vm, "api_rssi", 1));

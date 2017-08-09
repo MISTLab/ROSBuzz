@@ -103,6 +103,9 @@ function uav_rccmd() {
 		flight.rc_cmd=0
 		uav_disarm()
 		neighbors.broadcast("cmd", 401)
+	} else if (flight.rc_cmd==666){
+		flight.rc_cmd=0
+		stattab_send()
 	}
 }
 
