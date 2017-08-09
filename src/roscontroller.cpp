@@ -172,6 +172,10 @@ bool roscontroller::GetFilteredPacketLoss(const uint8_t short_id, float &result)
   return srv_response.success;
 }
 
+void roscontroller::send_MPpayload(){
+		MPpayload_pub.publish(buzzuav_closures::get_status());
+}
+
 /*-------------------------------------------------
 /rosbuzz_node loop method executed once every step
 /--------------------------------------------------*/
@@ -193,6 +197,7 @@ void roscontroller::RosControllerRun()
       // buzz_closure::neighbour_pos_callback(neighbours_pos_map);
       /*Neighbours of the robot published with id in respective topic*/
       neighbours_pos_publisher();
+      send_MPpayload();
       /*Check updater state and step code*/
       update_routine(bcfname.c_str(), dbgfname.c_str());
       /*Step buzz script */
@@ -387,6 +392,8 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle &node_handle)
     ROS_ERROR("Provide a localpos name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
+
+  node_handle.getParam("obstacles", obstacles_topic);
 }
 
 /*--------------------------------------------------------
@@ -398,23 +405,18 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle &n_c)
 
   Subscribe(n_c);
 
-  // current_position_sub = n_c.subscribe("/global_position", 1000,
-  // &roscontroller::current_pos,this);
-  // battery_sub = n_c.subscribe("/power_status", 1000,
-  // &roscontroller::battery,this);
   payload_sub =
-      n_c.subscribe(in_payload, 1000, &roscontroller::payload_obt, this);
-  // flight_status_sub =n_c.subscribe("/flight_status",100,
-  // &roscontroller::flight_extended_status_update,this);
-  // Robot_id_sub = n_c.subscribe("/device_id_xbee_", 1000,
-  // &roscontroller::set_robot_id,this);
-  obstacle_sub = n_c.subscribe("guidance/obstacle_distance", 100,
+      n_c.subscribe(in_payload, 5, &roscontroller::payload_obt, this);
+
+  obstacle_sub = n_c.subscribe(obstacles_topic, 5,
                                &roscontroller::obstacle_dist, this);
+
   /*publishers*/
-  payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 1000);
-  neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos", 1000);
+  payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 5);
+  MPpayload_pub = n_c.advertise<mavros_msgs::Mavlink>("fleet_status", 5);
+  neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos", 5);
   localsetpoint_nonraw_pub =
-      n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name, 1000);
+      n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name, 5);
   /* Service Clients*/
   arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
   mode_client = n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
@@ -427,8 +429,8 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle &n_c)
   stream_client =
       n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
 
-  users_sub = n_c.subscribe("users_pos", 1000, &roscontroller::users_pos, this);
-  local_pos_sub = n_c.subscribe(local_pos_sub_name, 1000,
+  users_sub = n_c.subscribe("users_pos", 5, &roscontroller::users_pos, this);
+  local_pos_sub = n_c.subscribe(local_pos_sub_name, 5,
                                 &roscontroller::local_pos_callback, this);
 
   multi_msg = true;
@@ -449,13 +451,13 @@ void roscontroller::Subscribe(ros::NodeHandle &n_c)
           it->first, 100, &roscontroller::flight_status_update, this);
     } else if (it->second == "mavros_msgs/BatteryStatus") {
       battery_sub =
-          n_c.subscribe(it->first, 1000, &roscontroller::battery, this);
+          n_c.subscribe(it->first, 5, &roscontroller::battery, this);
     } else if (it->second == "sensor_msgs/NavSatFix") {
       current_position_sub =
-          n_c.subscribe(it->first, 1000, &roscontroller::current_pos, this);
+          n_c.subscribe(it->first, 5, &roscontroller::current_pos, this);
     } else if (it->second == "std_msgs/Float64") {
       relative_altitude_sub =
-          n_c.subscribe(it->first, 1000, &roscontroller::current_rel_alt, this);
+          n_c.subscribe(it->first, 5, &roscontroller::current_rel_alt, this);
     }
 
     std::cout << "Subscribed to: " << it->first << endl;
@@ -1125,11 +1127,14 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request &req,
     rc_goto[0] = req.param5;
     rc_goto[1] = req.param6;
     rc_goto[2] = req.param7;
-    // for test
-    // SetLocalPosition(rc_goto[0], rc_goto[1], rc_goto[2], 0);
-
     buzzuav_closures::rc_set_goto(rc_goto);
     rc_cmd = mavros_msgs::CommandCode::NAV_WAYPOINT;
+    buzzuav_closures::rc_call(rc_cmd);
+    res.success = true;
+    break;
+  case 666:
+    ROS_INFO("RC_Call: Update Fleet Status!!!!");
+    rc_cmd = 666;
     buzzuav_closures::rc_call(rc_cmd);
     res.success = true;
     break;

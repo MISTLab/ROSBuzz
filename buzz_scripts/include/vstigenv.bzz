@@ -87,3 +87,26 @@ function stattab_print() {
 		}
 	}
 }
+
+function stattab_send() {
+	if(v_status.size()>0) {
+		if(b_updating==0) {
+			u=0
+			while(u<8){
+				tab = v_status.get(u)
+				if(tab!=nil){
+					recv_value=tab
+					gps=(recv_value-recv_value%1000000)/1000000
+					recv_value=recv_value-gps*1000000
+					batt=(recv_value-recv_value%1000)/1000
+					recv_value=recv_value-batt*1000
+					xbee=(recv_value-recv_value%10)/10
+					recv_value=recv_value-xbee*10
+					fc=recv_value
+					add_neighborStatus(u,gps,batt,xbee,fc)
+				}
+				u=u+1
+			}
+		}
+	}
+}

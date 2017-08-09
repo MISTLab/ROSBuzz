@@ -5,9 +5,9 @@
 #include <stdio.h>
 #include "uav_utility.h"
 #include "mavros_msgs/CommandCode.h"
+#include "mavros_msgs/Mavlink.h"
 #include "ros/ros.h"
 #include "buzz_utility.h"
-//#include "roscontroller.h"
 
 	#define EARTH_RADIUS (double) 6371000.0
 	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
@@ -61,6 +61,9 @@ void flight_status_update(uint8_t state);
 /* Update neighbors table */
 void neighbour_pos_callback(int id, float range, float bearing, float elevation);
 void update_neighbors(buzzvm_t vm);
+int buzzuav_addNeiStatus(buzzvm_t vm);
+mavros_msgs::Mavlink get_status();
+
 /*Flight status*/
 void set_obstacle_dist(float dist[]);
 

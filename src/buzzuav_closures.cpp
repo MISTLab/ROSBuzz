@@ -26,12 +26,14 @@ namespace buzzuav_closures{
 	static float height=0;
   static bool deque_full = false;
   static int rssi = 0;
+  static int message_number = 0;
   static float raw_packet_loss = 0.0;
   static int filtered_packet_loss = 0;
   static float api_rssi = 0.0;
 
 	std::map< int,  buzz_utility::RB_struct> targets_map;
 	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
+	std::map< int, buzz_utility::neighbors_status> neighbors_status_map;
 
 	/****************************************/
 	/****************************************/
@@ -218,6 +220,48 @@ namespace buzzuav_closures{
 		return 0;
 	}
 
+	int buzzuav_addNeiStatus(buzzvm_t vm){
+		buzzvm_lnum_assert(vm, 5);
+	   buzzvm_lload(vm, 1); // fc
+	   buzzvm_lload(vm, 2); // xbee
+	   buzzvm_lload(vm, 3); // batt
+	   buzzvm_lload(vm, 4); // gps
+	   buzzvm_lload(vm, 5); // id
+	   buzzvm_type_assert(vm, 5, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 4, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 2, BUZZTYPE_INT);
+	   buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+		buzz_utility::neighbors_status newRS;
+		uint8_t id = buzzvm_stack_at(vm, 5)->i.value;
+    	newRS.gps_strenght= buzzvm_stack_at(vm, 4)->i.value;
+    	newRS.batt_lvl= buzzvm_stack_at(vm, 3)->i.value;
+    	newRS.xbee= buzzvm_stack_at(vm, 2)->i.value;
+    	newRS.flight_status= buzzvm_stack_at(vm, 1)->i.value;
+    	map< int, buzz_utility::neighbors_status >::iterator it = neighbors_status_map.find(id);
+		if(it!=neighbors_status_map.end())
+			neighbors_status_map.erase(it);
+		neighbors_status_map.insert(make_pair(id, newRS));
+		return vm->state;
+	}
+
+	mavros_msgs::Mavlink get_status(){
+		mavros_msgs::Mavlink payload_out;
+    	map< int, buzz_utility::neighbors_status >::iterator it;
+		for (it= neighbors_status_map.begin(); it!= neighbors_status_map.end(); ++it){
+			payload_out.payload64.push_back(it->first);
+			payload_out.payload64.push_back(it->second.gps_strenght);
+			payload_out.payload64.push_back(it->second.batt_lvl);
+			payload_out.payload64.push_back(it->second.xbee);
+			payload_out.payload64.push_back(it->second.flight_status);
+		}
+    	/*Add Robot id and message number to the published message*/
+		payload_out.sysid = (uint8_t)neighbors_status_map.size();
+		/*payload_out.msgid = (uint32_t)message_number;
+
+		message_number++;*/
+		return payload_out;
+	}
 	/*----------------------------------------/
 	/ Buzz closure to go directly to a GPS destination from the Mission Planner
 	/----------------------------------------*/

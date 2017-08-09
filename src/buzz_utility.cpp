@@ -325,6 +325,9 @@ void in_message_process(){
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_targetrb", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_addtargetRB));
    		buzzvm_gstore(VM);
+		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_neighborStatus", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_addNeiStatus));
+   		buzzvm_gstore(VM);
 
    	return VM->state;
 	}
@@ -365,6 +368,9 @@ void in_message_process(){
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_targetrb", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM);
+		buzzvm_pushs(VM,  buzzvm_string_register(VM, "add_neighborStatus", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
 

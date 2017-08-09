@@ -36,7 +36,7 @@ function barrier_wait(threshold, transf, resumef) {
   barrier.put(id, 1)
   UAVSTATE = "BARRIERWAIT"
   if(barrier.size() >= threshold) {
-    #barrier = nil
+#    getlowest()
     transf()
   } else if(timeW>=BARRIER_TIMEOUT) {
     barrier = nil
@@ -44,4 +44,19 @@ function barrier_wait(threshold, transf, resumef) {
     timeW=0
   }
   timeW = timeW+1
+}
+
+# get the lowest id of the fleet, but requires too much bandwidth
+function getlowest(){
+  Lid = 20;
+  u=20
+  while(u>=0){
+				tab = barrier.get(u)
+				if(tab!=nil){
+          if(tab<Lid)
+            Lid=tab
+        }
+        u=u-1
+  }
+  log("--> LOWEST ID:",Lid)
 }

@@ -69,7 +69,7 @@ private:
     double latitude=0.0;
     float  altitude=0.0;
   }; typedef struct gps GPS ; // not useful in cpp
-
+  
   GPS target, home, cur_pos;
   double cur_rel_altitude;
 
@@ -91,7 +91,7 @@ private:
   /*tmp to be corrected*/
   uint8_t no_cnt=0;
   uint8_t old_val=0	;
-  std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,stand_by,xbeesrv_name, setpoint_name;
+  std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,obstacles_topic,stand_by,xbeesrv_name, setpoint_name;
   std::string stream_client_name;
   std::string relative_altitude_sub_name;
   std::string setpoint_nonraw;
@@ -102,6 +102,7 @@ private:
   ros::ServiceClient mav_client;
   ros::ServiceClient xbeestatus_srv;
   ros::Publisher payload_pub;
+  ros::Publisher MPpayload_pub;
   ros::Publisher neigh_pos_pub;
   ros::Publisher localsetpoint_nonraw_pub;
   ros::ServiceServer service;
@@ -154,6 +155,8 @@ private:
 
   /*Neighbours pos publisher*/
   void neighbours_pos_publisher();
+
+  void send_MPpayload();
 
   /*Prepare messages and publish*/
   void prepare_msg_and_publish();
