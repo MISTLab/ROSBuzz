@@ -65,6 +65,7 @@ function action() {
 function init() {
 	uav_initswarm()
   uav_initstig()
+	TARGET_ALTITUDE = 2.5 + id * 5
 }
 
 # Executed at each time step.

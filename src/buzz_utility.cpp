@@ -17,7 +17,7 @@ namespace buzz_utility{
 	static char*        BO_FNAME        = 0;
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
-	static uint32_t     MSG_SIZE        = 500;   // Only 250 bytes of Buzz messages every step (limited to Xbee frame size)
+	static uint32_t     MSG_SIZE        = 250;   // Only 250 bytes of Buzz messages every step (limited to Xbee frame size)
 	static uint32_t     MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets
 	static uint8_t 	    Robot_id        = 0;
 	static std::vector<uint8_t*> IN_MSG;
