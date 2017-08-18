@@ -658,37 +658,37 @@ void roscontroller::flight_controller_service_call()
     // SOLO SPECIFIC: SITL DOES NOT USE 21 TO LAND -- workaround: set to LAND
     // mode
     switch (buzzuav_closures::getcmd()) {
-    case mavros_msgs::CommandCode::NAV_LAND:
-      if (current_mode != "LAND") {
-        SetMode("LAND", 0);
+      case mavros_msgs::CommandCode::NAV_LAND:
+        if (current_mode != "LAND") {
+          SetMode("LAND", 0);
+          armstate = 0;
+          Arm();
+        }
+        if (mav_client.call(cmd_srv)) {
+          ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+        } else {
+          ROS_ERROR("Failed to call service from flight controller");
+        }
         armstate = 0;
-        Arm();
-      }
-      if (mav_client.call(cmd_srv)) {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      } else {
-        ROS_ERROR("Failed to call service from flight controller");
-      }
-      armstate = 0;
-      break;
-    case mavros_msgs::CommandCode::NAV_TAKEOFF:
-      if (!armstate) {
+        break;
+      case mavros_msgs::CommandCode::NAV_TAKEOFF:
+        if (!armstate) {
 
-        SetMode("LOITER", 0);
-        armstate = 1;
-        Arm();
-        ros::Duration(0.5).sleep();
-        // Registering HOME POINT.
-        home = cur_pos;
-      }
-      if (current_mode != "GUIDED")
-        SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it
-                                 // should always be in loiter after arm/disarm)
-      if (mav_client.call(cmd_srv)) {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      } else
-        ROS_ERROR("Failed to call service from flight controller");
-      break;
+          SetMode("LOITER", 0);
+          armstate = 1;
+          Arm();
+          ros::Duration(0.5).sleep();
+          // Registering HOME POINT.
+          home = cur_pos;
+        }
+        if (current_mode != "GUIDED")
+          SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it
+                                  // should always be in loiter after arm/disarm)
+        if (mav_client.call(cmd_srv)) {
+          ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+        } else
+          ROS_ERROR("Failed to call service from flight controller");
+        break;
     }
 
   } else if (tmp == buzzuav_closures::COMMAND_GOTO) { /*FC call for goto*/
@@ -1121,18 +1121,20 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request &req,
     res.success = true;
     break;
   case mavros_msgs::CommandCode::NAV_WAYPOINT:
-    ROS_INFO("RC_Call: GO TO!!!! --- Doing this! ");
-    double rc_goto[3];
-    // testing PositionTarget
-    rc_goto[0] = req.param5;
-    rc_goto[1] = req.param6;
-    rc_goto[2] = req.param7;
-    buzzuav_closures::rc_set_goto(rc_goto);
+    ROS_INFO("RC_Call: GO TO!!!! ");
+    buzzuav_closures::rc_set_goto(req.param1,req.param5,req.param6,req.param7);
     rc_cmd = mavros_msgs::CommandCode::NAV_WAYPOINT;
     buzzuav_closures::rc_call(rc_cmd);
     res.success = true;
     break;
-  case 666:
+  case mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL:
+    ROS_INFO("RC_Call: Gimbal!!!! ");
+    buzzuav_closures::rc_set_gimbal(req.param1,req.param2,req.param3);
+    rc_cmd = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+    buzzuav_closures::rc_call(rc_cmd);
+    res.success = true;
+    break;
+  case CMD_REQUEST_UPDATE:
     ROS_INFO("RC_Call: Update Fleet Status!!!!");
     rc_cmd = 666;
     buzzuav_closures::rc_call(rc_cmd);

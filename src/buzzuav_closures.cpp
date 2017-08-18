@@ -16,20 +16,22 @@ namespace buzzuav_closures{
 	//void set_ros_controller_ptr(const rosbzz_node::roscontroller* roscontroller_ptrin);
 	static double goto_pos[3];
 	static double rc_goto_pos[3];
+	static float rc_gimbal[2];
 	static float batt[3];
 	static float obst[5]={0,0,0,0,0};
 	static double cur_pos[3];
 	static uint8_t status;
 	static int cur_cmd = 0;
 	static int rc_cmd=0;
+	static int rc_id=-1;
 	static int buzz_cmd=0;
 	static float height=0;
-  static bool deque_full = false;
-  static int rssi = 0;
-  static int message_number = 0;
-  static float raw_packet_loss = 0.0;
-  static int filtered_packet_loss = 0;
-  static float api_rssi = 0.0;
+	static bool deque_full = false;
+	static int rssi = 0;
+	static int message_number = 0;
+	static float raw_packet_loss = 0.0;
+	static int filtered_packet_loss = 0;
+	static float api_rssi = 0.0;
 
 	std::map< int,  buzz_utility::RB_struct> targets_map;
 	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
@@ -344,12 +346,22 @@ namespace buzzuav_closures{
 		return cmd;
 	}
 
-	void rc_set_goto(double pos[]) {
-		rc_goto_pos[0] = pos[0];
-		rc_goto_pos[1] = pos[1];
-		rc_goto_pos[2] = pos[2];
+	void rc_set_goto(int id, double longitude, double latitude, double altitude) {
+		rc_id = id;
+		rc_goto_pos[0] = latitude;
+		rc_goto_pos[1] = longitude;
+		rc_goto_pos[2] = altitude;
 
 	}
+
+	void rc_set_gimbal(int id, float yaw, float pitch) {
+
+		rc_id = id;
+		rc_gimbal[0] = yaw;
+		rc_gimbal[1] = pitch;
+
+	}
+
 	void rc_call(int rc_cmd_in) {
 		rc_cmd = rc_cmd_in;
 	}

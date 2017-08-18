@@ -39,6 +39,7 @@
 #define XBEE_STOP_TRANSMISSION 4355356352
 #define TIMEOUT	60
 #define BUZZRATE 10
+#define CMD_REQUEST_UPDATE 666
 
 using namespace std;
 

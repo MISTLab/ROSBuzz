@@ -42,7 +42,9 @@ int getcmd();
 /*Sets goto position */
 void set_goto(double pos[]);
 /*Sets goto position from rc client*/
-void rc_set_goto(double pos[]);
+void rc_set_goto(int id, double latitude, double longitude, double altitude);
+/*Sets gimbal orientation from rc client*/
+void rc_set_gimbal(int id, float yaw, float pitch);
 /*sets rc requested command */
 void rc_call(int rc_cmd);
 /* sets the battery state */
