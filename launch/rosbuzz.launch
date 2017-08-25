@@ -1,14 +1,22 @@
-<!-- Launch file for ROSBuzz -->
-
+<?xml version="1.0"?>
+<!-- Generic launch file for ROSBuzz  -->
+<!-- This file is included in all ROS workspace launch files  -->
+<!-- Modify with great care!  -->
 <launch>
-		<node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >	
-		<rosparam file="/home/ivan/catkin_ws/src/rosbuzz/launch/launch_config/solo.yaml"/>
-		<param name="bzzfile_name" value="/home/ivan/catkin_ws/src/rosbuzz/src/testmoveto.bzz" />
-        <param name="rcclient" value="true" /> 
-		<param name="rcservice_name" value="/buzzcmd" />
-		<param name="in_payload" value="/inMavlink"/>
-		<param name="out_payload" value="/outMavlink"/>
-		<param name="xbee_status_srv" value="/xbee_status"/>
-		<param name="stand_by" value="$(env ROS_WS)/src/ROSBuzz/src/stand_by.bo"/>
-		</node>		
+	<arg name="name" default="robot0"/>
+  <arg name="xbee_plugged" default="true"/>
+  <arg name="script" default="testalone"/>
+
+  <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
+    <rosparam file="$(find rosbuzz)/launch/launch_config/topics.yaml"/>
+    <param name="bzzfile_name" value="$(find rosbuzz)/buzz_scripts/$(arg script).bzz" />
+    <param name="rcclient" value="true" />
+    <param name="rcservice_name" value="buzzcmd" />
+    <param name="in_payload" value="inMavlink"/>
+    <param name="out_payload" value="outMavlink"/>
+    <param name="xbee_plugged" value="$(arg xbee_plugged)"/>
+    <param name="name" value="$(arg name)"/>
+    <param name="xbee_status_srv" value="xbee_status"/>
+    <param name="stand_by" value="$(find rosbuzz)/buzz_scripts/stand_by.bzz"/>
+  </node>
 </launch>

@@ -36,7 +36,7 @@ int buzzros_print(buzzvm_t vm);
  * commands the UAV to go to a position supplied
  */
 int buzzuav_moveto(buzzvm_t vm);
-int buzzuav_goto(buzzvm_t vm);
+int buzzuav_storegoal(buzzvm_t vm);
 /* Returns the current command from local variable*/
 int getcmd();
 /*Sets goto position */

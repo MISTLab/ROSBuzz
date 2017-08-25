@@ -7,17 +7,22 @@ include "vstigenv.bzz"
 function action() {
   statef=action
 # test moveto cmd dx, dy
-#	uav_moveto(0.5, 0.5)
+#	uav_moveto(0.5, 0.5, 0.0)
 }
 
 # Executed once at init time.
 function init() {
+	uav_initswarm()
+  	uav_initstig()
 }
 
 # Executed at each time step.
 function step() {
-	log("Altitude: ", position.altitude)
 	uav_rccmd()
+
+	statef()
+
+	log("Current state: ", UAVSTATE)
 }
  
 # Executed once when the robot (or the simulator) is reset.

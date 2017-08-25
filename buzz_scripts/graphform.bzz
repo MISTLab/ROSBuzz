@@ -446,7 +446,7 @@ function TransitionToJoined(){
 
 	m_navigation.x=0.0
 	m_navigation.y=0.0
-	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 }
 
 #
@@ -471,7 +471,7 @@ while(i<m_neighbourCount){
 }
     m_navigation.x=0.0
     m_navigation.y=0.0
-    uav_moveto(m_navigation.x,m_navigation.y)
+    uav_moveto(m_navigation.x, m_navigation.y, 0.0)
 }
 
 #
@@ -535,7 +535,7 @@ function DoFree() {
 		# Limit the mvt 
 		if(math.vec2.length(m_navigation)>ROBOT_MAXVEL*2)
 			m_navigation = math.vec2.scale(m_navigation, ROBOT_MAXVEL*2/math.vec2.length(m_navigation))
-		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+		uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 	}else{ #no joined robots in sight
 		i=0
 		var tempvec={.x=0.0,.y=0.0}
@@ -545,7 +545,7 @@ function DoFree() {
 			i=i+1
 		}
 		m_navigation=math.vec2.scale(tempvec,1.0/i)
-		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+		uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 	}
 
 
@@ -554,7 +554,7 @@ function DoFree() {
 	if(step_cunt<=1){
 		m_navigation.x=0.0
 	    m_navigation.y=0.0
-		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+		uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 	}
 	#set message
 	m_selfMessage.State=s2i(m_eState)
@@ -614,7 +614,7 @@ function DoAsking(){
 	}
 	m_navigation.x=0.0
 	m_navigation.y=0.0
-	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 }
 
 #
@@ -662,7 +662,7 @@ function DoJoining(){
 			S2Target = math.vec2.scale(S2Target, ROBOT_MAXVEL/math.vec2.length(S2Target))
 
 		m_navigation=math.vec2.newp(math.vec2.length(S2Target),S2Target_bearing)
-		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+		uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 
 
 
@@ -760,7 +760,7 @@ function DoJoined(){
 
 	m_navigation.x=0.0
 	m_navigation.y=0.0
-	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 
 
 	#check if should to transists to lock
@@ -789,7 +789,7 @@ if(m_nLabel!=0){
     m_navigation=motion_vector()
 }
 #move
-uav_moveto(m_navigation.x,m_navigation.y)
+uav_moveto(m_navigation.x, m_navigation.y, 0.0)
 }
 
 function action(){
@@ -912,7 +912,7 @@ function destroy() {
 	#clear neighbour message
 	m_navigation.x=0.0
 	m_navigation.y=0.0
-	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 	m_vecNodes={}
 	#stop listening 
 	neighbors.ignore("m")
