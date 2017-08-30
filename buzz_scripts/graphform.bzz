@@ -4,9 +4,10 @@
 include "string.bzz"
 include "vec2.bzz"
 include "update.bzz"
-include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
+
+include "vstigenv.bzz" # reserve stigmergy id=20 and 21 for this header.
+include "barrier.bzz" # reserve stigmergy id=11 for this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
-include "vstigenv.bzz"
 
 include "graphs/shapes_Y.bzz"
 
@@ -88,7 +89,7 @@ m_fTargetDistanceTolerance=0
 #step cunt
 step_cunt=0
 
-#virtual stigmergy
+# virtual stigmergy for the LOCK barrier.
 m_lockstig = 1
 
 # Lennard-Jones parameters, may need change
@@ -99,24 +100,6 @@ EPSILON	= 4000 #13.5 the LJ parameter for other robots
 function FlockInteraction(dist,target,epsilon){
 	var mag = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
 	return mag
-}
-
-function LimitAngle(angle){
-	if(angle>2*math.pi)
-		return angle-2*math.pi
-	else if (angle<0)
-		return angle+2*math.pi
-	else
-		return angle
-}
-
-#
-# Calculates the angle of the given vector2.
-# PARAM v: The vector2.
-# RETURN: The angle of the vector.
-#
-Angle = function(v) {
-  return math.atan(v.y, v.x)
 }
 
 #
@@ -203,20 +186,6 @@ function find(table,value){
 		i=i+1
 	}
 	return index
-}
-
-function pow(base,exponent){
-	var i=0
-	var renturn_val=1
-	if(exponent==0)
-		return 1
-	else{
-		while(i<exponent){
-			renturn_val=renturn_val*base
-			i=i+1
-		}
-		return renturn_val
-	}
 }
 
 #
@@ -654,7 +623,7 @@ function DoJoining(){
 		#the vector from self to target in global coordinate
 		var S2Target=math.vec2.add(S2Pred,P2Target)
 		#change the vector to local coordinate of self
-		var S2Target_bearing=Angle(S2Target)
+		var S2Target_bearing=math.atan(S2Target.y, S2Target.x)
 		m_bias=m_cMeToPred.Bearing-S2PGlobalBearing
 		S2Target_bearing=S2Target_bearing+m_bias
 
