@@ -12,9 +12,9 @@ BARRIER_VSTIG = 11
 #
 # Sets a barrier
 #
-function barrier_set(threshold, transf, resumef) {
+function barrier_set(threshold, transf, resumef, bdt) {
   statef = function() {
-    barrier_wait(threshold, transf, resumef);
+    barrier_wait(threshold, transf, resumef, bdt);
   }
   barrier = stigmergy.create(BARRIER_VSTIG)
 }
@@ -31,14 +31,16 @@ function barrier_ready() {
 #
 BARRIER_TIMEOUT = 200
 timeW=0
-function barrier_wait(threshold, transf, resumef) {
-  barrier.get(id)
+function barrier_wait(threshold, transf, resumef, bdt) {
+  #barrier.get(id)
   barrier.put(id, 1)
   UAVSTATE = "BARRIERWAIT"
+  if(bdt!=-1)
+    neighbors.broadcast("cmd", brd)
   if(barrier.size() >= threshold) {
 #    getlowest()
     transf()
-  } else if(timeW>=BARRIER_TIMEOUT) {
+  } else if(timeW >= BARRIER_TIMEOUT) {
     barrier = nil
     resumef()
     timeW=0

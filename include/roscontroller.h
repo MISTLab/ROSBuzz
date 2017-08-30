@@ -39,6 +39,7 @@
 #define XBEE_STOP_TRANSMISSION 4355356352
 #define TIMEOUT	60
 #define BUZZRATE 10
+#define CMD_REQUEST_UPDATE 666
 
 using namespace std;
 
@@ -110,6 +111,7 @@ private:
   ros::Subscriber users_sub;
   ros::Subscriber battery_sub;
   ros::Subscriber payload_sub;
+  ros::Subscriber flight_estatus_sub;
   ros::Subscriber flight_status_sub;
   ros::Subscriber obstacle_sub;
   ros::Subscriber Robot_id_sub;

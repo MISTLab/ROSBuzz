@@ -5,12 +5,12 @@
 ########################################
 TARGET_ALTITUDE = 5.0
 UAVSTATE = "TURNEDOFF"
+GOTO_MAXVEL = 2
+goal = {.range=0, .bearing=0}
 
-function uav_initswarm(){
+function uav_initswarm() {
 	s = swarm.create(1)
 	s.join()
-	statef=turnedoff
-	UAVSTATE = "TURNEDOFF"
 }
 
 function turnedoff() {
@@ -26,13 +26,10 @@ function idle() {
 function takeoff() {
 	UAVSTATE = "TAKEOFF"
 	statef=takeoff
-	#log("TakeOff: ", flight.status)
-	#log("Relative position: ", position.altitude)
 	
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-		barrier_set(ROBOTS,action,land)
+		barrier_set(ROBOTS,action,land,22)
 		barrier_ready()
-		#statef=hexagon
 	}
 	else {
 		log("Altitude: ", TARGET_ALTITUDE)
@@ -44,17 +41,39 @@ function takeoff() {
 function land() {
 	UAVSTATE = "LAND"
 	statef=land
-	#log("Land: ", flight.status)
+
 	if(flight.status == 2 or flight.status == 3){
 		neighbors.broadcast("cmd", 21)
 		uav_land()
 	}
 	else {
-		barrier_set(ROBOTS,turnedoff,land)
+		barrier_set(ROBOTS,turnedoff,land,21)
 		barrier_ready()
 		timeW=0
 		#barrier = nil
 		#statef=idle
+	}
+}
+
+function goto() {
+	UAVSTATE = "GOTO"
+	statef=goto
+	# print(rc_goto.id, " is going alone to lat=", rc_goto.latitude)
+	if(rc_goto.id==id){
+		s.leave()
+		rb_from_gps(rc_goto.latitude, rc_goto.longitude)
+		print(id, " has to move ", goal.range)
+		m_navigation = math.vec2.newp(goal.range, goal.bearing)
+		if(math.vec2.length(m_navigation)>GOTO_MAXVEL) {
+			m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
+			uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
+		} else if(math.vec2.length(m_navigation)>0.25)
+			uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
+		else
+			statef = idle
+	} else {
+		neighbors.broadcast("cmd", 16)
+		neighbors.broadcast("gt", rc_goto.id+rc_goto.longitude+rc_goto.latitude)
 	}
 }
 
@@ -67,7 +86,7 @@ function follow() {
 			force=(0.05)*(tab.range)^4
 			attractor=math.vec2.add(attractor, math.vec2.newp(force, tab.bearing))
 		})
-		uav_moveto(attractor.x, attractor.y)
+		uav_moveto(attractor.x, attractor.y, 0.0)
 	} else {
 		log("No target in local table!")
 		#statef=idle
@@ -90,11 +109,8 @@ function uav_rccmd() {
 		neighbors.broadcast("cmd", 21)
 	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
-		UAVSTATE = "FOLLOW"
-		log(rc_goto.latitude, " ", rc_goto.longitude)
-		add_targetrb(0,rc_goto.latitude,rc_goto.longitude)
-		statef = follow
-		#uav_goto()
+		UAVSTATE = "GOTO"
+		statef = goto
 	} else if(flight.rc_cmd==400) {
 		flight.rc_cmd=0
 		uav_arm()
@@ -111,16 +127,40 @@ function uav_rccmd() {
 
 function uav_neicmd() {
     neighbors.listen("cmd",
-    function(vid, value, rid) {
-        print("Got (", vid, ",", value, ") from robot #", rid)
-        if(value==22 and UAVSTATE!="TAKEOFF") {
-            statef=takeoff
-        } else if(value==21) {
-            statef=land
-        } else if(value==400 and UAVSTATE=="IDLE") {
-            uav_arm()
-        } else if(value==401 and UAVSTATE=="IDLE"){
-            uav_disarm()
-        }
+			function(vid, value, rid) {
+				print("Got (", vid, ",", value, ") from robot #", rid)
+				if(value==22 and UAVSTATE!="TAKEOFF") {
+					statef=takeoff
+				} else if(value==21) {
+					statef=land
+				} else if(value==400 and UAVSTATE=="IDLE") {
+					uav_arm()
+				} else if(value==401 and UAVSTATE=="IDLE"){
+					uav_disarm()
+				} else if(value==16){
+				#  neighbors.listen("gt",function(vid, value, rid) {
+				#    print("Got (", vid, ",", value, ") from robot #", rid)
+				#    # if(gt.id == id) statef=goto
+				#  }) 
+				}
     })
+}
+
+function LimitAngle(angle){
+	if(angle>2*math.pi)
+		return angle-2*math.pi
+	else if (angle<0)
+		return angle+2*math.pi
+	else
+		return angle
+}
+
+function rb_from_gps(lat, lon) {
+  print("rb dbg: ",lat,lon,position.latitude,position.longitude)
+	d_lon = lon - position.longitude
+  d_lat = lat - position.latitude
+  ned_x = d_lat/180*math.pi * 6371000.0;
+  ned_y = d_lon/180*math.pi * 6371000.0 * math.cos(lat/180*math.pi);
+	goal.range = math.sqrt(ned_x*ned_x+ned_y*ned_y);
+	goal.bearing = LimitAngle(math.atan(ned_y,ned_x));
 }

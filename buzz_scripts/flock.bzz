@@ -38,7 +38,7 @@ function action() {
 
   # Move according to vector
   print("Robot ", id, "must push ", math.vec2.length(accum) )#, "; ", math.vec2.angle(accum))
-  uav_moveto(accum.x, accum.y)
+  uav_moveto(accum.x, accum.y, 0.0)
   UAVSTATE = "LENNARDJONES"
 
 #  if(timeW>=WAIT_TIMEOUT) {	#FOR MOVETO TESTS
@@ -47,11 +47,11 @@ function action() {
 #  	} else if(timeW>=WAIT_TIMEOUT/2) {
 #		  UAVSTATE ="GOEAST"
 #  	timeW = timeW+1
-#  	uav_moveto(0.0,5.0)
+#  	uav_moveto(0.0, 5.0, 0.0)
 #  	} else {
 #		  UAVSTATE ="GONORTH"
 #  	timeW = timeW+1
-#  	uav_moveto(5.0,0.0)
+#  	uav_moveto(5.0, 0.0, 0.0)
 #  	}
 }
 
@@ -65,15 +65,19 @@ function action() {
 function init() {
 	uav_initswarm()
   uav_initstig()
+	# TARGET_ALTITUDE = 2.5 + id * 5
+  statef=turnedoff
+	UAVSTATE = "TURNEDOFF"
 }
 
 # Executed at each time step.
 function step() {
 	uav_rccmd()
 	uav_neicmd()
+  uav_updatestig()
 
 	statef()
-  uav_updatestig()
+  
 	log("Current state: ", UAVSTATE)
 	log("Swarm size: ",ROBOTS)
   if(id==0)

@@ -17,7 +17,7 @@ namespace buzz_utility{
 	static char*        BO_FNAME        = 0;
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
-	static uint32_t     MSG_SIZE        = 500;   // Only 250 bytes of Buzz messages every step (limited to Xbee frame size)
+	static uint32_t     MSG_SIZE        = 250;   // Only 250 bytes of Buzz messages every step (limited to Xbee frame size)
 	static uint32_t     MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets
 	static uint8_t 	    Robot_id        = 0;
 	static std::vector<uint8_t*> IN_MSG;
@@ -304,8 +304,8 @@ void in_message_process(){
         buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_moveto", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_moveto));
    		buzzvm_gstore(VM);
-        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_goto", 1));
-   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_goto));
+        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_storegoal", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_storegoal));
    		buzzvm_gstore(VM);
         buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_arm", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_arm));
@@ -349,7 +349,7 @@ void in_message_process(){
         buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_moveto", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
-        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_goto", 1));
+        buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_storegoal", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
         buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_arm", 1));
@@ -487,7 +487,7 @@ int create_stig_tables() {
    	if(buzzvm_set_bcode(VM, BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		ROS_ERROR("%s: Error loading Buzz script", bo_filename);
+      		ROS_ERROR("[%i] %s: Error loading Buzz script", Robot_id, bo_filename);
       		return 0;
    	}
    	/* Register hook functions */
@@ -550,14 +550,14 @@ int create_stig_tables() {
    	if(buzzvm_set_bcode(VM, UP_BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error loading Buzz script\n\n", BO_FNAME);
+      		ROS_ERROR("[%i] %s: Error loading Buzz bytecode (update)", Robot_id);
       		return 0;
    	 }
    	// Register hook functions
    	if(buzz_register_hooks() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
+      		ROS_ERROR("[%i] Error registering hooks (update)", Robot_id);
         	return 0;
    	}
    	/* Create vstig tables
@@ -606,14 +606,14 @@ int create_stig_tables() {
    	if(buzzvm_set_bcode(VM, UP_BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error loading Buzz script\n\n", BO_FNAME);
+      		ROS_ERROR("[%i] %s: Error loading Buzz bytecode (update init)", Robot_id);
       		return 0;
    	 }
    	// Register hook functions
    	if(testing_buzz_register_hooks() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
+      		ROS_ERROR("[%i] Error registering hooks (update init)", Robot_id);
         	return 0;
    	}
    	/* Create vstig tables

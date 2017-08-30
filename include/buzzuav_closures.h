@@ -36,13 +36,15 @@ int buzzros_print(buzzvm_t vm);
  * commands the UAV to go to a position supplied
  */
 int buzzuav_moveto(buzzvm_t vm);
-int buzzuav_goto(buzzvm_t vm);
+int buzzuav_storegoal(buzzvm_t vm);
 /* Returns the current command from local variable*/
 int getcmd();
 /*Sets goto position */
 void set_goto(double pos[]);
 /*Sets goto position from rc client*/
-void rc_set_goto(double pos[]);
+void rc_set_goto(int id, double latitude, double longitude, double altitude);
+/*Sets gimbal orientation from rc client*/
+void rc_set_gimbal(int id, float yaw, float pitch);
 /*sets rc requested command */
 void rc_call(int rc_cmd);
 /* sets the battery state */

@@ -7,7 +7,7 @@
   <arg name="xbee_plugged" default="true"/>
   <arg name="script" default="testalone"/>
 
-  <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >
+  <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
     <rosparam file="$(find rosbuzz)/launch/launch_config/topics.yaml"/>
     <param name="bzzfile_name" value="$(find rosbuzz)/buzz_scripts/$(arg script).bzz" />
     <param name="rcclient" value="true" />

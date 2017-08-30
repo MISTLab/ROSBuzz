@@ -1,0 +1,152 @@
+# Utilities 
+
+# Rads to degrees
+function rtod(r) {
+   return (r*(180.0/math.pi))
+}
+
+# Copy a table
+function table_deep_copy(new_t, old_t, depth) { 
+  	depth = depth - 1
+		if (old_t != nil) {
+  		foreach(old_t, function(key, value) {
+    		new_t[key] = value
+    		if(depth != 0) { 
+      		new_t[key] = {}
+      		table_deep_copy(new_t[key], value, depth)
+    		}
+  		})  
+		}
+}
+
+function table_copy(old_t, depth) {
+  	var t = {};
+  	table_deep_copy(t, old_t, depth);
+  	return t;
+}
+
+# Print the contents of a table
+function table_print(t, depth) {
+  	depth = depth - 1 	
+  	if (t != nil) {
+	  	foreach(t, function(key, value) {
+        	log(key, " -> ", value)
+			  	if(depth != 0) {
+      	  	table_print(t[key], depth)
+    	  	}
+      	})
+  	}
+}
+
+# Write a table as if it was a vector
+function write_vector(k, index, val) {
+		var key = string.tostring(index)
+		k[key] = val
+}
+
+# Read a table as if it was a vector
+function read_vector(k, index) {
+    var key = string.tostring(index)
+    if (k[key] == nil) {
+        return -1
+    } else {
+        return k[key]
+    }
+}
+
+# Write a table as if it was a matrix
+function write_matrix(k, row, col, val) {
+    var key = string.concat(string.tostring(row),"-",string.tostring(col))
+    k[key] = val
+}
+
+# Read a table as if it was a matrix
+function read_matrix(k, row, col) {
+    var key = string.concat(string.tostring(row),"-",string.tostring(col))
+    if (k[key] == nil) {
+        return -1
+    } else {
+        return k[key]
+    }
+}
+
+# Int to String 
+function itos(i) {
+    
+    log("Use 'string.tostring(OJB)' instead")
+    
+    if (i==0) { return "0" }
+    if (i==1) { return "1" }
+    if (i==2) { return "2" }
+    if (i==3) { return "3" }
+    if (i==4) { return "4" }
+    if (i==5) { return "5" }
+    if (i==6) { return "6" }
+    if (i==7) { return "7" }
+    if (i==8) { return "8" }
+    if (i==9) { return "9" }
+    
+    log("Function 'itos' out of bounds, returning the answer (42)")
+    return "42"
+}
+
+# String to Int
+function stoi(s) {
+   if (s=='0') { return 0 }
+   if (s=='1') { return 1 }
+   if (s=='2') { return 2 }
+   if (s=='3') { return 3 }
+   if (s=='4') { return 4 }
+   if (s=='5') { return 5 }
+   if (s=='6') { return 6 }
+   if (s=='7') { return 7 }
+   if (s=='8') { return 8 }
+   if (s=='9') { return 9 }
+   
+   log("Function 'stoi' out of bounds, returning the answer (42)")
+   return 42
+   
+}
+
+# Force angles in the (-pi,pi) interval
+function radians_interval(a) {
+    var temp = a
+    while ((temp>2.0*math.pi) or (temp<0.0)) {
+        if (temp > 2.0*math.pi) {
+            temp = temp - 2.0*math.pi
+        } else if (temp < 0.0){
+            temp = temp + 2.0*math.pi
+        }
+    }
+    if (temp > math.pi) {
+        temp = temp - 2.0*math.pi
+    }
+    return temp
+}
+
+############################################
+
+#base = {}
+
+#base.create = function() {
+#    return {
+#       .method = function(a,b) {
+#          return a + b
+#       }
+#    }
+#  }
+
+#x = base.create()
+#x.method(3,4) # returns 7
+
+#derived = {}
+
+#derived.create = function() {
+#   b = base.create()
+#   b.method = function(a,b) {
+#      return a * b
+#   }
+#}
+
+#x = derived.create()
+#x.method(3,4) # returns 12

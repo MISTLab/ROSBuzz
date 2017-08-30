@@ -10,9 +10,10 @@ include "vstigenv.bzz"
 
 include "graphs/shapes_Y.bzz"
 
-ROBOT_RADIUS=50
-ROBOT_DIAMETER=2.0*ROBOT_RADIUS
-ROBOT_SAFETYDIST=2.0*ROBOT_DIAMETER
+ROBOT_RADIUS = 50
+ROBOT_DIAMETER = 2.0*ROBOT_RADIUS
+ROBOT_SAFETYDIST = 2.0*ROBOT_DIAMETER
+ROOT_ID = 2
 
 # max velocity in cm/step
 ROBOT_MAXVEL = 250.0
@@ -446,7 +447,7 @@ function TransitionToJoined(){
 
 	m_navigation.x=0.0
 	m_navigation.y=0.0
-	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 }
 
 #
@@ -471,7 +472,7 @@ while(i<m_neighbourCount){
 }
     m_navigation.x=0.0
     m_navigation.y=0.0
-    uav_moveto(m_navigation.x,m_navigation.y)
+    uav_moveto(m_navigation.x, m_navigation.y, 0.0)
 }
 
 #
@@ -535,7 +536,7 @@ function DoFree() {
 		# Limit the mvt 
 		if(math.vec2.length(m_navigation)>ROBOT_MAXVEL*2)
 			m_navigation = math.vec2.scale(m_navigation, ROBOT_MAXVEL*2/math.vec2.length(m_navigation))
-		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+		uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 	}else{ #no joined robots in sight
 		i=0
 		var tempvec={.x=0.0,.y=0.0}
@@ -545,7 +546,7 @@ function DoFree() {
 			i=i+1
 		}
 		m_navigation=math.vec2.scale(tempvec,1.0/i)
-		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+		uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 	}
 
 
@@ -554,7 +555,7 @@ function DoFree() {
 	if(step_cunt<=1){
 		m_navigation.x=0.0
 	    m_navigation.y=0.0
-		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+		uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 	}
 	#set message
 	m_selfMessage.State=s2i(m_eState)
@@ -614,7 +615,7 @@ function DoAsking(){
 	}
 	m_navigation.x=0.0
 	m_navigation.y=0.0
-	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 }
 
 #
@@ -662,7 +663,7 @@ function DoJoining(){
 			S2Target = math.vec2.scale(S2Target, ROBOT_MAXVEL/math.vec2.length(S2Target))
 
 		m_navigation=math.vec2.newp(math.vec2.length(S2Target),S2Target_bearing)
-		uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+		uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 
 
 
@@ -760,7 +761,7 @@ function DoJoined(){
 
 	m_navigation.x=0.0
 	m_navigation.y=0.0
-	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 
 
 	#check if should to transists to lock
@@ -789,7 +790,7 @@ if(m_nLabel!=0){
     m_navigation=motion_vector()
 }
 #move
-uav_moveto(m_navigation.x,m_navigation.y)
+uav_moveto(m_navigation.x, m_navigation.y, 0.0)
 }
 
 function action(){
@@ -802,7 +803,7 @@ function action(){
 #
 function init() {
 	#
-	#Adjust parameters here
+	# Global parameters for graph formation
 	#
 	m_unResponseTimeThreshold=10
 	m_unLabelSearchWaitTime=10
@@ -816,23 +817,32 @@ function init() {
 	uav_initswarm()
     v_tag = stigmergy.create(m_lockstig)
   	uav_initstig()
-	Reset()
+	# go to diff. height since no collision avoidance implemented yet
 	TARGET_ALTITUDE = 2.5 + id * 1.5
+	statef=turnedoff
+	UAVSTATE = "TURNEDOFF"
+
+	# reset the graph
+	Reset()
 }
 
 #
 # Executed every step
 #
 function step(){
+	# listen to potential RC
 	uav_rccmd()
+	# get the swarm commands
 	uav_neicmd()
+	# update the vstig (status/net/batt)
   	uav_updatestig()
+
 	#update the graph
 	UpdateNodeInfo()
 	#reset message package to be sent
 	m_selfMessage={.State=s2i("STATE_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
 	#
-	#act according to current state
+	# graph state machine
 	#
 	if(UAVSTATE=="GRAPH"){
 		if(m_eState=="STATE_FREE")
@@ -849,17 +859,16 @@ function step(){
 			DoLock()
 	}
 
+	# high level UAV state machine
 	statef()
 
 
 	debug(m_eState,m_nLabel)
 	log("Current state: ", UAVSTATE)
 	log("Swarm size: ", ROBOTS)
-#	if(id==0)
-#    	stattab_print()
 	
 	#navigation
-	#broadcast messag
+	#broadcast message
 	neighbors.broadcast("m",packmessage(m_selfMessage))
 
 	#
@@ -895,7 +904,7 @@ function Reset(){
 	#set initial state, only one robot choose [A], while the rest choose [B]
 	#
 	#[A]The robot used to triger the formation process is defined as joined,
-	if(id==0){
+	if(id==ROOT_ID){
 		m_nLabel=0
 		TransitionToJoined()
 	}
@@ -912,7 +921,7 @@ function destroy() {
 	#clear neighbour message
 	m_navigation.x=0.0
 	m_navigation.y=0.0
-	uav_moveto(m_navigation.x/100.0,m_navigation.y/100.0)
+	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 	m_vecNodes={}
 	#stop listening 
 	neighbors.ignore("m")

@@ -16,20 +16,22 @@ namespace buzzuav_closures{
 	//void set_ros_controller_ptr(const rosbzz_node::roscontroller* roscontroller_ptrin);
 	static double goto_pos[3];
 	static double rc_goto_pos[3];
+	static float rc_gimbal[2];
 	static float batt[3];
 	static float obst[5]={0,0,0,0,0};
 	static double cur_pos[3];
 	static uint8_t status;
 	static int cur_cmd = 0;
 	static int rc_cmd=0;
+	static int rc_id=-1;
 	static int buzz_cmd=0;
 	static float height=0;
-  static bool deque_full = false;
-  static int rssi = 0;
-  static int message_number = 0;
-  static float raw_packet_loss = 0.0;
-  static int filtered_packet_loss = 0;
-  static float api_rssi = 0.0;
+	static bool deque_full = false;
+	static int rssi = 0;
+	static int message_number = 0;
+	static float raw_packet_loss = 0.0;
+	static int filtered_packet_loss = 0;
+	static float api_rssi = 0.0;
 
 	std::map< int,  buzz_utility::RB_struct> targets_map;
 	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
@@ -121,27 +123,27 @@ namespace buzzuav_closures{
 	/ Buzz closure to move following a 2D vector
 	/----------------------------------------*/
 	int buzzuav_moveto(buzzvm_t vm) {
-	   buzzvm_lnum_assert(vm, 2);
-	   buzzvm_lload(vm, 1); /* dx */
-	   buzzvm_lload(vm, 2); /* dy */
-	   //buzzvm_lload(vm, 3); /* Latitude */
-	   //buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
-	   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
-	   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-	   float dy = buzzvm_stack_at(vm, 1)->f.value;
-	   float dx = buzzvm_stack_at(vm, 2)->f.value;
-	   double d = sqrt(dx*dx+dy*dy);	//range
-	   goto_pos[0]=dx;
-       goto_pos[1]=dy;
-       goto_pos[2]=height;
-	   /*double b = atan2(dy,dx);		//bearing
-	   printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
-	   gps_from_rb(d, b, goto_pos);
-	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
-       //printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
-	   //ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0], goto_pos[1], goto_pos[2]);
-	   buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
-	   return buzzvm_ret0(vm);
+    buzzvm_lnum_assert(vm, 3);
+    buzzvm_lload(vm, 1); /* dx */
+    buzzvm_lload(vm, 2); /* dy */
+    buzzvm_lload(vm, 3); /* dheight */
+    buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+    float dh = buzzvm_stack_at(vm, 1)->f.value;
+    float dy = buzzvm_stack_at(vm, 2)->f.value;
+    float dx = buzzvm_stack_at(vm, 3)->f.value;
+    goto_pos[0]=dx;
+    goto_pos[1]=dy;
+    goto_pos[2]=height+dh;
+    /*double b = atan2(dy,dx);		//bearing
+    printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
+    gps_from_rb(d, b, goto_pos);
+    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
+      //printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
+    //ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0], goto_pos[1], goto_pos[2]);
+    buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
+    return buzzvm_ret0(vm);
 	}
 
 	int buzzuav_update_targets(buzzvm_t vm) {
@@ -222,23 +224,23 @@ namespace buzzuav_closures{
 
 	int buzzuav_addNeiStatus(buzzvm_t vm){
 		buzzvm_lnum_assert(vm, 5);
-	   buzzvm_lload(vm, 1); // fc
-	   buzzvm_lload(vm, 2); // xbee
-	   buzzvm_lload(vm, 3); // batt
-	   buzzvm_lload(vm, 4); // gps
-	   buzzvm_lload(vm, 5); // id
-	   buzzvm_type_assert(vm, 5, BUZZTYPE_INT);
-	   buzzvm_type_assert(vm, 4, BUZZTYPE_INT);
-	   buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
-	   buzzvm_type_assert(vm, 2, BUZZTYPE_INT);
-	   buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+	  buzzvm_lload(vm, 1); // fc
+	  buzzvm_lload(vm, 2); // xbee
+	  buzzvm_lload(vm, 3); // batt
+	  buzzvm_lload(vm, 4); // gps
+	  buzzvm_lload(vm, 5); // id
+	  buzzvm_type_assert(vm, 5, BUZZTYPE_INT);
+	  buzzvm_type_assert(vm, 4, BUZZTYPE_INT);
+	  buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
+	  buzzvm_type_assert(vm, 2, BUZZTYPE_INT);
+	  buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
 		buzz_utility::neighbors_status newRS;
 		uint8_t id = buzzvm_stack_at(vm, 5)->i.value;
-    	newRS.gps_strenght= buzzvm_stack_at(vm, 4)->i.value;
-    	newRS.batt_lvl= buzzvm_stack_at(vm, 3)->i.value;
-    	newRS.xbee= buzzvm_stack_at(vm, 2)->i.value;
-    	newRS.flight_status= buzzvm_stack_at(vm, 1)->i.value;
-    	map< int, buzz_utility::neighbors_status >::iterator it = neighbors_status_map.find(id);
+    newRS.gps_strenght= buzzvm_stack_at(vm, 4)->i.value;
+    newRS.batt_lvl= buzzvm_stack_at(vm, 3)->i.value;
+    newRS.xbee= buzzvm_stack_at(vm, 2)->i.value;
+    newRS.flight_status= buzzvm_stack_at(vm, 1)->i.value;
+    map< int, buzz_utility::neighbors_status >::iterator it = neighbors_status_map.find(id);
 		if(it!=neighbors_status_map.end())
 			neighbors_status_map.erase(it);
 		neighbors_status_map.insert(make_pair(id, newRS));
@@ -263,14 +265,17 @@ namespace buzzuav_closures{
 		return payload_out;
 	}
 	/*----------------------------------------/
-	/ Buzz closure to go directly to a GPS destination from the Mission Planner
+	/ Buzz closure to store locally a GPS destination from the fleet
 	/----------------------------------------*/
-	int buzzuav_goto(buzzvm_t vm) {
-	   rc_goto_pos[2]=height;
-	   set_goto(rc_goto_pos);
-	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
-	   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
-	   buzz_cmd=COMMAND_GOTO;
+	int buzzuav_storegoal(buzzvm_t vm) {
+	  buzzvm_lnum_assert(vm, 3);
+	   buzzvm_lload(vm, 1); // latitude
+	   buzzvm_lload(vm, 2); // longitude
+	   buzzvm_lload(vm, 3); // altitude
+	   buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+	   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+	   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+     rc_set_goto(buzzvm_stack_at(vm, 1)->f.value, buzzvm_stack_at(vm, 2)->f.value, buzzvm_stack_at(vm, 3)->f.value, (int)buzz_utility::get_robotid());
 	   return buzzvm_ret0(vm);
 	}
 
@@ -344,12 +349,22 @@ namespace buzzuav_closures{
 		return cmd;
 	}
 
-	void rc_set_goto(double pos[]) {
-		rc_goto_pos[0] = pos[0];
-		rc_goto_pos[1] = pos[1];
-		rc_goto_pos[2] = pos[2];
+	void rc_set_goto(int id, double latitude, double longitude, double altitude) {
+		rc_id = id;
+		rc_goto_pos[0] = latitude;
+		rc_goto_pos[1] = longitude;
+		rc_goto_pos[2] = altitude;
 
 	}
+
+	void rc_set_gimbal(int id, float yaw, float pitch) {
+
+		rc_id = id;
+		rc_gimbal[0] = yaw;
+		rc_gimbal[1] = pitch;
+
+	}
+
 	void rc_call(int rc_cmd_in) {
 		rc_cmd = rc_cmd_in;
 	}
@@ -516,6 +531,10 @@ namespace buzzuav_closures{
 	   //also set rc_controllers goto
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "rc_goto", 1));
 	   buzzvm_pusht(vm);
+	   buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "id", 1));
+	   buzzvm_pushi(vm, rc_id);
+	   buzzvm_tput(vm);
 	   buzzvm_dup(vm);
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "latitude", 1));
 	   buzzvm_pushf(vm, rc_goto_pos[0]);
