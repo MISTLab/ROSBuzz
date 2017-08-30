@@ -337,7 +337,7 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle &node_handle)
 
   std::string battery_topic;
   node_handle.getParam("topics/battery", battery_topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(battery_topic, "mavros_msgs/BatteryState"));
+  m_smTopic_infos.insert(pair<std::string, std::string>(battery_topic, "mavros_msgs/BatteryStatus"));
 
   std::string status_topic;
   node_handle.getParam("topics/status", status_topic);
@@ -439,9 +439,9 @@ void roscontroller::Subscribe(ros::NodeHandle &n_c)
            m_smTopic_infos.begin();
        it != m_smTopic_infos.end(); ++it) {
     if (it->second == "mavros_msgs/ExtendedState") {
-      flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_extended_status_update, this);
+      flight_estatus_sub = n_c.subscribe(it->first, 5, &roscontroller::flight_extended_status_update, this);
     } else if (it->second == "mavros_msgs/State") {
-      flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_status_update, this);
+      flight_status_sub = n_c.subscribe(it->first, 5, &roscontroller::flight_status_update, this);
     } else if (it->second == "mavros_msgs/BatteryStatus") {
       battery_sub = n_c.subscribe(it->first, 5, &roscontroller::battery, this);
     } else if (it->second == "sensor_msgs/NavSatFix") {
@@ -459,31 +459,17 @@ void roscontroller::Subscribe(ros::NodeHandle &n_c)
 /-------------------------------------------------------*/
 std::string roscontroller::Compile_bzz(std::string bzzfile_name)
 {
-  /*TODO: change to bzzc instead of bzzparse and also add -I for includes*/
   /*Compile the buzz code .bzz to .bo*/
   stringstream bzzfile_in_compile;
   std::string path =
       bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
-  // bzzfile_in_compile << path << "/";
-  // path = bzzfile_in_compile.str();
-  // bzzfile_in_compile.str("");
   std::string name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
   name = name.substr(0, name.find_last_of("."));
   bzzfile_in_compile << "bzzc -I " << path
-                     << "include/"; //<<" "<<path<< name<<".basm";
-  // bzzfile_in_compile.str("");
-  // bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo
-  // "<<path<<name<<".bdbg";
-  // system(bzzfile_in_compile.str().c_str());
-  // bzzfile_in_compile.str("");
+                     << "include/";
   bzzfile_in_compile << " -b " << path << name << ".bo";
-  // bcfname = bzzfile_in_compile.str();
-  // std::string tmp_bcfname = path + name + ".bo";
-  // bzzfile_in_compile.str("");
   bzzfile_in_compile << " -d " << path << name << ".bdb ";
-  // bzzfile_in_compile << " -a " << path << name << ".asm ";
   bzzfile_in_compile << bzzfile_name;
-  // std::string tmp_dbgfname = path + name + ".bdb";
 
   ROS_WARN("Launching buzz compilation: %s", bzzfile_in_compile.str().c_str());
 
@@ -967,7 +953,7 @@ void roscontroller::SetMode(std::string mode, int delay_miliseconds) {
   set_mode_message.request.custom_mode = mode;
   current_mode = mode;
   if (mode_client.call(set_mode_message)) {
-    ROS_INFO("Set Mode Service call successful!");
+    ;//ROS_INFO("Set Mode Service call successful!");
   } else {
     ROS_INFO("Set Mode Service call failed!");
   }
@@ -983,7 +969,7 @@ void roscontroller::SetStreamRate(int id, int rate, int on_off) {
     ROS_INFO("Set stream rate call failed!, trying again...");
     ros::Duration(0.1).sleep();
   }
-  ROS_INFO("Set stream rate call successful");
+  //ROS_INFO("Set stream rate call successful");
 }
 
 /*-------------------------------------------------------------

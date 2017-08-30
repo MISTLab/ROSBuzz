@@ -487,7 +487,7 @@ int create_stig_tables() {
    	if(buzzvm_set_bcode(VM, BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		ROS_ERROR("%s: Error loading Buzz script", bo_filename);
+      		ROS_ERROR("[%i] %s: Error loading Buzz script", Robot_id, bo_filename);
       		return 0;
    	}
    	/* Register hook functions */
@@ -550,14 +550,14 @@ int create_stig_tables() {
    	if(buzzvm_set_bcode(VM, UP_BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error loading Buzz script\n\n", BO_FNAME);
+      		ROS_ERROR("[%i] %s: Error loading Buzz bytecode (update)", Robot_id);
       		return 0;
    	 }
    	// Register hook functions
    	if(buzz_register_hooks() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
+      		ROS_ERROR("[%i] Error registering hooks (update)", Robot_id);
         	return 0;
    	}
    	/* Create vstig tables
@@ -606,14 +606,14 @@ int create_stig_tables() {
    	if(buzzvm_set_bcode(VM, UP_BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error loading Buzz script\n\n", BO_FNAME);
+      		ROS_ERROR("[%i] %s: Error loading Buzz bytecode (update init)", Robot_id);
       		return 0;
    	 }
    	// Register hook functions
    	if(testing_buzz_register_hooks() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
       		buzzdebug_destroy(&DBG_INFO);
-      		fprintf(stdout, "%s: Error registering hooks\n\n", BO_FNAME);
+      		ROS_ERROR("[%i] Error registering hooks (update init)", Robot_id);
         	return 0;
    	}
    	/* Create vstig tables

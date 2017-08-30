@@ -65,16 +65,19 @@ function action() {
 function init() {
 	uav_initswarm()
   uav_initstig()
-	TARGET_ALTITUDE = 2.5 + id * 5
+	# TARGET_ALTITUDE = 2.5 + id * 5
+  statef=turnedoff
+	UAVSTATE = "TURNEDOFF"
 }
 
 # Executed at each time step.
 function step() {
 	uav_rccmd()
 	uav_neicmd()
+  uav_updatestig()
 
 	statef()
-  uav_updatestig()
+  
 	log("Current state: ", UAVSTATE)
 	log("Swarm size: ",ROBOTS)
   if(id==0)

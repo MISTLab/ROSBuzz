@@ -11,8 +11,6 @@ goal = {.range=0, .bearing=0}
 function uav_initswarm() {
 	s = swarm.create(1)
 	s.join()
-	statef=turnedoff
-	UAVSTATE = "TURNEDOFF"
 }
 
 function turnedoff() {
@@ -30,7 +28,7 @@ function takeoff() {
 	statef=takeoff
 	
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-		barrier_set(ROBOTS,action,land)
+		barrier_set(ROBOTS,action,land,22)
 		barrier_ready()
 	}
 	else {
@@ -49,7 +47,7 @@ function land() {
 		uav_land()
 	}
 	else {
-		barrier_set(ROBOTS,turnedoff,land)
+		barrier_set(ROBOTS,turnedoff,land,21)
 		barrier_ready()
 		timeW=0
 		#barrier = nil
@@ -129,23 +127,22 @@ function uav_rccmd() {
 
 function uav_neicmd() {
     neighbors.listen("cmd",
-    function(vid, value, rid) {
-        print("Got (", vid, ",", value, ") from robot #", rid)
-        if(value==22 and UAVSTATE!="TAKEOFF") {
-          statef=takeoff
-        } else if(value==21) {
-          statef=land
-        } else if(value==400 and UAVSTATE=="IDLE") {
-          uav_arm()
-        } else if(value==401 and UAVSTATE=="IDLE"){
-          uav_disarm()
-        } else if(value==16){
-          neighbors.listen("gt",function(vid, value, rid) {
-            print("Got (", vid, ",", value, ") from robot #", rid)
-            # uav_storegoal(lat, lon, alt)
-          })
-          statef=goto
-        }
+			function(vid, value, rid) {
+				print("Got (", vid, ",", value, ") from robot #", rid)
+				if(value==22 and UAVSTATE!="TAKEOFF") {
+					statef=takeoff
+				} else if(value==21) {
+					statef=land
+				} else if(value==400 and UAVSTATE=="IDLE") {
+					uav_arm()
+				} else if(value==401 and UAVSTATE=="IDLE"){
+					uav_disarm()
+				} else if(value==16){
+				#  neighbors.listen("gt",function(vid, value, rid) {
+				#    print("Got (", vid, ",", value, ") from robot #", rid)
+				#    # if(gt.id == id) statef=goto
+				#  }) 
+				}
     })
 }
 

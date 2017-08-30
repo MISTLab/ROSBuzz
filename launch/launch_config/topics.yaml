@@ -2,7 +2,7 @@ topics:
   gps     :   global_position/global
   battery :   battery
   status  :   state
-  estatus  :   extended_state
+  estatus :   extended_state
   fcclient:   cmd/command
   setpoint:   setpoint_position/local
   armclient:  cmd/arming

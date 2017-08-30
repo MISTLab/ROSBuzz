@@ -111,6 +111,7 @@ private:
   ros::Subscriber users_sub;
   ros::Subscriber battery_sub;
   ros::Subscriber payload_sub;
+  ros::Subscriber flight_estatus_sub;
   ros::Subscriber flight_status_sub;
   ros::Subscriber obstacle_sub;
   ros::Subscriber Robot_id_sub;

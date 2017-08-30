@@ -12,7 +12,8 @@ function action() {
 
 # Executed once at init time.
 function init() {
-	uav_initswarm()
+	statef=turnedoff
+	UAVSTATE = "TURNEDOFF"
   	uav_initstig()
 }
 
