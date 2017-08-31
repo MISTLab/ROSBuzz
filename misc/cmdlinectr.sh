@@ -31,13 +31,5 @@ function stoprobot {
 }
 function updaterobot {
 #	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzynocam.launch
-	rosrun robot_upstart install --logdir ~/ROS_WS/log/ dji_sdk_mistlab/launch/m100buzzy.launch
-}
-function updaterobot {
-#	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzynocam.launch
-	rosrun robot_upstart install --logdir ~/ROS_WS/log/ dji_sdk_mistlab/launch/m100buzzy.launch
-}
-function updaterobot {
-#	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzynocam.launch
-	rosrun robot_upstart install --logdir ~/ROS_WS/log/ dji_sdk_mistlab/launch/m100buzzy.launch
+	rosrun robot_upstart install --logdir ~/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100buzzy.launch
 }

@@ -8,6 +8,7 @@
 # Constants
 #
 BARRIER_VSTIG = 11
+BARRIER_TIMEOUT = 200 # in steps
 
 #
 # Sets a barrier
@@ -29,14 +30,12 @@ function barrier_ready() {
 #
 # Executes the barrier
 #
-BARRIER_TIMEOUT = 200
 timeW=0
 function barrier_wait(threshold, transf, resumef, bdt) {
-  #barrier.get(id)
   barrier.put(id, 1)
   UAVSTATE = "BARRIERWAIT"
-  if(bdt!=-1)
-    neighbors.broadcast("cmd", brd)
+
+  barrier.get(id)
   if(barrier.size() >= threshold) {
 #    getlowest()
     transf()
@@ -44,14 +43,16 @@ function barrier_wait(threshold, transf, resumef, bdt) {
     barrier = nil
     resumef()
     timeW=0
-  }
+  } else if(bdt!=-1)
+    neighbors.broadcast("cmd", bdt)
+
   timeW = timeW+1
 }
 
-# get the lowest id of the fleet, but requires too much bandwidth
+# get the lowest id of the fleet, but requires too much bandwidth...
 function getlowest(){
-  Lid = 20;
-  u=20
+  Lid = 15;
+  u=15
   while(u>=0){
 				tab = barrier.get(u)
 				if(tab!=nil){
