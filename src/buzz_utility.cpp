@@ -786,4 +786,8 @@ int create_stig_tables() {
 		buzzvm_pushi(VM, ROBOTS);
 		buzzvm_gstore(VM);
 	}
+
+	int get_inmsg_size(){
+		return IN_MSG.size();
+	}
 }

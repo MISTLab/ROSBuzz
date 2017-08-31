@@ -46,7 +46,12 @@ roscontroller::roscontroller(ros::NodeHandle &n_c, ros::NodeHandle &n_c_priv)
   }
   std::string path =
       bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
-  path += "Update.log";
+  path = path.substr(0, bzzfile_name.find_last_of("\\/"))+"/log/";
+  std::string folder_check="mkdir -p "+path;
+  system(folder_check.c_str());
+  rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+".log").c_str(),
+	 (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_old.log").c_str());
+  path += "logger_"+std::to_string(robot_id)+".log";
   log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
 }
 
@@ -176,6 +181,7 @@ void roscontroller::send_MPpayload(){
 		MPpayload_pub.publish(buzzuav_closures::get_status());
 }
 
+
 /*-------------------------------------------------
 /rosbuzz_node loop method executed once every step
 /--------------------------------------------------*/
@@ -195,11 +201,42 @@ void roscontroller::RosControllerRun()
     while (ros::ok() && !buzz_utility::buzz_script_done()) {
       /*Update neighbors position inside Buzz*/
       // buzz_closure::neighbour_pos_callback(neighbours_pos_map);
+      
+      /*log ROS Time stamp, pos (lat,long,alt), Swarm size, no. of neigh,
+        neigh pos, RSSI val, Packet loss, filtered packet loss*/
+      log<<ros::Time::now()<<",";
+      log<<cur_pos.latitude << "," << cur_pos.longitude << ","
+            << cur_pos.altitude << ",";
+      log  << (int)no_of_robots<<",";
+      map<int, buzz_utility::Pos_struct>::iterator it =
+            neighbours_pos_map.begin();
+      log  << neighbours_pos_map.size()<< ",";
+        for (; it != neighbours_pos_map.end(); ++it)
+        {
+          log << (double)it->second.x << "," << (double)it->second.y
+              << "," << (double)it->second.z << ",";
+        }
+      const uint8_t shrt_id= 0xFF; 
+      float result;
+      if ( GetAPIRssi(shrt_id, result) ) 
+      	log<<result<<",";
+      else
+        log<<"0,";
+      if ( GetRawPacketLoss(shrt_id, result) ) 
+      	log<<result<<",";
+      else
+        log<<"0,";
+      if ( GetFilteredPacketLoss(shrt_id, result) ) 
+      	log<<result<<",";
+      else
+        log<<"0,";
       /*Neighbours of the robot published with id in respective topic*/
       neighbours_pos_publisher();
       send_MPpayload();
       /*Check updater state and step code*/
       update_routine(bcfname.c_str(), dbgfname.c_str());
+      /*Log In Msg queue size*/
+      log<<(int)buzz_utility::get_inmsg_size()<<",";
       /*Step buzz script */
       buzz_utility::buzz_script_step();
       /*Prepare messages and publish them in respective topic*/
@@ -209,7 +246,7 @@ void roscontroller::RosControllerRun()
       /*Set multi message available after update*/
       if (get_update_status())
       {
-        set_read_update_status();
+       /* set_read_update_status();
         multi_msg = true;
         log << cur_pos.latitude << "," << cur_pos.longitude << ","
             << cur_pos.altitude << ",";
@@ -222,12 +259,27 @@ void roscontroller::RosControllerRun()
           log << "," << (double)it->second.x << "," << (double)it->second.y
               << "," << (double)it->second.z;
         }
-        log << std::endl;
+        log << std::endl;*/
       }
       /*Set ROBOTS variable for barrier in .bzz from neighbours count*/
       // no_of_robots=get_number_of_robots();
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
+      /*Retrive the state of the graph and uav and log TODO WARNING :PLEASE REMOVE IF 
+	SCRIPT IS NOT graphform.bzz*/
+      static buzzvm_t     VM = buzz_utility::get_vm();
+      buzzvm_pushs(VM, buzzvm_string_register(VM, "m_eState",1));
+            	buzzvm_gload(VM);
+            	buzzobj_t graph_state = buzzvm_stack_at(VM, 1);
+            	buzzvm_pop(VM);
+		std::stringstream state_buff;
+		state_buff<< graph_state->s.value.str<<",";
+      buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE",1));
+            	buzzvm_gload(VM);
+            	buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
+            	buzzvm_pop(VM);
+		state_buff<< uav_state->s.value.str;
+		log<<state_buff.str()<<std::endl;
       // if(neighbours_pos_map.size() >0) no_of_robots
       // =neighbours_pos_map.size()+1;
       // buzz_utility::set_robot_var(no_of_robots);
@@ -337,7 +389,7 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle &node_handle)
 
   std::string battery_topic;
   node_handle.getParam("topics/battery", battery_topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(battery_topic, "mavros_msgs/BatteryStatus"));
+  m_smTopic_infos.insert(pair<std::string, std::string>(battery_topic, "mavros_msgs/BatteryState"));
 
   std::string status_topic;
   node_handle.getParam("topics/status", status_topic);
@@ -439,9 +491,9 @@ void roscontroller::Subscribe(ros::NodeHandle &n_c)
            m_smTopic_infos.begin();
        it != m_smTopic_infos.end(); ++it) {
     if (it->second == "mavros_msgs/ExtendedState") {
-      flight_estatus_sub = n_c.subscribe(it->first, 5, &roscontroller::flight_extended_status_update, this);
+      flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_extended_status_update, this);
     } else if (it->second == "mavros_msgs/State") {
-      flight_status_sub = n_c.subscribe(it->first, 5, &roscontroller::flight_status_update, this);
+      flight_status_sub = n_c.subscribe(it->first, 100, &roscontroller::flight_status_update, this);
     } else if (it->second == "mavros_msgs/BatteryStatus") {
       battery_sub = n_c.subscribe(it->first, 5, &roscontroller::battery, this);
     } else if (it->second == "sensor_msgs/NavSatFix") {
@@ -459,17 +511,31 @@ void roscontroller::Subscribe(ros::NodeHandle &n_c)
 /-------------------------------------------------------*/
 std::string roscontroller::Compile_bzz(std::string bzzfile_name)
 {
+  /*TODO: change to bzzc instead of bzzparse and also add -I for includes*/
   /*Compile the buzz code .bzz to .bo*/
   stringstream bzzfile_in_compile;
   std::string path =
       bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+  // bzzfile_in_compile << path << "/";
+  // path = bzzfile_in_compile.str();
+  // bzzfile_in_compile.str("");
   std::string name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
   name = name.substr(0, name.find_last_of("."));
   bzzfile_in_compile << "bzzc -I " << path
-                     << "include/";
+                     << "include/"; //<<" "<<path<< name<<".basm";
+  // bzzfile_in_compile.str("");
+  // bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo
+  // "<<path<<name<<".bdbg";
+  // system(bzzfile_in_compile.str().c_str());
+  // bzzfile_in_compile.str("");
   bzzfile_in_compile << " -b " << path << name << ".bo";
+  // bcfname = bzzfile_in_compile.str();
+  // std::string tmp_bcfname = path + name + ".bo";
+  // bzzfile_in_compile.str("");
   bzzfile_in_compile << " -d " << path << name << ".bdb ";
+  // bzzfile_in_compile << " -a " << path << name << ".asm ";
   bzzfile_in_compile << bzzfile_name;
+  // std::string tmp_dbgfname = path + name + ".bdb";
 
   ROS_WARN("Launching buzz compilation: %s", bzzfile_in_compile.str().c_str());
 
@@ -565,6 +631,9 @@ void roscontroller::prepare_msg_and_publish()
   payload_out.sysid = (uint8_t)robot_id;
   payload_out.msgid = (uint32_t)message_number;
 
+  /*Log out message id and message size*/
+  log<<(int)message_number<<",";
+  log<<(int)out[0]<<",";
   /*publish prepared messages in respective topic*/
   payload_pub.publish(payload_out);
   delete[] out;
@@ -953,7 +1022,7 @@ void roscontroller::SetMode(std::string mode, int delay_miliseconds) {
   set_mode_message.request.custom_mode = mode;
   current_mode = mode;
   if (mode_client.call(set_mode_message)) {
-    ;//ROS_INFO("Set Mode Service call successful!");
+    ROS_INFO("Set Mode Service call successful!");
   } else {
     ROS_INFO("Set Mode Service call failed!");
   }
@@ -969,7 +1038,7 @@ void roscontroller::SetStreamRate(int id, int rate, int on_off) {
     ROS_INFO("Set stream rate call failed!, trying again...");
     ros::Duration(0.1).sleep();
   }
-  //ROS_INFO("Set stream rate call successful");
+  ROS_INFO("Set stream rate call successful");
 }
 
 /*-------------------------------------------------------------
