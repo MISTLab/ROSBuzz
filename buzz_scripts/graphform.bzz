@@ -193,7 +193,7 @@ function find(table,value){
 #
 function packmessage(send_table){
     var send_value
-    send_value=10000*send_table.State+1000*send_table.Label+100*send_table.ReqLabel+10*send_table.ReqID+send_table.Response
+    send_value=100000*send_table.State+10000*send_table.Label+1000*send_table.ReqLabel+10*send_table.ReqID+send_table.Response
     return send_value
 }
 #
@@ -217,12 +217,12 @@ function pack_guide_msg(send_table){
 #unpack message
 #
 function unpackmessage(recv_value){
-    var wan=(recv_value-recv_value%10000)/10000
-    recv_value=recv_value-wan*10000
-    var qian=(recv_value-recv_value%1000)/1000
-    recv_value=recv_value-qian*1000
-    var bai=(recv_value-recv_value%100)/100
-    recv_value=recv_value-bai*100
+    var wan=(recv_value-recv_value%100000)/100000
+    recv_value=recv_value-wan*100000
+    var qian=(recv_value-recv_value%10000)/10000
+    recv_value=recv_value-qian*10000
+    var bai=(recv_value-recv_value%1000)/1000
+    recv_value=recv_value-bai*1000
     var shi=(recv_value-recv_value%10)/10
     recv_value=recv_value-shi*10
     var ge=recv_value
