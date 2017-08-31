@@ -28,7 +28,7 @@ function takeoff() {
 	statef=takeoff
 	
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-		barrier_set(ROBOTS,action,land,22)
+		barrier_set(ROBOTS,action,land,-1)
 		barrier_ready()
 	}
 	else {
