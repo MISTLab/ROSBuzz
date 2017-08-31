@@ -784,8 +784,8 @@ function init() {
 	#
 	m_unResponseTimeThreshold=10
 	m_unLabelSearchWaitTime=10
-	m_fTargetDistanceTolerance=150
-	m_fTargetAngleTolerance=0.2
+	m_fTargetDistanceTolerance=100
+	m_fTargetAngleTolerance=0.1
 	m_unJoiningLostPeriod=100
 
 	#
