@@ -93,7 +93,7 @@ step_cunt=0
 m_lockstig = 1
 
 # Lennard-Jones parameters, may need change
-EPSILON	= 4000 #13.5 the LJ parameter for other robots
+EPSILON	= 1800 #13.5 the LJ parameter for other robots
 
 # Lennard-Jones interaction magnitude
 
