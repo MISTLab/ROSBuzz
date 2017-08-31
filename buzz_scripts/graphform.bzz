@@ -760,7 +760,7 @@ m_navigation.x=0.0
 m_navigation.y=0.0
 #calculate motion vection
 if(m_nLabel==0){
-    m_navigation.x=0.25	#change value so that robot 0 will move
+    m_navigation.x=0.0	#change value so that robot 0 will move
     m_navigation.y=0.0
 }
 if(m_nLabel!=0){
