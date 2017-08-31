@@ -17,7 +17,7 @@ ROBOT_SAFETYDIST = 2.0*ROBOT_DIAMETER
 ROOT_ID = 2
 
 # max velocity in cm/step
-ROBOT_MAXVEL = 250.0
+ROBOT_MAXVEL = 150.0
 
 #
 # Global variables
@@ -776,8 +776,8 @@ function init() {
 	#
 	m_unResponseTimeThreshold=10
 	m_unLabelSearchWaitTime=10
-	m_fTargetDistanceTolerance=50
-	m_fTargetAngleTolerance=0.1
+	m_fTargetDistanceTolerance=150
+	m_fTargetAngleTolerance=0.2
 	m_unJoiningLostPeriod=100
 
 	#

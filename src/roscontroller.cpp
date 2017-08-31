@@ -1092,7 +1092,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr &msg) {
     gps_rb(nei_pos, cvt_neighbours_pos_payload);
     /*Extract robot id of the neighbour*/
     uint16_t *out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + 3));
-    //ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
+    ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
     /*pass neighbour position to local maintaner*/
     buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],
                                    cvt_neighbours_pos_payload[1],
