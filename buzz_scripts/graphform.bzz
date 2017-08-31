@@ -546,8 +546,10 @@ function DoAsking(){
 		#the request Label be the same as requesed
 		#get a respond
 		if(m_MessageState[i]=="STATE_JOINED"){
+			log("received label = ",m_MessageReqLabel[i])
 			if(m_MessageReqLabel[i]==m_nLabel)
 				if(m_MessageResponse[i]!="REQ_NONE"){
+				log("get response")
 				psResponse=i
 		}}
 		i=i+1
@@ -565,6 +567,7 @@ function DoAsking(){
 		}
 	}
 	else{
+		log("respond id=",m_MessageReqID[psResponse])
 		if(m_MessageReqID[psResponse]!=m_unRequestId){
 			m_vecNodes[m_nLabel].State="ASSIGNING"
 			m_vecNodes[m_nLabel].StateAge=m_unJoiningLostPeriod
@@ -675,10 +678,13 @@ function DoJoined(){
 	while(i<m_neighbourCount){
 		if(m_MessageState[i]=="STATE_ASKING"){
 			ReqLabel=m_MessageReqLabel[i]
+			log("ReqLabel var:",ReqLabel)
+			log("M_vec var",m_vecNodes[ReqLabel].State)
 			if(m_vecNodes[ReqLabel].State=="UNASSIGNED")
 				if(m_nLabel==m_vecNodes[ReqLabel].Pred){
 					#is a request, store the index
 					mapRequests[j]=i
+					log("Into if m_nLabel")
 					j=j+1
 				}
 		}
@@ -715,6 +721,8 @@ function DoJoined(){
 		m_selfMessage.ReqID=ReqID
 		m_selfMessage.Response=r2i("REQ_GRANTED")
 		m_vecNodes[ReqLabel].State="ASSIGNING"
+		log("Label=",ReqLabel)
+		log("ID=",ReqID)
     	m_vecNodes[ReqLabel].StateAge=m_unJoiningLostPeriod
 	}
 
