@@ -22,6 +22,7 @@ namespace buzzuav_closures{
 		COMMAND_DISARM,
 		COMMAND_GOTO,
 		COMMAND_MOVETO,
+		COMMAND_PICTURE,
 	 } Custom_CommandCode;
 
 /*
@@ -37,6 +38,7 @@ int buzzros_print(buzzvm_t vm);
  */
 int buzzuav_moveto(buzzvm_t vm);
 int buzzuav_storegoal(buzzvm_t vm);
+int buzzuav_takepicture(buzzvm_t vm);
 /* Returns the current command from local variable*/
 int getcmd();
 /*Sets goto position */

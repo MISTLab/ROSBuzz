@@ -6,7 +6,8 @@
 TARGET_ALTITUDE = 5.0
 UAVSTATE = "TURNEDOFF"
 GOTO_MAXVEL = 2
-goal = {.range=0, .bearing=0}
+TAKEOFF_VSTIG = 11
+goal = {.range=0, .bearing=0, .latitude=0, .longitude=0}
 
 function uav_initswarm() {
 	s = swarm.create(1)
@@ -23,58 +24,74 @@ function idle() {
     UAVSTATE = "IDLE"
 }
 
+firstpassT = 1
 function takeoff() {
 	UAVSTATE = "TAKEOFF"
 	statef=takeoff
+
+  if(firstpassT) {
+    barrier_create(TAKEOFF_VSTIG)
+    firstpassT = 0
+  }
 	
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-		barrier_set(ROBOTS,action,land,-1)
-		barrier_ready()
-	}
-	else {
-		log("Altitude: ", TARGET_ALTITUDE)
-		neighbors.broadcast("cmd", 22)
-		uav_takeoff(TARGET_ALTITUDE)
-	}
+    barrier_wait(ROBOTS, action, land)
+	} else {
+    log("Altitude: ", TARGET_ALTITUDE)
+	  neighbors.broadcast("cmd", 22)
+	  uav_takeoff(TARGET_ALTITUDE)
+  }
 }
 
+firstpassL = 1
 function land() {
 	UAVSTATE = "LAND"
 	statef=land
 
-	if(flight.status == 2 or flight.status == 3){
-		neighbors.broadcast("cmd", 21)
-		uav_land()
-	}
-	else {
-		barrier_set(ROBOTS,turnedoff,land,21)
-		barrier_ready()
-		timeW=0
-		#barrier = nil
-		#statef=idle
+	if(firstpassL) {
+    barrier_create(TAKEOFF_VSTIG+1)
+    firstpassL = 0
+  }
+
+	neighbors.broadcast("cmd", 21)
+	uav_land()
+	
+	if(flight.status != 2 and flight.status != 3){
+		barrier_wait(ROBOTS,turnedoff,land)
 	}
 }
 
 function goto() {
 	UAVSTATE = "GOTO"
 	statef=goto
-	# print(rc_goto.id, " is going alone to lat=", rc_goto.latitude)
+
 	if(rc_goto.id==id){
 		s.leave()
-		rb_from_gps(rc_goto.latitude, rc_goto.longitude)
-		print(id, " has to move ", goal.range)
-		m_navigation = math.vec2.newp(goal.range, goal.bearing)
-		if(math.vec2.length(m_navigation)>GOTO_MAXVEL) {
-			m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
-			uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
-		} else if(math.vec2.length(m_navigation)>0.25)
-			uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
-		else
-			statef = idle
+		gotoWP(picture)
 	} else {
 		neighbors.broadcast("cmd", 16)
 		neighbors.broadcast("gt", rc_goto.id+rc_goto.longitude+rc_goto.latitude)
 	}
+}
+
+function picture() {
+	#TODO: change gimbal orientation
+	uav_takepicture()
+	statef=idle
+}
+
+function gotoWP(transf) {
+	# print(rc_goto.id, " is going alone to lat=", rc_goto.latitude)
+	rb_from_gps(rc_goto.latitude, rc_goto.longitude)
+	print(id, " has to move ", goal.range)
+	m_navigation = math.vec2.newp(goal.range, goal.bearing)
+	if(math.vec2.length(m_navigation)>GOTO_MAXVEL) {
+		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
+		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
+	} else if(math.vec2.length(m_navigation)>0.25)
+		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
+	else
+		transf()
 }
 
 function follow() {
@@ -156,11 +173,21 @@ function LimitAngle(angle){
 }
 
 function rb_from_gps(lat, lon) {
-  print("rb dbg: ",lat,lon,position.latitude,position.longitude)
+  print("gps2rb: ",lat,lon,position.latitude,position.longitude)
 	d_lon = lon - position.longitude
   d_lat = lat - position.latitude
   ned_x = d_lat/180*math.pi * 6371000.0;
   ned_y = d_lon/180*math.pi * 6371000.0 * math.cos(lat/180*math.pi);
 	goal.range = math.sqrt(ned_x*ned_x+ned_y*ned_y);
 	goal.bearing = LimitAngle(math.atan(ned_y,ned_x));
+}
+
+function gps_from_rb(range, bearing) {
+  print("rb2gps: ",range,bearing,position.latitude,position.longitude)
+  latR = position.latitude*math.pi/180.0;
+  lonR = position.longitude*math.pi/180.0;
+  target_lat = math.asin(math.sin(latR) * math.cos(range/6371000.0) + math.cos(latR) * math.sin(range/6371000.0) * math.cos(bearing));
+  target_lon = lonR + math.atan(math.sin(bearing) * math.sin(range/6371000.0) * math.cos(latR), math.cos(range/6371000.0) - math.sin(latR) * math.sin(target_lat));
+  goal.latitude = target_lat*180.0/math.pi;
+  goal.longitude = target_lon*180.0/math.pi;
 }

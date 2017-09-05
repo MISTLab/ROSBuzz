@@ -750,9 +750,9 @@ void roscontroller::flight_controller_service_call()
     }
   } else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
     roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
-
-    // roscontroller::SetLocalPositionNonRaw(goto_pos[1], goto_pos[0],
-    // goto_pos[2], 0);
+  } else if (tmp == buzzuav_closures::COMMAND_PICTURE) { /* TODO: Buzz call to take a picture*/
+    ROS_INFO("TAKING A PICTURE HERE!! --------------")
+    ;
   }
 }
 /*----------------------------------------------

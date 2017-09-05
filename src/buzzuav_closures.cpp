@@ -142,7 +142,7 @@ namespace buzzuav_closures{
     cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
       //printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
     //ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0], goto_pos[1], goto_pos[2]);
-    buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
+    buzz_cmd = COMMAND_MOVETO; // TO DO what should we use
     return buzzvm_ret0(vm);
 	}
 
@@ -265,18 +265,31 @@ namespace buzzuav_closures{
 		return payload_out;
 	}
 	/*----------------------------------------/
+	/ Buzz closure to take a picture here.
+	/----------------------------------------*/
+	int buzzuav_takepicture(buzzvm_t vm) {
+	  cur_cmd = mavros_msgs::CommandCode::CMD_DO_SET_CAM_TRIGG_DIST;
+	  buzz_cmd = COMMAND_PICTURE;
+	  return buzzvm_ret0(vm);
+	}
+
+	/*----------------------------------------/
 	/ Buzz closure to store locally a GPS destination from the fleet
 	/----------------------------------------*/
 	int buzzuav_storegoal(buzzvm_t vm) {
 	  buzzvm_lnum_assert(vm, 3);
-	   buzzvm_lload(vm, 1); // latitude
-	   buzzvm_lload(vm, 2); // longitude
-	   buzzvm_lload(vm, 3); // altitude
-	   buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
-	   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
-	   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-     rc_set_goto(buzzvm_stack_at(vm, 1)->f.value, buzzvm_stack_at(vm, 2)->f.value, buzzvm_stack_at(vm, 3)->f.value, (int)buzz_utility::get_robotid());
-	   return buzzvm_ret0(vm);
+	  buzzvm_lload(vm, 1); // altitude
+	  buzzvm_lload(vm, 2); // longitude
+	  buzzvm_lload(vm, 3); // latitude
+	  buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+    float lat = buzzvm_stack_at(vm, 3)->f.value;
+    float lon = buzzvm_stack_at(vm, 2)->f.value;
+    float alt = buzzvm_stack_at(vm, 1)->f.value;
+    ROS_ERROR("DEBUG ---- %f %f %f",lat,lon,alt);
+    rc_set_goto((int)buzz_utility::get_robotid(), lat, lon, alt);
+	  return buzzvm_ret0(vm);
 	}
 
 	/*----------------------------------------/
