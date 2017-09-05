@@ -269,12 +269,12 @@ void roscontroller::RosControllerRun()
       /*Retrive the state of the graph and uav and log TODO WARNING :PLEASE REMOVE IF
 	SCRIPT IS NOT graphform.bzz*/
       static buzzvm_t     VM = buzz_utility::get_vm();
-      buzzvm_pushs(VM, buzzvm_string_register(VM, "m_eState",1));
-            	buzzvm_gload(VM);
-            	buzzobj_t graph_state = buzzvm_stack_at(VM, 1);
-            	buzzvm_pop(VM);
-		std::stringstream state_buff;
-		state_buff<< graph_state->s.value.str<<",";
+      std::stringstream state_buff;
+      //buzzvm_pushs(VM, buzzvm_string_register(VM, "m_eState",1));
+      //      	buzzvm_gload(VM);
+      //      	buzzobj_t graph_state = buzzvm_stack_at(VM, 1);
+      //      	buzzvm_pop(VM);	
+      //	state_buff<< graph_state->s.value.str<<",";
       buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE",1));
             	buzzvm_gload(VM);
             	buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
