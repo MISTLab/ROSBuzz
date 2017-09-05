@@ -273,7 +273,7 @@ void roscontroller::RosControllerRun()
       //buzzvm_pushs(VM, buzzvm_string_register(VM, "m_eState",1));
       //      	buzzvm_gload(VM);
       //      	buzzobj_t graph_state = buzzvm_stack_at(VM, 1);
-      //      	buzzvm_pop(VM);	
+      //      	buzzvm_pop(VM);
       //	state_buff<< graph_state->s.value.str<<",";
       buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE",1));
             	buzzvm_gload(VM);
@@ -368,7 +368,7 @@ void roscontroller::Rosparameters_get(ros::NodeHandle &n_c)
   } else
     n_c.getParam("xbee_status_srv", xbeesrv_name);
 
-  if(!n_c.getParam("xbee_status_srv", capture_srv_name))
+  if(!n_c.getParam("capture_image_srv", capture_srv_name))
   {
     capture_srv_name = CAPTURE_SRV_DEFAULT_NAME;
   }
