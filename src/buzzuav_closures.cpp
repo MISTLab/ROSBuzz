@@ -35,6 +35,7 @@ namespace buzzuav_closures{
   string WPlistname = "";
 
 	std::map< int,  buzz_utility::RB_struct> targets_map;
+	std::map< int,  buzz_utility::RB_struct> wplist_map;
 	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
 	std::map< int, buzz_utility::neighbors_status> neighbors_status_map;
 
@@ -158,13 +159,13 @@ namespace buzzuav_closures{
 			RB_arr.longitude=lon;
 			RB_arr.altitude=alt;
       // Insert elements.
-      map< int, buzz_utility::RB_struct >::iterator it = targets_map.find(tid);
-      if(it!=targets_map.end())
-        targets_map.erase(it);
-      targets_map.insert(make_pair(tid, RB_arr));
+      map< int, buzz_utility::RB_struct >::iterator it = wplist_map.find(tid);
+      if(it!=wplist_map.end())
+        wplist_map.erase(it);
+      wplist_map.insert(make_pair(tid, RB_arr));
     }
 
-    ROS_INFO("----->Saved %i waypoints.", targets_map.size());
+    ROS_INFO("----->Saved %i waypoints.", wplist_map.size());
 
 		// Close the file:
 		fin.close();
@@ -213,23 +214,23 @@ namespace buzzuav_closures{
 	   	rb_from_gps(tmp, rb, cur_pos);
 			//ROS_WARN("----------Pushing target id %i (%f,%f)", it->first, rb[0], rb[1]);
 			buzzvm_push(vm, targettbl);
-			/* When we get here, the "targets" table is on top of the stack */
+			// When we get here, the "targets" table is on top of the stack
 			//ROS_INFO("Buzz_utility will save user %i.", it->first);
-			/* Push user id */
+			// Push user id
 			buzzvm_pushi(vm, it->first);
-			/* Create entry table */
+			// Create entry table
 			buzzobj_t entry = buzzheap_newobj(vm->heap, BUZZTYPE_TABLE);
-			/* Insert range */
+			// Insert range
 			buzzvm_push(vm, entry);
 			buzzvm_pushs(vm, buzzvm_string_register(vm, "range", 1));
 			buzzvm_pushf(vm, rb[0]);
 			buzzvm_tput(vm);
-			/* Insert longitude */
+			// Insert longitude
 			buzzvm_push(vm, entry);
 			buzzvm_pushs(vm, buzzvm_string_register(vm, "bearing", 1));
 			buzzvm_pushf(vm, rb[1]);
 			buzzvm_tput(vm);
-			/* Save entry into data table */
+			// Save entry into data table
 			buzzvm_push(vm, entry);
 			buzzvm_tput(vm);
 		}
@@ -341,12 +342,12 @@ namespace buzzuav_closures{
 		goal[1] = buzzvm_stack_at(vm, 2)->f.value;
 		goal[2] = buzzvm_stack_at(vm, 1)->f.value;
     if(goal[0]==-1 && goal[1]==-1 && goal[2]==-1){
-      if(targets_map.size()<=0)
+      if(wplist_map.size()<=0)
         parse_gpslist();
-      goal[0] = targets_map.begin()->second.latitude;
-      goal[1] = targets_map.begin()->second.longitude;
-      goal[2] = targets_map.begin()->second.altitude;
-      targets_map.erase(targets_map.begin()->first);
+      goal[0] = wplist_map.begin()->second.latitude;
+      goal[1] = wplist_map.begin()->second.longitude;
+      goal[2] = wplist_map.begin()->second.altitude;
+      wplist_map.erase(wplist_map.begin()->first);
     }
 
     double rb[3];
@@ -355,7 +356,7 @@ namespace buzzuav_closures{
     if(fabs(rb[0])<150.0)
 		  rc_set_goto((int)buzz_utility::get_robotid(), goal[0], goal[1], goal[2]);
 
-		ROS_ERROR("DEBUG ---- %f %f %f (%f %f) %f %f",goal[0],goal[1],goal[2],cur_pos[0],cur_pos[1],rb[0],rb[1]);
+		ROS_WARN("DEBUG ---- %f %f %f (%f %f) %f %f",goal[0],goal[1],goal[2],cur_pos[0],cur_pos[1],rb[0],rb[1]);
 	  return buzzvm_ret0(vm);
 	}
 

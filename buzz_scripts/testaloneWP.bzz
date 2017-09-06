@@ -23,7 +23,7 @@ function step() {
 
 	statef()
 
-	log("Current state: ", UAVSTATE)
+#	log("Current state: ", UAVSTATE)
 }
  
 # Executed once when the robot (or the simulator) is reset.
