@@ -356,7 +356,7 @@ namespace buzzuav_closures{
     if(fabs(rb[0])<150.0)
 		  rc_set_goto((int)buzz_utility::get_robotid(), goal[0], goal[1], goal[2]);
 
-		ROS_WARN("DEBUG ---- %f %f %f (%f %f) %f %f",goal[0],goal[1],goal[2],cur_pos[0],cur_pos[1],rb[0],rb[1]);
+	  ROS_WARN("Set RC_GOTO ---- %f %f %f (%f %f, %f %f)",goal[0],goal[1],goal[2],cur_pos[0],cur_pos[1],rb[0],rb[1]);
 	  return buzzvm_ret0(vm);
 	}
 
