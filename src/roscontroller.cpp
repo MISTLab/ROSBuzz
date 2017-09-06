@@ -2,6 +2,8 @@
 #include <thread>
 namespace rosbzz_node {
 
+const string roscontroller::CAPTURE_SRV_DEFAULT_NAME = "/image_sender/capture_image";
+
 /*---------------
 /Constructor
 ---------------*/
@@ -201,7 +203,7 @@ void roscontroller::RosControllerRun()
     while (ros::ok() && !buzz_utility::buzz_script_done()) {
       /*Update neighbors position inside Buzz*/
       // buzz_closure::neighbour_pos_callback(neighbours_pos_map);
-      
+
       /*log ROS Time stamp, pos (lat,long,alt), Swarm size, no. of neigh,
         neigh pos, RSSI val, Packet loss, filtered packet loss*/
       log<<ros::Time::now()<<",";
@@ -216,17 +218,17 @@ void roscontroller::RosControllerRun()
           log << (double)it->second.x << "," << (double)it->second.y
               << "," << (double)it->second.z << ",";
         }
-      const uint8_t shrt_id= 0xFF; 
+      const uint8_t shrt_id= 0xFF;
       float result;
-      if ( GetAPIRssi(shrt_id, result) ) 
+      if ( GetAPIRssi(shrt_id, result) )
       	log<<result<<",";
       else
         log<<"0,";
-      if ( GetRawPacketLoss(shrt_id, result) ) 
+      if ( GetRawPacketLoss(shrt_id, result) )
       	log<<result<<",";
       else
         log<<"0,";
-      if ( GetFilteredPacketLoss(shrt_id, result) ) 
+      if ( GetFilteredPacketLoss(shrt_id, result) )
       	log<<result<<",";
       else
         log<<"0,";
@@ -265,15 +267,15 @@ void roscontroller::RosControllerRun()
       // no_of_robots=get_number_of_robots();
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
-      /*Retrive the state of the graph and uav and log TODO WARNING :PLEASE REMOVE IF 
+      /*Retrive the state of the graph and uav and log TODO WARNING :PLEASE REMOVE IF
 	SCRIPT IS NOT graphform.bzz*/
       static buzzvm_t     VM = buzz_utility::get_vm();
-      buzzvm_pushs(VM, buzzvm_string_register(VM, "m_eState",1));
-            	buzzvm_gload(VM);
-            	buzzobj_t graph_state = buzzvm_stack_at(VM, 1);
-            	buzzvm_pop(VM);
-		std::stringstream state_buff;
-		state_buff<< graph_state->s.value.str<<",";
+      std::stringstream state_buff;
+      //buzzvm_pushs(VM, buzzvm_string_register(VM, "m_eState",1));
+      //      	buzzvm_gload(VM);
+      //      	buzzobj_t graph_state = buzzvm_stack_at(VM, 1);
+      //      	buzzvm_pop(VM);
+      //	state_buff<< graph_state->s.value.str<<",";
       buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE",1));
             	buzzvm_gload(VM);
             	buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
@@ -366,6 +368,11 @@ void roscontroller::Rosparameters_get(ros::NodeHandle &n_c)
     }
   } else
     n_c.getParam("xbee_status_srv", xbeesrv_name);
+
+  if(!n_c.getParam("capture_image_srv", capture_srv_name))
+  {
+    capture_srv_name = CAPTURE_SRV_DEFAULT_NAME;
+  }
 
   GetSubscriptionParameters(n_c);
   // initialize topics to null?
@@ -475,6 +482,7 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle &n_c)
     service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback, this);
   ROS_INFO("Ready to receive Mav Commands from RC client");
   xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
+  capture_srv = n_c.serviceClient<mavros_msgs::CommandBool>(capture_srv_name);
   stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
 
   users_sub = n_c.subscribe("users_pos", 5, &roscontroller::users_pos, this);
@@ -753,7 +761,8 @@ void roscontroller::flight_controller_service_call()
     roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
   } else if (tmp == buzzuav_closures::COMMAND_PICTURE) { /* TODO: Buzz call to take a picture*/
     ROS_INFO("TAKING A PICTURE HERE!! --------------");
-    ros::Duration(0.2).sleep();
+    mavros_msgs::CommandBool capture_command;
+    capture_srv.call(capture_command);
   }
 }
 /*----------------------------------------------

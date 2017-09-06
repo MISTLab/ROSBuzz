@@ -543,7 +543,6 @@ function DoJoining(){
     set_rc_goto()
 	else
     gotoWP(TransitionToJoined)
-
 	#pack the communication package
 	m_selfMessage.State=s2i(UAVSTATE)
 	m_selfMessage.Label=m_nLabel

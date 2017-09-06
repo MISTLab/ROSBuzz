@@ -30,7 +30,7 @@ function barrier_create() {
 
 function barrier_set(threshold, transf, resumef, bdt) {
   statef = function() {
-    barrier_wait(threshold, transf, resumef, bdt);
+    barrier_wait(threshold, transf, resumef);
   }
   UAVSTATE = "BARRIERWAIT"
   barrier_create()
@@ -40,6 +40,7 @@ function barrier_set(threshold, transf, resumef, bdt) {
 # Make yourself ready
 #
 function barrier_ready() {
+  log("BARRIER READY -------")
   barrier.put(id, 1)
   barrier.put("d", 0)
 }

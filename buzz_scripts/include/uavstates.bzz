@@ -27,9 +27,15 @@ function idle() {
     UAVSTATE = "IDLE"
 }
 
+firstpassT = 1
 function takeoff() {
 	UAVSTATE = "TAKEOFF"
 	statef=takeoff
+
+  if(firstpassT) {
+    barrier_create(TAKEOFF_VSTIG)
+    firstpassT = 0
+  }
 	
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 		barrier_set(ROBOTS, action, land, -1)
@@ -41,6 +47,7 @@ function takeoff() {
   }
 }
 
+firstpassL = 1
 function land() {
 	UAVSTATE = "LAND"
 	statef=land
