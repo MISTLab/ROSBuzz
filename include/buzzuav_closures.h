@@ -9,8 +9,8 @@
 #include "ros/ros.h"
 #include "buzz_utility.h"
 
-	#define EARTH_RADIUS (double) 6371000.0
-	#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
+#define EARTH_RADIUS (double) 6371000.0
+#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
 
 namespace buzzuav_closures{
 	typedef enum {
@@ -22,6 +22,7 @@ namespace buzzuav_closures{
 		COMMAND_DISARM,
 		COMMAND_GOTO,
 		COMMAND_MOVETO,
+		COMMAND_PICTURE,
 	 } Custom_CommandCode;
 
 /*
@@ -30,13 +31,15 @@ namespace buzzuav_closures{
  * The command to use in Buzz is buzzros_print takes any available datatype in Buzz
  */
 int buzzros_print(buzzvm_t vm);
-
+void setWPlist(std::string path);
 /*
  * buzzuav_goto(latitude,longitude,altitude) function in Buzz
  * commands the UAV to go to a position supplied
  */
 int buzzuav_moveto(buzzvm_t vm);
 int buzzuav_storegoal(buzzvm_t vm);
+void parse_gpslist();
+int buzzuav_takepicture(buzzvm_t vm);
 /* Returns the current command from local variable*/
 int getcmd();
 /*Sets goto position */

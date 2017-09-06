@@ -55,6 +55,8 @@ public:
   //void RosControllerInit();
   void RosControllerRun();
 
+  static const string CAPTURE_SRV_DEFAULT_NAME;
+
 private:
   struct num_robot_count
   {
@@ -70,7 +72,7 @@ private:
     double latitude=0.0;
     float  altitude=0.0;
   }; typedef struct gps GPS ; // not useful in cpp
-  
+
   GPS target, home, cur_pos;
   double cur_rel_altitude;
 
@@ -92,7 +94,19 @@ private:
   /*tmp to be corrected*/
   uint8_t no_cnt=0;
   uint8_t old_val=0	;
-  std::string bzzfile_name, fcclient_name, armclient, modeclient, rcservice_name,bcfname,dbgfname,out_payload,in_payload,obstacles_topic,stand_by,xbeesrv_name, setpoint_name;
+  std::string bzzfile_name;
+  std::string fcclient_name;
+  std::string armclient;
+  std::string modeclient;
+  std::string rcservice_name;
+  std::string bcfname,dbgfname;
+  std::string out_payload;
+  std::string in_payload;
+  std::string obstacles_topic;
+  std::string stand_by;
+  std::string xbeesrv_name;
+  std::string capture_srv_name;
+  std::string setpoint_name;
   std::string stream_client_name;
   std::string relative_altitude_sub_name;
   std::string setpoint_nonraw;
@@ -102,6 +116,7 @@ private:
   Num_robot_count count_robots;
   ros::ServiceClient mav_client;
   ros::ServiceClient xbeestatus_srv;
+  ros::ServiceClient capture_srv;
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
   ros::Publisher neigh_pos_pub;

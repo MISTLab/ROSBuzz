@@ -32,6 +32,7 @@ namespace buzzuav_closures{
 	static float raw_packet_loss = 0.0;
 	static int filtered_packet_loss = 0;
 	static float api_rssi = 0.0;
+  string WPlistname = "";
 
 	std::map< int,  buzz_utility::RB_struct> targets_map;
 	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
@@ -83,6 +84,10 @@ namespace buzzuav_closures{
 	   return buzzvm_ret0(vm);
 	}
 
+  void setWPlist(string path){
+    WPlistname = path + "include/graphs/waypointlist.csv";
+  }
+
 	/*----------------------------------------/
 	/ Compute GPS destination from current position and desired Range and Bearing
 	/----------------------------------------*/
@@ -105,10 +110,10 @@ namespace buzzuav_closures{
 		}
 
 	void rb_from_gps(double nei[], double out[], double cur[]){
-       		double d_lon = nei[1] - cur[1];
-       		double d_lat = nei[0] - cur[0];
-        	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
-        	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+    double d_lon = nei[1] - cur[1];
+    double d_lat = nei[0] - cur[0];
+    double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
+    double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
 		out[1] = constrainAngle(atan2(ned_y,ned_x));
 		out[2] = 0.0;
@@ -118,6 +123,52 @@ namespace buzzuav_closures{
 	double hcpos1[4] = {45.564489, -73.562537, 45.564140, -73.562336};
 	double hcpos2[4] = {45.564729, -73.562060, 45.564362, -73.562958};
 	double hcpos3[4] = {45.564969, -73.562838, 45.564636, -73.563677};
+
+	void parse_gpslist()
+	{
+		// Open file:
+    ROS_INFO("WP list file: %s", WPlistname.c_str());
+		std::ifstream fin(WPlistname.c_str()); // Open in text-mode.
+
+		// Opening may fail, always check.
+		if (!fin) { 
+			ROS_ERROR("GPS list parser, could not open file."); 
+			return;
+		}
+
+    // Prepare a C-string buffer to be used when reading lines.
+    const int MAX_LINE_LENGTH = 1024; // Choose this large enough for your need.
+    char buffer[MAX_LINE_LENGTH] = {}; 
+    const char * DELIMS = "\t ,"; // Tab, space or comma.
+
+		// Read the file and load the data:
+		double lat, lon;
+    int alt, tilt, tid;
+		buzz_utility::RB_struct RB_arr;
+    // Read one line at a time.
+    while ( fin.getline(buffer, MAX_LINE_LENGTH) ) {
+      // Extract the tokens:
+      tid = atoi(strtok( buffer, DELIMS ));
+      lon = atof(strtok( NULL,   DELIMS ));
+      lat = atof(strtok( NULL,   DELIMS ));
+      alt = atoi(strtok( NULL,   DELIMS ));
+      tilt = atoi(strtok( NULL,   DELIMS ));
+      //ROS_INFO("%.6f, %.6f, %i %i %i",lat, lon, alt, tilt, tid);
+			RB_arr.latitude=lat;
+			RB_arr.longitude=lon;
+			RB_arr.altitude=alt;
+      // Insert elements.
+      map< int, buzz_utility::RB_struct >::iterator it = targets_map.find(tid);
+      if(it!=targets_map.end())
+        targets_map.erase(it);
+      targets_map.insert(make_pair(tid, RB_arr));
+    }
+
+    ROS_INFO("----->Saved %i waypoints.", targets_map.size());
+
+		// Close the file:
+		fin.close();
+	}
 
 	/*----------------------------------------/
 	/ Buzz closure to move following a 2D vector
@@ -142,7 +193,7 @@ namespace buzzuav_closures{
     cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
       //printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
     //ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0], goto_pos[1], goto_pos[2]);
-    buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
+    buzz_cmd = COMMAND_MOVETO; // TO DO what should we use
     return buzzvm_ret0(vm);
 	}
 
@@ -158,9 +209,9 @@ namespace buzzuav_closures{
 		double rb[3], tmp[3];
 		map< int, buzz_utility::RB_struct >::iterator it;
 		for (it=targets_map.begin(); it!=targets_map.end(); ++it){
-			tmp[0]=(it->second).la;tmp[1]=(it->second).lo;tmp[2]=height;
-	   		rb_from_gps(tmp, rb, cur_pos);
-			ROS_WARN("----------Pushing target id %i (%f,%f)", rb[0], rb[1]);
+			tmp[0]=(it->second).latitude; tmp[1]=(it->second).longitude; tmp[2]=height;
+	   	rb_from_gps(tmp, rb, cur_pos);
+			//ROS_WARN("----------Pushing target id %i (%f,%f)", it->first, rb[0], rb[1]);
 			buzzvm_push(vm, targettbl);
 			/* When we get here, the "targets" table is on top of the stack */
 			//ROS_INFO("Buzz_utility will save user %i.", it->first);
@@ -206,8 +257,9 @@ namespace buzzuav_closures{
 	   if(fabs(rb[0])<100.0) {
 			//printf("\tGot new user from bzz stig: %i - %f, %f\n", uid, rb[0], rb[1]);
 			buzz_utility::RB_struct RB_arr;
-			RB_arr.la=tmp[0];
-			RB_arr.lo=tmp[1];
+			RB_arr.latitude=tmp[0];
+			RB_arr.longitude=tmp[1];
+			RB_arr.altitude=tmp[2];
 			RB_arr.r=rb[0];
 			RB_arr.b=rb[1];
 			map< int, buzz_utility::RB_struct >::iterator it = targets_map.find(uid);
@@ -217,7 +269,7 @@ namespace buzzuav_closures{
 			//ROS_INFO("Buzz_utility got updated/new user: %i (%f,%f,%f)", id, latitude, longitude, altitude);
 			return vm->state;
 	   } else
-		printf(" ---------- Target too far %f\n",rb[0]);
+		ROS_WARN(" ---------- Target too far %f",rb[0]);
 
 		return 0;
 	}
@@ -249,7 +301,7 @@ namespace buzzuav_closures{
 
 	mavros_msgs::Mavlink get_status(){
 		mavros_msgs::Mavlink payload_out;
-    	map< int, buzz_utility::neighbors_status >::iterator it;
+    map< int, buzz_utility::neighbors_status >::iterator it;
 		for (it= neighbors_status_map.begin(); it!= neighbors_status_map.end(); ++it){
 			payload_out.payload64.push_back(it->first);
 			payload_out.payload64.push_back(it->second.gps_strenght);
@@ -265,18 +317,46 @@ namespace buzzuav_closures{
 		return payload_out;
 	}
 	/*----------------------------------------/
+	/ Buzz closure to take a picture here.
+	/----------------------------------------*/
+	int buzzuav_takepicture(buzzvm_t vm) {
+	  cur_cmd = mavros_msgs::CommandCode::CMD_DO_SET_CAM_TRIGG_DIST;
+	  buzz_cmd = COMMAND_PICTURE;
+	  return buzzvm_ret0(vm);
+	}
+
+	/*----------------------------------------/
 	/ Buzz closure to store locally a GPS destination from the fleet
 	/----------------------------------------*/
 	int buzzuav_storegoal(buzzvm_t vm) {
 	  buzzvm_lnum_assert(vm, 3);
-	   buzzvm_lload(vm, 1); // latitude
-	   buzzvm_lload(vm, 2); // longitude
-	   buzzvm_lload(vm, 3); // altitude
-	   buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
-	   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
-	   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-     rc_set_goto(buzzvm_stack_at(vm, 1)->f.value, buzzvm_stack_at(vm, 2)->f.value, buzzvm_stack_at(vm, 3)->f.value, (int)buzz_utility::get_robotid());
-	   return buzzvm_ret0(vm);
+	  buzzvm_lload(vm, 1); // altitude
+	  buzzvm_lload(vm, 2); // longitude
+	  buzzvm_lload(vm, 3); // latitude
+	  buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+    double goal[3];
+		goal[0] = buzzvm_stack_at(vm, 3)->f.value;
+		goal[1] = buzzvm_stack_at(vm, 2)->f.value;
+		goal[2] = buzzvm_stack_at(vm, 1)->f.value;
+    if(goal[0]==-1 && goal[1]==-1 && goal[2]==-1){
+      if(targets_map.size()<=0)
+        parse_gpslist();
+      goal[0] = targets_map.begin()->second.latitude;
+      goal[1] = targets_map.begin()->second.longitude;
+      goal[2] = targets_map.begin()->second.altitude;
+      targets_map.erase(targets_map.begin()->first);
+    }
+
+    double rb[3];
+
+    rb_from_gps(goal, rb, cur_pos);
+    if(fabs(rb[0])<150.0)
+		  rc_set_goto((int)buzz_utility::get_robotid(), goal[0], goal[1], goal[2]);
+
+		ROS_ERROR("DEBUG ---- %f %f %f (%f %f) %f %f",goal[0],goal[1],goal[2],cur_pos[0],cur_pos[1],rb[0],rb[1]);
+	  return buzzvm_ret0(vm);
 	}
 
 	/*----------------------------------------/

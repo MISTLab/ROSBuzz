@@ -7,43 +7,63 @@
 #
 # Constants
 #
-BARRIER_VSTIG = 11
 BARRIER_TIMEOUT = 200 # in steps
+BARRIER_VSTIG = 80
+timeW = 0
+barrier = nil
 
 #
 # Sets a barrier
 #
+function barrier_create() {
+  # reset
+  timeW = 0
+  # create barrier vstig
+  #log("---> Prev. br. ", barrier, " ", BARRIER_VSTIG)
+  if(barrier!=nil) {
+    barrier=nil
+    BARRIER_VSTIG = BARRIER_VSTIG +1
+  }
+  #log("---> New. br. ", barrier, " ", BARRIER_VSTIG)
+  barrier = stigmergy.create(BARRIER_VSTIG)
+}
+
 function barrier_set(threshold, transf, resumef, bdt) {
   statef = function() {
-    barrier_wait(threshold, transf, resumef, bdt);
+    barrier_wait(threshold, transf, resumef);
   }
-  barrier = stigmergy.create(BARRIER_VSTIG)
+  UAVSTATE = "BARRIERWAIT"
+  barrier_create()
 }
 
 #
 # Make yourself ready
 #
 function barrier_ready() {
+  log("BARRIER READY -------")
   barrier.put(id, 1)
+  barrier.put("d", 0)
 }
 
 #
 # Executes the barrier
 #
-timeW=0
 function barrier_wait(threshold, transf, resumef, bdt) {
   barrier.put(id, 1)
-  UAVSTATE = "BARRIERWAIT"
 
   barrier.get(id)
-  if(barrier.size() >= threshold) {
-#    getlowest()
+  #log("----->BS: ", barrier.size())
+  if(barrier.size() - 1 >= threshold or barrier.get("d") == 1) {
+    barrier.put("d", 1)
+    timeW = 0
     transf()
   } else if(timeW >= BARRIER_TIMEOUT) {
-    barrier = nil
+    log("------> Barrier Timeout !!!!")
+    timeW = 0
     resumef()
-    timeW=0
-  } else if(bdt!=-1)
+  }
+
+  if(bdt!=-1)
     neighbors.broadcast("cmd", bdt)
 
   timeW = timeW+1
