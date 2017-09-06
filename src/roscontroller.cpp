@@ -17,6 +17,7 @@ roscontroller::roscontroller(ros::NodeHandle &n_c, ros::NodeHandle &n_c_priv)
   bcfname = fname + ".bo";
   dbgfname = fname + ".bdb";
   set_bzz_file(bzzfile_name.c_str());
+  buzzuav_closures::setWPlist(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/");
   /*Initialize variables*/
   // Solo things
   SetMode("LOITER", 0);
@@ -751,8 +752,8 @@ void roscontroller::flight_controller_service_call()
   } else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
     roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
   } else if (tmp == buzzuav_closures::COMMAND_PICTURE) { /* TODO: Buzz call to take a picture*/
-    ROS_INFO("TAKING A PICTURE HERE!! --------------")
-    ;
+    ROS_INFO("TAKING A PICTURE HERE!! --------------");
+    ros::Duration(0.2).sleep();
   }
 }
 /*----------------------------------------------
@@ -1092,7 +1093,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr &msg) {
     gps_rb(nei_pos, cvt_neighbours_pos_payload);
     /*Extract robot id of the neighbour*/
     uint16_t *out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + 3));
-    ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
+//    ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
     /*pass neighbour position to local maintaner*/
     buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],
                                    cvt_neighbours_pos_payload[1],

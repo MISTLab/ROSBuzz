@@ -3,10 +3,13 @@
 # FLIGHT-RELATED FUNCTIONS
 #
 ########################################
-TARGET_ALTITUDE = 5.0
+TARGET_ALTITUDE = 5.0 # m.
 UAVSTATE = "TURNEDOFF"
-GOTO_MAXVEL = 2
-TAKEOFF_VSTIG = 11
+PICTURE_WAIT = 40 # steps
+GOTO_MAXVEL = 2 # m/steps
+GOTO_MAXDIST = 150 # m.
+GOTODIST_TOL = 0.5  # m.
+GOTOANG_TOL = 0.1 # rad.
 goal = {.range=0, .bearing=0, .latitude=0, .longitude=0}
 
 function uav_initswarm() {
@@ -24,18 +27,13 @@ function idle() {
     UAVSTATE = "IDLE"
 }
 
-firstpassT = 1
 function takeoff() {
 	UAVSTATE = "TAKEOFF"
 	statef=takeoff
-
-  if(firstpassT) {
-    barrier_create(TAKEOFF_VSTIG)
-    firstpassT = 0
-  }
 	
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-    barrier_wait(ROBOTS, action, land)
+		barrier_set(ROBOTS, action, land, -1)
+		barrier_ready()
 	} else {
     log("Altitude: ", TARGET_ALTITUDE)
 	  neighbors.broadcast("cmd", 22)
@@ -43,55 +41,65 @@ function takeoff() {
   }
 }
 
-firstpassL = 1
 function land() {
 	UAVSTATE = "LAND"
 	statef=land
-
-	if(firstpassL) {
-    barrier_create(TAKEOFF_VSTIG+1)
-    firstpassL = 0
-  }
 
 	neighbors.broadcast("cmd", 21)
 	uav_land()
 	
 	if(flight.status != 2 and flight.status != 3){
-		barrier_wait(ROBOTS,turnedoff,land)
+    barrier_set(ROBOTS,turnedoff,land, 21)
+		barrier_ready()
 	}
 }
 
-function goto() {
+function set_goto(transf) {
 	UAVSTATE = "GOTO"
-	statef=goto
+	statef=function() {
+    gotoWP(transf);
+  }
 
 	if(rc_goto.id==id){
-		s.leave()
-		gotoWP(picture)
+		if(s!=nil){
+      if(s.in())
+        s.leave()      
+    }
 	} else {
 		neighbors.broadcast("cmd", 16)
 		neighbors.broadcast("gt", rc_goto.id+rc_goto.longitude+rc_goto.latitude)
 	}
 }
 
+ptime=0
 function picture() {
+  statef=picture
+  UAVSTATE="PICTURE"
 	#TODO: change gimbal orientation
-	uav_takepicture()
-	statef=idle
+	if(ptime==PICTURE_WAIT/2)
+	  uav_takepicture()
+  else if(ptime>=PICTURE_WAIT) {
+    statef=action
+    ptime=0 
+  }
+  ptime=ptime+1
 }
 
 function gotoWP(transf) {
 	# print(rc_goto.id, " is going alone to lat=", rc_goto.latitude)
 	rb_from_gps(rc_goto.latitude, rc_goto.longitude)
-	print(id, " has to move ", goal.range)
+	print(" has to move ", goal.range)
 	m_navigation = math.vec2.newp(goal.range, goal.bearing)
-	if(math.vec2.length(m_navigation)>GOTO_MAXVEL) {
+
+	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
+    log("Sorry this is too far.")
+  else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
 		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
 		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
-	} else if(math.vec2.length(m_navigation)>0.25)
-		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
-	else
+	} else if(goal.range < GOTODIST_TOL and goal.bearing < GOTOANG_TOL) # reached destination
 		transf()
+	else
+		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
 }
 
 function follow() {
@@ -145,16 +153,18 @@ function uav_rccmd() {
 function uav_neicmd() {
     neighbors.listen("cmd",
 			function(vid, value, rid) {
-				print("Got (", vid, ",", value, ") from robot #", rid)
-				if(value==22 and UAVSTATE!="TAKEOFF") {
+				print("Got (", vid, ",", value, ") from robot #", rid, "(", UAVSTATE, ")")
+				if(value==22 and UAVSTATE!="TAKEOFF" and UAVSTATE!="BARRIERWAIT") {
 					statef=takeoff
-				} else if(value==21) {
+		      UAVSTATE = "TAKEOFF"
+				} else if(value==21 and UAVSTATE!="LAND" and UAVSTATE!="BARRIERWAIT") {
 					statef=land
-				} else if(value==400 and UAVSTATE=="IDLE") {
+		      UAVSTATE = "LAND"
+				} else if(value==400 and UAVSTATE=="TURNEDOFF") {
 					uav_arm()
-				} else if(value==401 and UAVSTATE=="IDLE"){
+				} else if(value==401 and UAVSTATE=="TURNEDOFF"){
 					uav_disarm()
-				} else if(value==16){
+				} else if(value==16 and UAVSTATE=="IDLE"){
 				#  neighbors.listen("gt",function(vid, value, rid) {
 				#    print("Got (", vid, ",", value, ") from robot #", rid)
 				#    # if(gt.id == id) statef=goto
@@ -173,7 +183,7 @@ function LimitAngle(angle){
 }
 
 function rb_from_gps(lat, lon) {
-  print("gps2rb: ",lat,lon,position.latitude,position.longitude)
+#  print("gps2rb: ",lat,lon,position.latitude,position.longitude)
 	d_lon = lon - position.longitude
   d_lat = lat - position.latitude
   ned_x = d_lat/180*math.pi * 6371000.0;
@@ -182,12 +192,18 @@ function rb_from_gps(lat, lon) {
 	goal.bearing = LimitAngle(math.atan(ned_y,ned_x));
 }
 
-function gps_from_rb(range, bearing) {
-  print("rb2gps: ",range,bearing,position.latitude,position.longitude)
+function gps_from_vec(vec) {
+  Vrange = math.vec2.length(vec)
+  Vbearing = LimitAngle(math.atan(vec.y, vec.x))
+#  print("rb2gps: ",Vrange,Vbearing,position.latitude,position.longitude)
   latR = position.latitude*math.pi/180.0;
   lonR = position.longitude*math.pi/180.0;
-  target_lat = math.asin(math.sin(latR) * math.cos(range/6371000.0) + math.cos(latR) * math.sin(range/6371000.0) * math.cos(bearing));
-  target_lon = lonR + math.atan(math.sin(bearing) * math.sin(range/6371000.0) * math.cos(latR), math.cos(range/6371000.0) - math.sin(latR) * math.sin(target_lat));
+  target_lat = math.asin(math.sin(latR) * math.cos(Vrange/6371000.0) + math.cos(latR) * math.sin(Vrange/6371000.0) * math.cos(Vbearing));
+  target_lon = lonR + math.atan(math.sin(Vbearing) * math.sin(Vrange/6371000.0) * math.cos(latR), math.cos(Vrange/6371000.0) - math.sin(latR) * math.sin(target_lat));
   goal.latitude = target_lat*180.0/math.pi;
   goal.longitude = target_lon*180.0/math.pi;
+  #d_lat = (vec.x / 6371000.0)*180.0/math.pi;
+  #goal.latitude = d_lat + position.latitude;
+  #d_lon = (vec.y / (6371000.0 * math.cos(goal.latitude*math.pi/180.0)))*180.0/math.pi;
+  #goal.longitude = d_lon + position.longitude;
 }

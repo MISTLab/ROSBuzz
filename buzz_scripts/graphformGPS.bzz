@@ -6,7 +6,7 @@ include "vec2.bzz"
 include "update.bzz"
 
 include "vstigenv.bzz" # reserve stigmergy id=20 and 21 for this header.
-include "barrier.bzz" # reserve stigmergy id=11 for this header.
+include "barrier.bzz" # reserve stigmergy id=80 (auto-increment up) for this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
 
 include "graphs/shapes_Y.bzz"
@@ -268,14 +268,14 @@ function target4label(nei_id){
 #calculate LJ vector for neibhor stored in i
 function LJ_vec(i){
     var dis=m_MessageRange[i]
-    var bearing=m_MessageBearing[i]
+    var ljbearing=m_MessageBearing[i]
     var nei_id=m_messageID[i]
     var target=target4label(nei_id)
     var cDir={.x=0.0,.y=0.0}
     if(target!="miss"){
-    	cDir=math.vec2.newp(FlockInteraction(dis,target,EPSILON),bearing)   
+    	cDir=math.vec2.newp(FlockInteraction(dis,target,EPSILON),ljbearing)   
     }
-       #log(id,"dis=",dis,"target=",target,"label=",nei_id)
+    #log(id,"dis=",dis,"target=",target,"label=",nei_id)
 		#log("x=",cDir.x,"y=",cDir.y)  
     return cDir
 }
@@ -383,65 +383,11 @@ function TransitionToAsking(un_label){
 #
 #Transistion to state joining
 #
-function set_rc_goto() {
-  #get information of pred
-	var i=0
-	var IDofPred=-1
-	while(i<m_neighbourCount and IDofPred==-1){
-		if(m_MessageLabel[i]==m_vecNodes[m_nLabel].Pred and m_MessageState[i]=="STATE_JOINED")
-			IDofPred=i
-		i=i+1
-	}
-
-	#found pred
-	if(IDofPred!=-1){
-		m_unWaitCount=m_unJoiningLostPeriod#if see pred, reset the timer
-
-		var P2Target=math.vec2.newp(m_vecNodes[m_nLabel].distance,m_vecNodes[m_nLabel].bearing)
-		m_cMeToPred.Range=m_MessageRange[IDofPred]#the poition of self to pred in local coordinate
-		m_cMeToPred.Bearing=m_MessageBearing[IDofPred]
-
-		#attention, m_cMeToPred.GlobalBearing is the bearing of self wrt pred in global coordinate
-		var S2PGlobalBearing=0
-
-		m_cMeToPred.GlobalBearing=LimitAngle(m_cMeToPred.GlobalBearing)
-
-		if(m_cMeToPred.GlobalBearing>math.pi)
-			S2PGlobalBearing=m_cMeToPred.GlobalBearing-math.pi
-		else
-			S2PGlobalBearing=m_cMeToPred.GlobalBearing+math.pi
-
-		var S2Pred=math.vec2.newp(m_cMeToPred.Range,S2PGlobalBearing)
-
-		#the vector from self to target in global coordinate
-		var S2Target=math.vec2.add(S2Pred,P2Target)
-		#change the vector to local coordinate of self
-		var S2Target_bearing=math.atan(S2Target.y, S2Target.x)
-		m_bias=m_cMeToPred.Bearing-S2PGlobalBearing
-		S2Target_bearing=S2Target_bearing+m_bias
-
-    gps_from_rb(math.vec2.length(S2Target)/100.0, S2Target_bearing)
-    uav_storegoal(goal.latitude, goal.longitude, position.altitude)
-  }
-}
-
 function TransitionToJoining(){
 	UAVSTATE="STATE_JOINING"
 	m_selfMessage.State=s2i(UAVSTATE) 
 	m_selfMessage.Label=m_nLabel
 	m_unWaitCount=m_unJoiningLostPeriod
-	
-	set_rc_goto()
-
-	neighbors.listen("r",
-        function(vid,value,rid){
-        var recv_table={.Label=0,.Bearing=0.0}      
-        recv_table=unpack_guide_msg(value)
-        #store the received message
-        if(recv_table.Label==m_nLabel){
-        	m_cMeToPred.GlobalBearing=recv_table.Bearing
-        }
-    })
 }
 
 #
@@ -452,11 +398,10 @@ function TransitionToJoined(){
 	m_selfMessage.State=s2i(UAVSTATE)
 	m_selfMessage.Label=m_nLabel
 	m_vecNodes[m_nLabel].State="ASSIGNED"
-	neighbors.ignore("r")
 
 	#write statues
 	#v_tag.put(m_nLabel, m_lockstig)
-  barrier_create(m_lockstig)
+  barrier_create()
 	barrier_ready()
 
 	m_navigation.x=0.0
@@ -591,11 +536,45 @@ function DoAsking(){
 #
 #Do joining
 #
+m_gotjoinedparent = 0
 function DoJoining(){
-	gotoWP(TransitionToJoined)
+
+  if(m_gotjoinedparent!=1)
+    set_rc_goto()
+	else
+    gotoWP(TransitionToJoined)
+
 	#pack the communication package
 	m_selfMessage.State=s2i(UAVSTATE)
 	m_selfMessage.Label=m_nLabel
+}
+
+function set_rc_goto() {
+  #get information of pred
+	var i=0
+	var IDofPred=-1
+	while(i<m_neighbourCount and IDofPred==-1){
+		if(m_MessageLabel[i]==m_vecNodes[m_nLabel].Pred and m_MessageState[i]=="STATE_JOINED")
+			IDofPred=i
+		i=i+1
+	}
+
+	#found pred
+	if(IDofPred!=-1){
+		m_unWaitCount=m_unJoiningLostPeriod#if see pred, reset the timer
+
+		var P2Target=math.vec2.newp(m_vecNodes[m_nLabel].distance,m_vecNodes[m_nLabel].bearing)
+		m_cMeToPred.Range=m_MessageRange[IDofPred]#the poition of self to pred in local coordinate
+		m_cMeToPred.Bearing=m_MessageBearing[IDofPred]
+
+    var S2Pred=math.vec2.newp(m_cMeToPred.Range,m_cMeToPred.Bearing)
+
+    var S2Target=math.vec2.add(S2Pred,P2Target)
+
+    gps_from_vec(math.vec2.newp(math.vec2.length(S2Target)/100.0, math.atan(S2Target.y,S2Target.x)))
+    uav_storegoal(goal.latitude, goal.longitude, position.altitude)
+    m_gotjoinedparent = 1
+  }
 }
 
 #
@@ -630,7 +609,6 @@ function DoJoined(){
 			if(m_nLabel==m_vecNodes[JoiningLabel].Pred){
 				##joining wrt this dot,send the global bearing
 				var m_messageForJoining={.Label=JoiningLabel,.Bearing=m_MessageBearing[i]-m_bias}
-				neighbors.broadcast("r",pack_guide_msg(m_messageForJoining))
 			}
 		}
 		#if it is the pred
@@ -679,7 +657,7 @@ function DoJoined(){
 	#if(v_tag.size()==ROBOTS){
 	#	TransitionToLock()
 	#}
-  barrier_wait(ROBOTS, TransitionToLock, DoJoined)
+  barrier_wait(ROBOTS, TransitionToLock, DoJoined, -1)
 }
 
 #
