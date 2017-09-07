@@ -35,7 +35,7 @@ function takeoff() {
 		barrier_set(ROBOTS, action, land, -1)
 		barrier_ready()
 	} else {
-    		log("Altitude: ", TARGET_ALTITUDE)
+    		log("Altitude: ", position.altitude)
 		neighbors.broadcast("cmd", 22)
 		uav_takeoff(TARGET_ALTITUDE)
   	}
@@ -60,15 +60,15 @@ function set_goto(transf) {
     		gotoWP(transf);
   	}
 
-	#if(rc_goto.id==id){
-	#	if(s!=nil){
-      	#		if(s.in())
-        #			s.leave()      
-    	#}
-	#} else {
-	#	neighbors.broadcast("cmd", 16)
-	#	neighbors.broadcast("gt", rc_goto.id+rc_goto.longitude+rc_goto.latitude)
-	#}
+	if(rc_goto.id==id){
+		if(s!=nil){
+      			if(s.in())
+        			s.leave()      
+    	}
+	} else {
+		neighbors.broadcast("cmd", 16)
+		neighbors.broadcast("gt", rc_goto.id+rc_goto.longitude+rc_goto.latitude)
+	}
 }
 
 ptime=0
@@ -86,14 +86,14 @@ function picture() {
 }
 
 function gotoWP(transf) {
-	 print(rc_goto.id, " is going alone to lat=", rc_goto.latitude)
+	# print(rc_goto.id, " is going alone to lat=", rc_goto.latitude)
 	rb_from_gps(rc_goto.latitude, rc_goto.longitude)
-	print(" has to move ", goal.range)
+	print(" has to move ", goal.range, goal.bearing)
 	m_navigation = math.vec2.newp(goal.range, goal.bearing)
 
 	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
-    log("Sorry this is too far.")
-  else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
+		log("Sorry this is too far.")
+  	else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
 		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
 		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
 	} else if(goal.range < GOTODIST_TOL and goal.bearing < GOTOANG_TOL) # reached destination

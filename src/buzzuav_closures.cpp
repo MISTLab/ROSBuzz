@@ -321,7 +321,7 @@ namespace buzzuav_closures{
 	/ Buzz closure to take a picture here.
 	/----------------------------------------*/
 	int buzzuav_takepicture(buzzvm_t vm) {
-	  cur_cmd = mavros_msgs::CommandCode::CMD_DO_SET_CAM_TRIGG_DIST;
+	  //cur_cmd = mavros_msgs::CommandCode::CMD_DO_SET_CAM_TRIGG_DIST;
 	  buzz_cmd = COMMAND_PICTURE;
 	  return buzzvm_ret0(vm);
 	}

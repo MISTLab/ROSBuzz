@@ -761,17 +761,20 @@ void roscontroller::flight_controller_service_call()
     roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
   } else if (tmp == buzzuav_closures::COMMAND_PICTURE) { /* TODO: Buzz call to take a picture*/
     ROS_INFO("TAKING A PICTURE HERE!! --------------");
-    cmd_srv.request.param1 = 90;
-    cmd_srv.request.param2 = 0;
-    cmd_srv.request.param3 = 0;
-    cmd_srv.request.param4 = 0;
+    cmd_srv.request.param1 = 0.0;
+    cmd_srv.request.param2 = 0.0;
+    cmd_srv.request.param3 = -90.0;
+    cmd_srv.request.param4 = 0.0;
     cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
     if (mav_client.call(cmd_srv)) {
       ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
     } else
       ROS_ERROR("Failed to call service from flight controller");
     mavros_msgs::CommandBool capture_command;
-    capture_srv.call(capture_command);
+    if (capture_srv.call(capture_command)) {
+      ROS_INFO("Reply: %ld", (long int)capture_command.response.success);
+    } else
+      ROS_ERROR("Failed to call service from camera streamer");
   }
 }
 /*----------------------------------------------
@@ -993,8 +996,7 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw) {
   //		gps_ned_home(ned_x, ned_y);
   //         ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0],
   //         home[1]);
-  //         ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id,
-  //         local_pos[0], local_pos[1]);
+//  ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id, local_pos_new[0], local_pos_new[1]);
 
   /*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD
    * (then converted to NED)*/
