@@ -197,7 +197,7 @@ void roscontroller::RosControllerRun()
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
     //init_update_monitor(bcfname.c_str(), standby_bo.c_str());
     /*loop rate of ros*/
-    ros::Rate loop_rate(15);
+    ros::Rate loop_rate(BUZZRATE);
     ///////////////////////////////////////////////////////
     // MAIN LOOP
     //////////////////////////////////////////////////////
@@ -295,8 +295,6 @@ void roscontroller::RosControllerRun()
       get_xbee_status();
       /*run once*/
       ros::spinOnce();
-      /*loop rate of ros*/
-      ros::Rate loop_rate(BUZZRATE);
       loop_rate.sleep();
       if (fcu_timeout <= 0)
         buzzuav_closures::rc_call(mavros_msgs::CommandCode::NAV_LAND);
