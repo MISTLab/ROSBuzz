@@ -197,7 +197,7 @@ void roscontroller::RosControllerRun()
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
     //init_update_monitor(bcfname.c_str(), standby_bo.c_str());
     /*loop rate of ros*/
-    ros::Rate loop_rate(50);
+    ros::Rate loop_rate(BUZZRATE);
     ///////////////////////////////////////////////////////
     // MAIN LOOP
     //////////////////////////////////////////////////////
