@@ -195,7 +195,9 @@ void roscontroller::RosControllerRun()
                                     robot_id)) {
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
-    init_update_monitor(bcfname.c_str(), standby_bo.c_str());
+    //init_update_monitor(bcfname.c_str(), standby_bo.c_str());
+    /*loop rate of ros*/
+    ros::Rate loop_rate(15);
     ///////////////////////////////////////////////////////
     // MAIN LOOP
     //////////////////////////////////////////////////////
@@ -220,15 +222,15 @@ void roscontroller::RosControllerRun()
         }
       const uint8_t shrt_id= 0xFF;
       float result;
-      if ( GetAPIRssi(shrt_id, result) )
-      	log<<result<<",";
-      else
-        log<<"0,";
-      if ( GetRawPacketLoss(shrt_id, result) )
-      	log<<result<<",";
-      else
-        log<<"0,";
-      if ( GetFilteredPacketLoss(shrt_id, result) )
+      //if ( GetAPIRssi(shrt_id, result) ) 
+      //	log<<result<<",";
+      //else
+      //  log<<"0,";
+      // if ( GetRawPacketLoss(shrt_id, result) ) 
+      // 	log<<result<<",";
+      //else
+      //  log<<"0,";
+      if ( GetFilteredPacketLoss(shrt_id, result) ) 
       	log<<result<<",";
       else
         log<<"0,";
@@ -236,7 +238,7 @@ void roscontroller::RosControllerRun()
       neighbours_pos_publisher();
       send_MPpayload();
       /*Check updater state and step code*/
-      update_routine(bcfname.c_str(), dbgfname.c_str());
+     // update_routine(bcfname.c_str(), dbgfname.c_str());
       /*Log In Msg queue size*/
       log<<(int)buzz_utility::get_inmsg_size()<<",";
       /*Step buzz script */
@@ -246,13 +248,13 @@ void roscontroller::RosControllerRun()
       /*call flight controler service to set command long*/
       flight_controller_service_call();
       /*Set multi message available after update*/
-      if (get_update_status())
-      {
+      //if (get_update_status())
+      //{
        /* set_read_update_status();
         multi_msg = true;
         log << cur_pos.latitude << "," << cur_pos.longitude << ","
             << cur_pos.altitude << ",";
-        collect_data(log);
+       collect_data(log);
         map<int, buzz_utility::Pos_struct>::iterator it =
             neighbours_pos_map.begin();
         log << "," << neighbours_pos_map.size();
@@ -262,7 +264,7 @@ void roscontroller::RosControllerRun()
               << "," << (double)it->second.z;
         }
         log << std::endl;*/
-      }
+      //}
       /*Set ROBOTS variable for barrier in .bzz from neighbours count*/
       // no_of_robots=get_number_of_robots();
       get_number_of_robots();
@@ -270,12 +272,12 @@ void roscontroller::RosControllerRun()
       /*Retrive the state of the graph and uav and log TODO WARNING :PLEASE REMOVE IF
 	SCRIPT IS NOT graphform.bzz*/
       static buzzvm_t     VM = buzz_utility::get_vm();
-      std::stringstream state_buff;
       //buzzvm_pushs(VM, buzzvm_string_register(VM, "m_eState",1));
       //      	buzzvm_gload(VM);
       //      	buzzobj_t graph_state = buzzvm_stack_at(VM, 1);
       //      	buzzvm_pop(VM);
-      //	state_buff<< graph_state->s.value.str<<",";
+		std::stringstream state_buff;
+	//	state_buff<< graph_state->s.value.str<<",";
       buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE",1));
             	buzzvm_gload(VM);
             	buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
@@ -287,7 +289,7 @@ void roscontroller::RosControllerRun()
       // buzz_utility::set_robot_var(no_of_robots);
       /*Set no of robots for updates TODO only when not updating*/
       // if(multi_msg)
-      updates_set_robots(no_of_robots);
+      //updates_set_robots(no_of_robots);
       // ROS_INFO("ROBOTS: %i , acutal :
       // %i",(int)no_of_robots,(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1);
       get_xbee_status();
@@ -633,7 +635,7 @@ void roscontroller::prepare_msg_and_publish()
   delete[] out;
   delete[] payload_out_ptr;
   /*Check for updater message if present send*/
-  if ((int)get_update_mode() != CODE_RUNNING && is_msg_present() == 1 &&
+ /* if ((int)get_update_mode() != CODE_RUNNING && is_msg_present() == 1 &&
       multi_msg)
   {
     uint8_t *buff_send = 0;
@@ -675,7 +677,7 @@ void roscontroller::prepare_msg_and_publish()
     payload_pub.publish(update_packets);
     multi_msg = false;
     delete[] payload_64;
-  }
+  }*/
 }
 /*---------------------------------------------------------------------------------
 /Flight controller service call every step if there is a command set from bzz
@@ -1260,22 +1262,22 @@ void roscontroller::get_xbee_status()
   bool result_bool;
   float result_float;
   const uint8_t all_ids = 0xFF;
-  if(GetDequeFull(result_bool))
-  {
-    buzzuav_closures::set_deque_full(result_bool);
-  }
-  if(GetRssi(result_float))
-  {
-    buzzuav_closures::set_rssi(result_float);
-  }
-  if(GetRawPacketLoss(all_ids, result_float))
-  {
-    buzzuav_closures::set_raw_packet_loss(result_float);
-  }
-  if(GetFilteredPacketLoss(all_ids, result_float))
-  {
-    buzzuav_closures::set_filtered_packet_loss(result_float);
-  }
+  //if(GetDequeFull(result_bool))
+  //{
+  //  buzzuav_closures::set_deque_full(result_bool);
+  //}
+  //if(GetRssi(result_float))
+  //{
+  //  buzzuav_closures::set_rssi(result_float);
+  //}
+  //if(GetRawPacketLoss(all_ids, result_float))
+  //{
+  //  buzzuav_closures::set_raw_packet_loss(result_float);
+  //}
+  //if(GetFilteredPacketLoss(all_ids, result_float))
+  //{
+  //  buzzuav_closures::set_filtered_packet_loss(result_float);
+  //}
   // This part needs testing since it can overload the xbee module
   /*
    * if(GetAPIRssi(all_ids, result_float))
