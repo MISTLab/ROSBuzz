@@ -307,6 +307,9 @@ void in_message_process(){
 		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_storegoal", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_storegoal));
    		buzzvm_gstore(VM);
+		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_setgimbal", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_setgimbal));
+   		buzzvm_gstore(VM);
         buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_takepicture", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_takepicture));
    		buzzvm_gstore(VM);
@@ -350,6 +353,12 @@ void in_message_process(){
 		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
 		buzzvm_gstore(VM);
         buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_moveto", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM);
+		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_storegoal", 1));
+   		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+   		buzzvm_gstore(VM);
+		buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_setgimbal", 1));
    		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
    		buzzvm_gstore(VM);
         buzzvm_pushs(VM,  buzzvm_string_register(VM, "uav_takepicture", 1));

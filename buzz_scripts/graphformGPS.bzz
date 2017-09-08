@@ -567,7 +567,6 @@ function set_rc_goto() {
 		m_cMeToPred.Bearing=m_MessageBearing[IDofPred]
 
     var S2Pred=math.vec2.newp(m_cMeToPred.Range,m_cMeToPred.Bearing)
-
     var S2Target=math.vec2.add(S2Pred,P2Target)
 
     gps_from_vec(math.vec2.newp(math.vec2.length(S2Target)/100.0, math.atan(S2Target.y,S2Target.x)))

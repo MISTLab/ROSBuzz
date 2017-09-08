@@ -5,7 +5,7 @@
 ########################################
 TARGET_ALTITUDE = 5.0 # m.
 UAVSTATE = "TURNEDOFF"
-PICTURE_WAIT = 40 # steps
+PICTURE_WAIT = 20 # steps
 GOTO_MAXVEL = 2 # m/steps
 GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 0.5  # m.
@@ -35,10 +35,10 @@ function takeoff() {
 		barrier_set(ROBOTS, action, land, -1)
 		barrier_ready()
 	} else {
-    		log("Altitude: ", position.altitude)
+    log("Altitude: ", position.altitude)
 		neighbors.broadcast("cmd", 22)
 		uav_takeoff(TARGET_ALTITUDE)
-  	}
+  }
 }
 
 function land() {
@@ -48,8 +48,8 @@ function land() {
 	neighbors.broadcast("cmd", 21)
 	uav_land()
 	
-	if(flight.status != 2 and flight.status != 3){
-    		barrier_set(ROBOTS,turnedoff,land, 21)
+	if(flight.status != 2 and flight.status != 3) {
+    barrier_set(ROBOTS,turnedoff,land, 21)
 		barrier_ready()
 	}
 }
@@ -57,14 +57,14 @@ function land() {
 function set_goto(transf) {
 	UAVSTATE = "GOTOGPS"
 	statef=function() {
-    		gotoWP(transf);
-  	}
+    gotoWP(transf);
+  }
 
 	if(rc_goto.id==id){
 		if(s!=nil){
-      			if(s.in())
-        			s.leave()      
-    	}
+      if(s.in())
+        s.leave()
+    }
 	} else {
 		neighbors.broadcast("cmd", 16)
 		neighbors.broadcast("gt", rc_goto.id+rc_goto.longitude+rc_goto.latitude)
@@ -75,10 +75,10 @@ ptime=0
 function picture() {
   statef=picture
   UAVSTATE="PICTURE"
-	#TODO: change gimbal orientation
-	if(ptime==PICTURE_WAIT/2)
+  uav_setgimbal(0.0, 0.0, -90.0, 20.0)
+	if(ptime==PICTURE_WAIT/2) { # wait for the drone to stabilize
 	  uav_takepicture()
-  else if(ptime>=PICTURE_WAIT) {
+  } else if(ptime>=PICTURE_WAIT) { # wait for the picture
     statef=action
     ptime=0 
   }
@@ -86,14 +86,13 @@ function picture() {
 }
 
 function gotoWP(transf) {
-	# print(rc_goto.id, " is going alone to lat=", rc_goto.latitude)
 	rb_from_gps(rc_goto.latitude, rc_goto.longitude)
 	print(" has to move ", goal.range, goal.bearing)
 	m_navigation = math.vec2.newp(goal.range, goal.bearing)
 
 	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
 		log("Sorry this is too far.")
-  	else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
+  else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
 		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
 		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
 	} else if(goal.range < GOTODIST_TOL and goal.bearing < GOTOANG_TOL) # reached destination
