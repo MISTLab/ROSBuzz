@@ -16,7 +16,7 @@ namespace buzzuav_closures{
 	//void set_ros_controller_ptr(const rosbzz_node::roscontroller* roscontroller_ptrin);
 	static double goto_pos[3];
 	static double rc_goto_pos[3];
-	static float rc_gimbal[2];
+	static float rc_gimbal[4];
 	static float batt[3];
 	static float obst[5]={0,0,0,0,0};
 	static double cur_pos[3];
@@ -28,11 +28,10 @@ namespace buzzuav_closures{
 	static float height=0;
 	static bool deque_full = false;
 	static int rssi = 0;
-	static int message_number = 0;
 	static float raw_packet_loss = 0.0;
 	static int filtered_packet_loss = 0;
 	static float api_rssi = 0.0;
-  string WPlistname = "";
+  	string WPlistname = "";
 
 	std::map< int,  buzz_utility::RB_struct> targets_map;
 	std::map< int,  buzz_utility::RB_struct> wplist_map;
@@ -94,12 +93,12 @@ namespace buzzuav_closures{
 	/----------------------------------------*/
 
 	void gps_from_rb(double  range, double bearing, double out[3]) {
-		double lat = cur_pos[0]*M_PI/180.0;
-		double lon = cur_pos[1]*M_PI/180.0;
+		double lat = RAD2DEG(cur_pos[0]);
+		double lon = RAD2DEG(cur_pos[1]);
 	 	out[0] = asin(sin(lat) * cos(range/EARTH_RADIUS) + cos(lat) * sin(range/EARTH_RADIUS) * cos(bearing));
 		out[1] = lon + atan2(sin(bearing) * sin(range/EARTH_RADIUS) * cos(lat), cos(range/EARTH_RADIUS) - sin(lat)*sin(out[0]));
-		out[0] = out[0]*180.0/M_PI;
-		out[1] = out[1]*180.0/M_PI;
+		out[0] = RAD2DEG(out[0]);
+		out[1] = RAD2DEG(out[1]);
 		out[2] = height; //constant height.
 	}
 
@@ -321,8 +320,31 @@ namespace buzzuav_closures{
 	/ Buzz closure to take a picture here.
 	/----------------------------------------*/
 	int buzzuav_takepicture(buzzvm_t vm) {
-	  cur_cmd = mavros_msgs::CommandCode::CMD_DO_SET_CAM_TRIGG_DIST;
+	  //cur_cmd = mavros_msgs::CommandCode::CMD_DO_SET_CAM_TRIGG_DIST;
 	  buzz_cmd = COMMAND_PICTURE;
+	  return buzzvm_ret0(vm);
+	}
+
+	/*----------------------------------------/
+	/ Buzz closure to change locally the gimbal orientation
+	/----------------------------------------*/
+	int buzzuav_setgimbal(buzzvm_t vm) {
+	  buzzvm_lnum_assert(vm, 4);
+	  buzzvm_lload(vm, 1); // time
+	  buzzvm_lload(vm, 2); // pitch
+	  buzzvm_lload(vm, 3); // roll
+	  buzzvm_lload(vm, 4); // yaw
+	  buzzvm_type_assert(vm, 4, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+	  rc_gimbal[0] = buzzvm_stack_at(vm, 4)->f.value;
+	  rc_gimbal[1] = buzzvm_stack_at(vm, 3)->f.value;
+	  rc_gimbal[2] = buzzvm_stack_at(vm, 2)->f.value;
+	  rc_gimbal[3] = buzzvm_stack_at(vm, 1)->f.value;
+
+	  ROS_WARN("Set RC_GIMBAL ---- %f %f %f (%f)",rc_gimbal[0],rc_gimbal[1],rc_gimbal[2],rc_gimbal[3]);
+	  buzz_cmd = COMMAND_GIMBAL;
 	  return buzzvm_ret0(vm);
 	}
 
@@ -413,6 +435,20 @@ namespace buzzuav_closures{
 		return goto_pos;
 	}
 
+	float* getgimbal() {
+		return rc_gimbal;
+	}
+
+	string getuavstate() {
+		static buzzvm_t     VM = buzz_utility::get_vm();
+		std::stringstream state_buff;
+      	buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE",1));
+        buzzvm_gload(VM);
+        buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
+        buzzvm_pop(VM);
+		return uav_state->s.value.str;
+	}
+
 	int getcmd() {
 		return cur_cmd;
 	}
@@ -438,11 +474,13 @@ namespace buzzuav_closures{
 
 	}
 
-	void rc_set_gimbal(int id, float yaw, float pitch) {
+	void rc_set_gimbal(int id, float yaw, float roll, float pitch, float t) {
 
 		rc_id = id;
 		rc_gimbal[0] = yaw;
-		rc_gimbal[1] = pitch;
+		rc_gimbal[1] = roll;
+		rc_gimbal[2] = pitch;
+		rc_gimbal[3] = t;
 
 	}
 

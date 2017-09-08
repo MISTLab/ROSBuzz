@@ -195,7 +195,9 @@ void roscontroller::RosControllerRun()
                                     robot_id)) {
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
-    init_update_monitor(bcfname.c_str(), standby_bo.c_str());
+    //init_update_monitor(bcfname.c_str(), standby_bo.c_str());
+    /*loop rate of ros*/
+    ros::Rate loop_rate(BUZZRATE);
     ///////////////////////////////////////////////////////
     // MAIN LOOP
     //////////////////////////////////////////////////////
@@ -220,15 +222,8 @@ void roscontroller::RosControllerRun()
         }
       const uint8_t shrt_id= 0xFF;
       float result;
-      if ( GetAPIRssi(shrt_id, result) )
-      	log<<result<<",";
-      else
-        log<<"0,";
-      if ( GetRawPacketLoss(shrt_id, result) )
-      	log<<result<<",";
-      else
-        log<<"0,";
-      if ( GetFilteredPacketLoss(shrt_id, result) )
+
+      if ( GetFilteredPacketLoss(shrt_id, result) ) 
       	log<<result<<",";
       else
         log<<"0,";
@@ -236,7 +231,7 @@ void roscontroller::RosControllerRun()
       neighbours_pos_publisher();
       send_MPpayload();
       /*Check updater state and step code*/
-      update_routine(bcfname.c_str(), dbgfname.c_str());
+     // update_routine(bcfname.c_str(), dbgfname.c_str());
       /*Log In Msg queue size*/
       log<<(int)buzz_utility::get_inmsg_size()<<",";
       /*Step buzz script */
@@ -246,13 +241,13 @@ void roscontroller::RosControllerRun()
       /*call flight controler service to set command long*/
       flight_controller_service_call();
       /*Set multi message available after update*/
-      if (get_update_status())
-      {
+      //if (get_update_status())
+      //{
        /* set_read_update_status();
         multi_msg = true;
         log << cur_pos.latitude << "," << cur_pos.longitude << ","
             << cur_pos.altitude << ",";
-        collect_data(log);
+       collect_data(log);
         map<int, buzz_utility::Pos_struct>::iterator it =
             neighbours_pos_map.begin();
         log << "," << neighbours_pos_map.size();
@@ -262,40 +257,28 @@ void roscontroller::RosControllerRun()
               << "," << (double)it->second.z;
         }
         log << std::endl;*/
-      }
+      //}
       /*Set ROBOTS variable for barrier in .bzz from neighbours count*/
       // no_of_robots=get_number_of_robots();
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
-      /*Retrive the state of the graph and uav and log TODO WARNING :PLEASE REMOVE IF
-	SCRIPT IS NOT graphform.bzz*/
-      static buzzvm_t     VM = buzz_utility::get_vm();
-      std::stringstream state_buff;
-      //buzzvm_pushs(VM, buzzvm_string_register(VM, "m_eState",1));
-      //      	buzzvm_gload(VM);
-      //      	buzzobj_t graph_state = buzzvm_stack_at(VM, 1);
-      //      	buzzvm_pop(VM);
-      //	state_buff<< graph_state->s.value.str<<",";
-      buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE",1));
-            	buzzvm_gload(VM);
-            	buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
-            	buzzvm_pop(VM);
-		state_buff<< uav_state->s.value.str;
-		log<<state_buff.str()<<std::endl;
+      /*Retrive the state of the graph and uav and log*/
+		  std::stringstream state_buff;
+		  state_buff << buzzuav_closures::getuavstate();
+		  log<<state_buff.str()<<std::endl;
       // if(neighbours_pos_map.size() >0) no_of_robots
       // =neighbours_pos_map.size()+1;
       // buzz_utility::set_robot_var(no_of_robots);
       /*Set no of robots for updates TODO only when not updating*/
       // if(multi_msg)
-      updates_set_robots(no_of_robots);
-      // ROS_INFO("ROBOTS: %i , acutal :
-      // %i",(int)no_of_robots,(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1);
-      get_xbee_status();
+      //updates_set_robots(no_of_robots);
+      //get_xbee_status();  // commented out because it may slow down the node too much, to be tested
       /*run once*/
       ros::spinOnce();
-      /*loop rate of ros*/
-      ros::Rate loop_rate(BUZZRATE);
       loop_rate.sleep();
+      // make sure to sleep for the remainder of our cycle time
+      if (loop_rate.cycleTime() > ros::Duration(1.0 / (float)BUZZRATE))
+        ROS_WARN("ROSBuzz loop missed its desired rate of %iHz... the loop actually took %.4f seconds", BUZZRATE, loop_rate.cycleTime().toSec());
       if (fcu_timeout <= 0)
         buzzuav_closures::rc_call(mavros_msgs::CommandCode::NAV_LAND);
       else
@@ -633,7 +616,7 @@ void roscontroller::prepare_msg_and_publish()
   delete[] out;
   delete[] payload_out_ptr;
   /*Check for updater message if present send*/
-  if ((int)get_update_mode() != CODE_RUNNING && is_msg_present() == 1 &&
+ /* if ((int)get_update_mode() != CODE_RUNNING && is_msg_present() == 1 &&
       multi_msg)
   {
     uint8_t *buff_send = 0;
@@ -675,7 +658,7 @@ void roscontroller::prepare_msg_and_publish()
     payload_pub.publish(update_packets);
     multi_msg = false;
     delete[] payload_64;
-  }
+  }*/
 }
 /*---------------------------------------------------------------------------------
 /Flight controller service call every step if there is a command set from bzz
@@ -685,95 +668,119 @@ script
 void roscontroller::flight_controller_service_call()
 {
   /* flight controller client call if requested from Buzz*/
-  /*FC call for takeoff,land, gohome and arm/disarm*/
-  int tmp = buzzuav_closures::bzz_cmd();
-  double *goto_pos = buzzuav_closures::getgoto();
-  if (tmp == buzzuav_closures::COMMAND_TAKEOFF ||
-      tmp == buzzuav_closures::COMMAND_LAND ||
-      tmp == buzzuav_closures::COMMAND_GOHOME) {
-    cmd_srv.request.param7 = goto_pos[2];
-    cmd_srv.request.command = buzzuav_closures::getcmd();
-    // std::cout << " CMD: " << buzzuav_closures::getcmd() << std::endl;
-    // SOLO SPECIFIC: SITL DOES NOT USE 21 TO LAND -- workaround: set to LAND
-    // mode
-    switch (buzzuav_closures::getcmd()) {
-      case mavros_msgs::CommandCode::NAV_LAND:
-        if (current_mode != "LAND") {
-          SetMode("LAND", 0);
-          armstate = 0;
-          Arm();
-        }
-        if (mav_client.call(cmd_srv)) {
-          ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-        } else {
-          ROS_ERROR("Failed to call service from flight controller");
-        }
-        armstate = 0;
-        break;
-      case mavros_msgs::CommandCode::NAV_TAKEOFF:
-        if (!armstate) {
+  double *goto_pos;
+  float *gimbal;
+  switch (buzzuav_closures::bzz_cmd()) {
 
-          SetMode("LOITER", 0);
-          armstate = 1;
-          Arm();
-          ros::Duration(0.5).sleep();
-          // Registering HOME POINT.
-          home = cur_pos;
-        }
-        if (current_mode != "GUIDED")
-          SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it
-                                  // should always be in loiter after arm/disarm)
+    case buzzuav_closures::COMMAND_TAKEOFF:
+      goto_pos = buzzuav_closures::getgoto();
+      cmd_srv.request.param7 = goto_pos[2];
+      cmd_srv.request.command = buzzuav_closures::getcmd();
+      if (!armstate) {
+        SetMode("LOITER", 0);
+        armstate = 1;
+        Arm();
+        ros::Duration(0.5).sleep();
+        // Registering HOME POINT.
+        home = cur_pos;
+      }
+      if (current_mode != "GUIDED")
+        SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it
+                                // should always be in loiter after arm/disarm)
+      if (mav_client.call(cmd_srv)) {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      } else
+        ROS_ERROR("Failed to call service from flight controller");
+      break;
+
+    case buzzuav_closures::COMMAND_LAND:
+      cmd_srv.request.command = buzzuav_closures::getcmd();
+      if (current_mode != "LAND") {
+        SetMode("LAND", 0);
+        armstate = 0;
+        Arm();
+      }
+      if (mav_client.call(cmd_srv)) {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      } else {
+        ROS_ERROR("Failed to call service from flight controller");
+      }
+      armstate = 0;
+      break;
+
+    case buzzuav_closures::COMMAND_GOHOME: // NOT FULLY IMPLEMENTED/TESTED !!!
+        cmd_srv.request.param5 = home.latitude;
+        cmd_srv.request.param6 = home.longitude;
+        cmd_srv.request.param7 = home.altitude;
+        cmd_srv.request.command = buzzuav_closures::getcmd();
         if (mav_client.call(cmd_srv)) {
           ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
         } else
           ROS_ERROR("Failed to call service from flight controller");
         break;
-    }
 
-  } else if (tmp == buzzuav_closures::COMMAND_GOTO) { /*FC call for goto*/
-    /*prepare the goto publish message */
-    cmd_srv.request.param5 = goto_pos[0];
-    cmd_srv.request.param6 = goto_pos[1];
-    cmd_srv.request.param7 = goto_pos[2];
-    cmd_srv.request.command = buzzuav_closures::getcmd();
-    if (mav_client.call(cmd_srv)) {
-      ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-    } else
-      ROS_ERROR("Failed to call service from flight controller");
-    cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
-    if (mav_client.call(cmd_srv)) {
-      ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-    } else
-      ROS_ERROR("Failed to call service from flight controller");
-  } else if (tmp == buzzuav_closures::COMMAND_ARM) { /*FC call for arm*/
-    if (!armstate) {
-      SetMode("LOITER", 0);
-      armstate = 1;
-      Arm();
-    }
-  } else if (tmp == buzzuav_closures::COMMAND_DISARM) {
-    if (armstate) {
-      armstate = 0;
-      SetMode("LOITER", 0);
-      Arm();
-    }
-  } else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
-    roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
-  } else if (tmp == buzzuav_closures::COMMAND_PICTURE) { /* TODO: Buzz call to take a picture*/
-    ROS_INFO("TAKING A PICTURE HERE!! --------------");
-    cmd_srv.request.param1 = 90;
-    cmd_srv.request.param2 = 0;
-    cmd_srv.request.param3 = 0;
-    cmd_srv.request.param4 = 0;
-    cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
-    if (mav_client.call(cmd_srv)) {
-      ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-    } else
-      ROS_ERROR("Failed to call service from flight controller");
-    mavros_msgs::CommandBool capture_command;
-    capture_srv.call(capture_command);
+    case buzzuav_closures::COMMAND_GOTO: // NOT FULLY IMPLEMENTED/TESTED !!!
+      goto_pos = buzzuav_closures::getgoto();
+      cmd_srv.request.param5 = goto_pos[0];
+      cmd_srv.request.param6 = goto_pos[1];
+      cmd_srv.request.param7 = goto_pos[2];
+      cmd_srv.request.command = buzzuav_closures::getcmd();
+      if (mav_client.call(cmd_srv)) {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      } else
+        ROS_ERROR("Failed to call service from flight controller");
+      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
+      if (mav_client.call(cmd_srv)) {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      } else
+        ROS_ERROR("Failed to call service from flight controller");
+      break;
+
+    case buzzuav_closures::COMMAND_ARM:
+      if (!armstate) {
+        SetMode("LOITER", 0);
+        armstate = 1;
+        Arm();
+      }
+      break;
+
+    case buzzuav_closures::COMMAND_DISARM:
+      if (armstate) {
+        armstate = 0;
+        SetMode("LOITER", 0);
+        Arm();
+      }
+      break;
+
+    case buzzuav_closures::COMMAND_MOVETO:
+      goto_pos = buzzuav_closures::getgoto();
+      roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
+      break;
+
+    case buzzuav_closures::COMMAND_GIMBAL:
+      gimbal = buzzuav_closures::getgimbal();
+      cmd_srv.request.param1 = gimbal[0];
+      cmd_srv.request.param2 = gimbal[1];
+      cmd_srv.request.param3 = gimbal[2];
+      cmd_srv.request.param4 = gimbal[3];
+      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+      if (mav_client.call(cmd_srv)) {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      } else
+        ROS_ERROR("Failed to call service from flight controller");
+      break;
+
+    case buzzuav_closures::COMMAND_PICTURE:
+      ROS_INFO("TAKING A PICTURE HERE!! --------------");
+      mavros_msgs::CommandBool capture_command;
+      if (capture_srv.call(capture_command)) {
+        ROS_INFO("Reply: %ld", (long int)capture_command.response.success);
+      } else
+        ROS_ERROR("Failed to call service from camera streamer");
+      break;
   }
 }
+
 /*----------------------------------------------
 /Refresh neighbours Position for every ten step
 /---------------------------------------------*/
@@ -823,39 +830,6 @@ void roscontroller::set_cur_pos(double latitude, double longitude,
 / Compute Range and Bearing of a neighbor in a local reference frame
 / from GPS coordinates
 ----------------------------------------------------------- */
-void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
-  double hyp_az, hyp_el;
-  double sin_el, cos_el, sin_az, cos_az;
-
-  /* Convert reference point to spherical earth centered coordinates. */
-  hyp_az = sqrt(ref_ecef[0] * ref_ecef[0] + ref_ecef[1] * ref_ecef[1]);
-  hyp_el = sqrt(hyp_az * hyp_az + ref_ecef[2] * ref_ecef[2]);
-  sin_el = ref_ecef[2] / hyp_el;
-  cos_el = hyp_az / hyp_el;
-  sin_az = ref_ecef[1] / hyp_az;
-  cos_az = ref_ecef[0] / hyp_az;
-
-  M[0][0] = -sin_el * cos_az;
-  M[0][1] = -sin_el * sin_az;
-  M[0][2] = cos_el;
-  M[1][0] = -sin_az;
-  M[1][1] = cos_az;
-  M[1][2] = 0.0;
-  M[2][0] = -cos_el * cos_az;
-  M[2][1] = -cos_el * sin_az;
-  M[2][2] = -sin_el;
-}
-void matrix_multiply(uint32_t n, uint32_t m, uint32_t p, const double *a,
-                     const double *b, double *c) {
-  uint32_t i, j, k;
-  for (i = 0; i < n; i++)
-    for (j = 0; j < p; j++) {
-      c[p * i + j] = 0;
-      for (k = 0; k < m; k++)
-        c[p * i + j] += a[m * i + k] * b[p * k + j];
-    }
-}
-
 float roscontroller::constrainAngle(float x) {
   x = fmod(x,2*M_PI);
   if (x < 0.0)
@@ -989,18 +963,10 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw) {
   moveMsg.header.stamp = ros::Time::now();
   moveMsg.header.seq = setpoint_counter++;
   moveMsg.header.frame_id = 1;
-  //		float ned_x, ned_y;
-  //		gps_ned_home(ned_x, ned_y);
-  //         ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0],
-  //         home[1]);
-  //         ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id,
-  //         local_pos[0], local_pos[1]);
 
-  /*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD
-   * (then converted to NED)*/
-  // target[0]+=y;	target[1]+=x;
-  moveMsg.pose.position.x = local_pos_new[0] + y; // ned_y+y;
-  moveMsg.pose.position.y = local_pos_new[1] + x; // ned_x+x;
+  //ROS_INFO("Lp: %.3f, %.3f - Del: %.3f, %.3f", local_pos_new[0], local_pos_new[1], x, y);
+  moveMsg.pose.position.x = local_pos_new[0] + y;
+  moveMsg.pose.position.y = local_pos_new[1] + x;
   moveMsg.pose.position.z = z;
 
   moveMsg.pose.orientation.x = 0;
@@ -1111,7 +1077,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr &msg) {
     gps_rb(nei_pos, cvt_neighbours_pos_payload);
     /*Extract robot id of the neighbour*/
     uint16_t *out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + 3));
-//    ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
+    ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
     /*pass neighbour position to local maintaner*/
     buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],
                                    cvt_neighbours_pos_payload[1],
@@ -1175,7 +1141,7 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request &req,
       break;
     case mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL:
       ROS_INFO("RC_Call: Gimbal!!!! ");
-      buzzuav_closures::rc_set_gimbal(req.param1,req.param2,req.param3);
+      buzzuav_closures::rc_set_gimbal(req.param1,req.param2,req.param3,req.param4,req.param5);
       rc_cmd = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;

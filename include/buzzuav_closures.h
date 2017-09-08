@@ -10,7 +10,8 @@
 #include "buzz_utility.h"
 
 #define EARTH_RADIUS (double) 6371000.0
-#define DEG2RAD(DEG) ((DEG)*((M_PI)/(180.0)))
+#define DEG2RAD(DEG) (double) ((DEG)*((M_PI)/(180.0)))
+#define RAD2DEG(RAD) (double) ((RAD)*((180.0)/(M_PI)))
 
 namespace buzzuav_closures{
 	typedef enum {
@@ -23,6 +24,7 @@ namespace buzzuav_closures{
 		COMMAND_GOTO,
 		COMMAND_MOVETO,
 		COMMAND_PICTURE,
+		COMMAND_GIMBAL,
 	 } Custom_CommandCode;
 
 /*
@@ -38,6 +40,7 @@ void setWPlist(std::string path);
  */
 int buzzuav_moveto(buzzvm_t vm);
 int buzzuav_storegoal(buzzvm_t vm);
+int buzzuav_setgimbal(buzzvm_t vm);
 void parse_gpslist();
 int buzzuav_takepicture(buzzvm_t vm);
 /* Returns the current command from local variable*/
@@ -47,7 +50,7 @@ void set_goto(double pos[]);
 /*Sets goto position from rc client*/
 void rc_set_goto(int id, double latitude, double longitude, double altitude);
 /*Sets gimbal orientation from rc client*/
-void rc_set_gimbal(int id, float yaw, float pitch);
+void rc_set_gimbal(int id, float yaw, float roll, float pitch, float t);
 /*sets rc requested command */
 void rc_call(int rc_cmd);
 /* sets the battery state */
@@ -61,6 +64,8 @@ void set_api_rssi(float value);
 void set_currentpos(double latitude, double longitude, double altitude);
 /*retuns the current go to position */
 double* getgoto();
+std::string getuavstate();
+float* getgimbal();
 /* updates flight status*/
 void flight_status_update(uint8_t state);
 /* Update neighbors table */

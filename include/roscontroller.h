@@ -71,7 +71,7 @@ private:
     double longitude=0.0;
     double latitude=0.0;
     float  altitude=0.0;
-  }; typedef struct gps GPS ; // not useful in cpp
+  }; typedef struct gps GPS ;
 
   GPS target, home, cur_pos;
   double cur_rel_altitude;
