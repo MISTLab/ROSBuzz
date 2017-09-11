@@ -52,9 +52,11 @@ roscontroller::roscontroller(ros::NodeHandle &n_c, ros::NodeHandle &n_c_priv)
   path = path.substr(0, bzzfile_name.find_last_of("\\/"))+"/log/";
   std::string folder_check="mkdir -p "+path;
   system(folder_check.c_str());
-  rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+".log").c_str(),
-	 (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_old.log").c_str());
-  path += "logger_"+std::to_string(robot_id)+".log";
+  for(int i=5;i>0;i--){
+  	rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i-1)+".log").c_str(),
+		 (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i)+".log").c_str());
+  }
+  path += "logger_"+std::to_string(robot_id)+"_0.log";
   log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
 }
 
