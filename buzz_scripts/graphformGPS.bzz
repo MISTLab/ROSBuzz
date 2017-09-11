@@ -5,7 +5,7 @@ include "string.bzz"
 include "vec2.bzz"
 include "update.bzz"
 
-include "vstigenv.bzz" # reserve stigmergy id=20 and 21 for this header.
+#include "vstigenv.bzz" # reserve stigmergy id=20 and 21 for this header.
 include "barrier.bzz" # reserve stigmergy id=80 (auto-increment up) for this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
 
@@ -14,7 +14,7 @@ include "graphs/shapes_Y.bzz"
 ROBOT_RADIUS = 50
 ROBOT_DIAMETER = 2.0*ROBOT_RADIUS
 ROBOT_SAFETYDIST = 2.0*ROBOT_DIAMETER
-ROOT_ID = 2
+ROOT_ID = 13
 
 # max velocity in cm/step
 ROBOT_MAXVEL = 150.0
@@ -704,9 +704,9 @@ function init() {
 	#
 	uav_initswarm()
   #v_tag = stigmergy.create(m_lockstig)
-  uav_initstig()
+  #uav_initstig()
 	# go to diff. height since no collision avoidance implemented yet
-	TARGET_ALTITUDE = 2.5 + id * 1.5
+	TARGET_ALTITUDE = 4.5 #2.5 + id * 1.5
 	statef=turnedoff
 	UAVSTATE = "TURNEDOFF"
 }
@@ -720,7 +720,7 @@ function step() {
 	# get the swarm commands
 	uav_neicmd()
 	# update the vstig (status/net/batt)
-  uav_updatestig()
+  #uav_updatestig()
 
 	#update the graph
 	UpdateNodeInfo()
