@@ -195,6 +195,8 @@ void roscontroller::RosControllerRun()
   /* Set the Buzz bytecode */
   if (buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),
                                     robot_id)) {
+    int packet_loss_tmp,time_step=0;
+    double cur_packet_loss=0;
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
     //init_update_monitor(bcfname.c_str(), standby_bo.c_str());
@@ -233,7 +235,19 @@ void roscontroller::RosControllerRun()
       neighbours_pos_publisher();
       send_MPpayload();
       /*Check updater state and step code*/
-     // update_routine(bcfname.c_str(), dbgfname.c_str());
+      // update_routine(bcfname.c_str(), dbgfname.c_str());
+      if(time_step==BUZZRATE){
+         time_step=0;
+         cur_packet_loss= 1 -( (double)packet_loss_tmp/(BUZZRATE*( (int)no_of_robots-1 )) );
+         packet_loss_tmp=0;
+	if(cur_packet_loss<0) cur_packet_loss=0;
+        else if (cur_packet_loss>1) cur_packet_loss=1;
+      }
+      else{
+         packet_loss_tmp+=(int)buzz_utility::get_inmsg_size();
+         time_step++;
+      }
+      ROS_WARN("CURRENT PACKET DROP : %f ",cur_packet_loss);
       /*Log In Msg queue size*/
       log<<(int)buzz_utility::get_inmsg_size()<<",";
       /*Step buzz script */
