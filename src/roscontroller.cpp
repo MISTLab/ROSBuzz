@@ -227,10 +227,10 @@ void roscontroller::RosControllerRun()
       const uint8_t shrt_id= 0xFF;
       float result;
 
-      if ( GetFilteredPacketLoss(shrt_id, result) ) 
-      	log<<result<<",";
-      else
-        log<<"0,";
+     // if ( GetFilteredPacketLoss(shrt_id, result) ) 
+     // 	log<<result<<",";
+     // else
+     //   log<<"0,";
       /*Neighbours of the robot published with id in respective topic*/
       neighbours_pos_publisher();
       send_MPpayload();
