@@ -9,7 +9,7 @@ include "update.bzz"
 include "barrier.bzz" # reserve stigmergy id=80 (auto-increment up) for this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
 
-include "graphs/shapes_Y.bzz"
+include "graphs/shapes_L.bzz"
 
 ROBOT_RADIUS = 50
 ROBOT_DIAMETER = 2.0*ROBOT_RADIUS
@@ -93,7 +93,7 @@ step_cunt=0
 m_lockstig = 1
 
 # Lennard-Jones parameters, may need change
-EPSILON	= 1800 #13.5 the LJ parameter for other robots
+EPSILON	= 4000 #13.5 the LJ parameter for other robots
 
 # Lennard-Jones interaction magnitude
 
@@ -311,6 +311,8 @@ neighbors.listen("m",
     m_MessageRange[m_neighbourCount]=m_receivedMessage.Range
     m_MessageBearing[m_neighbourCount]=m_receivedMessage.Bearing
 	m_messageID[m_neighbourCount]=rid
+log(rid, " is in ",  m_MessageState[m_neighbourCount], " ", m_MessageLabel[m_neighbourCount])
+
     m_neighbourCount=m_neighbourCount+1
 })
 }
@@ -496,19 +498,24 @@ function DoAsking(){
 				log("get response")
 				psResponse=i
 		}}
+		if(m_MessageState[i]=="STATE_JOINING" and m_MessageLabel[i]==m_nLabel){
+			TransitionToFree()
+			return		
+		}
 		i=i+1
 	}
 	#analyse response
 	if(psResponse==-1){
 		#no response, wait
+				
 		m_unWaitCount=m_unWaitCount-1
 		m_selfMessage.State=s2i(UAVSTATE)
 		m_selfMessage.ReqLabel=m_nLabel
 		m_selfMessage.ReqID=m_unRequestId
-		if(m_unWaitCount==0){
-			TransitionToFree()
-			return
-		}
+		#if(m_unWaitCount==0){
+			#TransitionToFree()
+			#return
+		#}
 	}
 	else{
 		log("respond id=",m_MessageReqID[psResponse])
@@ -528,6 +535,8 @@ function DoAsking(){
 		}
 	}
 	}
+	m_selfMessage.Label=m_nLabel
+
 	m_navigation.x=0.0
 	m_navigation.y=0.0
 	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
@@ -578,6 +587,9 @@ function set_rc_goto() {
 #
 #Do joined
 #
+repeat_assign=0
+assign_label=-1
+assign_id=-1
 function DoJoined(){
 	m_selfMessage.State=s2i(UAVSTATE)
 	m_selfMessage.Label=m_nLabel
@@ -609,6 +621,12 @@ function DoJoined(){
 				var m_messageForJoining={.Label=JoiningLabel,.Bearing=m_MessageBearing[i]-m_bias}
 			}
 		}
+
+	        if(m_MessageState[i]=="STATE_JOINING" and repeat_assign==1 and m_MessageLabel[i]==assign_label){
+                        repeat_assign=0
+                }
+		
+
 		#if it is the pred
 		if((m_MessageState[i]=="STATE_JOINED" or m_MessageState[i]=="STATE_LOCK") and m_MessageLabel[i]==m_vecNodes[m_nLabel].Pred){
 			seenPred=1
@@ -627,16 +645,21 @@ function DoJoined(){
 				ReqIndex=i
 			i=i+1
 		}
-		#get the best index, whose ReqLabel and Reqid are
-		ReqLabel=m_MessageReqLabel[mapRequests[ReqIndex]]
-		var ReqID=m_MessageReqID[mapRequests[ReqIndex]]
-		m_selfMessage.ReqLabel=ReqLabel
-		m_selfMessage.ReqID=ReqID
+		if(repeat_assign==0){
+			#get the best index, whose ReqLabel and Reqid are
+			ReqLabel=m_MessageReqLabel[mapRequests[ReqIndex]]
+			var ReqID=m_MessageReqID[mapRequests[ReqIndex]]
+			assign_label=ReqLabel
+			assign_id=ReqID
+			repeat_assign=1
+		}
+		m_selfMessage.ReqLabel=assign_label
+		m_selfMessage.ReqID=assign_id
 		m_selfMessage.Response=r2i("REQ_GRANTED")
-		m_vecNodes[ReqLabel].State="ASSIGNING"
-		log("Label=",ReqLabel)
-		log("ID=",ReqID)
-    	m_vecNodes[ReqLabel].StateAge=m_unJoiningLostPeriod
+		#m_vecNodes[ReqLabel].State="ASSIGNING"
+		log("Label=",assign_label)
+		log("ID=",assign_id)
+    		m_vecNodes[ReqLabel].StateAge=m_unJoiningLostPeriod
 	}
 
 	#lost pred, wait for some time and transit to free
@@ -706,7 +729,7 @@ function init() {
   #v_tag = stigmergy.create(m_lockstig)
   #uav_initstig()
 	# go to diff. height since no collision avoidance implemented yet
-	TARGET_ALTITUDE = 4.5 #2.5 + id * 1.5
+	TARGET_ALTITUDE = 6.0 #2.5 + id * 1.5
 	statef=turnedoff
 	UAVSTATE = "TURNEDOFF"
 }
