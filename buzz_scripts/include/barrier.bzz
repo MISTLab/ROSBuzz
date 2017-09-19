@@ -7,7 +7,7 @@
 #
 # Constants
 #
-BARRIER_TIMEOUT = 200 # in steps
+BARRIER_TIMEOUT = 1200 # in steps
 BARRIER_VSTIG = 80
 timeW = 0
 barrier = nil
@@ -52,13 +52,14 @@ function barrier_wait(threshold, transf, resumef, bdt) {
   barrier.put(id, 1)
 
   barrier.get(id)
-  #log("----->BS: ", barrier.size())
+  log("--->BS: ", barrier.size(), " (", BARRIER_VSTIG, ")")
   if(barrier.size() - 1 >= threshold or barrier.get("d") == 1) {
     barrier.put("d", 1)
     timeW = 0
     transf()
   } else if(timeW >= BARRIER_TIMEOUT) {
     log("------> Barrier Timeout !!!!")
+    barrier=nil
     timeW = 0
     resumef()
   }

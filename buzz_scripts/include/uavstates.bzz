@@ -152,7 +152,7 @@ function uav_rccmd() {
 function uav_neicmd() {
     neighbors.listen("cmd",
 			function(vid, value, rid) {
-				print("Got (", vid, ",", value, ") from robot #", rid, "(", UAVSTATE, ")")
+				print("Got (", vid, ",", value, ") #", rid, "(", UAVSTATE, ")")
 				if(value==22 and UAVSTATE!="TAKEOFF" and UAVSTATE!="BARRIERWAIT") {
 					statef=takeoff
 		      UAVSTATE = "TAKEOFF"

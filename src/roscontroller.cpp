@@ -3,6 +3,7 @@
 namespace rosbzz_node {
 
 const string roscontroller::CAPTURE_SRV_DEFAULT_NAME = "/image_sender/capture_image";
+const bool debug = false;
 
 /*---------------
 /Constructor
@@ -52,9 +53,11 @@ roscontroller::roscontroller(ros::NodeHandle &n_c, ros::NodeHandle &n_c_priv)
   path = path.substr(0, bzzfile_name.find_last_of("\\/"))+"/log/";
   std::string folder_check="mkdir -p "+path;
   system(folder_check.c_str());
-  rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+".log").c_str(),
-	 (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_old.log").c_str());
-  path += "logger_"+std::to_string(robot_id)+".log";
+  for(int i=5;i>0;i--){
+  	rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i-1)+".log").c_str(),
+		 (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i)+".log").c_str());
+  }
+  path += "logger_"+std::to_string(robot_id)+"_0.log";
   log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
 }
 
@@ -193,6 +196,8 @@ void roscontroller::RosControllerRun()
   /* Set the Buzz bytecode */
   if (buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),
                                     robot_id)) {
+    int packet_loss_tmp,time_step=0;
+    double cur_packet_loss=0;
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
     //init_update_monitor(bcfname.c_str(), standby_bo.c_str());
@@ -223,15 +228,23 @@ void roscontroller::RosControllerRun()
       const uint8_t shrt_id= 0xFF;
       float result;
 
-      if ( GetFilteredPacketLoss(shrt_id, result) ) 
-      	log<<result<<",";
-      else
-        log<<"0,";
       /*Neighbours of the robot published with id in respective topic*/
       neighbours_pos_publisher();
       send_MPpayload();
       /*Check updater state and step code*/
-     // update_routine(bcfname.c_str(), dbgfname.c_str());
+      // update_routine(bcfname.c_str(), dbgfname.c_str());
+      if(time_step==BUZZRATE){
+         time_step=0;
+         cur_packet_loss= 1 -( (double)packet_loss_tmp/(BUZZRATE*( (int)no_of_robots-1 )) );
+         packet_loss_tmp=0;
+	if(cur_packet_loss<0) cur_packet_loss=0;
+        else if (cur_packet_loss>1) cur_packet_loss=1;
+      }
+      else{
+         packet_loss_tmp+=(int)buzz_utility::get_inmsg_size();
+         time_step++;
+      }
+      if(debug) ROS_WARN("CURRENT PACKET DROP : %f ",cur_packet_loss);
       /*Log In Msg queue size*/
       log<<(int)buzz_utility::get_inmsg_size()<<",";
       /*Step buzz script */
@@ -1077,7 +1090,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr &msg) {
     gps_rb(nei_pos, cvt_neighbours_pos_payload);
     /*Extract robot id of the neighbour*/
     uint16_t *out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + 3));
-    ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
+    if(debug) ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
     /*pass neighbour position to local maintaner*/
     buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],
                                    cvt_neighbours_pos_payload[1],
