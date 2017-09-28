@@ -729,7 +729,7 @@ function init() {
   #v_tag = stigmergy.create(m_lockstig)
   #uav_initstig()
 	# go to diff. height since no collision avoidance implemented yet
-	TARGET_ALTITUDE = 3.0 + id * 1.25
+	#TARGET_ALTITUDE = 3.0 + id * 1.25
 	statef=turnedoff
 	UAVSTATE = "TURNEDOFF"
 }

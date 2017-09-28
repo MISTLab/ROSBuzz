@@ -43,9 +43,9 @@ namespace buzzuav_closures{
 
 	int buzzros_print(buzzvm_t vm) {
 	int i;
-	char buffer [50] = "";
+	char buffer [100] = "";
         sprintf(buffer,"%s [%i]", buffer, (int)buzz_utility::get_robotid());
-	   for(i = 1; i < buzzdarray_size(vm->lsyms->syms); ++i) {
+	   for(uint32_t i = 1; i < buzzdarray_size(vm->lsyms->syms); ++i) {
 	      buzzvm_lload(vm, i);
 	      buzzobj_t o = buzzvm_stack_at(vm, 1);
 	      buzzvm_pop(vm);
