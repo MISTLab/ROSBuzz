@@ -8,6 +8,7 @@ include "update.bzz"
 #include "vstigenv.bzz" # reserve stigmergy id=20 and 21 for this header.
 include "barrier.bzz" # reserve stigmergy id=80 (auto-increment up) for this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
+include "rrtstar.bzz"
 
 include "graphs/shapes_L.bzz"
 
@@ -178,14 +179,14 @@ function r2i(value){
 #return the index of value
 #
 function find(table,value){
-	var index=nil
+	var ind=nil
 	var i=0
 	while(i<size(table)){
 		if(table[i]==value)
-			index=i
+			ind=i
 		i=i+1
 	}
-	return index
+	return ind
 }
 
 #
@@ -578,7 +579,8 @@ function set_rc_goto() {
     var S2Pred=math.vec2.newp(m_cMeToPred.Range,m_cMeToPred.Bearing)
     var S2Target=math.vec2.add(S2Pred,P2Target)
 
-    gps_from_vec(math.vec2.newp(math.vec2.length(S2Target)/100.0, math.atan(S2Target.y,S2Target.x)))
+    goal = gps_from_vec(math.vec2.newp(math.vec2.length(S2Target)/100.0, math.atan(S2Target.y,S2Target.x)))
+	print("Saving GPS goal: ",goal.latitude, goal.longitude)
     uav_storegoal(goal.latitude, goal.longitude, position.altitude)
     m_gotjoinedparent = 1
   }

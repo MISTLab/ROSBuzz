@@ -3,12 +3,12 @@ include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
 include "vstigenv.bzz"
-include "rttstar.bzz"
+include "rrtstar.bzz"
 
 function action() {
   statef=action
-# test moveto cmd dx, dy
-#	uav_moveto(0.5, 0.5, 0.0)
+  uav_storegoal(45.5085,-73.1531935979886,5.0)
+  set_goto(picture)
 }
 
 # Executed once at init time.
@@ -16,8 +16,6 @@ function init() {
 	statef=turnedoff
 	UAVSTATE = "TURNEDOFF"
   	uav_initstig()
-	make_test_map()
-	RRTSTAR(math.vec2.new(0,0),math.vec2.new(5,5),math.vec2.new(1,1))
 }
 
 # Executed at each time step.

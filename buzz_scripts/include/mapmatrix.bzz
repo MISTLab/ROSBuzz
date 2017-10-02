@@ -1,0 +1,93 @@
+
+# Write to matrix
+function wmat(mat, row, col, val) {
+    var index = (row-1)*mat.nb_col + (col - 1)
+    if( row <= mat.nb_row) { # update val
+        mat.mat[index] = val
+    } else if(row == mat.nb_row + 1){ # add entry
+        mat.nb_row = mat.nb_row + 1
+        mat.mat[index] = val
+    }
+}
+
+# Read from matrix
+function rmat(mat, row, col) {
+    #log("rmat ", mat, row, col)
+    var index = (row-1)*mat.nb_col + (col - 1)
+    if (mat.mat[index] == nil) {
+        return -1
+    } else {
+        return mat.mat[index]
+    }
+}
+
+# copy a full matrix row
+function mat_copyrow(out,ro,in,ri){
+    var indexI = (ri-1)*in.nb_col
+    var indexO = (ro-1)*out.nb_col
+    icr=0
+    while(icr<in.nb_col){
+        out.mat[indexO+icr]=in.mat[indexI+icr]
+        icr = icr + 1
+    }
+}
+
+function getvec(t,row){
+    return math.vec2.new(rmat(t,row,1),rmat(t,row,2))
+}
+
+function init_test_map(){
+    # creates a 10x10 map
+    map = {.nb_col=10, .nb_row=10, .mat={}}
+    cur_cell = math.vec2.new(1,1)
+    index = 0
+    while(index<10*10){
+        map.mat[index]=1
+        index = index + 1
+    }
+    # puts an obstacle right in the middle
+    wmat(map,5,5,0)
+    wmat(map,6,5,0)
+    wmat(map,4,5,0)
+
+    log(rmat(map,1,1),rmat(map,3,3))
+}
+
+function init_map(len){
+    map = {.nb_col=len, .nb_row=len, .mat={}}
+    # center the robot on the grid
+    cur_cell = math.vec2.new(floor(len/2.0),floor(len/2.0))
+    index = 0
+    while(index<len*len){
+        map.mat[index]=1
+        index = index + 1
+    }
+    log("Occupancy grid initialized (",len,"x",len,").")
+}
+
+function add_obstacle(pos) {
+    xi = floor(pos.x)+cur_cell.x
+    yi = floor(pos.y)+cur_cell.y
+    log("Obstacle in cell: ", xi, yi)
+    
+    if(xi < map.nb_col+1 and yi < map.nb_row+1 and xi > 0 and yi > 0){
+        wmat(map,xi,yi,0)
+        wmat(map,xi+1,yi,0)
+        wmat(map,xi-1,yi,0)
+        wmat(map,xi,yi+1,0)
+        wmat(map,xi,yi-1,0)
+    }
+}
+
+function table_print(t) {
+  foreach(t, function(key, value) {
+      log(key, " -> ", value)
+    })
+}
+function print_pos(t) {
+  ir=1
+  while(ir<=t.nb_row){
+      log(ir, ": ", rmat(t,ir,1), rmat(t,ir,2))
+      ir = ir + 1
+  }
+}

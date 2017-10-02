@@ -170,6 +170,15 @@ namespace buzzuav_closures{
 		fin.close();
 	}
 
+
+	int buzz_floor(buzzvm_t vm) {
+		buzzvm_lnum_assert(vm, 1);
+    	buzzvm_lload(vm, 1);
+    	buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+    	float fval = buzzvm_stack_at(vm, 1)->f.value;
+		buzzvm_pushi(vm, floor(fval));
+    	return buzzvm_ret1(vm);
+	}
 	/*----------------------------------------/
 	/ Buzz closure to move following a 2D vector
 	/----------------------------------------*/

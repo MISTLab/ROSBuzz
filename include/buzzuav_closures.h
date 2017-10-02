@@ -38,6 +38,7 @@ void setWPlist(std::string path);
  * buzzuav_goto(latitude,longitude,altitude) function in Buzz
  * commands the UAV to go to a position supplied
  */
+int buzz_floor(buzzvm_t vm);
 int buzzuav_moveto(buzzvm_t vm);
 int buzzuav_storegoal(buzzvm_t vm);
 int buzzuav_setgimbal(buzzvm_t vm);

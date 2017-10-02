@@ -1,0 +1,248 @@
+#####
+# RRT* Path Planing
+#
+# map table-based matrix
+#####
+include "mapmatrix.bzz"
+
+map = {}
+cur_cell = {}
+
+function pathPlanner(m_navigation) {
+    # create a map big enough for the goal
+    init_map(2*floor(math.vec2.length(m_navigation))+2)
+    # create the goal in the map grid
+    mapgoal = math.vec2.add(m_navigation,cur_cell)
+    # add all neighbors as obstacles in the grid
+    neighbors.foreach(function(rid, data) {
+            add_obstacle(math.vec2.add(math.vec2.newp(data.distance,data.azimuth),cur_cell))
+            })
+    # TODO: add proximity sensor obstacles to the grid
+    # search for a path
+    return RRTSTAR(mapgoal,math.vec2.new(map.nb_col/20.0,map.nb_row/20.0))
+}
+
+function RRTSTAR(GOAL,TOL) {
+    HEIGHT = map.nb_col
+    WIDTH = map.nb_row
+    RADIUS = map.nb_col/10.0 # to consider 2 points consecutive
+    
+    rng.setseed(11)
+
+    goalBoundary = {.xmin=GOAL.x-TOL.x, .xmax=GOAL.x+TOL.x, .ymin=GOAL.y-TOL.y, .ymax=GOAL.y+TOL.y}
+    table_print(goalBoundary)
+    arrayOfPoints = {.nb_col=2, .nb_row=1, .mat={.0=cur_cell.x,.1=cur_cell.y}}
+    Path = {.nb_col=2, .nb_row=1, .mat={.0=cur_cell.x,.1=cur_cell.y}}
+    numberOfPoints = 1
+    Q = {.nb_col=5,.nb_row=1,.mat={.0=cur_cell.x,.1=cur_cell.y,.2=0,.3=1,.4=0}}
+    
+    goalReached = 0;
+    timeout = 0
+    ##
+    # main search loop
+    ##
+    while(goalReached == 0 and timeout < 200) {
+        # Point generation
+        pt = math.vec2.new(HEIGHT*rng.uniform(1.0)+1,WIDTH*rng.uniform(1.0)+1)
+
+        pointList = findPointsInRadius(pt,Q,RADIUS);
+
+        # Find connection that provides the least cost to come
+        nbCount = 0;
+        minCounted = 999;
+        minCounter = 0;
+        
+        if(pointList.nb_row!=0) {
+            #log("Found ", pointList.nb_row, " close point:", pointList.mat)    
+            ipt=1
+            while(ipt<=pointList.nb_row){
+                pointNumber = {.nb_col=pointList.nb_col, .nb_row=1, .mat={}}
+                mat_copyrow(pointNumber,1,pointList,ipt)
+                #log("pointnumber: ", pointNumber.mat)
+
+                # Follow the line to see if it intersects anything
+                intersects = doesItIntersect(pt,getvec(pointNumber,1));
+                #log("intersects1: ", intersects)
+
+                # If there is no intersection we need consider its connection
+                nbCount = nbCount + 1;
+                if(intersects != 1) {
+                    #log(pointNumber, "do not intersect (",pointNumber.mat[3],")")
+                    distance = math.vec2.length(math.vec2.sub(getvec(pointNumber,1),pt))+rmat(Q,pointNumber.mat[3],5)
+
+                    if(distance < minCounted) {
+                        minCounted = distance;
+                        minCounter = nbCount;
+                    }
+                }
+                ipt = ipt + 1
+            }
+            if(minCounter > 0) {
+                numberOfPoints = numberOfPoints + 1;
+                wmat(arrayOfPoints,numberOfPoints,1,pt.x)
+                wmat(arrayOfPoints,numberOfPoints,2,pt.y)
+
+                wmat(Q,numberOfPoints,1, pt.x)
+                wmat(Q,numberOfPoints,2, pt.y)
+                wmat(Q,numberOfPoints,3, rmat(pointList,minCounter,4));
+                wmat(Q,numberOfPoints,4, numberOfPoints)
+                wmat(Q,numberOfPoints,5, minCounted)
+
+                log("added point to Q(", Q.nb_row, "): ", pt.x, pt.y)
+
+                # Now check to see if any of the other points can be redirected
+                nbCount = 0;
+                ipt = 1
+                while(ipt<pointList.nb_row) {
+                    pointNumber = {.nb_col=pointList.nb_col, .nb_row=1, .mat={}}
+                    mat_copyrow(pointNumber,1,pointList,ipt)
+
+                    # Follow the line to see if it intersects anything
+                    intersects = doesItIntersect(pt,getvec(pointNumber,1));
+                    #log("intersects2: ", intersects)
+
+                    # If there is no intersection we need consider its connection
+                    nbCount = nbCount + 1;
+                    if(intersects != 1) {
+                        # If the alternative path is shorter than change it
+                        tmpdistance = rmat(Q,numberOfPoints,5)+math.vec2.length(math.vec2.sub(getvec(pointNumber,1),pt))
+                        if(tmpdistance < rmat(Q,rmat(pointNumber,1,4),5)) {
+                            wmat(Q,rmat(pointNumber,1,4),3, numberOfPoints)
+                            wmat(Q,rmat(pointNumber,1,4),5, tmpdistance)
+                        }
+                    }
+                    ipt = ipt + 1
+                }
+
+                # Check to see if this new point is within the goal
+                if(pt.x < goalBoundary.xmax and pt.x > goalBoundary.xmin and pt.y > goalBoundary.ymin and pt.y < goalBoundary.ymax)
+                    goalReached = 1;
+            }
+        } else {
+            # Associate with the closest point
+            pointNum = findClosestPoint(pt,arrayOfPoints);
+
+            # Follow the line to see if it intersects anything
+            intersects = doesItIntersect(pt,getvec(arrayOfPoints,pointNum));
+            #log("intersects3 (", pointNum, "): ", intersects)
+
+            # If there is no intersection we need to add to the tree
+            if(intersects != 1) {
+                numberOfPoints = numberOfPoints + 1;
+                wmat(arrayOfPoints,numberOfPoints,1,pt.x)
+                wmat(arrayOfPoints,numberOfPoints,2,pt.y)
+
+                wmat(Q,numberOfPoints,1, pt.x)
+                wmat(Q,numberOfPoints,2, pt.y)
+                wmat(Q,numberOfPoints,3, pointNum);
+                wmat(Q,numberOfPoints,4, numberOfPoints)
+                wmat(Q,numberOfPoints,5, rmat(Q,pointNum,5)+math.vec2.length(math.vec2.sub(getvec(Q,pointNum),pt)))
+
+                log("added point to Q(", Q.nb_row, "): ", pt.x, pt.y)
+
+                # Check to see if this new point is within the goal
+                if(pt.x < goalBoundary.xmax and pt.x > goalBoundary.xmin and pt.y > goalBoundary.ymin and pt.y < goalBoundary.ymax)
+                    goalReached = 1;
+            }
+        }
+        if(numberOfPoints % 100 == 0) {
+            log(numberOfPoints, " points processed. Still looking for goal.");
+        }
+        timeout = timeout + 1
+    }
+    if(goalReached){
+        log("Goal found(",numberOfPoints,")!")
+        Path = getPath(Q,numberOfPoints)
+        print_pos(Path)
+    }
+    return Path
+}
+
+function findClosestPoint(point,aPt) {
+    # Go through each points and find the distances between them and the
+    # target point
+    distance = 999
+    pointNumber = -1
+    ifcp=1
+    while(ifcp<=aPt.nb_row) {
+        range = math.vec2.length(math.vec2.sub(point,getvec(aPt,ifcp)))
+        
+        if(range < distance) {
+            distance = range;
+            pointNumber = ifcp;
+        }
+        ifcp = ifcp + 1
+    }
+    return pointNumber
+}
+
+function findPointsInRadius(point,q,r) {
+    counted = 0;
+    pointList = {.nb_col=q.nb_col, .nb_row=counted, .mat={}}
+    iir=1
+    while(iir <= q.nb_row) {
+        distance = math.vec2.length(math.vec2.sub(getvec(q,iir),point))
+        
+        if(distance < r) {
+            counted = counted+1;
+            pointList.nb_row=counted
+            mat_copyrow(pointList,counted,q,iir)
+        }
+
+        iir = iir + 1
+    }
+    return pointList
+}
+
+function doesItIntersect(point,vector) {
+    dif = math.vec2.sub(point,vector)
+    distance = math.vec2.length(dif)
+    vec = math.vec2.scale(dif,1/distance)
+    
+    idii = 1
+    while(idii<=100) {
+        range = distance/100.0*idii
+        pos_chk = math.vec2.sub(pt,math.vec2.scale(vec,range));
+        
+        # Find what block we're in right now
+        xi = floor(pos_chk.x)+1
+        yi = floor(pos_chk.y)+1
+        #log("Grid :", pos_chk.x, pos_chk.y, xi, yi)
+        
+        if(xi < map.nb_col+1 and yi < map.nb_row+1 and xi > 0 and yi > 0) {
+            if(rmat(map,xi,yi) == 0) {
+                #log("Obstacle (", rmat(map,xi,yi), ")!")
+                return 1;
+            }
+        } else {
+            #log("Outside the map(", x, y, ")!")
+            return 1;
+        }
+        idii = idii + 1
+    }
+    #log("No intersect!")
+    return 0
+}
+
+function getPath(Q,nb){
+    path={.nb_col=2, .nb_row=0, .mat={}}
+    npt=0
+    # get the path from the point list
+    while(nb!=1){
+        npt=npt+1
+        path.nb_row=npt
+        path.mat[npt*2]=rmat(Q,nb,1)
+        path.mat[npt*2+1]=rmat(Q,nb,2)
+        nb = rmat(Q,nb,3);
+    }
+
+    # re-order the list and make the path points absolute
+    pathR={.nb_col=2, .nb_row=path.nb_row, .mat={}}
+    while(npt>0){
+        tmpgoal = gps_from_vec(math.vec2.sub(getvec(path,npt),cur_cell))
+        pathR.mat[(path.nb_row-npt)*2]=tmpgoal.latitude
+        pathR.mat[(path.nb_row-npt)*2+1]=tmpgoal.longitude
+        npt = npt - 1
+    }
+    return pathR
+}

@@ -298,6 +298,9 @@ void in_message_process(){
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "log", 1));
         buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
         buzzvm_gstore(VM);
+   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "floor", 1));
+        buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzz_floor));
+        buzzvm_gstore(VM);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "debug", 1));
 		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
 		buzzvm_gstore(VM);
