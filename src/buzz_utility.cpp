@@ -298,9 +298,6 @@ void in_message_process(){
    		buzzvm_pushs(VM,  buzzvm_string_register(VM, "log", 1));
         buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
         buzzvm_gstore(VM);
-   		buzzvm_pushs(VM,  buzzvm_string_register(VM, "floor", 1));
-        buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzz_floor));
-        buzzvm_gstore(VM);
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "debug", 1));
 		buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
 		buzzvm_gstore(VM);
@@ -470,9 +467,11 @@ int create_stig_tables() {
 	   	if(VM) buzzvm_destroy(&VM);
 		Robot_id = robot_id;
 	   	VM = buzzvm_new((int)robot_id);
+	   	ROS_INFO(" Robot ID -1: %i" , robot_id);
 	   	/* Get rid of debug info */
 	   	if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
 	   	DBG_INFO = buzzdebug_new();
+	   	ROS_INFO(" Robot ID -2: %i" , robot_id);
 	   	/* Read bytecode and fill in data structure */
 	   	FILE* fd = fopen(bo_filename, "rb");
 	   	if(!fd) {
@@ -491,6 +490,7 @@ int create_stig_tables() {
       		return 0;
 	   	}
 	   	fclose(fd);
+	   	ROS_INFO(" Robot ID -3: %i" , robot_id);
 	   	/* Read debug information */
 	   	if(!buzzdebug_fromfile(DBG_INFO, bdbg_filename)) {
 	      		buzzvm_destroy(&VM);
@@ -498,6 +498,7 @@ int create_stig_tables() {
 	      		perror(bdbg_filename);
       		return 0;
    	}
+	   	ROS_INFO(" Robot ID -4: %i" , robot_id);
    	/* Set byte code */
    	if(buzzvm_set_bcode(VM, BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
@@ -505,6 +506,7 @@ int create_stig_tables() {
       		ROS_ERROR("[%i] %s: Error loading Buzz script", Robot_id, bo_filename);
       		return 0;
    	}
+	   	ROS_INFO(" Robot ID -5: %i" , robot_id);
    	/* Register hook functions */
    	if(buzz_register_hooks() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
@@ -512,6 +514,7 @@ int create_stig_tables() {
       		ROS_ERROR("[%i] Error registering hooks", Robot_id);
       		return 0;
    	}
+	   	ROS_INFO(" Robot ID -6: %i" , robot_id);
 
    	/* Create vstig tables
 	if(create_stig_tables() != BUZZVM_STATE_READY) {

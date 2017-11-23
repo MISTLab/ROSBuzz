@@ -8,9 +8,11 @@ include "update.bzz"
 #include "vstigenv.bzz" # reserve stigmergy id=20 and 21 for this header.
 include "barrier.bzz" # reserve stigmergy id=80 (auto-increment up) for this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
-include "rrtstar.bzz"
 
+include "graphs/shapes_P.bzz"
+include "graphs/shapes_O.bzz"
 include "graphs/shapes_L.bzz"
+include "graphs/shapes_Y.bzz"
 
 ROBOT_RADIUS = 50
 ROBOT_DIAMETER = 2.0*ROBOT_RADIUS
@@ -680,7 +682,8 @@ function DoJoined(){
 	#if(v_tag.size()==ROBOTS){
 	#	TransitionToLock()
 	#}
-  barrier_wait(ROBOTS, TransitionToLock, DoJoined, -1)
+  #barrier_wait(ROBOTS, TransitionToLock, DoJoined, -1)
+  barrier_wait(6, TransitionToLock, DoJoined, -1)
 }
 
 #
@@ -701,6 +704,9 @@ function DoLock(){
   }
   #move
   uav_moveto(m_navigation.x, m_navigation.y, 0.0)
+
+  # prepare to restart a new shape
+  statef=action
 }
 
 function action(){
@@ -745,7 +751,7 @@ function step() {
 	# get the swarm commands
 	uav_neicmd()
 	# update the vstig (status/net/batt)
-  #uav_updatestig()
+  	#uav_updatestig()
 
 	#update the graph
 	UpdateNodeInfo()
@@ -797,8 +803,16 @@ function step() {
 # Executed when reset
 #
 function Reset(){
-	Read_Graph()
-  m_nLabel=-1
+	if(rc_State==0){
+		Read_GraphP()
+	} else if(rc_State==1) {
+		Read_GraphO()
+	} else if(rc_State==2) {
+		Read_GraphL()
+	} else if(rc_State==3) {
+		Read_GraphY()
+	}
+  	m_nLabel=-1
 
 	#start listening
 	start_listen()

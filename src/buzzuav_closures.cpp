@@ -41,48 +41,52 @@ namespace buzzuav_closures{
 	/****************************************/
 	/****************************************/
 
-	int buzzros_print(buzzvm_t vm) {
-	int i;
-	char buffer [100] = "";
-        sprintf(buffer,"%s [%i]", buffer, (int)buzz_utility::get_robotid());
-	   for(uint32_t i = 1; i < buzzdarray_size(vm->lsyms->syms); ++i) {
-	      buzzvm_lload(vm, i);
-	      buzzobj_t o = buzzvm_stack_at(vm, 1);
-	      buzzvm_pop(vm);
-	      switch(o->o.type) {
-		 case BUZZTYPE_NIL:
-		    sprintf(buffer,"%s BUZZ - [nil]", buffer);
-		    break;
-		 case BUZZTYPE_INT:
-		    sprintf(buffer,"%s %d", buffer, o->i.value);
-		    //fprintf(stdout, "%d", o->i.value);
-		    break;
-		 case BUZZTYPE_FLOAT:
-		    sprintf(buffer,"%s %f", buffer, o->f.value);
-		    break;
-		 case BUZZTYPE_TABLE:
-		    sprintf(buffer,"%s [table with %d elems]", buffer, (buzzdict_size(o->t.value)));
-		    break;
-		 case BUZZTYPE_CLOSURE:
-		    if(o->c.value.isnative)
-		    	sprintf(buffer,"%s [n-closure @%d]", buffer, o->c.value.ref);
-		    else
-		    	sprintf(buffer,"%s [c-closure @%d]", buffer, o->c.value.ref);
-		    break;
-		 case BUZZTYPE_STRING:
-		    sprintf(buffer,"%s %s", buffer, o->s.value.str);
-		    break;
-		 case BUZZTYPE_USERDATA:
-		    sprintf(buffer,"%s [userdata @%p]", buffer, o->u.value);
-		    break;
-		 default:
-		    break;
-	      }
-	   }
-	   ROS_INFO(buffer);
-	   //fprintf(stdout, "\n");
-	   return buzzvm_ret0(vm);
-	}
+int buzzros_print(buzzvm_t vm)
+{
+  std::ostringstream buffer (std::ostringstream::ate);
+  buffer << buzz_utility::get_robotid();
+  for (uint32_t index = 1; index < buzzdarray_size(vm->lsyms->syms); ++index)
+  {
+    buzzvm_lload(vm, index);
+    buzzobj_t o = buzzvm_stack_at(vm, 1);
+    buzzvm_pop(vm);
+    switch (o->o.type)
+    {
+      case BUZZTYPE_NIL:
+        buffer << " BUZZ - [nil]";
+        break;
+      case BUZZTYPE_INT:
+        buffer << " " << o->i.value;
+        break;
+      case BUZZTYPE_FLOAT:
+        buffer << " " << o->f.value;
+        break;
+      case BUZZTYPE_TABLE:
+        buffer << " [table with " << buzzdict_size(o->t.value) << " elems]";
+        break;
+      case BUZZTYPE_CLOSURE:
+        if (o->c.value.isnative)
+        {
+          buffer << " [n-closure @" << o->c.value.ref << "]";
+        }
+        else
+        {
+          buffer << " [c-closure @" << o->c.value.ref << "]";
+        }
+        break;
+      case BUZZTYPE_STRING:
+        buffer << "  " << o->s.value.str;
+        break;
+      case BUZZTYPE_USERDATA:
+        buffer << " [userdata @" << o->u.value << "]";
+        break;
+      default:
+        break;
+    }
+  }
+  ROS_INFO("%s",buffer.str().c_str());
+  return buzzvm_ret0(vm);
+}
 
   void setWPlist(string path){
     WPlistname = path + "include/graphs/waypointlist.csv";
@@ -171,14 +175,6 @@ namespace buzzuav_closures{
 	}
 
 
-	int buzz_floor(buzzvm_t vm) {
-		buzzvm_lnum_assert(vm, 1);
-    	buzzvm_lload(vm, 1);
-    	buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-    	float fval = buzzvm_stack_at(vm, 1)->f.value;
-		buzzvm_pushi(vm, floor(fval));
-    	return buzzvm_ret1(vm);
-	}
 	/*----------------------------------------/
 	/ Buzz closure to move following a 2D vector
 	/----------------------------------------*/

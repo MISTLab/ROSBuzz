@@ -1,5 +1,7 @@
 
 # Write to matrix
+robot_marker = "X"
+
 function wmat(mat, row, col, val) {
     var index = (row-1)*mat.nb_col + (col - 1)
     if( row <= mat.nb_row) { # update val
@@ -13,8 +15,9 @@ function wmat(mat, row, col, val) {
 # Read from matrix
 function rmat(mat, row, col) {
     #log("rmat ", mat, row, col)
-    var index = (row-1)*mat.nb_col + (col - 1)
+    index = (row-1)*mat.nb_col + (col - 1)
     if (mat.mat[index] == nil) {
+        log("Wrong matrix read index: ", row, " ", col)
         return -1
     } else {
         return mat.mat[index]
@@ -36,46 +39,56 @@ function getvec(t,row){
     return math.vec2.new(rmat(t,row,1),rmat(t,row,2))
 }
 
-function init_test_map(){
-    # creates a 10x10 map
-    map = {.nb_col=10, .nb_row=10, .mat={}}
-    cur_cell = math.vec2.new(1,1)
+function init_test_map(len){
+    map = {.nb_col=len, .nb_row=len, .mat={}}
     index = 0
-    while(index<10*10){
-        map.mat[index]=1
+    while(index<len*len){
+        map.mat[index]=1.0
         index = index + 1
     }
     # puts an obstacle right in the middle
-    wmat(map,5,5,0)
-    wmat(map,6,5,0)
-    wmat(map,4,5,0)
+    wmat(map,5,5,0.0)
+    wmat(map,6,5,0.0)
+    wmat(map,4,5,0.0)
 
-    log(rmat(map,1,1),rmat(map,3,3))
+    log("Occupancy grid initialized (",len,"x",len,") with obstacles.")
 }
 
 function init_map(len){
     map = {.nb_col=len, .nb_row=len, .mat={}}
-    # center the robot on the grid
-    cur_cell = math.vec2.new(floor(len/2.0),floor(len/2.0))
     index = 0
     while(index<len*len){
-        map.mat[index]=1
+        map.mat[index]=1.0
         index = index + 1
     }
     log("Occupancy grid initialized (",len,"x",len,").")
 }
 
-function add_obstacle(pos) {
-    xi = floor(pos.x)+cur_cell.x
-    yi = floor(pos.y)+cur_cell.y
-    log("Obstacle in cell: ", xi, yi)
-    
+function add_obstacle(pos, off, inc_trust) {
+    xi = math.round(pos.x)
+    yi = math.round(pos.y)
+
+    if(xi < map.nb_col+1 and yi < map.nb_row+1 and xi > 0 and yi > 0) {
+        #log("Add obstacle in cell: ", xi, " ", yi)
+        old=rmat(map,xi,yi)
+        if(old-inc_trust > 0.0)
+          wmat(map,xi,yi,old-inc_trust)
+        else
+          wmat(map,xi,yi,0.0)
+    }
+}
+
+function remove_obstacle(pos, off, dec_trust) {
+    xi = math.round(pos.x)
+    yi = math.round(pos.y)
+
     if(xi < map.nb_col+1 and yi < map.nb_row+1 and xi > 0 and yi > 0){
-        wmat(map,xi,yi,0)
-        wmat(map,xi+1,yi,0)
-        wmat(map,xi-1,yi,0)
-        wmat(map,xi,yi+1,0)
-        wmat(map,xi,yi-1,0)
+        #log("Remove obstacle in cell: ", xi, " ", yi)
+        old=rmat(map, xi, yi)
+        if(old + dec_trust < 1.0)  #x,y
+          wmat(map, xi, yi, old+dec_trust)
+        else
+          wmat(map, xi, yi, 1.0)
     }
 }
 
@@ -84,10 +97,55 @@ function table_print(t) {
       log(key, " -> ", value)
     })
 }
+
+function table_copy(t) {
+  var t2 = {}
+  foreach(t, function(key, value) {
+      t2[key] = value
+    })
+  return t2
+}
+
 function print_pos(t) {
   ir=1
   while(ir<=t.nb_row){
-      log(ir, ": ", rmat(t,ir,1), rmat(t,ir,2))
+      log(ir, ": ", rmat(t,ir,1), " ", rmat(t,ir,2))
       ir = ir + 1
   }
+}
+function print_map(t) {
+  ir=t.nb_row
+  log("Printing a ", t.nb_row, " by ", t.nb_col, " map")
+  while(ir>0){
+      logst=string.concat("\t", string.tostring(ir), "\t:")
+      ic=t.nb_col
+      while(ic>0){
+        if(ir==cur_cell.x and ic==cur_cell.y)
+          logst = string.concat(logst, " XXXXXXXX")
+        else
+          logst = string.concat(logst, " ", string.tostring(rmat(t,ir,ic)))
+        ic = ic - 1
+      }
+      log(logst)
+      ir = ir - 1
+  }
+}
+
+function print_map_argos(t){
+  ir=t.nb_row
+  msg = string.tostring(ir)
+  while(ir>0){
+      ic=t.nb_col
+      while(ic>0){
+        if(ir==cur_cell.x and ic==cur_cell.y){
+          msg = string.concat(msg, ":", robot_marker)
+        }
+        else {
+          msg = string.concat(msg, ":", string.tostring(rmat(t,ir,ic)))
+        }
+        ic = ic - 1
+      }
+      ir = ir - 1
+  }
+  set_argos_map(msg)
 }

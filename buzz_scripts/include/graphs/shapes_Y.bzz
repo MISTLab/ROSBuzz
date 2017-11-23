@@ -1,7 +1,7 @@
 #Table of the nodes in the graph
 m_vecNodes={}
 m_vecNodes_fixed={}
-function Read_Graph(){
+function Read_GraphY(){
 m_vecNodes[0] = {      # The .graph file is stored according the sequence of Label, predecessor, distance, bearing
     .Label = 0,   # Label of the point
     .Pred = -1,   # Label of its predecessor

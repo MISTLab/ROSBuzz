@@ -3,6 +3,8 @@
 # FLIGHT-RELATED FUNCTIONS
 #
 ########################################
+include "rrtstar.bzz"
+
 TARGET_ALTITUDE = 5.0 # m.
 UAVSTATE = "TURNEDOFF"
 PICTURE_WAIT = 20 # steps
@@ -11,6 +13,7 @@ GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 0.5  # m.
 GOTOANG_TOL = 0.1 # rad.
 cur_goal_l = 0
+rc_State = 0
 
 function uav_initswarm() {
 	s = swarm.create(1)
@@ -32,7 +35,8 @@ function takeoff() {
 	statef=takeoff
 
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-		barrier_set(ROBOTS, action, land, -1)
+		#barrier_set(ROBOTS, action, land, -1)
+		barrier_set(6, action, land, -1)
 		barrier_ready()
 	} else {
     log("Altitude: ", position.altitude)
@@ -49,7 +53,8 @@ function land() {
 	uav_land()
 	
 	if(flight.status != 2 and flight.status != 3) {
-    barrier_set(ROBOTS,turnedoff,land, 21)
+    	#barrier_set(ROBOTS,turnedoff,land, 21)
+		barrier_set(6,turnedoff,land, 21)
 		barrier_ready()
 	}
 }
@@ -85,7 +90,7 @@ function picture() {
   ptime=ptime+1
 }
 
-function gotoWP(transf) {
+function gotoWPRRT(transf) {
 	rc_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude)
 	print(" has to move ", math.vec2.length(rc_goal))
 
@@ -93,7 +98,7 @@ function gotoWP(transf) {
 		log("Sorry this is too far.")
 	else {
 		if(Path==nil){
-			Path = pathPlanner(rc_goal)
+			Path = UAVpathPlanner(rc_goal)
 			cur_goal_l = 1
 		} else if(cur_goal_l<=Path.nb_row) {
 			cur_gps=getvec(Path,cur_goal_l)	#x=latitude, y=longitude
@@ -110,16 +115,21 @@ function gotoWP(transf) {
 			transf()
 		}
 	}
+}
 
-#	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
-#		log("Sorry this is too far.")
-#  	else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
-#		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
-#		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
-#	} else if(goal.range < GOTODIST_TOL and goal.bearing < GOTOANG_TOL) # reached destination
-#		transf()
-#	else
-#		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
+function gotoWP(transf) {
+	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude)
+	print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
+
+	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
+		log("Sorry this is too far.")
+  else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
+		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
+		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
+	} else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
+		transf()
+	else
+		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude-position.altitude)
 }
 
 function follow() {
@@ -167,6 +177,18 @@ function uav_rccmd() {
 	} else if (flight.rc_cmd==666){
 		flight.rc_cmd=0
 		stattab_send()
+	} else if (flight.rc_cmd==900){
+		flight.rc_cmd=0
+		rc_State = 0
+	} else if (flight.rc_cmd==901){
+		flight.rc_cmd=0
+		rc_State = 1
+	} else if (flight.rc_cmd==902){
+		flight.rc_cmd=0
+		rc_State = 2
+	} else if (flight.rc_cmd==903){
+		flight.rc_cmd=0
+		rc_State = 3
 	}
 }
 
@@ -176,14 +198,22 @@ function uav_neicmd() {
 				print("Got (", vid, ",", value, ") #", rid, "(", UAVSTATE, ")")
 				if(value==22 and UAVSTATE!="TAKEOFF" and UAVSTATE!="BARRIERWAIT") {
 					statef=takeoff
-		      UAVSTATE = "TAKEOFF"
+		      		UAVSTATE = "TAKEOFF"
 				} else if(value==21 and UAVSTATE!="LAND" and UAVSTATE!="BARRIERWAIT") {
 					statef=land
-		      UAVSTATE = "LAND"
+		      		UAVSTATE = "LAND"
 				} else if(value==400 and UAVSTATE=="TURNEDOFF") {
 					uav_arm()
 				} else if(value==401 and UAVSTATE=="TURNEDOFF"){
 					uav_disarm()
+				} else if(value==900){
+					rc_State = 0
+				} else if(value==901){
+					rc_State = 1
+				} else if(value==902){
+					rc_State = 2
+				} else if(value==903){
+					rc_State = 3
 				} else if(value==16 and UAVSTATE=="IDLE"){
 				#  neighbors.listen("gt",function(vid, value, rid) {
 				#    print("Got (", vid, ",", value, ") from robot #", rid)
