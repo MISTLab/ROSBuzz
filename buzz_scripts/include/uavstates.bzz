@@ -180,15 +180,19 @@ function uav_rccmd() {
 	} else if (flight.rc_cmd==900){
 		flight.rc_cmd=0
 		rc_State = 0
+		neighbors.broadcast("cmd", 900)
 	} else if (flight.rc_cmd==901){
 		flight.rc_cmd=0
 		rc_State = 1
+		neighbors.broadcast("cmd", 901)
 	} else if (flight.rc_cmd==902){
 		flight.rc_cmd=0
 		rc_State = 2
+		neighbors.broadcast("cmd", 902)
 	} else if (flight.rc_cmd==903){
 		flight.rc_cmd=0
 		rc_State = 3
+		neighbors.broadcast("cmd", 903)
 	}
 }
 

@@ -18,6 +18,7 @@ ROBOT_RADIUS = 50
 ROBOT_DIAMETER = 2.0*ROBOT_RADIUS
 ROBOT_SAFETYDIST = 2.0*ROBOT_DIAMETER
 ROOT_ID = 2
+old_state = -1
 
 # max velocity in cm/step
 ROBOT_MAXVEL = 150.0
@@ -46,21 +47,16 @@ m_receivedMessage={.State=s2i("STATE_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Respo
 #The keys of the talbe is State(current state),Label(current Label),ReqLabel(requested Label),ReqID(request id),Response(reply message{REQ_NONE,REQ_GRANTED,REQ_RESEND})
 m_selfMessage={.State=s2i("STATE_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
 
-#Current robot state
-# m_eState="STATE_FREE" # replace with default UAVSTATE
-
 #navigation vector
 m_navigation={.x=0,.y=0}
-
-#Debug message to be displayed in qt-opengl
-#m_ossDebugMsg
-
-#Debug vector to draw
-#CVector2 m_cDebugVector
 
 #Current label being requested or chosen (-1 when none)
 m_nLabel=-1
 m_messageID={}
+repeat_assign=0
+assign_label=-1
+assign_id=-1
+m_gotjoinedparent = 0
 #neighbor distance to lock the current pattern
 lock_neighbor_id={}
 lock_neighbor_dis={}
@@ -89,9 +85,6 @@ m_unJoiningLostPeriod=0
 #Tolerance distance to a target location
 m_fTargetDistanceTolerance=0
 
-#step cunt
-step_cunt=0
-
 # virtual stigmergy for the LOCK barrier.
 m_lockstig = 1
 
@@ -119,8 +112,9 @@ function count(table,value){
 	}
 	return number
 }
-
+#
 #map from int to state
+#
 function i2s(value){
 	if(value==1){
 	return "STATE_FREE"
@@ -138,8 +132,9 @@ function i2s(value){
 	return "STATE_LOCK"
 	}
 }
-
+#
 #map from state to int
+#
 function s2i(value){
 	if(value=="STATE_FREE"){
 	return 1
@@ -157,7 +152,9 @@ function s2i(value){
 	return 5
 	}
 }
+#
 #map form int to response
+#
 function i2r(value){
 	if(value==1){
 	return "REQ_NONE"
@@ -166,7 +163,9 @@ function i2r(value){
 	return "REQ_GRANTED"
 	}
 }
+#
 #map from response to int
+#
 function r2i(value){
 	if(value=="REQ_NONE"){
 	return 1
@@ -175,8 +174,6 @@ function r2i(value){
 	return 2
 	}
 }
-
-
 #
 #return the index of value
 #
@@ -190,7 +187,6 @@ function find(table,value){
 	}
 	return ind
 }
-
 #
 #pack message into 1 number
 #
@@ -255,8 +251,9 @@ log(id,"I pass value=",recv_value)
     return_table.Bearing=b
     return return_table
 }
-
+#
 #get the target distance to neighbr nei_id
+#
 function target4label(nei_id){
     var return_val="miss"
     var i=0
@@ -268,7 +265,9 @@ function target4label(nei_id){
     }
     return return_val
 }
+#
 #calculate LJ vector for neibhor stored in i
+#
 function LJ_vec(i){
     var dis=m_MessageRange[i]
     var ljbearing=m_MessageBearing[i]
@@ -282,7 +281,9 @@ function LJ_vec(i){
 		#log("x=",cDir.x,"y=",cDir.y)  
     return cDir
 }
+#
 #calculate the motion vector
+#
 function motion_vector(){
     var i=0
     var m_vector={.x=0.0,.y=0.0}
@@ -296,7 +297,9 @@ function motion_vector(){
 	#log(id,"fnal=","x=",m_vector.x,"y=",m_vector.y)    
     return m_vector
 }
-
+#
+# starts the neighbors listener
+#
 function start_listen(){
 neighbors.listen("m",
     function(vid,value,rid){
@@ -314,13 +317,15 @@ neighbors.listen("m",
     m_MessageRange[m_neighbourCount]=m_receivedMessage.Range
     m_MessageBearing[m_neighbourCount]=m_receivedMessage.Bearing
 	m_messageID[m_neighbourCount]=rid
-log(rid, " is in ",  m_MessageState[m_neighbourCount], " ", m_MessageLabel[m_neighbourCount])
+
+#log(rid, " is in ",  m_MessageState[m_neighbourCount], " ", m_MessageLabel[m_neighbourCount])
 
     m_neighbourCount=m_neighbourCount+1
 })
 }
 #
 #Function used to get the station info of the sender of the message
+#
 function Get_DisAndAzi(id){
 	neighbors.foreach(
 	function(rid, data) {
@@ -330,7 +335,6 @@ function Get_DisAndAzi(id){
 		}
 		})
 }
-
 #
 #Update node info according to neighbour robots
 #
@@ -361,7 +365,6 @@ function UpdateNodeInfo(){
 	i=i+1
 	}
 }
-
 #
 #Transistion to state free
 #
@@ -370,7 +373,6 @@ function TransitionToFree(){
 	m_unWaitCount=m_unLabelSearchWaitTime
 	m_selfMessage.State=s2i(UAVSTATE)
 }
-
 #
 #Transistion to state asking
 #
@@ -384,7 +386,6 @@ function TransitionToAsking(un_label){
 
 	m_unWaitCount=m_unResponseTimeThreshold
 }
-
 #
 #Transistion to state joining
 #
@@ -394,7 +395,6 @@ function TransitionToJoining(){
 	m_selfMessage.Label=m_nLabel
 	m_unWaitCount=m_unJoiningLostPeriod
 }
-
 #
 #Transistion to state joined
 #
@@ -413,7 +413,6 @@ function TransitionToJoined(){
 	m_navigation.y=0.0
 	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 }
-
 #
 #Transistion to state Lock, lock the current formation
 #
@@ -434,8 +433,12 @@ function TransitionToLock(){
   m_navigation.x=0.0
   m_navigation.y=0.0
   uav_moveto(m_navigation.x, m_navigation.y, 0.0)
-}
 
+  # prepare to restart a new shape
+  old_state = rc_State
+	#stop listening 
+	neighbors.ignore("m")
+}
 #
 # Do free
 #
@@ -482,7 +485,6 @@ function DoFree() {
 	m_selfMessage.State=s2i(UAVSTATE)
 
 }
-
 #
 #Do asking
 #
@@ -544,11 +546,9 @@ function DoAsking(){
 	m_navigation.y=0.0
 	uav_moveto(m_navigation.x/100.0, m_navigation.y/100.0, 0.0)
 }
-
 #
 #Do joining
 #
-m_gotjoinedparent = 0
 function DoJoining(){
 
   if(m_gotjoinedparent!=1)
@@ -587,13 +587,9 @@ function set_rc_goto() {
     m_gotjoinedparent = 1
   }
 }
-
 #
 #Do joined
 #
-repeat_assign=0
-assign_label=-1
-assign_id=-1
 function DoJoined(){
 	m_selfMessage.State=s2i(UAVSTATE)
 	m_selfMessage.Label=m_nLabel
@@ -685,7 +681,6 @@ function DoJoined(){
   #barrier_wait(ROBOTS, TransitionToLock, DoJoined, -1)
   barrier_wait(6, TransitionToLock, DoJoined, -1)
 }
-
 #
 #Do Lock
 #
@@ -705,18 +700,18 @@ function DoLock(){
   #move
   uav_moveto(m_navigation.x, m_navigation.y, 0.0)
 
-  # prepare to restart a new shape
-  statef=action
 }
-
+#
+# Executed after takeoff
+#
 function action(){
+  
   statef=action
   UAVSTATE="STATE_FREE"
 
   # reset the graph
   Reset()
 }
-
 #
 # Executed at init
 #
@@ -737,13 +732,12 @@ function init() {
   #v_tag = stigmergy.create(m_lockstig)
   #uav_initstig()
 	# go to diff. height since no collision avoidance implemented yet
-	#TARGET_ALTITUDE = 3.0 + id * 1.25
+	TARGET_ALTITUDE = 20.0 + id * 2.5
 	statef=turnedoff
 	UAVSTATE = "TURNEDOFF"
 }
-
 #
-# Executed every step
+# Executed every step (main loop)
 #
 function step() {
 	# listen to potential RC
@@ -762,15 +756,15 @@ function step() {
 	#
 	if(UAVSTATE=="STATE_FREE")
 		statef=DoFree
-	else if(UAVSTATE=="STATE_ESCAPE")
-		statef=DoEscape
 	else if(UAVSTATE=="STATE_ASKING")
 		statef=DoAsking
 	else if(UAVSTATE=="STATE_JOINING")
 		statef=DoJoining
 	else if(UAVSTATE=="STATE_JOINED")
 		statef=DoJoined
-	else if(UAVSTATE=="STATE_LOCK")
+	else if(UAVSTATE=="STATE_LOCK" and old_state!=rc_State)
+		statef=action
+	else if(UAVSTATE=="STATE_LOCK" and old_state==rc_State)
 		statef=DoLock
 
 	# high level UAV state machine
@@ -794,25 +788,40 @@ function step() {
 	m_MessageBearing={}#store received neighbour message
 	m_neighbourCount=0
 
-
-	#step cunt+1
-	step_cunt=step_cunt+1
 }
-
 #
 # Executed when reset
 #
 function Reset(){
+	m_receivedMessage={.State=s2i("STATE_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE"),.Range=0,.Bearing=0}
+	m_selfMessage={.State=s2i("STATE_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
+	m_navigation={.x=0,.y=0}
+	m_nLabel=-1
+	m_messageID={}
+	lock_neighbor_id={}
+	lock_neighbor_dis={}
+	m_unRequestId=0
+	m_bias=0
+	m_cMeToPred={.Range=0.0,.Bearing=0.0,.GlobalBearing=0.0}
+	m_unWaitCount=0
+	repeat_assign=0
+	assign_label=-1
+	assign_id=-1
+	m_gotjoinedparent = 0
+
 	if(rc_State==0){
+		log("Loading P graph")
 		Read_GraphP()
 	} else if(rc_State==1) {
+		log("Loading O graph")
 		Read_GraphO()
 	} else if(rc_State==2) {
+		log("Loading L graph")
 		Read_GraphL()
 	} else if(rc_State==3) {
+		log("Loading Y graph")
 		Read_GraphY()
 	}
-  	m_nLabel=-1
 
 	#start listening
 	start_listen()
@@ -829,7 +838,6 @@ function Reset(){
 		TransitionToFree()
 	}
 }
-
 #
 # Executed upon destroy
 #

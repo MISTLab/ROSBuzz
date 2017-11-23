@@ -1,6 +1,6 @@
 #Table of the nodes in the graph
 m_vecNodes={}
-m_vecNodes_fixed={}
+
 function Read_GraphO(){
 m_vecNodes[0] = {      # The .graph file is stored according the sequence of Label, predecessor, distance, bearing
     .Label = 0,   # Label of the point

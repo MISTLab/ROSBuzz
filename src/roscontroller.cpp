@@ -1166,7 +1166,9 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request &req,
       res.success = true;
       break;
     default:
-      res.success = false;
+      buzzuav_closures::rc_call(req.command);
+      ROS_INFO("----> Received unregistered command: ", req.command);
+      res.success = true;
       break;
   }
   return true;
