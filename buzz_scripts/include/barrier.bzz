@@ -40,7 +40,7 @@ function barrier_set(threshold, transf, resumef, bdt) {
 # Make yourself ready
 #
 function barrier_ready() {
-  log("BARRIER READY -------")
+  #log("BARRIER READY -------")
   barrier.put(id, 1)
   barrier.put("d", 0)
 }
@@ -52,7 +52,7 @@ function barrier_wait(threshold, transf, resumef, bdt) {
   barrier.put(id, 1)
 
   barrier.get(id)
-  log("--->BS: ", barrier.size(), " (", BARRIER_VSTIG, ")")
+  #log("--->BS: ", barrier.size(), " (", BARRIER_VSTIG, ")")
   if(barrier.size() - 1 >= threshold or barrier.get("d") == 1) {
     barrier.put("d", 1)
     timeW = 0

@@ -237,7 +237,7 @@ function unpackmessage(recv_value){
 #unpack guide message
 #
 function unpack_guide_msg(recv_value){
-log(id,"I pass value=",recv_value)
+#log(id,"I pass value=",recv_value)
     var qian=(recv_value-recv_value%1000)/1000
     recv_value=recv_value-qian*1000
     var bai=(recv_value-recv_value%100)/100
@@ -497,10 +497,9 @@ function DoAsking(){
 		#the request Label be the same as requesed
 		#get a respond
 		if(m_MessageState[i]=="STATE_JOINED"){
-			log("received label = ",m_MessageReqLabel[i])
+			#log("received label = ",m_MessageReqLabel[i])
 			if(m_MessageReqLabel[i]==m_nLabel)
 				if(m_MessageResponse[i]!="REQ_NONE"){
-				log("get response")
 				psResponse=i
 		}}
 		if(m_MessageState[i]=="STATE_JOINING" and m_MessageLabel[i]==m_nLabel){
@@ -604,13 +603,12 @@ function DoJoined(){
 	while(i<m_neighbourCount){
 		if(m_MessageState[i]=="STATE_ASKING"){
 			ReqLabel=m_MessageReqLabel[i]
-			log("ReqLabel var:",ReqLabel)
-			log("M_vec var",m_vecNodes[ReqLabel].State)
+			#log("ReqLabel var:",ReqLabel)
+			#log("M_vec var",m_vecNodes[ReqLabel].State)
 			if(m_vecNodes[ReqLabel].State=="UNASSIGNED")
 				if(m_nLabel==m_vecNodes[ReqLabel].Pred){
 					#is a request, store the index
 					mapRequests[j]=i
-					log("Into if m_nLabel")
 					j=j+1
 				}
 		}
@@ -678,8 +676,7 @@ function DoJoined(){
 	#if(v_tag.size()==ROBOTS){
 	#	TransitionToLock()
 	#}
-  #barrier_wait(ROBOTS, TransitionToLock, DoJoined, -1)
-  barrier_wait(6, TransitionToLock, DoJoined, -1)
+  barrier_wait(ROBOTS, TransitionToLock, DoJoined, -1)
 }
 #
 #Do Lock
@@ -732,7 +729,7 @@ function init() {
   #v_tag = stigmergy.create(m_lockstig)
   #uav_initstig()
 	# go to diff. height since no collision avoidance implemented yet
-	TARGET_ALTITUDE = 20.0 + id * 2.5
+	#TARGET_ALTITUDE = 20.0 + id * 2.5
 	statef=turnedoff
 	UAVSTATE = "TURNEDOFF"
 }

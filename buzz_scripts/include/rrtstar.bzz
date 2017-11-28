@@ -5,23 +5,25 @@
 #####
 include "mapmatrix.bzz"
 
-RRT_TIMEOUT = 200
+RRT_TIMEOUT = 500
 map = nil
 cur_cell = {}
 nei_cell = {}
 
-function UAVpathPlanner(m_navigation) {
+function UAVinit_map(m_navigation) {
     # create a map big enough for the goal
-    init_map(2*math.round(math.vec2.length(m_navigation))+2)
+    init_map(2*math.round(math.vec2.length(m_navigation))+10)
     # center the robot on the grid
-    cur_cell = math.vec2.new(math.round(len/2.0),math.round(len/2.0))
+    cur_cell = math.vec2.new(math.round(map.nb_col/2.0),math.round(map.nb_row/2.0))
+}
+
+function UAVpathPlanner(m_navigation, m_pos) {
+    # place the robot on the grid
+    update_curcell(m_pos,0)
     # create the goal in the map grid
     mapgoal = math.vec2.add(m_navigation,cur_cell)
-    # add all neighbors as obstacles in the grid
-    neighbors.foreach(function(rid, data) {
-            add_obstacle(math.vec2.add(math.vec2.newp(data.distance,data.azimuth),cur_cell), 0, 1.0)
-            })
-    # TODO: add proximity sensor obstacles to the grid
+    mapgoal = math.vec2.new(math.round(mapgoal.x),math.round(mapgoal.y))
+
     # search for a path
     return RRTSTAR(mapgoal,math.vec2.new(5,5))  #map.nb_col/20.0,map.nb_row/20.0))
 }
@@ -32,7 +34,7 @@ function Kh4pathPlanner(m_goal, m_pos) {
     m_goal = math.vec2.new(math.round(m_goal.x*CM2KH4.x), math.round(m_goal.y*CM2KH4.y))
 
     # place the robot on the grid
-    update_curcell(m_pos)
+    update_curcell(m_pos,1)
     log("Starting from cell: ", cur_cell.x, " ", cur_cell.y)
     log("Going to cell: ", m_goal.x, " ", m_goal.y)
 
@@ -42,9 +44,14 @@ function Kh4pathPlanner(m_goal, m_pos) {
     return RRTSTAR(m_goal, math.vec2.new(10.0 * CM2KH4.x, 10.0 * CM2KH4.y))
 }
 
-function update_curcell(m_curpos) {
-  cur_cell = math.vec2.sub(m_curpos, math.vec2.new(GRIDCM.xmin, GRIDCM.ymin))
-  cur_cell = math.vec2.new(math.round(cur_cell.x*CM2KH4.x), math.round(cur_cell.y*CM2KH4.y))
+function update_curcell(m_curpos, kh4) {
+  if(kh4) { # for khepera playground
+    cur_cell = math.vec2.sub(m_curpos, math.vec2.new(GRIDCM.xmin, GRIDCM.ymin))
+    cur_cell = math.vec2.new(math.round(cur_cell.x*CM2KH4.x), math.round(cur_cell.y*CM2KH4.y))
+  } else { # for uav map relative to home
+    cur_cell = math.vec2.add(cur_cell, m_curpos)
+    cur_cell = math.vec2.new(math.round(m_curpos.x), math.round(m_curpos.y))
+  }
   if(cur_cell.x>map.nb_row)
     cur_cell.x=map.nb_row
   if(cur_cell.y>map.nb_col)
@@ -55,9 +62,17 @@ function update_curcell(m_curpos) {
     cur_cell.y=1
 }
 
+function UAVgetneiobs (m_curpos) {
+    update_curcell(m_curpos,0)
+    # add all neighbors as obstacles in the grid
+    neighbors.foreach(function(rid, data) {
+            add_obstacle(math.vec2.add(math.vec2.newp(data.distance,data.azimuth),cur_cell), 0, 1.0)
+            })
+}
+
 function getneiobs (m_curpos) {
   foundobstacle = 0
-  update_curcell(m_curpos)
+  update_curcell(m_curpos,1)
   old_nei = table_copy(nei_cell)
   #log("NeiObs debug: ", nei_cell[9], " ", nei_cell[3])
 
@@ -103,7 +118,7 @@ function getneiobs (m_curpos) {
 
 function getproxobs (m_curpos) {
   foundobstacle = 0
-  update_curcell(m_curpos)
+  update_curcell(m_curpos,1)
 
   reduce(proximity,
     function(key, value, acc) {
@@ -141,17 +156,17 @@ function getproxobs (m_curpos) {
   #}
 
   return foundobstacle
-}
+}			
 
-function check_path(m_path, goal_l, m_curpos) {
+function check_path(m_path, goal_l, m_curpos, kh4) {
   pathisblocked = 0
   nb=goal_l
-  update_curcell(m_curpos)
-  #m_curpos = math.vec2.sub(m_curpos,math.vec2.new(GRIDCM.xmin, GRIDCM.ymin))
-  #Cvec = math.vec2.new(math.round(m_curpos.x*CM2KH4.x), math.round(m_curpos.y*CM2KH4.y))
+  update_curcell(m_curpos,kh4)
   Cvec = cur_cell
   while(nb < m_path.nb_row and nb <= goal_l+1){
     Nvec = getvec(m_path, nb)
+    if(kh4==0)
+        Nvec=vec_from_gps(Nvec.x,Nvec.y)
     if(doesItIntersect(Cvec, Nvec)){
       log("Obstacle in the way ! (", Cvec.x, "/", Cvec.y, "->", Nvec.x, "/", Nvec.y, ")")
       pathisblocked = 1
@@ -293,7 +308,7 @@ function RRTSTAR(GOAL,TOL) {
     }
     if(goalReached){
         log("Goal found(",numberOfPoints,")!")
-        Path = getPath(Q,numberOfPoints)
+        Path = getPathGPS(Q,numberOfPoints)
         print_pos(Path)
     } else {
       log("FAILED TO FIND A PATH!!!")
@@ -395,8 +410,8 @@ function getPathGPS(Q,nb){
     while(nb!=1){
         npt=npt+1
         path.nb_row=npt
-        path.mat[npt*2]=rmat(Q,nb,1)
-        path.mat[npt*2+1]=rmat(Q,nb,2)
+        path.mat[(npt-1)*2]=rmat(Q,nb,1)
+        path.mat[(npt-1)*2+1]=rmat(Q,nb,2)
         nb = rmat(Q,nb,3);
     }
 
@@ -434,6 +449,6 @@ function getPath(Q,nb){
         pathR.mat[(path.nb_row-npt)*2+1]=tmpgoal.y
         npt = npt - 1
     }
-    log("Double-check path: ", check_path(pathR, 1, cur_cell))
+    #log("Double-check path: ", check_path(pathR, 1, cur_cell, 1))
     return pathR
 }

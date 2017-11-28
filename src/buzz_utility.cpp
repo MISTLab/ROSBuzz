@@ -17,7 +17,6 @@ namespace buzz_utility{
 	static char*        BO_FNAME        = 0;
 	static uint8_t*     BO_BUF          = 0;
 	static buzzdebug_t  DBG_INFO        = 0;
-	static uint32_t     MSG_SIZE        = 250;   // Only 250 bytes of Buzz messages every step (limited to Xbee frame size)
 	static uint32_t     MAX_MSG_SIZE    = 10000; // Maximum Msg size for sending update packets
 	static uint8_t 	    Robot_id        = 0;
 	static std::vector<uint8_t*> IN_MSG;
@@ -229,7 +228,7 @@ void in_message_process(){
 	      			buzzmsg_payload_t m = buzzoutmsg_queue_first(VM);
 	      			/* Make sure the next message makes the data buffer with buzz messages to be less than MAX SIZE Bytes */
 					//ROS_INFO("read size : %i", (int)(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)));
-	      			if((uint32_t)(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)) > MSG_SIZE) {
+	      			if((uint32_t)(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)) > MAX_MSG_SIZE) {
 			 			buzzmsg_payload_destroy(&m);
 			 			break;
 	      			}
@@ -467,11 +466,9 @@ int create_stig_tables() {
 	   	if(VM) buzzvm_destroy(&VM);
 		Robot_id = robot_id;
 	   	VM = buzzvm_new((int)robot_id);
-	   	ROS_INFO(" Robot ID -1: %i" , robot_id);
 	   	/* Get rid of debug info */
 	   	if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
 	   	DBG_INFO = buzzdebug_new();
-	   	ROS_INFO(" Robot ID -2: %i" , robot_id);
 	   	/* Read bytecode and fill in data structure */
 	   	FILE* fd = fopen(bo_filename, "rb");
 	   	if(!fd) {
@@ -490,7 +487,6 @@ int create_stig_tables() {
       		return 0;
 	   	}
 	   	fclose(fd);
-	   	ROS_INFO(" Robot ID -3: %i" , robot_id);
 	   	/* Read debug information */
 	   	if(!buzzdebug_fromfile(DBG_INFO, bdbg_filename)) {
 	      		buzzvm_destroy(&VM);
@@ -498,7 +494,6 @@ int create_stig_tables() {
 	      		perror(bdbg_filename);
       		return 0;
    	}
-	   	ROS_INFO(" Robot ID -4: %i" , robot_id);
    	/* Set byte code */
    	if(buzzvm_set_bcode(VM, BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
@@ -506,7 +501,6 @@ int create_stig_tables() {
       		ROS_ERROR("[%i] %s: Error loading Buzz script", Robot_id, bo_filename);
       		return 0;
    	}
-	   	ROS_INFO(" Robot ID -5: %i" , robot_id);
    	/* Register hook functions */
    	if(buzz_register_hooks() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
@@ -514,7 +508,11 @@ int create_stig_tables() {
       		ROS_ERROR("[%i] Error registering hooks", Robot_id);
       		return 0;
    	}
-	   	ROS_INFO(" Robot ID -6: %i" , robot_id);
+
+	// Initialize UAVSTATE variable
+	buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE", 1));
+	buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
+	buzzvm_gstore(VM);
 
    	/* Create vstig tables
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
@@ -578,6 +576,12 @@ int create_stig_tables() {
       		ROS_ERROR("[%i] Error registering hooks (update)", Robot_id);
         	return 0;
    	}
+
+	// Initialize UAVSTATE variable
+	buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE", 1));
+	buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
+	buzzvm_gstore(VM);
+
    	/* Create vstig tables
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
@@ -634,6 +638,12 @@ int create_stig_tables() {
       		ROS_ERROR("[%i] Error registering hooks (update init)", Robot_id);
         	return 0;
    	}
+
+	// Initialize UAVSTATE variable
+	buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE", 1));
+	buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
+	buzzvm_gstore(VM);
+
    	/* Create vstig tables
 	if(create_stig_tables() != BUZZVM_STATE_READY) {
       		buzzvm_destroy(&VM);
