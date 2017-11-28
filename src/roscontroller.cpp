@@ -82,7 +82,7 @@ void roscontroller::GetRobotId()
   while (!xbeestatus_srv.call(robot_id_srv_request, robot_id_srv_response))
   {
     ros::Duration(0.1).sleep();
-    ROS_ERROR("Waiting for Xbee to respond to get device ID");
+    ROS_WARN("ROSBUZZ is waiting for Xbee device ID");
   }
 
   robot_id = robot_id_srv_response.value.integer;
@@ -256,23 +256,10 @@ void roscontroller::RosControllerRun()
       /*Set multi message available after update*/
       //if (get_update_status())
       //{
-       /* set_read_update_status();
+        set_read_update_status();
         multi_msg = true;
-        log << cur_pos.latitude << "," << cur_pos.longitude << ","
-            << cur_pos.altitude << ",";
-       collect_data(log);
-        map<int, buzz_utility::Pos_struct>::iterator it =
-            neighbours_pos_map.begin();
-        log << "," << neighbours_pos_map.size();
-        for (; it != neighbours_pos_map.end(); ++it)
-        {
-          log << "," << (double)it->second.x << "," << (double)it->second.y
-              << "," << (double)it->second.z;
-        }
-        log << std::endl;*/
       //}
       /*Set ROBOTS variable for barrier in .bzz from neighbours count*/
-      // no_of_robots=get_number_of_robots();
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
       /*Retrive the state of the graph and uav and log*/
@@ -299,6 +286,7 @@ void roscontroller::RosControllerRun()
       /*sleep for the mentioned loop rate*/
       timer_step += 1;
       maintain_pos(timer_step);
+
 
       // std::cout<< "HOME: " << home.latitude << ", " << home.longitude;
     }

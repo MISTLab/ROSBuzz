@@ -17,7 +17,7 @@ namespace buzzuav_closures{
 	static double goto_pos[3];
 	static double rc_goto_pos[3];
 	static float rc_gimbal[4];
-	static float batt[3];
+	static float batt[3]={0,0,0};
 	static float obst[5]={0,0,0,0,0};
 	static double cur_pos[3];
 	static uint8_t status;
