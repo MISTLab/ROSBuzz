@@ -2,6 +2,9 @@
 #include <thread>
 namespace rosbzz_node {
 
+const string roscontroller::CAPTURE_SRV_DEFAULT_NAME = "/image_sender/capture_image";
+const bool debug = false;
+
 /*---------------
 /Constructor
 ---------------*/
@@ -17,6 +20,7 @@ roscontroller::roscontroller(ros::NodeHandle &n_c, ros::NodeHandle &n_c_priv)
   bcfname = fname + ".bo";
   dbgfname = fname + ".bdb";
   set_bzz_file(bzzfile_name.c_str());
+  buzzuav_closures::setWPlist(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/");
   /*Initialize variables*/
   // Solo things
   SetMode("LOITER", 0);
@@ -46,7 +50,14 @@ roscontroller::roscontroller(ros::NodeHandle &n_c, ros::NodeHandle &n_c_priv)
   }
   std::string path =
       bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
-  path += "Update.log";
+  path = path.substr(0, bzzfile_name.find_last_of("\\/"))+"/log/";
+  std::string folder_check="mkdir -p "+path;
+  system(folder_check.c_str());
+  for(int i=5;i>0;i--){
+  	rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i-1)+".log").c_str(),
+		 (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i)+".log").c_str());
+  }
+  path += "logger_"+std::to_string(robot_id)+"_0.log";
   log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
 }
 
@@ -185,9 +196,13 @@ void roscontroller::RosControllerRun()
   /* Set the Buzz bytecode */
   if (buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),
                                     robot_id)) {
+    int packet_loss_tmp,time_step=0;
+    double cur_packet_loss=0;
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
-    init_update_monitor(bcfname.c_str(), standby_bo.c_str());
+    //init_update_monitor(bcfname.c_str(), standby_bo.c_str());
+    /*loop rate of ros*/
+    ros::Rate loop_rate(BUZZRATE);
     ///////////////////////////////////////////////////////
     // MAIN LOOP
     //////////////////////////////////////////////////////
@@ -195,11 +210,43 @@ void roscontroller::RosControllerRun()
     while (ros::ok() && !buzz_utility::buzz_script_done()) {
       /*Update neighbors position inside Buzz*/
       // buzz_closure::neighbour_pos_callback(neighbours_pos_map);
+
+      /*log ROS Time stamp, pos (lat,long,alt), Swarm size, no. of neigh,
+        neigh pos, RSSI val, Packet loss, filtered packet loss*/
+      log<<ros::Time::now()<<",";
+      log<<cur_pos.latitude << "," << cur_pos.longitude << ","
+            << cur_pos.altitude << ",";
+      log  << (int)no_of_robots<<",";
+      map<int, buzz_utility::Pos_struct>::iterator it =
+            neighbours_pos_map.begin();
+      log  << neighbours_pos_map.size()<< ",";
+        for (; it != neighbours_pos_map.end(); ++it)
+        {
+          log << (double)it->second.x << "," << (double)it->second.y
+              << "," << (double)it->second.z << ",";
+        }
+      const uint8_t shrt_id= 0xFF;
+      float result;
+
       /*Neighbours of the robot published with id in respective topic*/
       neighbours_pos_publisher();
       send_MPpayload();
       /*Check updater state and step code*/
-      update_routine(bcfname.c_str(), dbgfname.c_str());
+      // update_routine(bcfname.c_str(), dbgfname.c_str());
+      if(time_step==BUZZRATE){
+         time_step=0;
+         cur_packet_loss= 1 -( (double)packet_loss_tmp/(BUZZRATE*( (int)no_of_robots-1 )) );
+         packet_loss_tmp=0;
+	if(cur_packet_loss<0) cur_packet_loss=0;
+        else if (cur_packet_loss>1) cur_packet_loss=1;
+      }
+      else{
+         packet_loss_tmp+=(int)buzz_utility::get_inmsg_size();
+         time_step++;
+      }
+      if(debug) ROS_WARN("CURRENT PACKET DROP : %f ",cur_packet_loss);
+      /*Log In Msg queue size*/
+      log<<(int)buzz_utility::get_inmsg_size()<<",";
       /*Step buzz script */
       buzz_utility::buzz_script_step();
       /*Prepare messages and publish them in respective topic*/
@@ -207,13 +254,13 @@ void roscontroller::RosControllerRun()
       /*call flight controler service to set command long*/
       flight_controller_service_call();
       /*Set multi message available after update*/
-      if (get_update_status())
-      {
-        set_read_update_status();
+      //if (get_update_status())
+      //{
+       /* set_read_update_status();
         multi_msg = true;
         log << cur_pos.latitude << "," << cur_pos.longitude << ","
             << cur_pos.altitude << ",";
-        collect_data(log);
+       collect_data(log);
         map<int, buzz_utility::Pos_struct>::iterator it =
             neighbours_pos_map.begin();
         log << "," << neighbours_pos_map.size();
@@ -222,26 +269,29 @@ void roscontroller::RosControllerRun()
           log << "," << (double)it->second.x << "," << (double)it->second.y
               << "," << (double)it->second.z;
         }
-        log << std::endl;
-      }
+        log << std::endl;*/
+      //}
       /*Set ROBOTS variable for barrier in .bzz from neighbours count*/
       // no_of_robots=get_number_of_robots();
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
+      /*Retrive the state of the graph and uav and log*/
+		  std::stringstream state_buff;
+		  state_buff << buzzuav_closures::getuavstate();
+		  log<<state_buff.str()<<std::endl;
       // if(neighbours_pos_map.size() >0) no_of_robots
       // =neighbours_pos_map.size()+1;
       // buzz_utility::set_robot_var(no_of_robots);
       /*Set no of robots for updates TODO only when not updating*/
       // if(multi_msg)
-      updates_set_robots(no_of_robots);
-      // ROS_INFO("ROBOTS: %i , acutal :
-      // %i",(int)no_of_robots,(int)buzzdict_size(buzz_utility::get_vm()->swarmmembers)+1);
-      get_xbee_status();
+      //updates_set_robots(no_of_robots);
+      //get_xbee_status();  // commented out because it may slow down the node too much, to be tested
       /*run once*/
       ros::spinOnce();
-      /*loop rate of ros*/
-      ros::Rate loop_rate(BUZZRATE);
       loop_rate.sleep();
+      // make sure to sleep for the remainder of our cycle time
+      if (loop_rate.cycleTime() > ros::Duration(1.0 / (float)BUZZRATE))
+        ROS_WARN("ROSBuzz loop missed its desired rate of %iHz... the loop actually took %.4f seconds", BUZZRATE, loop_rate.cycleTime().toSec());
       if (fcu_timeout <= 0)
         buzzuav_closures::rc_call(mavros_msgs::CommandCode::NAV_LAND);
       else
@@ -266,7 +316,8 @@ void roscontroller::Rosparameters_get(ros::NodeHandle &n_c)
   /*Obtain .bzz file name from parameter server*/
   if (n_c.getParam("bzzfile_name", bzzfile_name))
     ;
-  else {
+  else
+  {
     ROS_ERROR("Provide a .bzz file to run in Launch file");
     system("rosnode kill rosbuzz_node");
   }
@@ -284,13 +335,11 @@ void roscontroller::Rosparameters_get(ros::NodeHandle &n_c)
     {
       ROS_INFO("RC service is disabled");
     }
-  } else {
+  } else
+  {
     ROS_ERROR("Provide a rc client option: yes or no in Launch file");
     system("rosnode kill rosbuzz_node");
   }
-  /*Obtain robot_id from parameter server*/
-  // n_c.getParam("robot_id", robot_id);
-  // robot_id=(int)buzz_utility::get_robotid();
   /*Obtain out payload name*/
   n_c.getParam("out_payload", out_payload);
   /*Obtain in payload name*/
@@ -300,21 +349,26 @@ void roscontroller::Rosparameters_get(ros::NodeHandle &n_c)
 
   if (n_c.getParam("xbee_plugged", xbeeplugged))
     ;
-  else {
+  else
+  {
     ROS_ERROR("Provide the xbee plugged boolean in Launch file");
     system("rosnode kill rosbuzz_node");
   }
   if (!xbeeplugged) {
     if (n_c.getParam("name", robot_name))
       ;
-    else {
+    else
+    {
       ROS_ERROR("Provide the xbee plugged boolean in Launch file");
       system("rosnode kill rosbuzz_node");
     }
   } else
     n_c.getParam("xbee_status_srv", xbeesrv_name);
 
-  std::cout << "////////////////// " << xbeesrv_name;
+  if(!n_c.getParam("capture_image_srv", capture_srv_name))
+  {
+    capture_srv_name = CAPTURE_SRV_DEFAULT_NAME;
+  }
 
   GetSubscriptionParameters(n_c);
   // initialize topics to null?
@@ -325,70 +379,71 @@ used
 /-----------------------------------------------------------------------------------*/
 void roscontroller::GetSubscriptionParameters(ros::NodeHandle &node_handle)
 {
-  // todo: make it as an array in yaml?
   m_sMySubscriptions.clear();
   std::string gps_topic, gps_type;
   if (node_handle.getParam("topics/gps", gps_topic))
     ;
-  else {
+  else
+  {
     ROS_ERROR("Provide a gps topic in Launch file");
     system("rosnode kill rosbuzz_node");
   }
-  node_handle.getParam("type/gps", gps_type);
-  m_smTopic_infos.insert(pair<std::string, std::string>(gps_topic, gps_type));
+  m_smTopic_infos.insert(pair<std::string, std::string>(gps_topic, "sensor_msgs/NavSatFix"));
 
-  std::string battery_topic, battery_type;
+  std::string battery_topic;
   node_handle.getParam("topics/battery", battery_topic);
-  node_handle.getParam("type/battery", battery_type);
-  m_smTopic_infos.insert(
-      pair<std::string, std::string>(battery_topic, battery_type));
+  m_smTopic_infos.insert(pair<std::string, std::string>(battery_topic, "mavros_msgs/BatteryStatus"));
 
-  std::string status_topic, status_type;
+  std::string status_topic;
   node_handle.getParam("topics/status", status_topic);
-  node_handle.getParam("type/status", status_type);
-  m_smTopic_infos.insert(
-      pair<std::string, std::string>(status_topic, status_type));
+  m_smTopic_infos.insert(pair<std::string, std::string>(status_topic, "mavros_msgs/State"));
+  node_handle.getParam("topics/estatus", status_topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(status_topic, "mavros_msgs/ExtendedState"));
 
-  std::string altitude_topic, altitude_type;
+  std::string altitude_topic;
   node_handle.getParam("topics/altitude", altitude_topic);
-  node_handle.getParam("type/altitude", altitude_type);
-  m_smTopic_infos.insert(
-      pair<std::string, std::string>(altitude_topic, altitude_type));
+  m_smTopic_infos.insert(pair<std::string, std::string>(altitude_topic, "std_msgs/Float64"));
 
-  /*Obtain fc client name from parameter server*/
+  // Obtain required topic and service names from the parameter server
   if (node_handle.getParam("topics/fcclient", fcclient_name))
     ;
-  else {
+  else
+  {
     ROS_ERROR("Provide a fc client name in Launch file");
     system("rosnode kill rosbuzz_node");
   }
   if (node_handle.getParam("topics/setpoint", setpoint_name))
     ;
-  else {
+  else
+  {
     ROS_ERROR("Provide a Set Point name in Launch file");
     system("rosnode kill rosbuzz_node");
   }
   if (node_handle.getParam("topics/armclient", armclient))
     ;
-  else {
+  else
+  {
     ROS_ERROR("Provide an arm client name in Launch file");
     system("rosnode kill rosbuzz_node");
   }
   if (node_handle.getParam("topics/modeclient", modeclient))
     ;
-  else {
+  else
+  {
     ROS_ERROR("Provide a mode client name in Launch file");
     system("rosnode kill rosbuzz_node");
   }
   if (node_handle.getParam("topics/stream", stream_client_name))
     ;
-  else {
+  else
+  {
     ROS_ERROR("Provide a mode client name in Launch file");
     system("rosnode kill rosbuzz_node");
   }
   if (node_handle.getParam("topics/localpos", local_pos_sub_name))
     ;
-  else {
+  else
+  {
     ROS_ERROR("Provide a localpos name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
@@ -405,33 +460,29 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle &n_c)
 
   Subscribe(n_c);
 
-  payload_sub =
-      n_c.subscribe(in_payload, 5, &roscontroller::payload_obt, this);
+  payload_sub = n_c.subscribe(in_payload, 5, &roscontroller::payload_obt, this);
 
-  obstacle_sub = n_c.subscribe(obstacles_topic, 5,
-                               &roscontroller::obstacle_dist, this);
+  obstacle_sub = n_c.subscribe(obstacles_topic, 5, &roscontroller::obstacle_dist, this);
 
   /*publishers*/
   payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 5);
   MPpayload_pub = n_c.advertise<mavros_msgs::Mavlink>("fleet_status", 5);
   neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos", 5);
-  localsetpoint_nonraw_pub =
-      n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name, 5);
+  localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name, 5);
+
   /* Service Clients*/
   arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
   mode_client = n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
   mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
   if (rcclient == true)
-    service =
-        n_c.advertiseService(rcservice_name, &roscontroller::rc_callback, this);
+    service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback, this);
   ROS_INFO("Ready to receive Mav Commands from RC client");
   xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
-  stream_client =
-      n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
+  capture_srv = n_c.serviceClient<mavros_msgs::CommandBool>(capture_srv_name);
+  stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
 
   users_sub = n_c.subscribe("users_pos", 5, &roscontroller::users_pos, this);
-  local_pos_sub = n_c.subscribe(local_pos_sub_name, 5,
-                                &roscontroller::local_pos_callback, this);
+  local_pos_sub = n_c.subscribe(local_pos_sub_name, 5, &roscontroller::local_pos_callback, this);
 
   multi_msg = true;
 }
@@ -444,20 +495,15 @@ void roscontroller::Subscribe(ros::NodeHandle &n_c)
            m_smTopic_infos.begin();
        it != m_smTopic_infos.end(); ++it) {
     if (it->second == "mavros_msgs/ExtendedState") {
-      flight_status_sub = n_c.subscribe(
-          it->first, 100, &roscontroller::flight_extended_status_update, this);
+      flight_estatus_sub = n_c.subscribe(it->first, 5, &roscontroller::flight_extended_status_update, this);
     } else if (it->second == "mavros_msgs/State") {
-      flight_status_sub = n_c.subscribe(
-          it->first, 100, &roscontroller::flight_status_update, this);
+      flight_status_sub = n_c.subscribe(it->first, 5, &roscontroller::flight_status_update, this);
     } else if (it->second == "mavros_msgs/BatteryStatus") {
-      battery_sub =
-          n_c.subscribe(it->first, 5, &roscontroller::battery, this);
+      battery_sub = n_c.subscribe(it->first, 5, &roscontroller::battery, this);
     } else if (it->second == "sensor_msgs/NavSatFix") {
-      current_position_sub =
-          n_c.subscribe(it->first, 5, &roscontroller::current_pos, this);
+      current_position_sub = n_c.subscribe(it->first, 5, &roscontroller::current_pos, this);
     } else if (it->second == "std_msgs/Float64") {
-      relative_altitude_sub =
-          n_c.subscribe(it->first, 5, &roscontroller::current_rel_alt, this);
+      relative_altitude_sub = n_c.subscribe(it->first, 5, &roscontroller::current_rel_alt, this);
     }
 
     std::cout << "Subscribed to: " << it->first << endl;
@@ -469,31 +515,17 @@ void roscontroller::Subscribe(ros::NodeHandle &n_c)
 /-------------------------------------------------------*/
 std::string roscontroller::Compile_bzz(std::string bzzfile_name)
 {
-  /*TODO: change to bzzc instead of bzzparse and also add -I for includes*/
   /*Compile the buzz code .bzz to .bo*/
   stringstream bzzfile_in_compile;
   std::string path =
       bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
-  // bzzfile_in_compile << path << "/";
-  // path = bzzfile_in_compile.str();
-  // bzzfile_in_compile.str("");
   std::string name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
   name = name.substr(0, name.find_last_of("."));
   bzzfile_in_compile << "bzzc -I " << path
-                     << "include/"; //<<" "<<path<< name<<".basm";
-  // bzzfile_in_compile.str("");
-  // bzzfile_in_compile <<"bzzasm "<<path<<name<<".basm "<<path<<name<<".bo
-  // "<<path<<name<<".bdbg";
-  // system(bzzfile_in_compile.str().c_str());
-  // bzzfile_in_compile.str("");
+                     << "include/";
   bzzfile_in_compile << " -b " << path << name << ".bo";
-  // bcfname = bzzfile_in_compile.str();
-  // std::string tmp_bcfname = path + name + ".bo";
-  // bzzfile_in_compile.str("");
   bzzfile_in_compile << " -d " << path << name << ".bdb ";
-  // bzzfile_in_compile << " -a " << path << name << ".asm ";
   bzzfile_in_compile << bzzfile_name;
-  // std::string tmp_dbgfname = path + name + ".bdb";
 
   ROS_WARN("Launching buzz compilation: %s", bzzfile_in_compile.str().c_str());
 
@@ -589,12 +621,15 @@ void roscontroller::prepare_msg_and_publish()
   payload_out.sysid = (uint8_t)robot_id;
   payload_out.msgid = (uint32_t)message_number;
 
+  /*Log out message id and message size*/
+  log<<(int)message_number<<",";
+  log<<(int)out[0]<<",";
   /*publish prepared messages in respective topic*/
   payload_pub.publish(payload_out);
   delete[] out;
   delete[] payload_out_ptr;
   /*Check for updater message if present send*/
-  if ((int)get_update_mode() != CODE_RUNNING && is_msg_present() == 1 &&
+ /* if ((int)get_update_mode() != CODE_RUNNING && is_msg_present() == 1 &&
       multi_msg)
   {
     uint8_t *buff_send = 0;
@@ -636,7 +671,7 @@ void roscontroller::prepare_msg_and_publish()
     payload_pub.publish(update_packets);
     multi_msg = false;
     delete[] payload_64;
-  }
+  }*/
 }
 /*---------------------------------------------------------------------------------
 /Flight controller service call every step if there is a command set from bzz
@@ -646,19 +681,33 @@ script
 void roscontroller::flight_controller_service_call()
 {
   /* flight controller client call if requested from Buzz*/
-  /*FC call for takeoff,land, gohome and arm/disarm*/
-  int tmp = buzzuav_closures::bzz_cmd();
-  double *goto_pos = buzzuav_closures::getgoto();
-  if (tmp == buzzuav_closures::COMMAND_TAKEOFF ||
-      tmp == buzzuav_closures::COMMAND_LAND ||
-      tmp == buzzuav_closures::COMMAND_GOHOME) {
-    cmd_srv.request.param7 = goto_pos[2];
-    cmd_srv.request.command = buzzuav_closures::getcmd();
-    // std::cout << " CMD: " << buzzuav_closures::getcmd() << std::endl;
-    // SOLO SPECIFIC: SITL DOES NOT USE 21 TO LAND -- workaround: set to LAND
-    // mode
-    switch (buzzuav_closures::getcmd()) {
-    case mavros_msgs::CommandCode::NAV_LAND:
+  double *goto_pos;
+  float *gimbal;
+  switch (buzzuav_closures::bzz_cmd()) {
+
+    case buzzuav_closures::COMMAND_TAKEOFF:
+      goto_pos = buzzuav_closures::getgoto();
+      cmd_srv.request.param7 = goto_pos[2];
+      cmd_srv.request.command = buzzuav_closures::getcmd();
+      if (!armstate) {
+        SetMode("LOITER", 0);
+        armstate = 1;
+        Arm();
+        ros::Duration(0.5).sleep();
+        // Registering HOME POINT.
+        home = cur_pos;
+      }
+      if (current_mode != "GUIDED")
+        SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it
+                                // should always be in loiter after arm/disarm)
+      if (mav_client.call(cmd_srv)) {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      } else
+        ROS_ERROR("Failed to call service from flight controller");
+      break;
+
+    case buzzuav_closures::COMMAND_LAND:
+      cmd_srv.request.command = buzzuav_closures::getcmd();
       if (current_mode != "LAND") {
         SetMode("LAND", 0);
         armstate = 0;
@@ -671,60 +720,80 @@ void roscontroller::flight_controller_service_call()
       }
       armstate = 0;
       break;
-    case mavros_msgs::CommandCode::NAV_TAKEOFF:
-      if (!armstate) {
 
-        SetMode("LOITER", 0);
-        armstate = 1;
-        Arm();
-        ros::Duration(0.5).sleep();
-        // Registering HOME POINT.
-        home = cur_pos;
-      }
-      if (current_mode != "GUIDED")
-        SetMode("GUIDED", 2000); // for real solo, just add 2000ms delay (it
-                                 // should always be in loiter after arm/disarm)
+    case buzzuav_closures::COMMAND_GOHOME: // NOT FULLY IMPLEMENTED/TESTED !!!
+        cmd_srv.request.param5 = home.latitude;
+        cmd_srv.request.param6 = home.longitude;
+        cmd_srv.request.param7 = home.altitude;
+        cmd_srv.request.command = buzzuav_closures::getcmd();
+        if (mav_client.call(cmd_srv)) {
+          ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+        } else
+          ROS_ERROR("Failed to call service from flight controller");
+        break;
+
+    case buzzuav_closures::COMMAND_GOTO: // NOT FULLY IMPLEMENTED/TESTED !!!
+      goto_pos = buzzuav_closures::getgoto();
+      cmd_srv.request.param5 = goto_pos[0];
+      cmd_srv.request.param6 = goto_pos[1];
+      cmd_srv.request.param7 = goto_pos[2];
+      cmd_srv.request.command = buzzuav_closures::getcmd();
+      if (mav_client.call(cmd_srv)) {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      } else
+        ROS_ERROR("Failed to call service from flight controller");
+      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
       if (mav_client.call(cmd_srv)) {
         ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
       } else
         ROS_ERROR("Failed to call service from flight controller");
       break;
-    }
 
-  } else if (tmp == buzzuav_closures::COMMAND_GOTO) { /*FC call for goto*/
-    /*prepare the goto publish message */
-    cmd_srv.request.param5 = goto_pos[0];
-    cmd_srv.request.param6 = goto_pos[1];
-    cmd_srv.request.param7 = goto_pos[2];
-    cmd_srv.request.command = buzzuav_closures::getcmd();
-    if (mav_client.call(cmd_srv)) {
-      ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-    } else
-      ROS_ERROR("Failed to call service from flight controller");
-    cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
-    if (mav_client.call(cmd_srv)) {
-      ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-    } else
-      ROS_ERROR("Failed to call service from flight controller");
-  } else if (tmp == buzzuav_closures::COMMAND_ARM) { /*FC call for arm*/
-    if (!armstate) {
-      SetMode("LOITER", 0);
-      armstate = 1;
-      Arm();
-    }
-  } else if (tmp == buzzuav_closures::COMMAND_DISARM) {
-    if (armstate) {
-      armstate = 0;
-      SetMode("LOITER", 0);
-      Arm();
-    }
-  } else if (tmp == buzzuav_closures::COMMAND_MOVETO) { /*Buzz call for moveto*/
-    roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
+    case buzzuav_closures::COMMAND_ARM:
+      if (!armstate) {
+        SetMode("LOITER", 0);
+        armstate = 1;
+        Arm();
+      }
+      break;
 
-    // roscontroller::SetLocalPositionNonRaw(goto_pos[1], goto_pos[0],
-    // goto_pos[2], 0);
+    case buzzuav_closures::COMMAND_DISARM:
+      if (armstate) {
+        armstate = 0;
+        SetMode("LOITER", 0);
+        Arm();
+      }
+      break;
+
+    case buzzuav_closures::COMMAND_MOVETO:
+      goto_pos = buzzuav_closures::getgoto();
+      roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
+      break;
+
+    case buzzuav_closures::COMMAND_GIMBAL:
+      gimbal = buzzuav_closures::getgimbal();
+      cmd_srv.request.param1 = gimbal[0];
+      cmd_srv.request.param2 = gimbal[1];
+      cmd_srv.request.param3 = gimbal[2];
+      cmd_srv.request.param4 = gimbal[3];
+      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+      if (mav_client.call(cmd_srv)) {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      } else
+        ROS_ERROR("Failed to call service from flight controller");
+      break;
+
+    case buzzuav_closures::COMMAND_PICTURE:
+      ROS_INFO("TAKING A PICTURE HERE!! --------------");
+      mavros_msgs::CommandBool capture_command;
+      if (capture_srv.call(capture_command)) {
+        ROS_INFO("Reply: %ld", (long int)capture_command.response.success);
+      } else
+        ROS_ERROR("Failed to call service from camera streamer");
+      break;
   }
 }
+
 /*----------------------------------------------
 /Refresh neighbours Position for every ten step
 /---------------------------------------------*/
@@ -774,39 +843,6 @@ void roscontroller::set_cur_pos(double latitude, double longitude,
 / Compute Range and Bearing of a neighbor in a local reference frame
 / from GPS coordinates
 ----------------------------------------------------------- */
-void ecef2ned_matrix(const double ref_ecef[3], double M[3][3]) {
-  double hyp_az, hyp_el;
-  double sin_el, cos_el, sin_az, cos_az;
-
-  /* Convert reference point to spherical earth centered coordinates. */
-  hyp_az = sqrt(ref_ecef[0] * ref_ecef[0] + ref_ecef[1] * ref_ecef[1]);
-  hyp_el = sqrt(hyp_az * hyp_az + ref_ecef[2] * ref_ecef[2]);
-  sin_el = ref_ecef[2] / hyp_el;
-  cos_el = hyp_az / hyp_el;
-  sin_az = ref_ecef[1] / hyp_az;
-  cos_az = ref_ecef[0] / hyp_az;
-
-  M[0][0] = -sin_el * cos_az;
-  M[0][1] = -sin_el * sin_az;
-  M[0][2] = cos_el;
-  M[1][0] = -sin_az;
-  M[1][1] = cos_az;
-  M[1][2] = 0.0;
-  M[2][0] = -cos_el * cos_az;
-  M[2][1] = -cos_el * sin_az;
-  M[2][2] = -sin_el;
-}
-void matrix_multiply(uint32_t n, uint32_t m, uint32_t p, const double *a,
-                     const double *b, double *c) {
-  uint32_t i, j, k;
-  for (i = 0; i < n; i++)
-    for (j = 0; j < p; j++) {
-      c[p * i + j] = 0;
-      for (k = 0; k < m; k++)
-        c[p * i + j] += a[m * i + k] * b[p * k + j];
-    }
-}
-
 float roscontroller::constrainAngle(float x) {
   x = fmod(x,2*M_PI);
   if (x < 0.0)
@@ -940,18 +976,10 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw) {
   moveMsg.header.stamp = ros::Time::now();
   moveMsg.header.seq = setpoint_counter++;
   moveMsg.header.frame_id = 1;
-  //		float ned_x, ned_y;
-  //		gps_ned_home(ned_x, ned_y);
-  //         ROS_INFO("[%i] ROSBuzz Home: %.7f, %.7f", robot_id, home[0],
-  //         home[1]);
-  //         ROS_INFO("[%i] ROSBuzz LocalPos: %.7f, %.7f", robot_id,
-  //         local_pos[0], local_pos[1]);
 
-  /*prepare the goto publish message ATTENTION: ENU FRAME FOR MAVROS STANDARD
-   * (then converted to NED)*/
-  // target[0]+=y;	target[1]+=x;
-  moveMsg.pose.position.x = local_pos_new[0] + y; // ned_y+y;
-  moveMsg.pose.position.y = local_pos_new[1] + x; // ned_x+x;
+  //ROS_INFO("Lp: %.3f, %.3f - Del: %.3f, %.3f", local_pos_new[0], local_pos_new[1], x, y);
+  moveMsg.pose.position.x = local_pos_new[0] + y;
+  moveMsg.pose.position.y = local_pos_new[1] + x;
   moveMsg.pose.position.z = z;
 
   moveMsg.pose.orientation.x = 0;
@@ -977,7 +1005,7 @@ void roscontroller::SetMode(std::string mode, int delay_miliseconds) {
   set_mode_message.request.custom_mode = mode;
   current_mode = mode;
   if (mode_client.call(set_mode_message)) {
-    ROS_INFO("Set Mode Service call successful!");
+    ;//ROS_INFO("Set Mode Service call successful!");
   } else {
     ROS_INFO("Set Mode Service call failed!");
   }
@@ -993,7 +1021,7 @@ void roscontroller::SetStreamRate(int id, int rate, int on_off) {
     ROS_INFO("Set stream rate call failed!, trying again...");
     ros::Duration(0.1).sleep();
   }
-  ROS_INFO("Set stream rate call successful");
+  //ROS_INFO("Set stream rate call successful");
 }
 
 /*-------------------------------------------------------------
@@ -1059,13 +1087,10 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr &msg) {
     nei_pos.longitude = neighbours_pos_payload[1];
     nei_pos.altitude = neighbours_pos_payload[2];
     double cvt_neighbours_pos_payload[3];
-    //		cout<<"Got" << neighbours_pos_payload[0] <<", " <<
-    //neighbours_pos_payload[1] << ", " << neighbours_pos_payload[2] << endl;
     gps_rb(nei_pos, cvt_neighbours_pos_payload);
     /*Extract robot id of the neighbour*/
     uint16_t *out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + 3));
-    ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0],
-             cvt_neighbours_pos_payload[1]);
+    if(debug) ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
     /*pass neighbour position to local maintaner*/
     buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0],
                                    cvt_neighbours_pos_payload[1],
@@ -1089,58 +1114,62 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request &req,
                                 mavros_msgs::CommandLong::Response &res) {
   int rc_cmd;
   switch (req.command) {
-  case mavros_msgs::CommandCode::NAV_TAKEOFF:
-    ROS_INFO("RC_call: TAKE OFF!!!!");
-    rc_cmd = mavros_msgs::CommandCode::NAV_TAKEOFF;
-    buzzuav_closures::rc_call(rc_cmd);
-    res.success = true;
-    break;
-  case mavros_msgs::CommandCode::NAV_LAND:
-    ROS_INFO("RC_Call: LAND!!!! sending land");
-    rc_cmd = mavros_msgs::CommandCode::NAV_LAND;
-    buzzuav_closures::rc_call(rc_cmd);
-    res.success = true;
-    break;
-  case mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM:
-    rc_cmd = mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
-    armstate = req.param1;
-    if (armstate) {
-      ROS_INFO("RC_Call: ARM!!!!");
+    case mavros_msgs::CommandCode::NAV_TAKEOFF:
+      ROS_INFO("RC_call: TAKE OFF!!!!");
+      rc_cmd = mavros_msgs::CommandCode::NAV_TAKEOFF;
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
-    } else {
-      ROS_INFO("RC_Call: DISARM!!!!");
-      buzzuav_closures::rc_call(rc_cmd + 1);
+      break;
+    case mavros_msgs::CommandCode::NAV_LAND:
+      ROS_INFO("RC_Call: LAND!!!!");
+      rc_cmd = mavros_msgs::CommandCode::NAV_LAND;
+      buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
-    }
-    break;
-  case mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH:
-    ROS_INFO("RC_Call: GO HOME!!!!");
-    rc_cmd = mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
-    buzzuav_closures::rc_call(rc_cmd);
-    res.success = true;
-    break;
-  case mavros_msgs::CommandCode::NAV_WAYPOINT:
-    ROS_INFO("RC_Call: GO TO!!!! --- Doing this! ");
-    double rc_goto[3];
-    // testing PositionTarget
-    rc_goto[0] = req.param5;
-    rc_goto[1] = req.param6;
-    rc_goto[2] = req.param7;
-    buzzuav_closures::rc_set_goto(rc_goto);
-    rc_cmd = mavros_msgs::CommandCode::NAV_WAYPOINT;
-    buzzuav_closures::rc_call(rc_cmd);
-    res.success = true;
-    break;
-  case 666:
-    ROS_INFO("RC_Call: Update Fleet Status!!!!");
-    rc_cmd = 666;
-    buzzuav_closures::rc_call(rc_cmd);
-    res.success = true;
-    break;
-  default:
-    res.success = false;
-    break;
+      break;
+    case mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM:
+      rc_cmd = mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
+      armstate = req.param1;
+      if (armstate) {
+        ROS_INFO("RC_Call: ARM!!!!");
+        buzzuav_closures::rc_call(rc_cmd);
+        res.success = true;
+      } else {
+        ROS_INFO("RC_Call: DISARM!!!!");
+        buzzuav_closures::rc_call(rc_cmd + 1);
+        res.success = true;
+      }
+      break;
+    case mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH:
+      ROS_INFO("RC_Call: GO HOME!!!!");
+      rc_cmd = mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
+      buzzuav_closures::rc_call(rc_cmd);
+      res.success = true;
+      break;
+    case mavros_msgs::CommandCode::NAV_WAYPOINT:
+      ROS_INFO("RC_Call: GO TO!!!! ");
+      buzzuav_closures::rc_set_goto(req.param1,req.param5,req.param6,req.param7);
+      rc_cmd = mavros_msgs::CommandCode::NAV_WAYPOINT;
+      buzzuav_closures::rc_call(rc_cmd);
+      res.success = true;
+      break;
+    case mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL:
+      ROS_INFO("RC_Call: Gimbal!!!! ");
+      buzzuav_closures::rc_set_gimbal(req.param1,req.param2,req.param3,req.param4,req.param5);
+      rc_cmd = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+      buzzuav_closures::rc_call(rc_cmd);
+      res.success = true;
+      break;
+    case CMD_REQUEST_UPDATE:
+      //ROS_INFO("RC_Call: Update Fleet Status!!!!");
+      rc_cmd = CMD_REQUEST_UPDATE;
+      buzzuav_closures::rc_call(rc_cmd);
+      res.success = true;
+      break;
+    default:
+      buzzuav_closures::rc_call(req.command);
+      ROS_INFO("----> Received unregistered command: ", req.command);
+      res.success = true;
+      break;
   }
   return true;
 }

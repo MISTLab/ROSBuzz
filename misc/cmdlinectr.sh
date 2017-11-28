@@ -31,5 +31,10 @@ function stoprobot {
 }
 function updaterobot {
 #	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzynocam.launch
-	rosrun robot_upstart install --logdir ~/ROS_WS/log/ dji_sdk_mistlab/launch/m100buzzy.launch
+	rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100buzzy.launch
+#	rosrun robot_upstart install --logdir ~/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TXbuzzy.launch
+}
+function uavstate {
+	let "a = $1 + 900"
+	rosservice call robot0/buzzcmd 0 $a 0 0 0 0 0 0 0 0
 }

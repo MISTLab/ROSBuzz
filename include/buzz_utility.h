@@ -23,8 +23,8 @@ struct pos_struct
 typedef struct pos_struct Pos_struct;
 struct rb_struct
 {
-  double r,b,la,lo;
-  rb_struct(double la, double lo, double r,double b):la(la),lo(lo),r(r),b(b){};
+  double r,b,latitude,longitude,altitude;
+  rb_struct(double la, double lo, double al, double r,double b):latitude(la),longitude(lo),altitude(al),r(r),b(b){};
   rb_struct(){}
 };
 typedef struct rb_struct RB_struct;
@@ -77,4 +77,6 @@ int get_robotid();
 buzzvm_t get_vm();
 
 void set_robot_var(int ROBOTS);
+
+int get_inmsg_size();
 }

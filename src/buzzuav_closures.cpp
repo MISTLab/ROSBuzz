@@ -16,82 +16,93 @@ namespace buzzuav_closures{
 	//void set_ros_controller_ptr(const rosbzz_node::roscontroller* roscontroller_ptrin);
 	static double goto_pos[3];
 	static double rc_goto_pos[3];
+	static float rc_gimbal[4];
 	static float batt[3];
 	static float obst[5]={0,0,0,0,0};
 	static double cur_pos[3];
 	static uint8_t status;
 	static int cur_cmd = 0;
 	static int rc_cmd=0;
+	static int rc_id=-1;
 	static int buzz_cmd=0;
 	static float height=0;
-  static bool deque_full = false;
-  static int rssi = 0;
-  static int message_number = 0;
-  static float raw_packet_loss = 0.0;
-  static int filtered_packet_loss = 0;
-  static float api_rssi = 0.0;
+	static bool deque_full = false;
+	static int rssi = 0;
+	static float raw_packet_loss = 0.0;
+	static int filtered_packet_loss = 0;
+	static float api_rssi = 0.0;
+  	string WPlistname = "";
 
 	std::map< int,  buzz_utility::RB_struct> targets_map;
+	std::map< int,  buzz_utility::RB_struct> wplist_map;
 	std::map< int,  buzz_utility::Pos_struct> neighbors_map;
 	std::map< int, buzz_utility::neighbors_status> neighbors_status_map;
 
 	/****************************************/
 	/****************************************/
 
-	int buzzros_print(buzzvm_t vm) {
-	int i;
-	char buffer [50] = "";
-        sprintf(buffer,"%s [%i]", buffer, (int)buzz_utility::get_robotid());
-	   for(i = 1; i < buzzdarray_size(vm->lsyms->syms); ++i) {
-	      buzzvm_lload(vm, i);
-	      buzzobj_t o = buzzvm_stack_at(vm, 1);
-	      buzzvm_pop(vm);
-	      switch(o->o.type) {
-		 case BUZZTYPE_NIL:
-		    sprintf(buffer,"%s BUZZ - [nil]", buffer);
-		    break;
-		 case BUZZTYPE_INT:
-		    sprintf(buffer,"%s %d", buffer, o->i.value);
-		    //fprintf(stdout, "%d", o->i.value);
-		    break;
-		 case BUZZTYPE_FLOAT:
-		    sprintf(buffer,"%s %f", buffer, o->f.value);
-		    break;
-		 case BUZZTYPE_TABLE:
-		    sprintf(buffer,"%s [table with %d elems]", buffer, (buzzdict_size(o->t.value)));
-		    break;
-		 case BUZZTYPE_CLOSURE:
-		    if(o->c.value.isnative)
-		    	sprintf(buffer,"%s [n-closure @%d]", buffer, o->c.value.ref);
-		    else
-		    	sprintf(buffer,"%s [c-closure @%d]", buffer, o->c.value.ref);
-		    break;
-		 case BUZZTYPE_STRING:
-		    sprintf(buffer,"%s %s", buffer, o->s.value.str);
-		    break;
-		 case BUZZTYPE_USERDATA:
-		    sprintf(buffer,"%s [userdata @%p]", buffer, o->u.value);
-		    break;
-		 default:
-		    break;
-	      }
-	   }
-	   ROS_INFO(buffer);
-	   //fprintf(stdout, "\n");
-	   return buzzvm_ret0(vm);
-	}
+int buzzros_print(buzzvm_t vm)
+{
+  std::ostringstream buffer (std::ostringstream::ate);
+  buffer << buzz_utility::get_robotid();
+  for (uint32_t index = 1; index < buzzdarray_size(vm->lsyms->syms); ++index)
+  {
+    buzzvm_lload(vm, index);
+    buzzobj_t o = buzzvm_stack_at(vm, 1);
+    buzzvm_pop(vm);
+    switch (o->o.type)
+    {
+      case BUZZTYPE_NIL:
+        buffer << " BUZZ - [nil]";
+        break;
+      case BUZZTYPE_INT:
+        buffer << " " << o->i.value;
+        break;
+      case BUZZTYPE_FLOAT:
+        buffer << " " << o->f.value;
+        break;
+      case BUZZTYPE_TABLE:
+        buffer << " [table with " << buzzdict_size(o->t.value) << " elems]";
+        break;
+      case BUZZTYPE_CLOSURE:
+        if (o->c.value.isnative)
+        {
+          buffer << " [n-closure @" << o->c.value.ref << "]";
+        }
+        else
+        {
+          buffer << " [c-closure @" << o->c.value.ref << "]";
+        }
+        break;
+      case BUZZTYPE_STRING:
+        buffer << "  " << o->s.value.str;
+        break;
+      case BUZZTYPE_USERDATA:
+        buffer << " [userdata @" << o->u.value << "]";
+        break;
+      default:
+        break;
+    }
+  }
+  ROS_INFO("%s",buffer.str().c_str());
+  return buzzvm_ret0(vm);
+}
+
+  void setWPlist(string path){
+    WPlistname = path + "include/graphs/waypointlist.csv";
+  }
 
 	/*----------------------------------------/
 	/ Compute GPS destination from current position and desired Range and Bearing
 	/----------------------------------------*/
 
 	void gps_from_rb(double  range, double bearing, double out[3]) {
-		double lat = cur_pos[0]*M_PI/180.0;
-		double lon = cur_pos[1]*M_PI/180.0;
+		double lat = RAD2DEG(cur_pos[0]);
+		double lon = RAD2DEG(cur_pos[1]);
 	 	out[0] = asin(sin(lat) * cos(range/EARTH_RADIUS) + cos(lat) * sin(range/EARTH_RADIUS) * cos(bearing));
 		out[1] = lon + atan2(sin(bearing) * sin(range/EARTH_RADIUS) * cos(lat), cos(range/EARTH_RADIUS) - sin(lat)*sin(out[0]));
-		out[0] = out[0]*180.0/M_PI;
-		out[1] = out[1]*180.0/M_PI;
+		out[0] = RAD2DEG(out[0]);
+		out[1] = RAD2DEG(out[1]);
 		out[2] = height; //constant height.
 	}
 
@@ -103,10 +114,10 @@ namespace buzzuav_closures{
 		}
 
 	void rb_from_gps(double nei[], double out[], double cur[]){
-       		double d_lon = nei[1] - cur[1];
-       		double d_lat = nei[0] - cur[0];
-        	double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
-        	double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
+    double d_lon = nei[1] - cur[1];
+    double d_lat = nei[0] - cur[0];
+    double ned_x = DEG2RAD(d_lat) * EARTH_RADIUS;
+    double ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(nei[0]));
 		out[0] = sqrt(ned_x*ned_x+ned_y*ned_y);
 		out[1] = constrainAngle(atan2(ned_y,ned_x));
 		out[2] = 0.0;
@@ -117,31 +128,78 @@ namespace buzzuav_closures{
 	double hcpos2[4] = {45.564729, -73.562060, 45.564362, -73.562958};
 	double hcpos3[4] = {45.564969, -73.562838, 45.564636, -73.563677};
 
+	void parse_gpslist()
+	{
+		// Open file:
+    ROS_INFO("WP list file: %s", WPlistname.c_str());
+		std::ifstream fin(WPlistname.c_str()); // Open in text-mode.
+
+		// Opening may fail, always check.
+		if (!fin) { 
+			ROS_ERROR("GPS list parser, could not open file."); 
+			return;
+		}
+
+    // Prepare a C-string buffer to be used when reading lines.
+    const int MAX_LINE_LENGTH = 1024; // Choose this large enough for your need.
+    char buffer[MAX_LINE_LENGTH] = {}; 
+    const char * DELIMS = "\t ,"; // Tab, space or comma.
+
+		// Read the file and load the data:
+		double lat, lon;
+    int alt, tilt, tid;
+		buzz_utility::RB_struct RB_arr;
+    // Read one line at a time.
+    while ( fin.getline(buffer, MAX_LINE_LENGTH) ) {
+      // Extract the tokens:
+      tid = atoi(strtok( buffer, DELIMS ));
+      lon = atof(strtok( NULL,   DELIMS ));
+      lat = atof(strtok( NULL,   DELIMS ));
+      alt = atoi(strtok( NULL,   DELIMS ));
+      tilt = atoi(strtok( NULL,   DELIMS ));
+      //ROS_INFO("%.6f, %.6f, %i %i %i",lat, lon, alt, tilt, tid);
+			RB_arr.latitude=lat;
+			RB_arr.longitude=lon;
+			RB_arr.altitude=alt;
+      // Insert elements.
+      map< int, buzz_utility::RB_struct >::iterator it = wplist_map.find(tid);
+      if(it!=wplist_map.end())
+        wplist_map.erase(it);
+      wplist_map.insert(make_pair(tid, RB_arr));
+    }
+
+    ROS_INFO("----->Saved %i waypoints.", wplist_map.size());
+
+		// Close the file:
+		fin.close();
+	}
+
+
 	/*----------------------------------------/
 	/ Buzz closure to move following a 2D vector
 	/----------------------------------------*/
 	int buzzuav_moveto(buzzvm_t vm) {
-	   buzzvm_lnum_assert(vm, 2);
-	   buzzvm_lload(vm, 1); /* dx */
-	   buzzvm_lload(vm, 2); /* dy */
-	   //buzzvm_lload(vm, 3); /* Latitude */
-	   //buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
-	   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
-	   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-	   float dy = buzzvm_stack_at(vm, 1)->f.value;
-	   float dx = buzzvm_stack_at(vm, 2)->f.value;
-	   double d = sqrt(dx*dx+dy*dy);	//range
-	   goto_pos[0]=dx;
-       goto_pos[1]=dy;
-       goto_pos[2]=height;
-	   /*double b = atan2(dy,dx);		//bearing
-	   printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
-	   gps_from_rb(d, b, goto_pos);
-	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
-       //printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
-	   //ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0], goto_pos[1], goto_pos[2]);
-	   buzz_cmd= COMMAND_MOVETO; // TO DO what should we use
-	   return buzzvm_ret0(vm);
+    buzzvm_lnum_assert(vm, 3);
+    buzzvm_lload(vm, 1); /* dx */
+    buzzvm_lload(vm, 2); /* dy */
+    buzzvm_lload(vm, 3); /* dheight */
+    buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+    buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+    buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+    float dh = buzzvm_stack_at(vm, 1)->f.value;
+    float dy = buzzvm_stack_at(vm, 2)->f.value;
+    float dx = buzzvm_stack_at(vm, 3)->f.value;
+    goto_pos[0]=dx;
+    goto_pos[1]=dy;
+    goto_pos[2]=height+dh;
+    /*double b = atan2(dy,dx);		//bearing
+    printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
+    gps_from_rb(d, b, goto_pos);
+    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
+      //printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
+    //ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0], goto_pos[1], goto_pos[2]);
+    buzz_cmd = COMMAND_MOVETO; // TO DO what should we use
+    return buzzvm_ret0(vm);
 	}
 
 	int buzzuav_update_targets(buzzvm_t vm) {
@@ -156,27 +214,27 @@ namespace buzzuav_closures{
 		double rb[3], tmp[3];
 		map< int, buzz_utility::RB_struct >::iterator it;
 		for (it=targets_map.begin(); it!=targets_map.end(); ++it){
-			tmp[0]=(it->second).la;tmp[1]=(it->second).lo;tmp[2]=height;
-	   		rb_from_gps(tmp, rb, cur_pos);
-			ROS_WARN("----------Pushing target id %i (%f,%f)", rb[0], rb[1]);
+			tmp[0]=(it->second).latitude; tmp[1]=(it->second).longitude; tmp[2]=height;
+	   	rb_from_gps(tmp, rb, cur_pos);
+			//ROS_WARN("----------Pushing target id %i (%f,%f)", it->first, rb[0], rb[1]);
 			buzzvm_push(vm, targettbl);
-			/* When we get here, the "targets" table is on top of the stack */
+			// When we get here, the "targets" table is on top of the stack
 			//ROS_INFO("Buzz_utility will save user %i.", it->first);
-			/* Push user id */
+			// Push user id
 			buzzvm_pushi(vm, it->first);
-			/* Create entry table */
+			// Create entry table
 			buzzobj_t entry = buzzheap_newobj(vm->heap, BUZZTYPE_TABLE);
-			/* Insert range */
+			// Insert range
 			buzzvm_push(vm, entry);
 			buzzvm_pushs(vm, buzzvm_string_register(vm, "range", 1));
 			buzzvm_pushf(vm, rb[0]);
 			buzzvm_tput(vm);
-			/* Insert longitude */
+			// Insert longitude
 			buzzvm_push(vm, entry);
 			buzzvm_pushs(vm, buzzvm_string_register(vm, "bearing", 1));
 			buzzvm_pushf(vm, rb[1]);
 			buzzvm_tput(vm);
-			/* Save entry into data table */
+			// Save entry into data table
 			buzzvm_push(vm, entry);
 			buzzvm_tput(vm);
 		}
@@ -204,8 +262,9 @@ namespace buzzuav_closures{
 	   if(fabs(rb[0])<100.0) {
 			//printf("\tGot new user from bzz stig: %i - %f, %f\n", uid, rb[0], rb[1]);
 			buzz_utility::RB_struct RB_arr;
-			RB_arr.la=tmp[0];
-			RB_arr.lo=tmp[1];
+			RB_arr.latitude=tmp[0];
+			RB_arr.longitude=tmp[1];
+			RB_arr.altitude=tmp[2];
 			RB_arr.r=rb[0];
 			RB_arr.b=rb[1];
 			map< int, buzz_utility::RB_struct >::iterator it = targets_map.find(uid);
@@ -215,30 +274,30 @@ namespace buzzuav_closures{
 			//ROS_INFO("Buzz_utility got updated/new user: %i (%f,%f,%f)", id, latitude, longitude, altitude);
 			return vm->state;
 	   } else
-		printf(" ---------- Target too far %f\n",rb[0]);
+		ROS_WARN(" ---------- Target too far %f",rb[0]);
 
 		return 0;
 	}
 
 	int buzzuav_addNeiStatus(buzzvm_t vm){
 		buzzvm_lnum_assert(vm, 5);
-	   buzzvm_lload(vm, 1); // fc
-	   buzzvm_lload(vm, 2); // xbee
-	   buzzvm_lload(vm, 3); // batt
-	   buzzvm_lload(vm, 4); // gps
-	   buzzvm_lload(vm, 5); // id
-	   buzzvm_type_assert(vm, 5, BUZZTYPE_INT);
-	   buzzvm_type_assert(vm, 4, BUZZTYPE_INT);
-	   buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
-	   buzzvm_type_assert(vm, 2, BUZZTYPE_INT);
-	   buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+	  buzzvm_lload(vm, 1); // fc
+	  buzzvm_lload(vm, 2); // xbee
+	  buzzvm_lload(vm, 3); // batt
+	  buzzvm_lload(vm, 4); // gps
+	  buzzvm_lload(vm, 5); // id
+	  buzzvm_type_assert(vm, 5, BUZZTYPE_INT);
+	  buzzvm_type_assert(vm, 4, BUZZTYPE_INT);
+	  buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
+	  buzzvm_type_assert(vm, 2, BUZZTYPE_INT);
+	  buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
 		buzz_utility::neighbors_status newRS;
 		uint8_t id = buzzvm_stack_at(vm, 5)->i.value;
-    	newRS.gps_strenght= buzzvm_stack_at(vm, 4)->i.value;
-    	newRS.batt_lvl= buzzvm_stack_at(vm, 3)->i.value;
-    	newRS.xbee= buzzvm_stack_at(vm, 2)->i.value;
-    	newRS.flight_status= buzzvm_stack_at(vm, 1)->i.value;
-    	map< int, buzz_utility::neighbors_status >::iterator it = neighbors_status_map.find(id);
+    newRS.gps_strenght= buzzvm_stack_at(vm, 4)->i.value;
+    newRS.batt_lvl= buzzvm_stack_at(vm, 3)->i.value;
+    newRS.xbee= buzzvm_stack_at(vm, 2)->i.value;
+    newRS.flight_status= buzzvm_stack_at(vm, 1)->i.value;
+    map< int, buzz_utility::neighbors_status >::iterator it = neighbors_status_map.find(id);
 		if(it!=neighbors_status_map.end())
 			neighbors_status_map.erase(it);
 		neighbors_status_map.insert(make_pair(id, newRS));
@@ -247,7 +306,7 @@ namespace buzzuav_closures{
 
 	mavros_msgs::Mavlink get_status(){
 		mavros_msgs::Mavlink payload_out;
-    	map< int, buzz_utility::neighbors_status >::iterator it;
+    map< int, buzz_utility::neighbors_status >::iterator it;
 		for (it= neighbors_status_map.begin(); it!= neighbors_status_map.end(); ++it){
 			payload_out.payload64.push_back(it->first);
 			payload_out.payload64.push_back(it->second.gps_strenght);
@@ -263,15 +322,69 @@ namespace buzzuav_closures{
 		return payload_out;
 	}
 	/*----------------------------------------/
-	/ Buzz closure to go directly to a GPS destination from the Mission Planner
+	/ Buzz closure to take a picture here.
 	/----------------------------------------*/
-	int buzzuav_goto(buzzvm_t vm) {
-	   rc_goto_pos[2]=height;
-	   set_goto(rc_goto_pos);
-	   cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;
-	   printf(" Buzz requested Go To, to Latitude: %.7f , Longitude: %.7f, Altitude: %.7f  \n",goto_pos[0],goto_pos[1],goto_pos[2]);
-	   buzz_cmd=COMMAND_GOTO;
-	   return buzzvm_ret0(vm);
+	int buzzuav_takepicture(buzzvm_t vm) {
+	  //cur_cmd = mavros_msgs::CommandCode::CMD_DO_SET_CAM_TRIGG_DIST;
+	  buzz_cmd = COMMAND_PICTURE;
+	  return buzzvm_ret0(vm);
+	}
+
+	/*----------------------------------------/
+	/ Buzz closure to change locally the gimbal orientation
+	/----------------------------------------*/
+	int buzzuav_setgimbal(buzzvm_t vm) {
+	  buzzvm_lnum_assert(vm, 4);
+	  buzzvm_lload(vm, 1); // time
+	  buzzvm_lload(vm, 2); // pitch
+	  buzzvm_lload(vm, 3); // roll
+	  buzzvm_lload(vm, 4); // yaw
+	  buzzvm_type_assert(vm, 4, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+	  rc_gimbal[0] = buzzvm_stack_at(vm, 4)->f.value;
+	  rc_gimbal[1] = buzzvm_stack_at(vm, 3)->f.value;
+	  rc_gimbal[2] = buzzvm_stack_at(vm, 2)->f.value;
+	  rc_gimbal[3] = buzzvm_stack_at(vm, 1)->f.value;
+
+	  ROS_WARN("Set RC_GIMBAL ---- %f %f %f (%f)",rc_gimbal[0],rc_gimbal[1],rc_gimbal[2],rc_gimbal[3]);
+	  buzz_cmd = COMMAND_GIMBAL;
+	  return buzzvm_ret0(vm);
+	}
+
+	/*----------------------------------------/
+	/ Buzz closure to store locally a GPS destination from the fleet
+	/----------------------------------------*/
+	int buzzuav_storegoal(buzzvm_t vm) {
+	  buzzvm_lnum_assert(vm, 3);
+	  buzzvm_lload(vm, 1); // altitude
+	  buzzvm_lload(vm, 2); // longitude
+	  buzzvm_lload(vm, 3); // latitude
+	  buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+	  buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+    double goal[3];
+		goal[0] = buzzvm_stack_at(vm, 3)->f.value;
+		goal[1] = buzzvm_stack_at(vm, 2)->f.value;
+		goal[2] = buzzvm_stack_at(vm, 1)->f.value;
+    if(goal[0]==-1 && goal[1]==-1 && goal[2]==-1){
+      if(wplist_map.size()<=0)
+        parse_gpslist();
+      goal[0] = wplist_map.begin()->second.latitude;
+      goal[1] = wplist_map.begin()->second.longitude;
+      goal[2] = wplist_map.begin()->second.altitude;
+      wplist_map.erase(wplist_map.begin()->first);
+    }
+
+    double rb[3];
+
+    rb_from_gps(goal, rb, cur_pos);
+    if(fabs(rb[0])<150.0)
+		  rc_set_goto((int)buzz_utility::get_robotid(), goal[0], goal[1], goal[2]);
+
+	  ROS_WARN("Set RC_GOTO ---- %f %f %f (%f %f, %f %f)",goal[0],goal[1],goal[2],cur_pos[0],cur_pos[1],rb[0],rb[1]);
+	  return buzzvm_ret0(vm);
 	}
 
 	/*----------------------------------------/
@@ -327,6 +440,20 @@ namespace buzzuav_closures{
 		return goto_pos;
 	}
 
+	float* getgimbal() {
+		return rc_gimbal;
+	}
+
+	string getuavstate() {
+		static buzzvm_t     VM = buzz_utility::get_vm();
+		std::stringstream state_buff;
+      	buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE",1));
+        buzzvm_gload(VM);
+        buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
+        buzzvm_pop(VM);
+		return uav_state->s.value.str;
+	}
+
 	int getcmd() {
 		return cur_cmd;
 	}
@@ -344,12 +471,24 @@ namespace buzzuav_closures{
 		return cmd;
 	}
 
-	void rc_set_goto(double pos[]) {
-		rc_goto_pos[0] = pos[0];
-		rc_goto_pos[1] = pos[1];
-		rc_goto_pos[2] = pos[2];
+	void rc_set_goto(int id, double latitude, double longitude, double altitude) {
+		rc_id = id;
+		rc_goto_pos[0] = latitude;
+		rc_goto_pos[1] = longitude;
+		rc_goto_pos[2] = altitude;
 
 	}
+
+	void rc_set_gimbal(int id, float yaw, float roll, float pitch, float t) {
+
+		rc_id = id;
+		rc_gimbal[0] = yaw;
+		rc_gimbal[1] = roll;
+		rc_gimbal[2] = pitch;
+		rc_gimbal[3] = t;
+
+	}
+
 	void rc_call(int rc_cmd_in) {
 		rc_cmd = rc_cmd_in;
 	}
@@ -516,6 +655,10 @@ namespace buzzuav_closures{
 	   //also set rc_controllers goto
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "rc_goto", 1));
 	   buzzvm_pusht(vm);
+	   buzzvm_dup(vm);
+     buzzvm_pushs(vm, buzzvm_string_register(vm, "id", 1));
+	   buzzvm_pushi(vm, rc_id);
+	   buzzvm_tput(vm);
 	   buzzvm_dup(vm);
 	   buzzvm_pushs(vm, buzzvm_string_register(vm, "latitude", 1));
 	   buzzvm_pushf(vm, rc_goto_pos[0]);
