@@ -8,17 +8,17 @@
 /*To do !*/
 /****************************************/
 
-void uav_setup() {
-  
+void uav_setup()
+{
 }
 
 /****************************************/
 /*To do !*/
 /****************************************/
 
-void uav_done() {
- 
-   fprintf(stdout, "Robot stopped.\n");
+void uav_done()
+{
+  fprintf(stdout, "Robot stopped.\n");
 }
 
 /****************************************/

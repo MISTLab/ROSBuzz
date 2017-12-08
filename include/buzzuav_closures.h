@@ -8,23 +8,24 @@
 #include "ros/ros.h"
 #include "buzz_utility.h"
 
-#define EARTH_RADIUS (double) 6371000.0
-#define DEG2RAD(DEG) (double) ((DEG)*((M_PI)/(180.0)))
-#define RAD2DEG(RAD) (double) ((RAD)*((180.0)/(M_PI)))
+#define EARTH_RADIUS (double)6371000.0
+#define DEG2RAD(DEG) (double)((DEG) * ((M_PI) / (180.0)))
+#define RAD2DEG(RAD) (double)((RAD) * ((180.0) / (M_PI)))
 
-namespace buzzuav_closures{
-	typedef enum {
-		COMMAND_NIL = 0,     // Dummy command
-		COMMAND_TAKEOFF,     // Take off
-		COMMAND_LAND,
-		COMMAND_GOHOME,
-		COMMAND_ARM,
-		COMMAND_DISARM,
-		COMMAND_GOTO,
-		COMMAND_MOVETO,
-		COMMAND_PICTURE,
-		COMMAND_GIMBAL,
-	 } Custom_CommandCode;
+namespace buzzuav_closures
+{
+typedef enum {
+  COMMAND_NIL = 0,  // Dummy command
+  COMMAND_TAKEOFF,  // Take off
+  COMMAND_LAND,
+  COMMAND_GOHOME,
+  COMMAND_ARM,
+  COMMAND_DISARM,
+  COMMAND_GOTO,
+  COMMAND_MOVETO,
+  COMMAND_PICTURE,
+  COMMAND_GIMBAL,
+} Custom_CommandCode;
 
 /*
  * prextern int() function in Buzz
@@ -54,7 +55,7 @@ void rc_set_gimbal(int id, float yaw, float roll, float pitch, float t);
 /*sets rc requested command */
 void rc_call(int rc_cmd);
 /* sets the battery state */
-void set_battery(float voltage,float current,float remaining);
+void set_battery(float voltage, float current, float remaining);
 void set_deque_full(bool state);
 void set_rssi(float value);
 void set_raw_packet_loss(float value);
@@ -88,7 +89,7 @@ int buzzuav_arm(buzzvm_t vm);
 /*
  * Disarm from buzz
  */
-int buzzuav_disarm(buzzvm_t vm) ;
+int buzzuav_disarm(buzzvm_t vm);
 /* Commands the UAV to land
  */
 int buzzuav_land(buzzvm_t vm);
@@ -125,7 +126,6 @@ int buzzuav_update_flight_status(buzzvm_t vm);
 int buzzuav_update_prox(buzzvm_t vm);
 
 int bzz_cmd();
-
 
 int dummy_closure(buzzvm_t vm);
 
