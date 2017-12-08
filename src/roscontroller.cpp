@@ -48,17 +48,6 @@ roscontroller::roscontroller(ros::NodeHandle &n_c, ros::NodeHandle &n_c_priv)
   } else {
     robot_id = strtol(robot_name.c_str() + 5, NULL, 10);
   }
-  std::string path =
-      bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
-  path = path.substr(0, bzzfile_name.find_last_of("\\/"))+"/log/";
-  std::string folder_check="mkdir -p "+path;
-  system(folder_check.c_str());
-  for(int i=5;i>0;i--){
-  	rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i-1)+".log").c_str(),
-		 (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i)+".log").c_str());
-  }
-  path += "logger_"+std::to_string(robot_id)+"_0.log";
-  log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
 }
 
 /*---------------------
@@ -196,11 +185,13 @@ void roscontroller::RosControllerRun()
   /* Set the Buzz bytecode */
   if (buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(),
                                     robot_id)) {
+    ROS_INFO("[%i] INIT DONE!!!", robot_id);
     int packet_loss_tmp,time_step=0;
     double cur_packet_loss=0;
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
-    //init_update_monitor(bcfname.c_str(), standby_bo.c_str());
+    /*Intialize  the  update monitor*/
+    init_update_monitor(bcfname.c_str(), standby_bo.c_str(),dbgfname.c_str(),robot_id);
     /*loop rate of ros*/
     ros::Rate loop_rate(BUZZRATE);
     ///////////////////////////////////////////////////////
@@ -208,31 +199,11 @@ void roscontroller::RosControllerRun()
     //////////////////////////////////////////////////////
     //ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
     while (ros::ok() && !buzz_utility::buzz_script_done()) {
-      /*Update neighbors position inside Buzz*/
-      // buzz_closure::neighbour_pos_callback(neighbours_pos_map);
-
-      /*log ROS Time stamp, pos (lat,long,alt), Swarm size, no. of neigh,
-        neigh pos, RSSI val, Packet loss, filtered packet loss*/
-      log<<ros::Time::now()<<",";
-      log<<cur_pos.latitude << "," << cur_pos.longitude << ","
-            << cur_pos.altitude << ",";
-      log  << (int)no_of_robots<<",";
-      map<int, buzz_utility::Pos_struct>::iterator it =
-            neighbours_pos_map.begin();
-      log  << neighbours_pos_map.size()<< ",";
-        for (; it != neighbours_pos_map.end(); ++it)
-        {
-          log << (double)it->second.x << "," << (double)it->second.y
-              << "," << (double)it->second.z << ",";
-        }
-      const uint8_t shrt_id= 0xFF;
-      float result;
-
       /*Neighbours of the robot published with id in respective topic*/
       neighbours_pos_publisher();
       send_MPpayload();
       /*Check updater state and step code*/
-      // update_routine(bcfname.c_str(), dbgfname.c_str());
+      update_routine();
       if(time_step==BUZZRATE){
          time_step=0;
          cur_packet_loss= 1 -( (double)packet_loss_tmp/(BUZZRATE*( (int)no_of_robots-1 )) );
@@ -245,8 +216,6 @@ void roscontroller::RosControllerRun()
          time_step++;
       }
       if(debug) ROS_WARN("CURRENT PACKET DROP : %f ",cur_packet_loss);
-      /*Log In Msg queue size*/
-      log<<(int)buzz_utility::get_inmsg_size()<<",";
       /*Step buzz script */
       buzz_utility::buzz_script_step();
       /*Prepare messages and publish them in respective topic*/
@@ -254,37 +223,14 @@ void roscontroller::RosControllerRun()
       /*call flight controler service to set command long*/
       flight_controller_service_call();
       /*Set multi message available after update*/
-      //if (get_update_status())
-      //{
-       /* set_read_update_status();
-        multi_msg = true;
-        log << cur_pos.latitude << "," << cur_pos.longitude << ","
-            << cur_pos.altitude << ",";
-       collect_data(log);
-        map<int, buzz_utility::Pos_struct>::iterator it =
-            neighbours_pos_map.begin();
-        log << "," << neighbours_pos_map.size();
-        for (; it != neighbours_pos_map.end(); ++it)
-        {
-          log << "," << (double)it->second.x << "," << (double)it->second.y
-              << "," << (double)it->second.z;
-        }
-        log << std::endl;*/
-      //}
+      if (get_update_status())
+      {
+       set_read_update_status();
+      }
       /*Set ROBOTS variable for barrier in .bzz from neighbours count*/
-      // no_of_robots=get_number_of_robots();
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
-      /*Retrive the state of the graph and uav and log*/
-		  std::stringstream state_buff;
-		  state_buff << buzzuav_closures::getuavstate();
-		  log<<state_buff.str()<<std::endl;
-      // if(neighbours_pos_map.size() >0) no_of_robots
-      // =neighbours_pos_map.size()+1;
-      // buzz_utility::set_robot_var(no_of_robots);
-      /*Set no of robots for updates TODO only when not updating*/
-      // if(multi_msg)
-      //updates_set_robots(no_of_robots);
+      updates_set_robots(no_of_robots);
       //get_xbee_status();  // commented out because it may slow down the node too much, to be tested
       /*run once*/
       ros::spinOnce();
@@ -299,11 +245,8 @@ void roscontroller::RosControllerRun()
       /*sleep for the mentioned loop rate*/
       timer_step += 1;
       maintain_pos(timer_step);
-
       // std::cout<< "HOME: " << home.latitude << ", " << home.longitude;
     }
-    /* Destroy updater and Cleanup */
-    // update_routine(bcfname.c_str(), dbgfname.c_str(),1);
   }
 }
 
@@ -605,6 +548,7 @@ void roscontroller::prepare_msg_and_publish()
   tmp[2] = cur_pos.altitude;
   memcpy(position, tmp, 3 * sizeof(uint64_t));
   mavros_msgs::Mavlink payload_out;
+  payload_out.payload64.push_back(XBEE_MESSAGE_CONSTANT);
   payload_out.payload64.push_back(position[0]);
   payload_out.payload64.push_back(position[1]);
   payload_out.payload64.push_back(position[2]);
@@ -621,30 +565,25 @@ void roscontroller::prepare_msg_and_publish()
   payload_out.sysid = (uint8_t)robot_id;
   payload_out.msgid = (uint32_t)message_number;
 
-  /*Log out message id and message size*/
-  log<<(int)message_number<<",";
-  log<<(int)out[0]<<",";
   /*publish prepared messages in respective topic*/
   payload_pub.publish(payload_out);
   delete[] out;
   delete[] payload_out_ptr;
   /*Check for updater message if present send*/
- /* if ((int)get_update_mode() != CODE_RUNNING && is_msg_present() == 1 &&
-      multi_msg)
+  if (is_msg_present())
   {
     uint8_t *buff_send = 0;
     uint16_t updater_msgSize = *(uint16_t *)(getupdate_out_msg_size());
     ;
     int tot = 0;
     mavros_msgs::Mavlink update_packets;
-    fprintf(stdout, "Transfering code \n");
+    fprintf(stdout, "Appending code into message ...\n");
     fprintf(stdout, "Sent Update packet Size: %u \n", updater_msgSize);
     // allocate mem and clear it
     buff_send = (uint8_t *)malloc(sizeof(uint16_t) + updater_msgSize);
     memset(buff_send, 0, sizeof(uint16_t) + updater_msgSize);
     // Append updater msg size
     *(uint16_t *)(buff_send + tot) = updater_msgSize;
-    // fprintf(stdout,"Updater sent msg size : %i \n", (int)updater_msgSize);
     tot += sizeof(uint16_t);
     // Append updater msgs
     memcpy(buff_send + tot, (uint8_t *)(getupdater_out_msg()), updater_msgSize);
@@ -669,9 +608,9 @@ void roscontroller::prepare_msg_and_publish()
     update_packets.sysid = (uint8_t)robot_id;
     update_packets.msgid = (uint32_t)message_number;
     payload_pub.publish(update_packets);
-    multi_msg = false;
+    //multi_msg = false;
     delete[] payload_64;
-  }*/
+  }
 }
 /*---------------------------------------------------------------------------------
 /Flight controller service call every step if there is a command set from bzz
@@ -1041,8 +980,7 @@ void roscontroller::SetStreamRate(int id, int rate, int on_off) {
 /*******************************************************************************************************/
 void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr &msg) {
   /*Check for Updater message, if updater message push it into updater FIFO*/
-  if ((uint64_t)msg->payload64[0] == (uint64_t)UPDATER_MESSAGE_CONSTANT &&
-      msg->payload64.size() > 5) {
+  if ((uint64_t)msg->payload64[0] == (uint64_t)UPDATER_MESSAGE_CONSTANT) {
     uint16_t obt_msg_size = sizeof(uint64_t) * (msg->payload64.size());
     uint64_t message_obt[obt_msg_size];
     /* Go throught the obtained payload*/
@@ -1055,26 +993,20 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr &msg) {
     /* Copy packet into temporary buffer neglecting update constant */
     memcpy((void *)pl, (void *)(message_obt + 1), obt_msg_size);
     uint16_t unMsgSize = *(uint16_t *)(pl);
-    // uint16_t tot;
-    // tot+=sizeof(uint16_t);
-    fprintf(stdout, "Update packet, read msg size : %u \n", unMsgSize);
+    fprintf(stdout, "Update packet received, read msg size : %u \n", unMsgSize);
     if (unMsgSize > 0) {
       code_message_inqueue_append((uint8_t *)(pl + sizeof(uint16_t)),
                                   unMsgSize);
-      // fprintf(stdout,"before in queue process : utils\n");
       code_message_inqueue_process();
-      // fprintf(stdout,"after in queue process : utils\n");
     }
     free(pl);
   }
   /*BVM FIFO message*/
-  else if (msg->payload64.size() > 3) {
-    uint64_t message_obt[msg->payload64.size()];
+  else if (msg->payload64[0]==(uint64_t)XBEE_MESSAGE_CONSTANT) {
+    uint64_t message_obt[msg->payload64.size()-1];
     /* Go throught the obtained payload*/
-    for (int i = 0; i < (int)msg->payload64.size(); i++) {
-      message_obt[i] = (uint64_t)msg->payload64[i];
-      // cout<<"[Debug:] obtaind message "<<message_obt[i]<<endl;
-      // i++;
+    for (int i = 1; i < (int)msg->payload64.size(); i++) {
+      message_obt[i-1] = (uint64_t)msg->payload64[i];
     }
     /* Extract neighbours position from payload*/
     double neighbours_pos_payload[3];

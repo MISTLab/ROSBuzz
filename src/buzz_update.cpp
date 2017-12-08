@@ -21,21 +21,40 @@ static int fd,wd =0;
 static int old_update =0;
 static buzz_updater_elem_t updater;
 static int no_of_robot;
-static char* dbgf_name;
+static const char* dbgf_name;
+static const char* bcfname;
+static const char* old_bcfname="old_bcode.bo";
 static const char* bzz_file;
+static int Robot_id=0;
 static int neigh=-1;
 static int updater_msg_ready ;
+static uint16_t update_try_counter=0;
 static int updated=0;
+static const uint16_t MAX_UPDATE_TRY=5;
+static int packet_id_=0;
+static size_t old_byte_code_size=0;
+
 
 /*Initialize updater*/
-void init_update_monitor(const char* bo_filename, const char* stand_by_script){
+void init_update_monitor(const char* bo_filename, const char* stand_by_script,
+                           const char* dbgfname, int robot_id){
+	Robot_id=robot_id;
+	dbgf_name=dbgfname;
+	bcfname=bo_filename;
 	ROS_INFO("Initializing file monitor...");
 	fd=inotify_init1(IN_NONBLOCK);
 	if ( fd < 0 ) {
 		perror( "inotify_init error" );
 	}
-	/* watch /.bzz file for any activity and report it back to update */
-	wd=inotify_add_watch(fd, bzz_file,IN_ALL_EVENTS );
+	/*If simulation set the file monitor only for robot 1*/
+	if(SIMULATION==1 && robot_id==0){
+		/* watch /.bzz file for any activity and report it back to update */
+		wd=inotify_add_watch(fd, bzz_file,IN_ALL_EVENTS );
+	}
+	else if (SIMULATION==0){
+		/* watch /.bzz file for any activity and report it back to update */
+		wd=inotify_add_watch(fd, bzz_file,IN_ALL_EVENTS );
+	}
 	/*load the .bo under execution into the updater*/
 	uint8_t*    BO_BUF          = 0;
 	FILE* fp = fopen(bo_filename, "rb");
@@ -73,8 +92,11 @@ void init_update_monitor(const char* bo_filename, const char* stand_by_script){
 	updater = (buzz_updater_elem_t)malloc(sizeof(struct buzz_updater_elem_s));
 	/*Intialize the updater with the required data*/
 	updater->bcode = BO_BUF;
+	/*Store a copy of the Bcode for rollback*/
 	updater->outmsg_queue = NULL;
 	updater->inmsg_queue = NULL;
+	updater->patch = NULL;
+	updater->patch_size = (size_t*) malloc(sizeof(size_t));
 	updater->bcode_size = (size_t*) malloc(sizeof(size_t));
 	updater->update_no = (uint8_t*) malloc(sizeof(uint16_t));
 	*(uint16_t*)(updater->update_no) =0;
@@ -86,10 +108,11 @@ void init_update_monitor(const char* bo_filename, const char* stand_by_script){
 	*(int*)(updater->mode)=CODE_RUNNING;
 	//no_of_robot=barrier;
 	updater_msg_ready=0;
-	//neigh = 0;
-	//updater->outmsg_queue=
-	// update_table->barrier=nvs;
-	// open logger
+	
+	/*Write the bcode to a file for rollback*/	
+	fp=fopen("old_bcode.bo", "wb");
+	fwrite((updater->bcode), *(size_t*)updater->bcode_size, 1, fp);
+	fclose(fp);
 	
 }
 /*Check for .bzz file chages*/
@@ -123,27 +146,131 @@ int check_update(){
 return check;
 }
 
+int test_patch(std::string path, std::string name1,size_t update_patch_size, uint8_t* patch){
+	if(SIMULATION==1){
+		return 1;
+	}
+	else {
+		/*Patch the old bo with new patch*/
+		std::stringstream patch_writefile;
+	  	patch_writefile<< path<<name1<<"tmp_patch.bo";
+		/*Write the patch to a file*/
+		FILE *fp=fopen(patch_writefile.str().c_str(), "wb");
+		fwrite(patch, update_patch_size, 1, fp);
+		fclose(fp);
+		std::stringstream patch_exsisting;
+		patch_exsisting<< "bspatch "<< path << name1<<".bo "<< path<<name1 << "-patched.bo "<< path<<name1<<"tmp_patch.bo";
+		fprintf(stdout,"Launching bspatch command: %s \n", patch_exsisting.str().c_str());
+		if(system(patch_exsisting.str().c_str()) ) return 0;
+		else return 1;
+	}
+}
+
+updater_code_t obtain_patched_bo(std::string path, std::string name1){
+	if(SIMULATION==1){
+		/*Read the exsisting file to simulate the patching*/
+		std::stringstream read_patched;
+		read_patched<<path<<name1<<".bo";
+		fprintf(stdout,"read file name %s \n", read_patched.str().c_str());
+		uint8_t*    patched_BO_Buf          = 0;
+		FILE *fp = fopen(read_patched.str().c_str(), "rb");  
+		if(!fp) {
+			perror(read_patched.str().c_str());
+		}
+		fseek(fp, 0, SEEK_END);
+		size_t patched_size = ftell(fp);
+		rewind(fp);
+		patched_BO_Buf = (uint8_t*)malloc(patched_size);
+		if(fread(patched_BO_Buf, 1, patched_size, fp) < patched_size) {
+			perror(read_patched.str().c_str());
+			fclose(fp);
+		}
+		fclose(fp);
+		/*Write the patched to a code struct and return*/
+		updater_code_t update_code = (updater_code_t)malloc(sizeof(struct updater_code_s));
+		update_code->bcode = patched_BO_Buf;
+		update_code->bcode_size = (uint8_t*) malloc(sizeof(uint16_t));
+		*(uint16_t*) (update_code->bcode_size) = patched_size;
+
+		return update_code;
+	}
+
+	else{
+
+		/*Read the new patched file*/
+		std::stringstream read_patched;
+		read_patched<<path<<name1<<"-patched.bo";
+		fprintf(stdout,"read file name %s \n", read_patched.str().c_str());
+		uint8_t*    patched_BO_Buf          = 0;
+		FILE *fp = fopen(read_patched.str().c_str(), "rb");  
+		if(!fp) {
+			perror(read_patched.str().c_str());
+		}
+		fseek(fp, 0, SEEK_END);
+		size_t patched_size = ftell(fp);
+		rewind(fp);
+		patched_BO_Buf = (uint8_t*)malloc(patched_size);
+		if(fread(patched_BO_Buf, 1, patched_size, fp) < patched_size) {
+			perror(read_patched.str().c_str());
+			fclose(fp);
+		}
+		fclose(fp);
+
+		/* delete old bo file & rename new bo file */
+		remove((path + name1 + ".bo").c_str());
+		rename((path + name1 + "-patched.bo").c_str(), (path + name1 + ".bo").c_str());
+
+		/*Write the patched to a code struct and return*/
+		updater_code_t update_code = (updater_code_t)malloc(sizeof(struct updater_code_s));
+		update_code->bcode = patched_BO_Buf;
+		update_code->bcode_size = (uint8_t*) malloc(sizeof(uint16_t));
+		*(uint16_t*) (update_code->bcode_size) = patched_size;
+
+		return update_code;
+	}
+}
 
 void code_message_outqueue_append(){
 	updater->outmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
-	uint16_t size =0;
-	updater->outmsg_queue->queue = (uint8_t*)malloc(2*sizeof(uint16_t)+ *(size_t*)(updater->bcode_size));
-	updater->outmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));	
-	/*append the update no, code size and code to out msg*/
+	/* if size less than 250 Pad with zeors to assure transmission*/
+	uint16_t size = UPDATE_CODE_HEADER_SIZE + *(size_t*)(updater->patch_size);
+	uint16_t padding_size= ( size > MIN_UPDATE_PACKET) ? 0 : MIN_UPDATE_PACKET-size; 
+	size +=padding_size;
+	updater->outmsg_queue->queue = (uint8_t*)malloc(size);
+	memset(updater->outmsg_queue->queue, 0, size);
+	updater->outmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));
+	*(uint16_t*)(updater->outmsg_queue->size)=size;
+	size=0;
+	/*Append message type*/
+	*(uint8_t*)(updater->outmsg_queue->queue+size) = SENT_CODE;
+	size+=sizeof(uint8_t);
+	/*Append the update no, code size and code to out msg*/
 	*(uint16_t*)(updater->outmsg_queue->queue+size) = *(uint16_t*) (updater->update_no);
 	size+=sizeof(uint16_t);
-	*(uint16_t*)(updater->outmsg_queue->queue+size) = *(size_t*) (updater->bcode_size);
+	*(uint16_t*)(updater->outmsg_queue->queue+size) =(uint16_t) *(size_t*) (updater->patch_size);
 	size+=sizeof(uint16_t);
-	memcpy(updater->outmsg_queue->queue+size, updater->bcode, *(size_t*)(updater->bcode_size));
-	size+=(uint16_t)*(size_t*)(updater->bcode_size);
-	/*FILE *fp;
-	fp=fopen("update.bo", "wb");
-	fwrite((updater->bcode), updater->bcode_size, 1, fp);
-	fclose(fp);*/
+	memcpy(updater->outmsg_queue->queue+size, updater->patch, *(size_t*)(updater->patch_size));
+	size+=(uint16_t)*(size_t*)(updater->patch_size);
 	updater_msg_ready=1;
-	*(uint16_t*)(updater->outmsg_queue->size)=size;
-	
-	//fprintf(stdout,"out msg append transfer code size %d\n", (int)*(size_t*) updater->bcode_size);
+}
+
+void outqueue_append_code_request(uint16_t update_no){
+	updater->outmsg_queue=(updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
+	uint16_t size =0;
+	updater->outmsg_queue->queue = (uint8_t*)malloc(2*sizeof(uint16_t) + sizeof(uint8_t) +CODE_REQUEST_PADDING);
+	updater->outmsg_queue->size  = (uint8_t*)malloc(sizeof(uint16_t));
+	memset(updater->outmsg_queue->queue, 0, sizeof(uint16_t) + sizeof(uint8_t) +CODE_REQUEST_PADDING);
+	/*Append message type*/
+	*(uint8_t*)(updater->outmsg_queue->queue+size) = RESEND_CODE;
+	size+=sizeof(uint8_t);
+	/*Append the update no, code size and code to out msg*/
+	*(uint16_t*)(updater->outmsg_queue->queue+size) = update_no;
+	size+=sizeof(uint16_t);
+	*(uint16_t*)(updater->outmsg_queue->queue+size) =  update_try_counter;
+	size+=sizeof(uint16_t);
+	*(uint16_t*)(updater->outmsg_queue->size)=size+CODE_REQUEST_PADDING;
+	updater_msg_ready=1;
+	ROS_INFO("[Debug] Requested update no. %u  with try: %u \n",update_no,update_try_counter);
 }
 
 void code_message_inqueue_append(uint8_t* msg,uint16_t size){
@@ -155,43 +282,158 @@ void code_message_inqueue_append(uint8_t* msg,uint16_t size){
 	*(uint16_t*)(updater->inmsg_queue->size)  = size;
 }
 
+void set_packet_id(int packet_id){
+/*Used for data logging*/
+packet_id_=packet_id;
+}
 void code_message_inqueue_process(){
 	int size=0;
+	updater_code_t out_code=NULL;
+
 	ROS_INFO("[Debug] Updater processing in msg with mode %d \n", *(int*)(updater->mode) );
-	ROS_INFO("[Debug] %u : Current update number, %u : Received update no \n",( *(uint16_t*) (updater->update_no) ), (*(uint16_t*)(updater->inmsg_queue->queue)) );
-	ROS_INFO("[Debug] Updater received code of size %u \n",(*(uint16_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)) ) );
+	ROS_INFO("[Debug] %u : Current update number, %u : Received update no \n",( *(uint16_t*) (updater->update_no) ), (*(uint16_t*)(updater->inmsg_queue->queue+sizeof(uint8_t))) );
+	ROS_INFO("[Debug] Updater received patch of size %u \n",(*(uint16_t*)(updater->inmsg_queue->queue+sizeof(uint16_t)+sizeof(uint8_t)) ) );
 
 	if(  *(int*) (updater->mode) == CODE_RUNNING){		
 		//fprintf(stdout,"[debug]Inside inmsg code running");
-		if( *(uint16_t*)(updater->inmsg_queue->queue) >  *(uint16_t*) (updater->update_no)  ){
-			//fprintf(stdout,"[debug]Inside update number comparision");
-			uint16_t update_no=*(uint16_t*)(updater->inmsg_queue->queue);	
-			size +=sizeof(uint16_t);	
-			uint16_t update_bcode_size =*(uint16_t*)(updater->inmsg_queue->queue+size);
-			size +=sizeof(uint16_t);	
-			//fprintf(stdout,"in queue process Update no %d\n", (int) update_no);
-			//fprintf(stdout,"in queue process bcode size %d\n", (int) update_bcode_size);
-			//FILE *fp;
-			//fp=fopen("update.bo", "wb");
-			//fwrite((updater->inmsg_queue->queue+size), update_bcode_size, 1, fp);
-			//fclose(fp);
-			if( test_set_code((uint8_t*)(updater->inmsg_queue->queue+size),
-				(char*) dbgf_name,(size_t)update_bcode_size) ) {
-				*(uint16_t*)(updater->update_no)=update_no;
-				neigh=1;
-				//gettimeofday(&t1, NULL);
+		if(*(uint8_t*)(updater->inmsg_queue->queue) == SENT_CODE){
+			size+=sizeof(uint8_t);
+			if( *(uint16_t*)(updater->inmsg_queue->queue+size) >  *(uint16_t*) (updater->update_no)  ){
+				//fprintf(stdout,"[debug]Inside update number comparision");
+				uint16_t update_no=*(uint16_t*)(updater->inmsg_queue->queue+size);	
+				size +=sizeof(uint16_t);	
+				uint16_t update_patch_size =*(uint16_t*)(updater->inmsg_queue->queue+size);
+				size +=sizeof(uint16_t);
+				/*Generate patch*/	
+				std::string bzzfile_name(bzz_file);
+				std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+				std::string  name1 = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
+				name1 = name1.substr(0,name1.find_last_of("."));
+				if(test_patch(path, name1,update_patch_size,(updater->inmsg_queue->queue+size)) ){
+					out_code = obtain_patched_bo(path, name1);	
+	
+					//fprintf(stdout,"in queue process Update no %d\n", (int) update_no);
+					//fprintf(stdout,"in queue process bcode size %d\n", (int) update_bcode_size);
+					//FILE *fp;
+					//fp=fopen("update.bo", "wb");
+					//fwrite((updater->inmsg_queue->queue+size), update_bcode_size, 1, fp);
+					//fclose(fp);
+
+
+					if(test_set_code( (out_code->bcode),
+				   		(char*) dbgf_name, (size_t) (*(uint16_t*)out_code->bcode_size) ) ){
+
+						printf("TEST PASSED!\n");
+						*(uint16_t*)updater->update_no=update_no;
+						/*Clear exisiting patch if any*/
+						delete_p(updater->patch);
+						/*copy the patch into the updater*/
+						updater->patch = (uint8_t*)malloc(update_patch_size);
+						memcpy(updater->patch, (updater->inmsg_queue->queue+size), update_patch_size);
+		    	 		        *(size_t*) (updater->patch_size) = update_patch_size;
+						//code_message_outqueue_append();
+						neigh=1;
+					}
+					/*clear the temp code buff*/		
+					delete_p(out_code->bcode);
+					delete_p(out_code->bcode_size);
+					delete_p(out_code);
+				}
+				else{
+					ROS_ERROR("Patching the .bo file failed, could be corrupt patch\n");
+					update_try_counter++;
+					outqueue_append_code_request(update_no);
+				}
+
 			}
 		}
+	 	
 	}
-
+	size=0;
+	if(*(uint8_t*)(updater->inmsg_queue->queue) == RESEND_CODE){
+		size+=sizeof(uint8_t);
+			if( *(uint16_t*)(updater->inmsg_queue->queue+size) ==  *(uint16_t*) (updater->update_no)  ){
+				size+=sizeof(uint16_t);
+				if(*(uint16_t*)(updater->inmsg_queue->queue+size) > update_try_counter){
+					update_try_counter=*(uint16_t*)(updater->inmsg_queue->queue+size);
+					ROS_ERROR("Code appended! update try : %u \n",update_try_counter);
+					code_message_outqueue_append();	
+					
+				}
+				if(update_try_counter > MAX_UPDATE_TRY) ROS_ERROR("TODO: ROLL BACK !!");
+			}
+	}
 	//fprintf(stdout,"in queue freed\n");
 	delete_p(updater->inmsg_queue->queue);
 	delete_p(updater->inmsg_queue->size);
 	delete_p(updater->inmsg_queue);
 }
-void update_routine(const char* bcfname,
-                           const char* dbgfname){
-	dbgf_name=(char*)dbgfname;
+
+
+
+
+
+
+void create_update_patch(){
+	std::stringstream genpatch;
+	std::stringstream usepatch;
+
+	std::string bzzfile_name(bzz_file);
+
+	std::string path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+	
+	std::string name1 = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
+	name1 = name1.substr(0,name1.find_last_of("."));
+
+	std::string name2 = name1 + "-update";
+
+	// CALL BSDIFF CMD
+	genpatch<< "bsdiff "<< path << name1 <<".bo "<< path << name2 <<".bo "<< path<<"diff.bo";
+	fprintf(stdout,"Launching bsdiff command: %s \n", genpatch.str().c_str());
+    	system(genpatch.str().c_str());
+
+    // BETTER: CALL THE FUNCTION IN BSDIFF.CPP
+    //bsdiff_do(path + name1 + ".bo", path + name2 + ".bo", path + "diff.bo");
+	
+
+
+	/* delete old files & rename new files */
+
+	remove((path + name1 + ".bo").c_str());
+	remove((path + name1 + ".bdb").c_str());
+
+	rename((path + name2 + ".bo").c_str(), (path + name1 + ".bo").c_str());
+	rename((path + name2 + ".bdb").c_str(), (path + name1 + ".bdb").c_str());
+
+
+	/*Read the diff file */
+	std::stringstream patchfileName;
+    patchfileName<<path<<"diff.bo";
+
+	uint8_t* patch_buff = 0;
+	FILE* fp = fopen(patchfileName.str().c_str(), "rb");  
+	if(!fp) {
+		perror(patchfileName.str().c_str());
+	}
+	fseek(fp, 0, SEEK_END);
+	size_t patch_size = ftell(fp);
+	rewind(fp);
+	patch_buff = (uint8_t*)malloc(patch_size);
+	if(fread(patch_buff, 1, patch_size, fp) < patch_size) {
+		perror(patchfileName.str().c_str());
+		fclose(fp);
+	}
+	fclose(fp);
+	delete_p(updater->patch);
+	updater->patch = patch_buff;
+	*(size_t*) (updater->patch_size) = patch_size;
+
+	/* Delete the diff file */
+	remove(patchfileName.str().c_str());
+}
+
+
+void update_routine(){
 	buzzvm_t  VM = buzz_utility::get_vm();
 	buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
 				buzzvm_pushi(VM, *(uint16_t*)(updater->update_no));
@@ -199,19 +441,26 @@ void update_routine(const char* bcfname,
 	//fprintf(stdout,"[Debug : ]updater value = %i \n",updater->mode);
 	if(*(int*)updater->mode==CODE_RUNNING){
 		buzzvm_function_call(VM, "updated_neigh", 0);
+		// Check for update
 		if(check_update()){
 
 			
 			ROS_INFO("Update found \nUpdating script ...\n");
 			
-			if(compile_bzz()){ 
+			if(compile_bzz(bzz_file)){ 
 				ROS_WARN("Errors in comipilg script so staying on old script\n");
 			}
 	  		else {	
+	  			std::string bzzfile_name(bzz_file);
+	  			stringstream bzzfile_in_compile;
+				std::string  path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+				std::string  name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
+				name = name.substr(0,name.find_last_of("."));
+				bzzfile_in_compile<<path<<name<<"-update.bo";
 				uint8_t*    BO_BUF          = 0;
-				FILE* fp = fopen(bcfname, "rb");  // to change file edit
+				FILE* fp = fopen(bzzfile_in_compile.str().c_str(), "rb");  // to change file edit
 				if(!fp) {
-					perror(bcfname);
+					perror(bzzfile_in_compile.str().c_str());
 				}
 				fseek(fp, 0, SEEK_END);
 				size_t bcode_size = ftell(fp);
@@ -222,10 +471,11 @@ void update_routine(const char* bcfname,
 					fclose(fp);
 				}
 				fclose(fp);
-				if(test_set_code(BO_BUF, dbgfname,bcode_size)){
+				if(test_set_code(BO_BUF, dbgf_name,bcode_size)){
 					uint16_t update_no =*(uint16_t*)(updater->update_no);
 					*(uint16_t*)(updater->update_no) =update_no +1;
-					code_message_outqueue_append();
+					
+					create_update_patch();
 					VM = buzz_utility::get_vm();
 					ROS_INFO("Current Update no %d\n", *(uint16_t*)(updater->update_no));
 					buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
@@ -244,11 +494,7 @@ void update_routine(const char* bcfname,
 
 	else{
 	
-		if(neigh==0 && (!is_msg_present())){ 
-			ROS_INFO("Sending code... \n");		
-			code_message_outqueue_append();
 			
-		}	
 		timer_steps++;
 		buzzvm_pushs(VM, buzzvm_string_register(VM, "barrier_val",1));
             	buzzvm_gload(VM);
@@ -259,10 +505,22 @@ void update_routine(const char* bcfname,
 			*(int*)(updater->mode) = CODE_RUNNING;
 			gettimeofday(&t2, NULL);
 			//collect_data();
-			buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgfname, *(size_t*)(updater->bcode_size));
+			buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgf_name, *(size_t*)(updater->bcode_size));
 			//buzzvm_function_call(m_tBuzzVM, "updated", 0);
-			updated=1;	
+			updated=1;
+			update_try_counter=0;	
+			timer_steps=0;
 			}
+		else if (timer_steps>TIMEOUT_FOR_ROLLBACK){
+			ROS_ERROR("TIME OUT Reached, decided to roll back");
+			/*Time out hit deceided to roll back*/
+			*(int*)(updater->mode) = CODE_RUNNING;
+			buzz_utility::buzz_script_set(old_bcfname, dbgf_name,
+                                    (int)VM->robot);
+			updated=1;
+			update_try_counter=0;	
+			timer_steps=0;
+		}
 
 	}
 	
@@ -285,7 +543,7 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname,size_t bcode_size ){
 		ROS_WARN("Initializtion of script test passed\n");
 		if(buzz_utility::update_step_test()){
 			/*data logging*/
-			//start =1;
+			old_byte_code_size=*(size_t*)updater->bcode_size;
 			/*data logging*/
 			ROS_WARN("Step test passed\n");
 			*(int*) (updater->mode) = CODE_STANDBY;
@@ -383,7 +641,6 @@ void destroy_updater(){
 		delete_p(updater->inmsg_queue->size);
 		delete_p(updater->inmsg_queue);
 	}
-	//
 	inotify_rm_watch(fd,wd);
 	close(fd);
 }
@@ -399,7 +656,7 @@ void updates_set_robots(int robots){
 /*--------------------------------------------------------
 / Create Buzz bytecode from the bzz script inputed
 /-------------------------------------------------------*/
-int compile_bzz(){
+int compile_bzz(std::string bzz_file){
 	/*Compile the buzz code .bzz to .bo*/
 	std::string bzzfile_name(bzz_file);
 	stringstream bzzfile_in_compile;
@@ -407,24 +664,21 @@ int compile_bzz(){
 	std::string  name = bzzfile_name.substr(bzzfile_name.find_last_of("/\\") + 1);
 	name = name.substr(0,name.find_last_of("."));
 	bzzfile_in_compile << "bzzc -I " << path << "include/"; //<<" "<<path<< name<<".basm";
-	bzzfile_in_compile << " -b " << path << name << ".bo";
-	bzzfile_in_compile << " -d " << path << name << ".bdb ";
+	bzzfile_in_compile << " -b " << path << name << "-update.bo";
+	bzzfile_in_compile << " -d " << path << name << "-update.bdb ";
 	bzzfile_in_compile << bzzfile_name;
 	ROS_WARN("Launching buzz compilation for update: %s", bzzfile_in_compile.str().c_str());
 	return system(bzzfile_in_compile.str().c_str());
 }
+
+
+
 void collect_data(std::ofstream &logger){
-	//fprintf(stdout,"start and end time in data collection Info : %f,%f",(double)begin,(double)end);
 	double time_spent =   (t2.tv_sec - t1.tv_sec) * 1000.0; //(double)(end - begin) / CLOCKS_PER_SEC;
 	time_spent += (t2.tv_usec - t1.tv_usec) / 1000.0;
-	//int bytecodesize=(int);
-	logger<<(int)no_of_robot<<","<<neigh<<","<<(double)time_spent<<","<<(int)timer_steps<<","<<*(size_t*)updater->bcode_size<<","<<(int)*(uint8_t*)updater->update_no;
-	timer_steps=0;
-	neigh=0;
-	//fprintf(stdout,"Data logger Info : %i , %i , %f , %ld , %i , %d \n",(int)no_of_robot,neigh,time_spent,*(size_t*)updater->bcode_size,(int)no_of_robot,*(uint8_t*)updater->update_no);
-	//FILE *Fileptr;
-	//Fileptr=fopen("/home/ubuntu/ROS_WS/update_logger.csv", "a");
-	//fprintf(Fileptr,"%i,%i,%i,%i,%i,%u\n",(int)buzz_utility::get_robotid(),neigh,timer_steps,(int)*(size_t*)updater->bcode_size,(int)no_of_robot, *(uint8_t*)updater->update_no);
-	//fclose(Fileptr);
-}
+	//RID,update trigger,time steps taken,old byte code size, new bytecode size, patch size,update number,
+	//Patch_packets_received_counter,Patch_request_packets_received,Patch_packets_sent_counter,Patch_request_packets_sent_counter
+	logger<<(int)no_of_robot<<","<<neigh<<","<<(double)time_spent<<","<<(int)timer_steps<<","<<old_byte_code_size<<","<<*(size_t*)updater->bcode_size<<","
+		<<*(size_t*)updater->patch_size<<","<<(int)*(uint8_t*)updater->update_no<<","<<(int)packet_id_;
 
+}

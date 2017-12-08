@@ -1,5 +1,8 @@
 #ifndef BUZZ_UPDATE_H
 #define BUZZ_UPDATE_H
+/*Simulation or robot check*/
+#define SIMULATION 1
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <buzz/buzztype.h>
@@ -9,8 +12,10 @@
 #include <fstream>
 #define delete_p(p) do { free(p); p = NULL; } while(0)
 
-
-
+static const uint16_t CODE_REQUEST_PADDING=250;
+static const uint16_t MIN_UPDATE_PACKET=251;
+static const uint16_t UPDATE_CODE_HEADER_SIZE=5;
+static const uint16_t TIMEOUT_FOR_ROLLBACK=50;
 /*********************/
 /*   Updater states */
 /********************/
@@ -25,8 +30,8 @@ typedef enum {
 /********************/
 
 typedef enum {
-      SEND_CODE = 0,         // Broadcast code with state
-      STATE_MSG,             // Broadcast state
+      SENT_CODE = 0,         // Broadcast code 
+      RESEND_CODE,             // ReBroadcast request
          } code_message_e;
 
 /*************************/
@@ -39,6 +44,12 @@ struct updater_msgqueue_s {
    } ;
    typedef struct updater_msgqueue_s* updater_msgqueue_t;
 
+struct updater_code_s {
+   uint8_t* bcode;
+   uint8_t* bcode_size;
+} ;
+typedef struct updater_code_s* updater_code_t;
+
 /**************************/
 /*Updater data*/
 /**************************/
@@ -48,8 +59,14 @@ struct buzz_updater_elem_s {
       //uint16_t robotid;
      /*current Bytecode content */
       uint8_t* bcode;
+     /*old Bytecode name */
+      const char* old_bcode;
       /*current bcode size*/
       size_t* bcode_size;
+      /*Update patch*/
+      uint8_t* patch;
+      /* Update patch size*/
+      size_t* patch_size;
       /*current Bytecode content */
       uint8_t* standby_bcode;
       /*current bcode size*/
@@ -61,19 +78,19 @@ struct buzz_updater_elem_s {
       /*Current state of the updater one in code_states_e ENUM*/
       int* mode;
       uint8_t* update_no;
-   } ;
+   };
    typedef struct buzz_updater_elem_s* buzz_updater_elem_t;
 
 /**************************************************************************/
 /*Updater routine from msg processing to file checks to be called from main*/
 /**************************************************************************/
-void update_routine(const char* bcfname,
-                           const char* dbgfname);
+void update_routine();
 
 /************************************************/
 /*Initalizes the updater */
 /************************************************/
-void init_update_monitor(const char* bo_filename,const char* stand_by_script);
+void init_update_monitor(const char* bo_filename,const char* stand_by_script,
+                           const char* dbgfname, int robot_id);
 
 
 /*********************************************************/
@@ -129,9 +146,11 @@ int get_update_status();
 
 void set_read_update_status();
 
-int compile_bzz();
+int compile_bzz(std::string bzz_file);
 
 void updates_set_robots(int robots);
+
+void set_packet_id(int packet_id);
 
 void collect_data(std::ofstream &logger);
 #endif

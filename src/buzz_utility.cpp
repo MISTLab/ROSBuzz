@@ -462,14 +462,8 @@ int create_stig_tables() {
 	int buzz_script_set(const char* bo_filename,
 	                    const char* bdbg_filename, int robot_id) {
 	   	ROS_INFO(" Robot ID: %i" , robot_id);
-	   	/* Reset the Buzz VM */
-	   	if(VM) buzzvm_destroy(&VM);
-		Robot_id = robot_id;
-	   	VM = buzzvm_new((int)robot_id);
-	   	/* Get rid of debug info */
-	   	if(DBG_INFO) buzzdebug_destroy(&DBG_INFO);
-	   	DBG_INFO = buzzdebug_new();
-	   	/* Read bytecode and fill in data structure */
+		Robot_id=robot_id;
+	   	/* Read bytecode from file and fill the bo buffer*/
 	   	FILE* fd = fopen(bo_filename, "rb");
 	   	if(!fd) {
 	      		perror(bo_filename);
@@ -487,61 +481,11 @@ int create_stig_tables() {
       		return 0;
 	   	}
 	   	fclose(fd);
-	   	/* Read debug information */
-	   	if(!buzzdebug_fromfile(DBG_INFO, bdbg_filename)) {
-	      		buzzvm_destroy(&VM);
-	      		buzzdebug_destroy(&DBG_INFO);
-	      		perror(bdbg_filename);
-      		return 0;
-   	}
-   	/* Set byte code */
-   	if(buzzvm_set_bcode(VM, BO_BUF, bcode_size) != BUZZVM_STATE_READY) {
-      		buzzvm_destroy(&VM);
-      		buzzdebug_destroy(&DBG_INFO);
-      		ROS_ERROR("[%i] %s: Error loading Buzz script", Robot_id, bo_filename);
-      		return 0;
-   	}
-   	/* Register hook functions */
-   	if(buzz_register_hooks() != BUZZVM_STATE_READY) {
-      		buzzvm_destroy(&VM);
-      		buzzdebug_destroy(&DBG_INFO);
-      		ROS_ERROR("[%i] Error registering hooks", Robot_id);
-      		return 0;
-   	}
-
-	// Initialize UAVSTATE variable
-	buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE", 1));
-	buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
-	buzzvm_gstore(VM);
-
-   	/* Create vstig tables
-	if(create_stig_tables() != BUZZVM_STATE_READY) {
-      		buzzvm_destroy(&VM);
-      		buzzdebug_destroy(&DBG_INFO);
-      		ROS_ERROR("[%i] Error creating stigmergy tables", Robot_id);
-			//cout << "ERROR!!!!   ----------  " << VM->errormsg << endl;
-			//cout << "ERROR!!!!   ----------  " << buzzvm_strerror(VM) << endl;
-      		return 0;
-   	}*/
-
+	   	
    	/* Save bytecode file name */
    	BO_FNAME = strdup(bo_filename);
 
-   	// Execute the global part of the script
-   	if(buzzvm_execute_script(VM)!= BUZZVM_STATE_DONE){
-		ROS_ERROR("Error executing global part, VM state : %i",VM->state);
-		return 0;
-	}
-   	// Call the Init() function
-   	if(buzzvm_function_call(VM, "init", 0) != BUZZVM_STATE_READY){
-		ROS_ERROR("Error in  calling init, VM state : %i", VM->state);
-		return 0;
-	}
-   	/* All OK */
-
-    	ROS_INFO("[%i] INIT DONE!!!", Robot_id);
-
-   	return 1;//buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
+	return buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
 	}
 
 	/****************************************/
@@ -717,7 +661,7 @@ int create_stig_tables() {
    	void update_sensors(){
 		/* Update sensors*/
 		buzzuav_closures::buzzuav_update_battery(VM);
-    buzzuav_closures::buzzuav_update_xbee_status(VM);
+    		buzzuav_closures::buzzuav_update_xbee_status(VM);
 	   	buzzuav_closures::buzzuav_update_prox(VM);
 	   	buzzuav_closures::buzzuav_update_currentpos(VM);
 	   	buzzuav_closures::update_neighbors(VM);
