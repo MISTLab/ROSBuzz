@@ -1,11 +1,11 @@
 /** @file      buzzuav_closures.cpp
  *  @version   1.0
  *  @date      27.09.2016
- *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone.
- *  @author    Vivek Shankar Varadharajan
+ *  @brief     Buzz Implementation as a node in ROS.
+ *  @author    Vivek Shankar Varadharajan and David St-Onge
  *  @copyright 2016 MistLab. All rights reserved.
  */
-//#define _GNU_SOURCE
+
 #include "buzzuav_closures.h"
 #include "math.h"
 
@@ -192,11 +192,6 @@ int buzzros_print(buzzvm_t vm)
     goto_pos[0]=dx;
     goto_pos[1]=dy;
     goto_pos[2]=height+dh;
-    /*double b = atan2(dy,dx);		//bearing
-    printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
-    gps_from_rb(d, b, goto_pos);
-    cur_cmd=mavros_msgs::CommandCode::NAV_WAYPOINT;*/
-      //printf(" Vector for Goto: %.7f,%.7f\n",dx,dy);
     //ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0], goto_pos[1], goto_pos[2]);
     buzz_cmd = COMMAND_MOVETO; // TO DO what should we use
     return buzzvm_ret0(vm);
@@ -205,12 +200,8 @@ int buzzros_print(buzzvm_t vm)
 	int buzzuav_update_targets(buzzvm_t vm) {
 		if(vm->state != BUZZVM_STATE_READY) return vm->state;
 		buzzvm_pushs(vm, buzzvm_string_register(vm, "targets", 1));
-		//buzzobj_t t = buzzheap_newobj(vm->heap, BUZZTYPE_TABLE);
-		//buzzvm_push(vm, t);
 		buzzvm_pusht(vm);
 		buzzobj_t targettbl = buzzvm_stack_at(vm, 1);
-		//buzzvm_tput(vm);
-		//buzzvm_dup(vm);
 		double rb[3], tmp[3];
 		map< int, buzz_utility::RB_struct >::iterator it;
 		for (it=targets_map.begin(); it!=targets_map.end(); ++it){
@@ -736,31 +727,6 @@ int buzzros_print(buzzvm_t vm)
       buzzvm_pushi(vm, 4);
      buzzvm_push(vm, tProxRead);
     buzzvm_tput(vm);
-
-   /*
-    buzzvm_pushs(vm, buzzvm_string_register(vm, "proximity", 1));
-     buzzvm_pusht(vm);
-     buzzvm_dup(vm);
-     buzzvm_pushs(vm, buzzvm_string_register(vm, "bottom", 1));
-     buzzvm_pushf(vm, obst[0]);
-     buzzvm_tput(vm);
-     buzzvm_dup(vm);
-     buzzvm_pushs(vm, buzzvm_string_register(vm, "front", 1));
-     buzzvm_pushf(vm, obst[1]);
-     buzzvm_tput(vm);
-     buzzvm_dup(vm);
-     buzzvm_pushs(vm, buzzvm_string_register(vm, "right", 1));
-     buzzvm_pushf(vm, obst[2]);
-     buzzvm_tput(vm);
-     buzzvm_dup(vm);
-     buzzvm_pushs(vm, buzzvm_string_register(vm, "back", 1));
-     buzzvm_pushf(vm, obst[3]);
-     buzzvm_tput(vm);
-     buzzvm_dup(vm);
-     buzzvm_pushs(vm, buzzvm_string_register(vm, "left", 1));
-     buzzvm_pushf(vm, obst[4]);
-     buzzvm_tput(vm);
-     buzzvm_gstore(vm);*/
      return vm->state;
   }
 
@@ -769,13 +735,5 @@ int buzzros_print(buzzvm_t vm)
   /**********************************************/
 
   int dummy_closure(buzzvm_t vm){ return buzzvm_ret0(vm);}
-
-  /***********************************************/
-  /* Store Ros controller object pointer         */
-  /***********************************************/
-
-  //void set_ros_controller_ptr(const rosbzz_node::roscontroller* roscontroller_ptrin){
-  //roscontroller_ptr = roscontroller_ptrin;
-  //}
 
 }

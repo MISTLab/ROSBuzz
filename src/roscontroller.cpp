@@ -1,3 +1,11 @@
+/** @file      roscontroller.cpp
+ *  @version   1.0
+ *  @date      27.09.2016
+ *  @brief     Buzz Implementation as a node in ROS.
+ *  @author    Vivek Shankar Varadharajan and David St-Onge
+ *  @copyright 2016 MistLab. All rights reserved.
+ */
+ 
 #include "roscontroller.h"
 #include <thread>
 namespace rosbzz_node {
@@ -424,7 +432,6 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle &n_c)
   capture_srv = n_c.serviceClient<mavros_msgs::CommandBool>(capture_srv_name);
   stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
 
-  users_sub = n_c.subscribe("users_pos", 5, &roscontroller::users_pos, this);
   local_pos_sub = n_c.subscribe(local_pos_sub_name, 5, &roscontroller::local_pos_callback, this);
 
   multi_msg = true;
@@ -877,19 +884,6 @@ void roscontroller::local_pos_callback(
   local_pos_new[2] = pose->pose.position.z;
 }
 
-void roscontroller::users_pos(const rosbuzz::neigh_pos data) {
-
-  int n = data.pos_neigh.size();
-  //	ROS_INFO("Users array size: %i\n", n);
-  if (n > 0) {
-    for (int it = 0; it < n; ++it) {
-      buzz_utility::add_user(data.pos_neigh[it].position_covariance_type,
-                             data.pos_neigh[it].latitude,
-                             data.pos_neigh[it].longitude,
-                             data.pos_neigh[it].altitude);
-    }
-  }
-}
 /*-------------------------------------------------------------
 / Update altitude into BVM from subscriber
 /-------------------------------------------------------------*/
@@ -1126,41 +1120,6 @@ void roscontroller::get_number_of_robots() {
       no_cnt = 0;
     }
   }
-  /*
-  if(count_robots.current !=0){
-    std::map< int,  int> count_count;
-    uint8_t index=0;
-    count_robots.history[count_robots.index]=neighbours_pos_map.size()+1;
-    //count_robots.current=neighbours_pos_map.size()+1;
-    count_robots.index++;
-    if(count_robots.index >9) count_robots.index =0;
-    for(int i=0;i<10;i++){
-      if(count_robots.history[i]==count_robots.current){
-        current_count++;
-      }
-      else{
-        if(count_robots.history[i]!=0){
-          odd_count++;
-          odd_val=count_robots.history[i];
-        }
-      }
-    }
-    if(odd_count>current_count){
-      count_robots.current=odd_val;
-    }
-  }
-  else{
-    if(neighbours_pos_map.size()!=0){
-      count_robots.history[count_robots.index]=neighbours_pos_map.size()+1;
-      //count_robots.current=neighbours_pos_map.size()+1;
-      count_robots.index++;
-      if(count_robots.index >9){
-        count_robots.index =0;
-        count_robots.current=neighbours_pos_map.size()+1;
-      }
-    }
-  }
-  */
 }
 
 void roscontroller::get_xbee_status()

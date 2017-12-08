@@ -1,8 +1,8 @@
 /** @file      rosbuzz.cpp
  *  @version   1.0 
  *  @date      27.09.2016
- *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone. 
- *  @author    Vivek Shankar Varadharajan
+ *  @brief     Buzz Implementation as a node in ROS. 
+ *  @author    Vivek Shankar Varadharajan and David St-Onge
  *  @copyright 2016 MistLab. All rights reserved.
  */
 

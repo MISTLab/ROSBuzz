@@ -1,6 +1,5 @@
 #pragma once
-//#ifndef BUZZUAV_CLOSURES_H
-//#define BUZZUAV_CLOSURES_H
+
 #include <buzz/buzzvm.h>
 #include <stdio.h>
 #include "uav_utility.h"

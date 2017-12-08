@@ -1,7 +1,7 @@
 #ifndef BUZZ_UPDATE_H
 #define BUZZ_UPDATE_H
 /*Simulation or robot check*/
-#define SIMULATION 1
+//#define SIMULATION 1 // set in CMAKELIST
 
 #include <stdlib.h>
 #include <stdio.h>

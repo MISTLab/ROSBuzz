@@ -42,13 +42,8 @@ uint16_t* u64_cvt_u16(uint64_t u64);
 
 int buzz_listen(const char* type,
                        int msg_size);
-
-void add_user(int id, double latitude, double longitude, float altitude);
-void update_users();
 int make_table(buzzobj_t* t);
-int buzzusers_add(int id, double latitude, double longitude, double altitude);
 int buzzusers_reset();
-	int compute_users_rb();
 	int create_stig_tables();
 
 void in_msg_append(uint64_t* payload);

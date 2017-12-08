@@ -212,7 +212,6 @@ private:
 
   /*current position callback*/
   void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
-    void users_pos(const rosbuzz::neigh_pos msg);
 
 
   /*current relative altitude callback*/
