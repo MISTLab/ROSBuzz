@@ -93,7 +93,7 @@ Service
 -------
 
 * Remote Controller:
-The package offers a mavros_msgs/CommandLong service "buzzcmd" to control its state.
+The package offers a mavros_msgs/CommandLong service "buzzcmd" to control its state. In the "misc" folder a bash script shows how to control the Buzz states from the command line.
 
 References
 ------
