@@ -71,7 +71,6 @@ roscontroller::~roscontroller()
   /* Cleanup */
   buzz_utility::buzz_script_destroy();
   /* Stop the robot */
-  uav_done();
   log.close();
 }
 
@@ -364,7 +363,7 @@ used
 void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
 {
   m_sMySubscriptions.clear();
-  std::string gps_topic, gps_type;
+  std::string gps_topic;
   if (node_handle.getParam("topics/gps", gps_topic))
     ;
   else
@@ -452,6 +451,7 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c)
   payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 5);
   MPpayload_pub = n_c.advertise<mavros_msgs::Mavlink>("fleet_status", 5);
   neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos", 5);
+  uavstate_pub = n_c.advertise<std_msgs::String>("uavstate", 5);
   localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name, 5);
 
   /* Service Clients*/
@@ -547,6 +547,16 @@ void roscontroller::neighbours_pos_publisher()
     // std::cout<<"long obt"<<neigh_tmp.longitude<<endl;
   }
   neigh_pos_pub.publish(neigh_pos_array);
+}
+
+/*----------------------------------------------------
+/ Publish current UAVState from Buzz script
+/----------------------------------------------------*/
+void roscontroller::uavstate_publisher()
+{
+  std_msgs::String uavstate_msg;
+  uavstate_msg.data = buzzuav_closures::getuavstate();
+  uavstate_pub.publish(uavstate_msg);
 }
 
 /*--------------------------------------------------------
@@ -877,11 +887,6 @@ void roscontroller::gps_ned_cur(float& ned_x, float& ned_y, GPS t)
   gps_convert_ned(ned_x, ned_y, t.longitude, t.latitude, cur_pos.longitude, cur_pos.latitude);
 }
 
-void roscontroller::gps_ned_home(float& ned_x, float& ned_y)
-{
-  gps_convert_ned(ned_x, ned_y, cur_pos.longitude, cur_pos.latitude, home.longitude, home.latitude);
-}
-
 void roscontroller::gps_convert_ned(float& ned_x, float& ned_y, double gps_t_lon, double gps_t_lat, double gps_r_lon,
                                     double gps_r_lat)
 {
@@ -931,13 +936,6 @@ void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg)
 {
   // ROS_INFO("Altitude out: %f", cur_rel_altitude);
   fcu_timeout = TIMEOUT;
-  // double lat = std::floor(msg->latitude * 1000000) / 1000000;
-  // double lon = std::floor(msg->longitude * 1000000) / 1000000;
-  /*if(cur_rel_altitude<1.2){
-    home[0]=lat;
-    home[1]=lon;
-    home[2]=cur_rel_altitude;
-  }*/
   set_cur_pos(msg->latitude, msg->longitude, cur_rel_altitude);                       // msg->altitude);
   buzzuav_closures::set_currentpos(msg->latitude, msg->longitude, cur_rel_altitude);  // msg->altitude);
 }

@@ -94,22 +94,6 @@ void setWPlist(string path)
   WPlistname = path + "include/graphs/waypointlist.csv";
 }
 
-/*----------------------------------------/
-/ Compute GPS destination from current position and desired Range and Bearing
-/----------------------------------------*/
-
-void gps_from_rb(double range, double bearing, double out[3])
-{
-  double lat = RAD2DEG(cur_pos[0]);
-  double lon = RAD2DEG(cur_pos[1]);
-  out[0] = asin(sin(lat) * cos(range / EARTH_RADIUS) + cos(lat) * sin(range / EARTH_RADIUS) * cos(bearing));
-  out[1] = lon + atan2(sin(bearing) * sin(range / EARTH_RADIUS) * cos(lat),
-                       cos(range / EARTH_RADIUS) - sin(lat) * sin(out[0]));
-  out[0] = RAD2DEG(out[0]);
-  out[1] = RAD2DEG(out[1]);
-  out[2] = height;  // constant height.
-}
-
 float constrainAngle(float x)
 {
   x = fmod(x, 2 * M_PI);
@@ -118,6 +102,9 @@ float constrainAngle(float x)
   return x;
 }
 
+/*----------------------------------------/
+/ Compute Range and Bearing from 2 GPS set of coordinates
+/----------------------------------------*/
 void rb_from_gps(double nei[], double out[], double cur[])
 {
   double d_lon = nei[1] - cur[1];
@@ -128,11 +115,6 @@ void rb_from_gps(double nei[], double out[], double cur[])
   out[1] = constrainAngle(atan2(ned_y, ned_x));
   out[2] = 0.0;
 }
-
-// Hard coded GPS position in Park Maisonneuve, Montreal, Canada for simulation tests
-double hcpos1[4] = { 45.564489, -73.562537, 45.564140, -73.562336 };
-double hcpos2[4] = { 45.564729, -73.562060, 45.564362, -73.562958 };
-double hcpos3[4] = { 45.564969, -73.562838, 45.564636, -73.563677 };
 
 void parse_gpslist()
 {
@@ -468,7 +450,6 @@ float* getgimbal()
 string getuavstate()
 {
   static buzzvm_t VM = buzz_utility::get_vm();
-  std::stringstream state_buff;
   buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE", 1));
   buzzvm_gload(VM);
   buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
@@ -479,13 +460,6 @@ string getuavstate()
 int getcmd()
 {
   return cur_cmd;
-}
-
-void set_goto(double pos[])
-{
-  goto_pos[0] = pos[0];
-  goto_pos[1] = pos[1];
-  goto_pos[2] = pos[2];
 }
 
 int bzz_cmd()

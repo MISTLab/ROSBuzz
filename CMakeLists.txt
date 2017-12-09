@@ -59,7 +59,6 @@ add_executable(rosbuzz_node src/rosbuzz.cpp
   src/roscontroller.cpp
   src/buzz_utility.cpp
   src/buzzuav_closures.cpp
-  src/uav_utility.cpp 
   src/buzz_update.cpp)
 target_link_libraries(rosbuzz_node ${catkin_LIBRARIES} buzz buzzdbg pthread)
 add_dependencies(rosbuzz_node rosbuzz_generate_messages_cpp)

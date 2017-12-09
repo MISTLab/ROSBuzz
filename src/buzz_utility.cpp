@@ -450,44 +450,6 @@ struct buzzswarm_elem_s
 };
 typedef struct buzzswarm_elem_s* buzzswarm_elem_t;
 
-void check_swarm_members(const void* key, void* data, void* params)
-{
-  buzzswarm_elem_t e = *(buzzswarm_elem_t*)data;
-  int* status = (int*)params;
-  if (*status == 3)
-    return;
-  fprintf(stderr, "CHECKING SWARM :%i, member: %i, age: %i \n", buzzdarray_get(e->swarms, 0, uint16_t), *(uint16_t*)key,
-          e->age);
-  if (buzzdarray_size(e->swarms) != 1)
-  {
-    fprintf(stderr, "Swarm list size is not 1\n");
-    *status = 3;
-  }
-  else
-  {
-    int sid = 1;
-    if (!buzzdict_isempty(VM->swarms))
-    {
-      if (*buzzdict_get(VM->swarms, &sid, uint8_t) && buzzdarray_get(e->swarms, 0, uint16_t) != sid)
-      {
-        fprintf(stderr, "I am in swarm #%d and neighbor is in %d\n", sid, buzzdarray_get(e->swarms, 0, uint16_t));
-        *status = 3;
-        return;
-      }
-    }
-    if (buzzdict_size(VM->swarms) > 1)
-    {
-      sid = 2;
-      if (*buzzdict_get(VM->swarms, &sid, uint8_t) && buzzdarray_get(e->swarms, 0, uint16_t) != sid)
-      {
-        fprintf(stderr, "I am in swarm #%d and neighbor is in %d\n", sid, buzzdarray_get(e->swarms, 0, uint16_t));
-        *status = 3;
-        return;
-      }
-    }
-  }
-}
-
 /*Step through the buzz script*/
 void update_sensors()
 {

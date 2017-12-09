@@ -20,12 +20,12 @@
 #include "mavros_msgs/ParamGet.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/Float64.h"
+#include "std_msgs/String.h"
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
 #include <sstream>
 #include <buzz/buzzasm.h>
 #include "buzz_utility.h"
-#include "uav_utility.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -65,7 +65,9 @@ private:
     {
     }
   };
-  typedef struct num_robot_count Num_robot_count;  // not useful in cpp
+  typedef struct num_robot_count Num_robot_count;
+
+  Num_robot_count count_robots;
 
   struct gps
   {
@@ -115,13 +117,13 @@ private:
   bool rcclient;
   bool xbeeplugged = false;
   bool multi_msg;
-  Num_robot_count count_robots;
   ros::ServiceClient mav_client;
   ros::ServiceClient xbeestatus_srv;
   ros::ServiceClient capture_srv;
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
   ros::Publisher neigh_pos_pub;
+  ros::Publisher uavstate_pub;
   ros::Publisher localsetpoint_nonraw_pub;
   ros::ServiceServer service;
   ros::Subscriber current_position_sub;
@@ -160,7 +162,7 @@ private:
   /*Initialize publisher and subscriber, done in the constructor*/
   void Initialize_pub_sub(ros::NodeHandle& n_c);
 
-  std::string current_mode;  // SOLO SPECIFIC: just so you don't call the switch to same mode
+  std::string current_mode;
 
   /*Obtain data from ros parameter server*/
   void Rosparameters_get(ros::NodeHandle& n_c_priv);
@@ -174,6 +176,10 @@ private:
   /*Neighbours pos publisher*/
   void neighbours_pos_publisher();
 
+  /*UAVState publisher*/
+  void uavstate_publisher();
+
+  /*BVM message payload publisher*/
   void send_MPpayload();
 
   /*Prepare messages and publish*/
@@ -190,11 +196,11 @@ private:
 
   /*Set the current position of the robot callback*/
   void set_cur_pos(double latitude, double longitude, double altitude);
+
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);
   void gps_rb(GPS nei_pos, double out[]);
   void gps_ned_cur(float& ned_x, float& ned_y, GPS t);
-  void gps_ned_home(float& ned_x, float& ned_y);
   void gps_convert_ned(float& ned_x, float& ned_y, double gps_t_lon, double gps_t_lat, double gps_r_lon,
                        double gps_r_lat);
 

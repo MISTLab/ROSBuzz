@@ -75,37 +75,41 @@ Run
 ===
 To run the ROSBuzz package using the launch file, execute the following:
 
-    $ roslaunch rosbuzz rosbuzzm100.launch
+    $ roslaunch rosbuzz rosbuzz.launch
     
-Note : Before launching the ROSBuzz node, verify all the parameter in the launch file.
+Note : Before launching the ROSBuzz node, verify all the parameters in the launch file. A launch file using gdb is available also (rosbuzzd.launch).
+
+* Buzz scripts: Several behavioral scripts are included in the "buzz_Scripts" folder, such as "graphformGPS.bzz" uses in the ICRA publication below and the "testaloneWP.bzz" to control a single drone with a ".csv" list of waypoints. The script "empty.bzz" is a template script.
 
 Publisher
 =========
 
 * Messages from Buzz (BVM):
-The package publishes mavros_msgs/Mavlink message with a topic name of "outMavlink". 
+The package publishes mavros_msgs/Mavlink message "outMavlink".
+
+* Command to the flight controller:
+The package publishes geometry_msgs/PoseStamped message "setpoint_position/local".
 
 Subscribers
 -----------
 
 * Current position of the Robot:
-The package subscribes' to sensor_msgs/NavSatFix message with a topic name of "current_pos".
+The package subscribes to sensor_msgs/NavSatFix message "global_position/global", to a std_msgs/Float64 message "global_position/rel_alt" and to a geometry_msgs/PoseStamped message "local_position/pose".
 
 * Messages to Buzz (BVM):
-The package subscribes' to mavros_msgs/Mavlink message with a topic name of "inMavlink".
+The package subscribes to mavros_msgs/Mavlink message with a topic name of "inMavlink".
 
-* Battery status:
-The package subscribes' to mavros_msgs/BatteryStatus message with a topic name of "battery_state".
+* Status:
+The package subscribes to mavros_msgs/BatteryStatus message "battery" and to either a mavros_msgs/ExtendedState message "extended_state" or a mavros_msgs/State message "state".
 
 Service
 -------
 
-* Remote Controller command:
-The package offers service using mavros_msgs/CommandInt service with name "rc_cmd".
+* Remote Controller:
+The package offers a mavros_msgs/CommandLong service "buzzcmd" to control its state.
 
-Client
+References
 ------
+* ROS and Buzz : consensus-based behaviors for heterogeneous teams. Submitted to the Internaional Conference on Robotics and Automation (September 2017). 6pgs. St-Onge, D., Shankar Varadharajan, V., Li, G., Svogor, I. and Beltrame, G. arXiv : https://arxiv.org/abs/1710.08843
 
-* Flight controller client:
-This package is a client of mavros_msgs/CommandInt service with name "fc_cmd".
- 
+* Over-The-Air Updates for Robotic Swarms. Accepted by IEEE Software (September 2017 - pending minor revision). 8pgs. Shankar Varadharajan, V., St-Onge, D., Guß, C. and Beltrame, G.

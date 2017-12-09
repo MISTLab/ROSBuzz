@@ -2,7 +2,6 @@
 
 #include <buzz/buzzvm.h>
 #include <stdio.h>
-#include "uav_utility.h"
 #include "mavros_msgs/CommandCode.h"
 #include "mavros_msgs/Mavlink.h"
 #include "ros/ros.h"
@@ -46,8 +45,6 @@ void parse_gpslist();
 int buzzuav_takepicture(buzzvm_t vm);
 /* Returns the current command from local variable*/
 int getcmd();
-/*Sets goto position */
-void set_goto(double pos[]);
 /*Sets goto position from rc client*/
 void rc_set_goto(int id, double latitude, double longitude, double altitude);
 /*Sets gimbal orientation from rc client*/
