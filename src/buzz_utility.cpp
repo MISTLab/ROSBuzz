@@ -24,10 +24,10 @@ std::map<int, Pos_struct> users_map;
 
 /****************************************/
 
-/**************************************************************************/
-/*Deserializes uint64_t into 4 uint16_t, freeing out is left to the user  */
-/**************************************************************************/
 uint16_t* u64_cvt_u16(uint64_t u64)
+/*
+/ Deserializes uint64_t into 4 uint16_t, freeing out is left to the user
+------------------------------------------------------------------------*/
 {
   uint16_t* out = new uint16_t[4];
   uint32_t int32_1 = u64 & 0xFFFFFFFF;
@@ -36,61 +36,66 @@ uint16_t* u64_cvt_u16(uint64_t u64)
   out[1] = (int32_1 & (0xFFFF0000)) >> 16;
   out[2] = int32_2 & 0xFFFF;
   out[3] = (int32_2 & (0xFFFF0000)) >> 16;
+  //  DEBUG
   // cout << " values " <<out[0] <<"  "<<out[1] <<"  "<<out[2] <<"  "<<out[3] <<"  ";
   return out;
 }
 
 int get_robotid()
+/*
+/ return this robot ID
+------------------------------------------------------------------------*/
 {
   return Robot_id;
 }
-/***************************************************/
-/*Appends obtained messages to buzz in message Queue*/
-/***************************************************/
-
-/*******************************************************************************************************************/
-/* Message format of payload (Each slot is uint64_t)						                   */
-/* _______________________________________________________________________________________________________________ */
-/*|					        		             |			                  |*/
-/*|Size in Uint64_t(but size is Uint16_t)|robot_id|Update msg size|Update msg|Update msgs+Buzz_msgs with size.....|*/
-/*|__________________________________________________________________________|____________________________________|*/
-/*******************************************************************************************************************/
 
 void in_msg_append(uint64_t* payload)
+/*
+/  Appends obtained messages to buzz in message Queue
+---------------------------------------------------------------------
+/ Message format of payload (Each slot is uint64_t)
+/ _______________________________________________________________________________________________________________
+/|					        		             |			                  |
+/|Size in Uint64_t(but size is Uint16_t)|robot_id|Update msg size|Update msg|Update msgs+Buzz_msgs with size.....|
+/|__________________________________________________________________________|____________________________________|
+---------------------------------------------------------------------------------------------------------------------*/
 {
-  /* Go through messages and append them to the vector */
+  // Go through messages and append them to the vector
   uint16_t* data = u64_cvt_u16((uint64_t)payload[0]);
-  /*Size is at first 2 bytes*/
+  //  Size is at first 2 bytes
   uint16_t size = data[0] * sizeof(uint64_t);
   delete[] data;
   uint8_t* pl = (uint8_t*)malloc(size);
-  /* Copy packet into temporary buffer */
+  // Copy packet into temporary buffer
   memcpy(pl, payload, size);
   IN_MSG.push_back(pl);
 }
 
 void in_message_process()
+/*
+/  Process msgs in
+---------------------------------------------------------------------------------------------------------------------*/
 {
   while (!IN_MSG.empty())
   {
-    /* Go through messages and append them to the FIFO */
+    // Go through messages and append them to the FIFO
     uint8_t* first_INmsg = (uint8_t*)IN_MSG.front();
     size_t tot = 0;
-    /*Size is at first 2 bytes*/
+    //  Size is at first 2 bytes
     uint16_t size = (*(uint16_t*)first_INmsg) * sizeof(uint64_t);
     tot += sizeof(uint16_t);
-    /*Decode neighbor Id*/
+    //  Decode neighbor Id
     uint16_t neigh_id = *(uint16_t*)(first_INmsg + tot);
     tot += sizeof(uint16_t);
-    /* Go through the messages until there's nothing else to read */
+    // Go through the messages until there's nothing else to read
     uint16_t unMsgSize = 0;
-    /*Obtain Buzz messages push it into queue*/
+    //  Obtain Buzz messages push it into queue
     do
     {
-      /* Get payload size */
+      // Get payload size
       unMsgSize = *(uint16_t*)(first_INmsg + tot);
       tot += sizeof(uint16_t);
-      /* Append message to the Buzz input message queue */
+      // Append message to the Buzz input message queue
       if (unMsgSize > 0 && unMsgSize <= size - tot)
       {
         buzzinmsg_queue_append(VM, neigh_id, buzzmsg_payload_frombuffer(first_INmsg + tot, unMsgSize));
@@ -100,33 +105,34 @@ void in_message_process()
     free(first_INmsg);
     IN_MSG.erase(IN_MSG.begin());
   }
-  /* Process messages VM call*/
+  // Process messages VM call*
   buzzvm_process_inmsgs(VM);
 }
 
-/***************************************************/
-/*Obtains messages from buzz out message Queue*/
-/***************************************************/
 uint64_t* obt_out_msg()
+/*
+/ Obtains messages from buzz out message Queue
+-------------------------------------------------*/
 {
-  /* Process out messages */
+  // Process out messages
   buzzvm_process_outmsgs(VM);
   uint8_t* buff_send = (uint8_t*)malloc(MAX_MSG_SIZE);
   memset(buff_send, 0, MAX_MSG_SIZE);
-  /*Taking into consideration the sizes included at the end*/
+  //  Taking into consideration the sizes included at the end
   ssize_t tot = sizeof(uint16_t);
-  /* Send robot id */
+  // Send robot id
   *(uint16_t*)(buff_send + tot) = (uint16_t)VM->robot;
   tot += sizeof(uint16_t);
-  /* Send messages from FIFO */
+  // Send messages from FIFO
   do
   {
-    /* Are there more messages? */
+    // Are there more messages?
     if (buzzoutmsg_queue_isempty(VM))
       break;
-    /* Get first message */
+    // Get first message
     buzzmsg_payload_t m = buzzoutmsg_queue_first(VM);
-    /* Make sure the next message makes the data buffer with buzz messages to be less than MAX SIZE Bytes */
+    // Make sure the next message makes the data buffer with buzz messages to be less than MAX SIZE Bytes
+    //  DEBUG
     // ROS_INFO("read size : %i", (int)(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)));
     if ((uint32_t)(tot + buzzmsg_payload_size(m) + sizeof(uint16_t)) > MAX_MSG_SIZE)
     {
@@ -134,15 +140,15 @@ uint64_t* obt_out_msg()
       break;
     }
 
-    /* Add message length to data buffer */
+    // Add message length to data buffer
     *(uint16_t*)(buff_send + tot) = (uint16_t)buzzmsg_payload_size(m);
     tot += sizeof(uint16_t);
 
-    /* Add payload to data buffer */
+    // Add payload to data buffer
     memcpy(buff_send + tot, m->data, buzzmsg_payload_size(m));
     tot += buzzmsg_payload_size(m);
 
-    /* Get rid of message */
+    // Get rid of message
     buzzoutmsg_queue_next(VM);
     buzzmsg_payload_destroy(&m);
   } while (1);
@@ -154,18 +160,18 @@ uint64_t* obt_out_msg()
 
   memcpy((void*)payload_64, (void*)buff_send, total_size * sizeof(uint64_t));
   free(buff_send);
-  /*for(int i=0;i<total_size;i++){
-  cout<<" payload from out msg  "<<*(payload_64+i)<<endl;
-  }*/
-  /* Send message */
+  //  DEBUG
+  // for(int i=0;i<total_size;i++){
+  // cout<<" payload from out msg  "<<*(payload_64+i)<<endl;
+  //}
+  // Send message
   return payload_64;
 }
 
-/****************************************/
-/*Buzz script not able to load*/
-/****************************************/
-
 static const char* buzz_error_info()
+/*
+/ Buzz script not able to load
+---------------------------------*/
 {
   buzzdebug_entry_t dbg = *buzzdebug_info_get_fromoffset(DBG_INFO, &VM->pc);
   char* msg;
@@ -181,11 +187,10 @@ static const char* buzz_error_info()
   return msg;
 }
 
-/****************************************/
-/*Buzz hooks that can be used inside .bzz file*/
-/****************************************/
-
 static int buzz_register_hooks()
+/*
+/ Buzz hooks that can be used inside .bzz file
+------------------------------------------------*/
 {
   buzzvm_pushs(VM, buzzvm_string_register(VM, "print", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
@@ -233,11 +238,10 @@ static int buzz_register_hooks()
   return VM->state;
 }
 
-/**************************************************/
-/*Register dummy Buzz hooks for test during update*/
-/**************************************************/
-
 static int testing_buzz_register_hooks()
+/*
+/ Register dummy Buzz hooks for test during update
+---------------------------------------------------*/
 {
   buzzvm_pushs(VM, buzzvm_string_register(VM, "print", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzros_print));
@@ -285,14 +289,14 @@ static int testing_buzz_register_hooks()
   return VM->state;
 }
 
-/****************************************/
-/*Sets the .bzz and .bdbg file*/
-/****************************************/
 int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robot_id)
+/*
+/ Sets the .bzz and .bdbg file
+---------------------------------*/
 {
   ROS_INFO(" Robot ID: %i", robot_id);
   Robot_id = robot_id;
-  /* Read bytecode from file and fill the bo buffer*/
+  // Read bytecode from file and fill the bo buffer
   FILE* fd = fopen(bo_filename, "rb");
   if (!fd)
   {
@@ -313,16 +317,16 @@ int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robo
   }
   fclose(fd);
 
-  /* Save bytecode file name */
+  // Save bytecode file name
   BO_FNAME = strdup(bo_filename);
 
   return buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
 }
 
-/****************************************/
-/*Sets a new update                     */
-/****************************************/
 int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size)
+/*
+/ Sets a new update
+-----------------------*/
 {
   // Reset the Buzz VM
   if (VM)
@@ -379,10 +383,10 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   return 1;
 }
 
-/****************************************/
-/*Performs a initialization test        */
-/****************************************/
 int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size)
+/*
+/ Performs a initialization test
+-----------------------------------*/
 {
   // Reset the Buzz VM
   if (VM)
@@ -439,38 +443,40 @@ int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t 
   return 1;
 }
 
-/****************************************/
-/*Swarm struct*/
-/****************************************/
-
 struct buzzswarm_elem_s
+/*
+/ Swarm struct
+----------------*/
 {
   buzzdarray_t swarms;
   uint16_t age;
 };
 typedef struct buzzswarm_elem_s* buzzswarm_elem_t;
 
-/*Step through the buzz script*/
 void update_sensors()
+/*
+/ Update from all external inputs
+-------------------------------*/
 {
-  /* Update sensors*/
+  // Update sensors
   buzzuav_closures::buzzuav_update_battery(VM);
   buzzuav_closures::buzzuav_update_xbee_status(VM);
   buzzuav_closures::buzzuav_update_prox(VM);
   buzzuav_closures::buzzuav_update_currentpos(VM);
   buzzuav_closures::update_neighbors(VM);
-  buzzuav_closures::buzzuav_update_targets(VM);
-  // update_users();
   buzzuav_closures::buzzuav_update_flight_status(VM);
 }
 
 void buzz_script_step()
+/*
+/ Step through the buzz script
+-------------------------------*/
 {
-  /*Process available messages*/
+  //  Process available messages
   in_message_process();
-  /*Update sensors*/
+  //  Update sensors
   update_sensors();
-  /* Call Buzz step() function */
+  // Call Buzz step() function
   if (buzzvm_function_call(VM, "step", 0) != BUZZVM_STATE_READY)
   {
     ROS_ERROR("%s: execution terminated abnormally: %s", BO_FNAME, buzz_error_info());
@@ -478,11 +484,10 @@ void buzz_script_step()
   }
 }
 
-/****************************************/
-/*Destroy the bvm and other resorces*/
-/****************************************/
-
 void buzz_script_destroy()
+/*
+/ Destroy the bvm and other related ressources
+-------------------------------------*/
 {
   if (VM)
   {
@@ -499,21 +504,20 @@ void buzz_script_destroy()
   ROS_INFO("Script execution stopped.");
 }
 
-/****************************************/
-/****************************************/
-
-/****************************************/
-/*Execution completed*/
-/****************************************/
-
 int buzz_script_done()
+/*
+/ Check if the BVM execution terminated
+---------------------------------------*/
 {
   return VM->state != BUZZVM_STATE_READY;
 }
 
 int update_step_test()
+/*
+/ Step test for the update mechanism
+------------------------------------*/
 {
-  /*Process available messages*/
+  //  Process available messages
   in_message_process();
   buzzuav_closures::buzzuav_update_battery(VM);
   buzzuav_closures::buzzuav_update_prox(VM);
@@ -533,11 +537,17 @@ int update_step_test()
 }
 
 buzzvm_t get_vm()
+/*
+/ return the BVM
+----------------*/
 {
   return VM;
 }
 
 void set_robot_var(int ROBOTS)
+/*
+/ set swarm size in the BVM
+-----------------------------*/
 {
   buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
   buzzvm_pushi(VM, ROBOTS);
@@ -545,6 +555,9 @@ void set_robot_var(int ROBOTS)
 }
 
 int get_inmsg_size()
+/*
+/ get the incoming msgs size
+------------------------------*/
 {
   return IN_MSG.size();
 }
