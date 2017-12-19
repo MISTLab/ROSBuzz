@@ -1,4 +1,3 @@
-include "vec2.bzz"
 include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
@@ -6,15 +5,18 @@ include "vstigenv.bzz"
 
 function action() {
   statef=action
-  uav_storegoal(45.5085,-73.1531935979886,5.0)
-  set_goto(picture)
+  uav_storegoal(45.5088103899,-73.1540826153,25.0)
+  set_goto(idle)
 }
 
 # Executed once at init time.
 function init() {
-	statef=turnedoff
-	UAVSTATE = "TURNEDOFF"
   	uav_initstig()
+	uav_initswarm()
+	#statef=turnedoff
+	#UAVSTATE = "TURNEDOFF"
+	statef = takeoff
+	UAVSTATE = "TAKEOFF"
 }
 
 # Executed at each time step.

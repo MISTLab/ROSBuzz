@@ -3,6 +3,7 @@
 # FLIGHT-RELATED FUNCTIONS
 #
 ########################################
+include "vec2.bzz"
 include "rrtstar.bzz"
 
 TARGET_ALTITUDE = 15.0 # m.
@@ -14,7 +15,6 @@ GOTODIST_TOL = 0.5  # m.
 GOTOANG_TOL = 0.1 # rad.
 cur_goal_l = 0
 rc_State = 0
-homegps = {.lat=0, .long=0}
 
 function uav_initswarm() {
 	s = swarm.create(1)
@@ -34,6 +34,7 @@ function idle() {
 function takeoff() {
 	UAVSTATE = "TAKEOFF"
 	statef=takeoff
+	homegps = {.lat=position.latitude, .long=position.longitude}
 
 	if( flight.status == 2 and position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 		barrier_set(ROBOTS, action, land, -1)
@@ -61,7 +62,7 @@ function land() {
 function set_goto(transf) {
 	UAVSTATE = "GOTOGPS"
 	statef=function() {
-    gotoWP(transf)
+    gotoWPRRT(transf)
   }
 
 	if(rc_goto.id==id){
@@ -93,10 +94,8 @@ function picture() {
 # still requires to be tuned, replaning takes too much time..
 # DS 23/11/2017
 function gotoWPRRT(transf) {
-	rc_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude)
-	homegps.lat = position.latitude
-	homegps.long = position.longitude
-	m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.long),-1)
+	rc_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
+	m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.long, 0),-1)
 	print(" has to move ", math.vec2.length(rc_goal), "from ", m_pos.x, " ", m_pos.y)
 
 	if(math.vec2.length(rc_goal)>GOTO_MAXDIST*5)
@@ -104,35 +103,36 @@ function gotoWPRRT(transf) {
 	else {
 		if(Path==nil){
 			# create the map
-			if(map==nil)
+			if(map==nil) {
 				UAVinit_map(rc_goal)
+				homegps.lat = position.latitude
+				homegps.long = position.longitude
+			}
 			# add proximity sensor and neighbor obstacles to the map
 			while(Path==nil) {
-				#getproxobs(m_pos)
-				UAVgetneiobs (m_pos)
+				updateMap(m_pos)
 				Path = UAVpathPlanner(rc_goal, m_pos)
 			}
 			cur_goal_l = 1
 		} else if(cur_goal_l <= size(Path)) {
-			cur_gps=getvec(Path,cur_goal_l)	#x=latitude, y=longitude
-			cur_pt=vec_from_gps(cur_gps.x,cur_gps.y)
-			print(" heading to ", cur_pt.x,cur_pt.y)
-			if(math.vec2.length(cur_pt)>GOTODIST_TOL) {
-				m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.long),-1)
-				UAVgetneiobs(m_pos)
-				if(check_path(Path,cur_goal_l,m_pos,0)) {
+			var cur_goal_gps = getvec(Path, cur_goal_l)	#x=latitude, y=longitude
+			var cur_goal_pt = vec_from_gps(cur_goal_gps.x, cur_goal_gps.y, 0)
+			print(" heading to [", cur_goal_l, "/", size(Path), "]", cur_goal_pt.x, cur_goal_pt.y)
+			if(math.vec2.length(cur_goal_pt) > GOTODIST_TOL) {
+				updateMap(m_pos)
+				if(check_path(Path, cur_goal_l, m_pos, 0)) {
 					uav_moveto(0.0, 0.0, rc_goto.altitude-position.altitude)
 					Path = nil
-					rc_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude)
+					rc_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude,0)
 					while(Path == nil) {
-						#getproxobs(m_pos)
-						UAVgetneiobs (m_pos)
+						updateMap(m_pos)
 						Path = UAVpathPlanner(rc_goal, m_pos)
 					}
 					cur_goal_l = 1
+				} else {
+					cur_goal_pt = math.vec2.scale(cur_goal_pt, GOTO_MAXVEL/math.vec2.length(cur_goal_pt))
+					uav_moveto(cur_goal_pt.x, cur_goal_pt.y, rc_goto.altitude-position.altitude)
 				}
-				cur_pt = math.vec2.scale(cur_pt, GOTO_MAXVEL/math.vec2.length(cur_pt))
-				uav_moveto(cur_pt.x, cur_pt.y, rc_goto.altitude-position.altitude)
 			}
 			else
 				cur_goal_l = cur_goal_l + 1
@@ -262,14 +262,18 @@ function LimitAngle(angle){
 		return angle
 }
 
-function vec_from_gps(lat, lon) {
-	d_lon = lon - position.longitude
+function vec_from_gps(lat, lon, home_ref) {
+  d_lon = lon - position.longitude
   d_lat = lat - position.latitude
+  if(home_ref == 1) {
+	  d_lon = lon - homegps.long
+	  d_lat = lat - homegps.lat
+  }
   ned_x = d_lat/180*math.pi * 6371000.0;
   ned_y = d_lon/180*math.pi * 6371000.0 * math.cos(lat/180*math.pi);
 	#Lgoal.range = math.sqrt(ned_x*ned_x+ned_y*ned_y);
 	#Lgoal.bearing = LimitAngle(math.atan(ned_y,ned_x));
-	return math.vec2.new(ned_x,ned_y)
+  return math.vec2.new(ned_x,ned_y)
 }
 
 function gps_from_vec(vec) {

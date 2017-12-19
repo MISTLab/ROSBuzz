@@ -5,8 +5,8 @@ robot_marker = "X"
 # copy a full matrix row
 function mat_copyrow(out,ro,in,ri){
     out[ro] = {}
-    var icr = 0
-    while(icr < size(in[ri])) {
+    var icr = 1
+    while(icr <= size(in[ri])) {
         out[ro][icr]=in[ri][icr]
         icr = icr + 1
     }
@@ -18,11 +18,11 @@ function getvec(t,row){
 
 function init_test_map(len){
     map = {}
-    var indexR = 0
-    while(indexR < len) {
+    var indexR = 1
+    while(indexR <= len) {
         map[indexR] = {}
-        var indexC = 0
-        while(indexC < len) {
+        var indexC = 1
+        while(indexC <= len) {
             map[indexR][indexC] = 1.0
             indexC = indexC + 1
         }
@@ -33,22 +33,22 @@ function init_test_map(len){
     map[6][5] = 0.0
     map[4][5] = 0.0
 
-    log("Occupancy grid initialized (",len,"x",len,") with obstacles.")
+    log("Occupancy grid initialized (",size(map),"x",size(map[1]),") with obstacles.")
 }
 
 function init_map(len){
     map = {}
-    var indexR = 0
-    while(indexR < len) {
+    var indexR = 1
+    while(indexR <= len) {
         map[indexR] = {}
-        var indexC = 0
-        while(indexC < len) {
+        var indexC = 1
+        while(indexC <= len) {
             map[indexR][indexC] = 1.0
             indexC = indexC + 1
         }
         indexR = indexR + 1
     }
-    log("Occupancy grid initialized (",len,"x",len,").")
+    log("Occupancy grid initialized (",size(map),"x",size(map[1]),").")
 }
 
 function add_obstacle(pos, off, inc_trust) {
@@ -57,7 +57,7 @@ function add_obstacle(pos, off, inc_trust) {
 
     if(xi <= size(map) and yi <= size(map[1]) and xi > 0 and yi > 0) {
         #log("Add obstacle in cell: ", xi, " ", yi)
-        old=map[xi][yi]
+        var old=map[xi][yi]
         if(old-inc_trust > 0.0)
           map[xi][yi] = old-inc_trust
         else
@@ -71,13 +71,37 @@ function remove_obstacle(pos, off, dec_trust) {
 
     if(xi <= size(map) and yi <= size(map[1]) and xi > 0 and yi > 0){
         #log("Remove obstacle in cell: ", xi, " ", yi)
-        old=map[xi][yi]
+        var old=map[xi][yi]
         if(old + dec_trust < 1.0)  #x,y
           map[xi][yi] = old+dec_trust
         else
           map[xi][yi] = 1.0
     }
 }
+
+
+function get_occupied_cells(cur_cell){
+  var i = 1
+  var occupied_cells = {}
+  occupied_cells[0] = cur_cell
+  occupied_cells[1] = math.vec2.new(cur_cell.x + 1, cur_cell.y)
+  occupied_cells[2] = math.vec2.new(cur_cell.x - 1, cur_cell.y)
+  occupied_cells[3] = math.vec2.new(cur_cell.x, cur_cell.y + 1)
+  occupied_cells[4] = math.vec2.new(cur_cell.x, cur_cell.y - 1)
+  return occupied_cells
+}
+
+function is_in(dictionary, x, y){
+  var i = 0
+  while(i < size(dictionary)){
+    if(dictionary[i].x == x and dictionary[i].y == y){
+      return 1
+    }
+    i = i + 1
+  }
+  return 0
+}
+
 
 function table_print(t) {
   foreach(t, function(key, value) {

@@ -2,7 +2,6 @@ include "vec2.bzz"
 include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=80 (auto-increment up) with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
-include "vstigenv.bzz"
 
 function action() {
   uav_storegoal(-1.0,-1.0,-1.0)
@@ -13,7 +12,6 @@ function action() {
 function init() {
 	statef=turnedoff
 	UAVSTATE = "TURNEDOFF"
-  	uav_initstig()
 	TARGET_ALTITUDE = 15.0
 }
 
