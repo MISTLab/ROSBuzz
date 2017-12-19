@@ -51,6 +51,10 @@ int buzzuav_setgimbal(buzzvm_t vm);
  */
 void parse_gpslist();
 /*
+ * closure to export a 2D map
+ */
+int buzz_exportmap(buzzvm_t vm);
+/*
  * closure to take a picture
  */
 int buzzuav_takepicture(buzzvm_t vm);

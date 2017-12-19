@@ -3,7 +3,6 @@ include "update.bzz"
 include "barrier.bzz"	# don't use a stigmergy id=11 with this header.
 include "uavstates.bzz"	# require an 'action' function to be defined here.
 include "vstigenv.bzz"
-include "rrtstar.bzz"
 
 function action() {
   statef=action

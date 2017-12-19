@@ -100,3 +100,12 @@ References
 * ROS and Buzz : consensus-based behaviors for heterogeneous teams. Submitted to the Internaional Conference on Robotics and Automation (September 2017). 6pgs. St-Onge, D., Shankar Varadharajan, V., Li, G., Svogor, I. and Beltrame, G. arXiv : https://arxiv.org/abs/1710.08843
 
 * Over-The-Air Updates for Robotic Swarms. Submitted to IEEE Software (August 2017). 8pgs. Shankar Varadharajan, V., St-Onge, D., Guß, C. and Beltrame, G.
+
+Visual Studio Code
+--------------------
+To activate highlights of the code in Visual Studio Code or Roboware add the following to settings.json:
+```
+    "files.associations": {
+        "*.bzz":"python"
+    }
+```

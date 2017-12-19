@@ -17,7 +17,7 @@ WAIT4STEP = 10
 var v_status = {}
 var v_ground = {}
 b_updating = 0
-counter=WAIT4STEP
+vstig_counter = WAIT4STEP
 
 function uav_initstig() {
 	v_status = stigmergy.create(STATUS_VSTIG)
@@ -26,16 +26,16 @@ function uav_initstig() {
 
 function uav_updatestig() {
 	# TODO: Push values on update only.
-	if(counter<=0) {
+	if(vstig_counter<=0) {
 		b_updating=1
 		#var ls={.1=0,.2=battery.capacity,.3=xbee_status.rssi,.4=flight.status}
 		ls = 50*1000000 + battery.capacity*1000 + xbee_status.rssi*10 + flight.status
 	    log("Pushing ", ls, "on vstig with id:", id)
 	    v_status.put(id, ls)
-		counter=WAIT4STEP
+		vstig_counter=WAIT4STEP
 	} else {
 		b_updating=0
-		counter=counter-1
+		vstig_counter=vstig_counter-1
 	}
 }
 

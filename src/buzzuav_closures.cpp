@@ -46,7 +46,7 @@ int buzzros_print(buzzvm_t vm)
 ----------------------------------------------------------- */
 {
   std::ostringstream buffer(std::ostringstream::ate);
-  buffer << buzz_utility::get_robotid();
+  buffer << "[" << buzz_utility::get_robotid() << "] ";
   for (uint32_t index = 1; index < buzzdarray_size(vm->lsyms->syms); ++index)
   {
     buzzvm_lload(vm, index);
@@ -173,6 +173,35 @@ void parse_gpslist()
 
   // Close the file:
   fin.close();
+}
+
+int buzz_exportmap(buzzvm_t vm)
+/*
+/ Buzz closure to export a 2D map
+/----------------------------------------*/
+{
+       /* Make sure one parameter has been passed */
+       buzzvm_lnum_assert(vm, 1);
+       /* Get the parameter */
+       buzzvm_lload(vm, 1);
+       buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);    // matrix
+       /* Get the table */
+       buzzobj_t t = buzzvm_stack_at(vm, 1);
+       /* Copy the values into a vector */
+       std::vector<float> mat;
+       for(int32_t i = 0; i < buzzdict_size(t->t.value); ++i) {
+          /* Duplicate the table */
+          buzzvm_dup(vm);
+          /* Push the index */
+          buzzvm_pushi(vm, i);
+          /* Get the value */
+          buzzvm_tget(vm);
+          /* Store it in the vector (assume all values are float, no mistake...) */
+          mat.push_back((float)buzzvm_stack_at(vm, 1)->f.value);
+          /* Get rid of the value, now useless */
+          buzzvm_pop(vm);
+       }
+       return buzzvm_ret0(vm);
 }
 
 int buzzuav_moveto(buzzvm_t vm)
