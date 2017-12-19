@@ -81,7 +81,7 @@ void set_deque_full(bool state);
 void set_rssi(float value);
 void set_raw_packet_loss(float value);
 void set_filtered_packet_loss(float value);
-void set_api_rssi(float value);
+//void set_api_rssi(float value);
 /*
  * sets current position
  */

@@ -129,9 +129,9 @@ void destroy_out_msg_queue();
 /***************************************************/
 /*obatins updater state*/
 /***************************************************/
-int get_update_mode();
+//int get_update_mode();
 
-buzz_updater_elem_t get_updater();
+//buzz_updater_elem_t get_updater();
 /***************************************************/
 /*sets bzz file name*/
 /***************************************************/
@@ -155,7 +155,7 @@ int compile_bzz(std::string bzz_file);
 
 void updates_set_robots(int robots);
 
-void set_packet_id(int packet_id);
+//void set_packet_id(int packet_id);
 
-void collect_data(std::ofstream& logger);
+//void collect_data(std::ofstream& logger);
 #endif

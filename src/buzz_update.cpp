@@ -121,14 +121,13 @@ void init_update_monitor(const char* bo_filename, const char* stand_by_script, c
 /*Check for .bzz file chages*/
 int check_update()
 {
-  struct inotify_event* event;
   char buf[1024];
   int check = 0;
   int i = 0;
   int len = read(fd, buf, 1024);
   while (i < len)
   {
-    event = (struct inotify_event*)&buf[i];
+    struct inotify_event* event = (struct inotify_event*)&buf[i];
     /* file was modified this flag is true in nano and self delet in gedit and other editors */
     // fprintf(stdout,"inside file monitor.\n");
     if (event->mask & (IN_MODIFY | IN_DELETE_SELF))
@@ -138,7 +137,6 @@ int check_update()
       close(fd);
       fd = inotify_init1(IN_NONBLOCK);
       wd = inotify_add_watch(fd, bzz_file, IN_ALL_EVENTS);
-      // fprintf(stdout,"event.\n");
       /* To mask multiple writes from editors*/
       if (!old_update)
       {
@@ -154,7 +152,7 @@ int check_update()
   return check;
 }
 
-int test_patch(std::string path, std::string name1, size_t update_patch_size, uint8_t* patch)
+int test_patch(std::string& path, std::string& name1, size_t update_patch_size, uint8_t* patch)
 {
   if (SIMULATION == 1)
   {
@@ -180,7 +178,7 @@ int test_patch(std::string path, std::string name1, size_t update_patch_size, ui
   }
 }
 
-updater_code_t obtain_patched_bo(std::string path, std::string name1)
+updater_code_t obtain_patched_bo(std::string& path, std::string& name1)
 {
   if (SIMULATION == 1)
   {
@@ -201,7 +199,6 @@ updater_code_t obtain_patched_bo(std::string path, std::string name1)
     if (fread(patched_BO_Buf, 1, patched_size, fp) < patched_size)
     {
       perror(read_patched.str().c_str());
-      fclose(fp);
     }
     fclose(fp);
     /*Write the patched to a code struct and return*/
@@ -232,7 +229,6 @@ updater_code_t obtain_patched_bo(std::string path, std::string name1)
     if (fread(patched_BO_Buf, 1, patched_size, fp) < patched_size)
     {
       perror(read_patched.str().c_str());
-      fclose(fp);
     }
     fclose(fp);
 
@@ -271,7 +267,7 @@ void code_message_outqueue_append()
   *(uint16_t*)(updater->outmsg_queue->queue + size) = (uint16_t) * (size_t*)(updater->patch_size);
   size += sizeof(uint16_t);
   memcpy(updater->outmsg_queue->queue + size, updater->patch, *(size_t*)(updater->patch_size));
-  size += (uint16_t) * (size_t*)(updater->patch_size);
+  //size += (uint16_t) * (size_t*)(updater->patch_size);
   updater_msg_ready = 1;
 }
 
@@ -304,12 +300,11 @@ void code_message_inqueue_append(uint8_t* msg, uint16_t size)
   memcpy(updater->inmsg_queue->queue, msg, size);
   *(uint16_t*)(updater->inmsg_queue->size) = size;
 }
-
-void set_packet_id(int packet_id)
+/*Used for data logging*/
+/*void set_packet_id(int packet_id)
 {
-  /*Used for data logging*/
   packet_id_ = packet_id;
-}
+}*/
 void code_message_inqueue_process()
 {
   int size = 0;
@@ -403,7 +398,6 @@ void code_message_inqueue_process()
 void create_update_patch()
 {
   std::stringstream genpatch;
-  std::stringstream usepatch;
 
   std::string bzzfile_name(bzz_file);
 
@@ -447,7 +441,6 @@ void create_update_patch()
   if (fread(patch_buff, 1, patch_size, fp) < patch_size)
   {
     perror(patchfileName.str().c_str());
-    fclose(fp);
   }
   fclose(fp);
   delete_p(updater->patch);
@@ -498,7 +491,6 @@ void update_routine()
         if (fread(BO_BUF, 1, bcode_size, fp) < bcode_size)
         {
           perror(bcfname);
-          fclose(fp);
         }
         fclose(fp);
         if (test_set_code(BO_BUF, dbgf_name, bcode_size))
@@ -650,19 +642,19 @@ void set_read_update_status()
 {
   updated = 0;
 }
-int get_update_mode()
+/*int get_update_mode()
 {
   return (int)*(int*)(updater->mode);
-}
+}*/
 
 int is_msg_present()
 {
   return updater_msg_ready;
 }
-buzz_updater_elem_t get_updater()
+/*buzz_updater_elem_t get_updater()
 {
   return updater;
-}
+}*/
 void destroy_updater()
 {
   delete_p(updater->bcode);
@@ -716,7 +708,7 @@ int compile_bzz(std::string bzz_file)
   return system(bzzfile_in_compile.str().c_str());
 }
 
-void collect_data(std::ofstream& logger)
+/*void collect_data(std::ofstream& logger)
 {
   double time_spent = (t2.tv_sec - t1.tv_sec) * 1000.0;  //(double)(end - begin) / CLOCKS_PER_SEC;
   time_spent += (t2.tv_usec - t1.tv_usec) / 1000.0;
@@ -725,4 +717,4 @@ void collect_data(std::ofstream& logger)
   logger << (int)no_of_robot << "," << neigh << "," << (double)time_spent << "," << (int)timer_steps << ","
          << old_byte_code_size << "," << *(size_t*)updater->bcode_size << "," << *(size_t*)updater->patch_size << ","
          << (int)*(uint8_t*)updater->update_no << "," << (int)packet_id_;
-}
+}*/
