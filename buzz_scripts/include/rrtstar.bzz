@@ -14,12 +14,12 @@ function UAVinit_map(m_navigation) {
     # create a map big enough for the goal
     init_map(2*math.round(math.vec2.length(m_navigation))+10)
     # center the robot on the grid
-    cur_cell = math.vec2.new(math.round(size(map[1])/2.0),math.round(size(map)/2.0))
+    cur_cell = math.vec2.new(math.round(size(map)/2.0),math.round(size(map[1])/2.0))
 }
 
 function UAVpathPlanner(m_navigation, m_pos) {
     # place the robot on the grid
-    update_curcell(m_pos,0)
+    cur_cell = getcell(m_pos,0)
     # create the goal in the map grid
     mapgoal = math.vec2.add(m_navigation,cur_cell)
     mapgoal = math.vec2.new(math.round(mapgoal.x),math.round(mapgoal.y))
@@ -34,7 +34,7 @@ function Kh4pathPlanner(m_goal, m_pos) {
     m_goal = math.vec2.new(math.round(m_goal.x*CM2KH4.x), math.round(m_goal.y*CM2KH4.y))
 
     # place the robot on the grid
-    update_curcell(m_pos,1)
+    cur_cell = getcell(m_pos,1)
     log("Starting from cell: ", cur_cell.x, " ", cur_cell.y)
     log("Going to cell: ", m_goal.x, " ", m_goal.y)
 
@@ -44,26 +44,35 @@ function Kh4pathPlanner(m_goal, m_pos) {
     return RRTSTAR(m_goal, math.vec2.new(10.0 * CM2KH4.x, 10.0 * CM2KH4.y))
 }
 
-function update_curcell(m_curpos, kh4) {
+function getcell(m_curpos, kh4) {
+  var cell = {}
   if(kh4) { # for khepera playground
-    cur_cell = math.vec2.sub(m_curpos, math.vec2.new(GRIDCM.xmin, GRIDCM.ymin))
-    cur_cell = math.vec2.new(math.round(cur_cell.x*CM2KH4.x), math.round(cur_cell.y*CM2KH4.y))
+    cell = math.vec2.sub(m_curpos, math.vec2.new(GRIDCM.xmin, GRIDCM.ymin))
+    cell = math.vec2.new(math.round(cell.x*CM2KH4.x), math.round(cell.y*CM2KH4.y))
   } else { # for uav map relative to home
-    cur_cell = math.vec2.add(cur_cell, m_curpos)
-    cur_cell = math.vec2.new(math.round(m_curpos.x), math.round(m_curpos.y))
+    cell = math.vec2.new(math.round(size(map)/2.0),math.round(size(map[1])/2.0))
+    cell = math.vec2.add(cell, m_curpos)
+    cell = math.vec2.new(math.round(cell.x), math.round(cell.y))
   }
-  if(cur_cell.x > size(map))
-    cur_cell.x = size(map)
-  if(cur_cell.y > size(map[1]))
-      cur_cell.y = size(map[1])
-  if(cur_cell.x < 1)
-    cur_cell.x = 1
-  if(cur_cell.y < 1)
-    cur_cell.y = 1
+  if(cell.x > size(map))
+    cell.x = size(map)
+  if(cell.y > size(map[1]))
+      cell.y = size(map[1])
+  if(cell.x < 1)
+    cell.x = 1
+  if(cell.y < 1)
+    cell.y = 1
+
+  return cell
+}
+
+function updateMap(m_pos) {
+    #getproxobs(m_pos)
+    UAVgetneiobs (m_pos)
 }
 
 function UAVgetneiobs (m_curpos) {
-    update_curcell(m_curpos,0)
+    cur_cell = getcell(m_curpos,0)
     # add all neighbors as obstacles in the grid
     neighbors.foreach(function(rid, data) {
             add_obstacle(math.vec2.add(math.vec2.newp(data.distance,data.azimuth),cur_cell), 0, 1.0)
@@ -72,7 +81,7 @@ function UAVgetneiobs (m_curpos) {
 
 function getneiobs (m_curpos) {
   var foundobstacle = 0
-  update_curcell(m_curpos,1)
+  cur_cell = getcell(m_curpos,1)
   var old_nei = table_copy(nei_cell)
   #log("NeiObs debug: ", nei_cell[9], " ", nei_cell[3])
 
@@ -118,7 +127,7 @@ function getneiobs (m_curpos) {
 
 function getproxobs (m_curpos) {
   foundobstacle = 0
-  update_curcell(m_curpos,1)
+  cur_cell = getcell(m_curpos,1)
 
   reduce(proximity,
     function(key, value, acc) {
@@ -159,19 +168,21 @@ function getproxobs (m_curpos) {
 }			
 
 function check_path(m_path, goal_l, m_curpos, kh4) {
-  pathisblocked = 0
-  nb=goal_l
-  update_curcell(m_curpos,kh4)
-  Cvec = cur_cell
-  while(nb < size(m_path) and nb <= goal_l+1) {
-    Nvec = getvec(m_path, nb)
-    if(kh4==0)
-        Nvec=vec_from_gps(Nvec.x,Nvec.y)
-    if(doesItIntersect(Cvec, Nvec)){
-      log("Obstacle in the way ! (", Cvec.x, "/", Cvec.y, "->", Nvec.x, "/", Nvec.y, ")")
+  var pathisblocked = 0
+  var nb = goal_l
+  cur_cell = getcell(m_curpos,kh4)
+  var Cvec = cur_cell
+  while(nb <= size(m_path) and nb <= goal_l+1) {
+    var Nvec = getvec(m_path, nb)
+    if(kh4 == 0) {
+        Nvec = vec_from_gps(Nvec.x,Nvec.y,1)
+        Nvec = getcell(Nvec,kh4)
+    }
+    if(doesItIntersect(Cvec, Nvec)) {
+      log("Path blocked ! (", Cvec.x, "/", Cvec.y, "->", Nvec.x, "/", Nvec.y, ")")
       pathisblocked = 1
     }
-    Cvec=Nvec
+    Cvec = Nvec
     nb = nb + 1
   }
 
@@ -184,12 +195,16 @@ function RRTSTAR(GOAL,TOL) {
     RADIUS = 1.25 #TOL.x #size(map[1])/10.0 # to consider 2 points consecutive
 
 
-    goalBoundary = {.xmin=GOAL.x-TOL.x, .xmax=GOAL.x+TOL.x, .ymin=GOAL.y-TOL.y, .ymax=GOAL.y+TOL.y}
+    var goalBoundary = {.xmin=GOAL.x-TOL.x, .xmax=GOAL.x+TOL.x, .ymin=GOAL.y-TOL.y, .ymax=GOAL.y+TOL.y}
     #table_print(goalBoundary)
-    numberOfPoints = 1
-    arrayOfPoints = {}
+    var numberOfPoints = 1
+    var arrayOfPoints = {}
+    arrayOfPoints[1] = {.1=cur_cell.x, .2=cur_cell.y}
     Path = {}
+    mat_copyrow(Path,1,arrayOfPoints,1)
+    # RRT* tree matrix: x; y; predecessor line in Q; nb of pts; min. distance
     Q = {}
+    Q[1] = {.1=cur_cell.x,.2=cur_cell.y,.3=1,.4=1,.5=0}
 
     goalReached = 0;
     timeout = 0
@@ -202,7 +217,7 @@ function RRTSTAR(GOAL,TOL) {
         pt = math.vec2.new(math.round(HEIGHT * math.rng.uniform(1.0) + 1), math.round(WIDTH * math.rng.uniform(1.0) + 1))
         #log("Point generated: ", pt.x, " ", pt.y)
 
-        pointList = findPointsInRadius(pt,Q,RADIUS);
+        var pointList = findPointsInRadius(pt,Q,RADIUS);
 
         # Find connection that provides the least cost to come
         nbCount = 0;
@@ -210,7 +225,7 @@ function RRTSTAR(GOAL,TOL) {
         minCounter = 0;
 
         if(size(pointList) != 0) {
-            #log("Found ", size(pointList), " close point:", pointList.mat)
+            log("Found ", size(pointList), " close to point: ", pointList[size(pointList)][3]) 
             ipt=1
             while(ipt <= size(pointList)) {
                 pointNumber = {}
@@ -224,7 +239,7 @@ function RRTSTAR(GOAL,TOL) {
                 nbCount = nbCount + 1;
                 if(intersects != 1) {
                     #log(pointNumber, "do not intersect (",pointNumber.mat[3],")")
-                    distance = math.vec2.length(math.vec2.sub(getvec(pointNumber,1),pt))+Q[pointNumber[1][3]][5]
+                    var distance = math.vec2.length(math.vec2.sub(getvec(pointNumber,1),pt))+Q[pointNumber[1][3]][5]
 
                     if(distance < minCounted) {
                         minCounted = distance;
@@ -235,9 +250,11 @@ function RRTSTAR(GOAL,TOL) {
             }
             if(minCounter > 0) {
                 numberOfPoints = numberOfPoints + 1;
+                arrayOfPoints[numberOfPoints] = {}
                 arrayOfPoints[numberOfPoints][1]=pt.x
                 arrayOfPoints[numberOfPoints][2]=pt.y
 
+                Q[numberOfPoints] = {}
                 Q[numberOfPoints][1] = pt.x
                 Q[numberOfPoints][2] = pt.y
                 Q[numberOfPoints][3] = pointList[minCounter][4]
@@ -249,9 +266,10 @@ function RRTSTAR(GOAL,TOL) {
                 # Now check to see if any of the other points can be redirected
                 nbCount = 0;
                 ipt = 1
-                while(ipt < size(pointList)) {
+                while(ipt <= size(pointList)) {
                     pointNumber = {}
                     mat_copyrow(pointNumber,1,pointList,ipt)
+                    #log("pN ", size(pointNumber), ", ipt: ", ipt, "prec: ", pointNumber[1][4])
 
                     # Follow the line to see if it intersects anything
                     intersects = doesItIntersect(pt,getvec(pointNumber,1));
@@ -262,6 +280,7 @@ function RRTSTAR(GOAL,TOL) {
                     if(intersects != 1) {
                         # If the alternative path is shorter than change it
                         tmpdistance = Q[numberOfPoints][5]+math.vec2.length(math.vec2.sub(getvec(pointNumber,1),pt))
+                        #log("Q: ", size(Q), "x", size(Q[1]))
                         if(tmpdistance < Q[pointNumber[1][4]][5]) {
                             Q[pointNumber[1][4]][3] = numberOfPoints
                             Q[pointNumber[1][4]][5] = tmpdistance
@@ -285,9 +304,11 @@ function RRTSTAR(GOAL,TOL) {
             # If there is no intersection we need to add to the tree
             if(intersects != 1) {
                 numberOfPoints = numberOfPoints + 1;
+                arrayOfPoints[numberOfPoints] = {}
                 arrayOfPoints[numberOfPoints][1]=pt.x
                 arrayOfPoints[numberOfPoints][2]=pt.y
 
+                Q[numberOfPoints] = {}
                 Q[numberOfPoints][1] = pt.x
                 Q[numberOfPoints][2] = pt.y
                 Q[numberOfPoints][3] = pointNum
@@ -320,51 +341,51 @@ function RRTSTAR(GOAL,TOL) {
 function findClosestPoint(point,aPt) {
     # Go through each points and find the distances between them and the
     # target point
-    distance = 999
-    pointNumber = -1
-    ifcp=1
+    var distance = 999
+    var pointNb = -1
+    var ifcp=1
     while(ifcp <= size(aPt)) {
-        range = math.vec2.length(math.vec2.sub(point,getvec(aPt,ifcp)))
+        var range = math.vec2.length(math.vec2.sub(point,getvec(aPt,ifcp)))
 
         if(range < distance) {
             distance = range;
-            pointNumber = ifcp;
+            pointNb = ifcp;
         }
         ifcp = ifcp + 1
     }
-    return pointNumber
+    return pointNb
 }
 
 # Find the closest point in the tree
 function findPointsInRadius(point,q,r) {
-    pointList = {}
+    var ptList = {}
     var counted = 0;
     var iir = 1
     while(iir <= size(q)) {
-        tmpvv = getvec(q,iir)
+        var tmpvv = getvec(q,iir)
         #log("FPiR :", point.x, " ", point.y," ", tmpvv.x," ", tmpvv.y)
-        distance = math.vec2.length(math.vec2.sub(getvec(q,iir),point))
+        var distance = math.vec2.length(math.vec2.sub(getvec(q,iir),point))
 
         if(distance < r) {
             counted = counted+1;
-            mat_copyrow(pointList,counted,q,iir)
+            mat_copyrow(ptList,counted,q,iir)
         }
 
         iir = iir + 1
     }
-    return pointList
+    return ptList
 }
 
 # check if the line between 2 point intersect an obstacle
 function doesItIntersect(point,vector) {
     #log("DiI :", point.x, " ", point.y," ", vector.x," ", vector.y)
-    dif = math.vec2.sub(point,vector)
-    distance = math.vec2.length(dif)
-    if(distance==0.0){
+    var dif = math.vec2.sub(point,vector)
+    var distance = math.vec2.length(dif)
+    if(distance == 0.0){
         # Find what block we're in right now
         var xi = math.round(point.x) #+1
         var yi = math.round(point.y) #+1
-        if(xi!=cur_cell.x and yi!=cur_cell.y){
+        if(xi >= size(map) and yi >= size(map[1]) and xi != cur_cell.x and yi != cur_cell.y) {
             if(map[xi][yi] > 0.5)
                 return 1
             else
@@ -372,21 +393,22 @@ function doesItIntersect(point,vector) {
         } else
             return 0
     }
-    vec = math.vec2.scale(dif,1.0/distance)
-    pathstep = size(map[1]) - 2
+    var vec = math.vec2.scale(dif,1.0/distance)
+    var pathstep = size(map) - 2
 
     idii = 1.0
     while(idii <= pathstep) {
-        range = distance*idii/pathstep
-        pos_chk = math.vec2.sub(point,math.vec2.scale(vec,range));
+        var range = distance*idii/pathstep
+        var pos_chk = math.vec2.sub(point,math.vec2.scale(vec,range));
 
         # Find what block we're in right now
         var xi = math.round(pos_chk.x) #+1
         var yi = math.round(pos_chk.y) #+1
-        #log("Grid :", pos_chk.x, " ", pos_chk.y," ", xi," ", yi, " R: ", range)
+        #log("Grid :", pos_chk.x, " ", pos_chk.y," ", xi," ", yi, " R: ", range, "(Map size: ", size(map), ")")
 
-        if(xi!=cur_cell.x and yi!=cur_cell.y){
-          if(xi <= size(map[1]) and yi <= size(map) and xi > 0 and yi > 0) {
+        if(is_in(get_occupied_cells(cur_cell), xi, yi) == 0){
+        #if(xi!=cur_cell.x and yi!=cur_cell.y) {
+          if(xi <= size(map) and yi <= size(map[1]) and xi > 0 and yi > 0) {
               if(map[xi][yi] < 0.5) { # because obstacle use trust values
                   #log("Obstacle in the way(", xi, " ", yi, ": ", map[xi][yi], ")!")
                   return 1;
@@ -403,20 +425,28 @@ function doesItIntersect(point,vector) {
 }
 
 function getPathGPS(Q,nb){
+    #log("-----------CONVERTING PATH!!!")
     path={}
     var npt=0
+    var isrecursive = 0
     # get the path from the point list
-    while(nb!=1){
+    while(nb > 1 and isrecursive!=1){
         npt=npt+1
         path[npt] = {}
         path[npt][1]=Q[nb][1]
         path[npt][2]=Q[nb][2]
-        nb = Q[nb][3];
+        if(nb != Q[Q[nb][3]][3])
+            nb = Q[nb][3];
+        else {
+            isrecursive = 1
+            path={}
+            log("ERROR - Recursive path !!!")
+        }
     }
 
     # re-order the list and make the path points absolute
     pathR={}
-    var totpt = npt
+    var totpt = npt + 1
     while(npt > 0){
         tmpgoal = gps_from_vec(math.vec2.sub(getvec(path,npt),cur_cell))
         pathR[totpt-npt] = {}
@@ -433,7 +463,7 @@ function getPath(Q,nb){
     var npt=0
 
     # log("get the path from the point list")
-    while(nb!=1){
+    while(nb > 1){
         npt=npt+1
         path[npt] = {}
         path[npt][1]=Q[nb][1]
@@ -444,7 +474,7 @@ function getPath(Q,nb){
     # log("re-order the list")
     # table_print(path.mat)
     pathR={}
-    var totpt = npt
+    var totpt = npt + 1
     while(npt > 0){
         tmpgoal = getvec(path,npt)
         pathR[totpt-npt] = {}
