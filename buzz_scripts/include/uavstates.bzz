@@ -113,7 +113,7 @@ function gotoWPRRT(transf) {
 				Path = UAVpathPlanner(rc_goal, m_pos)
 			}
 			cur_goal_l = 1
-		} else if(cur_goal_l<=Path.nb_row) {
+		} else if(cur_goal_l <= size(Path)) {
 			cur_gps=getvec(Path,cur_goal_l)	#x=latitude, y=longitude
 			cur_pt=vec_from_gps(cur_gps.x,cur_gps.y)
 			print(" heading to ", cur_pt.x,cur_pt.y)

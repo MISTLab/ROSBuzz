@@ -51,6 +51,10 @@ int buzzuav_setgimbal(buzzvm_t vm);
  */
 void parse_gpslist();
 /*
+ * closure to export a 2D map
+ */
+int buzz_exportmap(buzzvm_t vm);
+/*
  * closure to take a picture
  */
 int buzzuav_takepicture(buzzvm_t vm);
@@ -81,7 +85,7 @@ void set_deque_full(bool state);
 void set_rssi(float value);
 void set_raw_packet_loss(float value);
 void set_filtered_packet_loss(float value);
-//void set_api_rssi(float value);
+// void set_api_rssi(float value);
 /*
  * sets current position
  */
