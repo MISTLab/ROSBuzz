@@ -267,7 +267,7 @@ void code_message_outqueue_append()
   *(uint16_t*)(updater->outmsg_queue->queue + size) = (uint16_t) * (size_t*)(updater->patch_size);
   size += sizeof(uint16_t);
   memcpy(updater->outmsg_queue->queue + size, updater->patch, *(size_t*)(updater->patch_size));
-  //size += (uint16_t) * (size_t*)(updater->patch_size);
+  // size += (uint16_t) * (size_t*)(updater->patch_size);
   updater_msg_ready = 1;
 }
 
@@ -713,7 +713,8 @@ int compile_bzz(std::string bzz_file)
   double time_spent = (t2.tv_sec - t1.tv_sec) * 1000.0;  //(double)(end - begin) / CLOCKS_PER_SEC;
   time_spent += (t2.tv_usec - t1.tv_usec) / 1000.0;
   // RID,update trigger,time steps taken,old byte code size, new bytecode size, patch size,update number,
-  // Patch_packets_received_counter,Patch_request_packets_received,Patch_packets_sent_counter,Patch_request_packets_sent_counter
+  //
+Patch_packets_received_counter,Patch_request_packets_received,Patch_packets_sent_counter,Patch_request_packets_sent_counter
   logger << (int)no_of_robot << "," << neigh << "," << (double)time_spent << "," << (int)timer_steps << ","
          << old_byte_code_size << "," << *(size_t*)updater->bcode_size << "," << *(size_t*)updater->patch_size << ","
          << (int)*(uint8_t*)updater->update_no << "," << (int)packet_id_;

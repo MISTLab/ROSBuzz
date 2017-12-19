@@ -61,7 +61,7 @@ function land() {
 function set_goto(transf) {
 	UAVSTATE = "GOTOGPS"
 	statef=function() {
-    gotoWPRRT(transf)
+    gotoWP(transf)
   }
 
 	if(rc_goto.id==id){
