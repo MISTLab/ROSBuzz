@@ -8,19 +8,17 @@
 
 #include "roscontroller.h"
 
-/**
- * This program implements Buzz node in ros using mavros_msgs.
- */
-
 int main(int argc, char** argv)
+/*
+ / This program implements Buzz in a ROS node using mavros_msgs.
+ -----------------------------------------------------------------*/
 {
-  /*Initialize rosBuzz node*/
+  //  Initialize rosBuzz node
   ros::init(argc, argv, "rosBuzz");
   ros::NodeHandle nh_priv("~");
   ros::NodeHandle nh;
   rosbzz_node::roscontroller RosController(nh, nh_priv);
-  /*Register ros controller object inside buzz*/
-  // buzzuav_closures::set_ros_controller_ptr(&RosController);
+
   RosController.RosControllerRun();
   return 0;
 }

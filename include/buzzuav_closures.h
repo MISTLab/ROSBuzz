@@ -33,46 +33,95 @@ typedef enum {
  */
 int buzzros_print(buzzvm_t vm);
 void setWPlist(std::string path);
+
 /*
- * buzzuav_goto(latitude,longitude,altitude) function in Buzz
- * commands the UAV to go to a position supplied
+ * closure to move following a vector
  */
-int buzz_floor(buzzvm_t vm);
 int buzzuav_moveto(buzzvm_t vm);
+/*
+ * closure to store a new GPS goal
+ */
 int buzzuav_storegoal(buzzvm_t vm);
+/*
+ * closure to control the gimbal
+ */
 int buzzuav_setgimbal(buzzvm_t vm);
+/*
+ * parse a csv list of waypoints
+ */
 void parse_gpslist();
+/*
+ * closure to take a picture
+ */
 int buzzuav_takepicture(buzzvm_t vm);
-/* Returns the current command from local variable*/
+/*
+ * Returns the current command from local variable
+ */
 int getcmd();
-/*Sets goto position from rc client*/
+/*
+ * Sets goto position from rc client
+ */
 void rc_set_goto(int id, double latitude, double longitude, double altitude);
-/*Sets gimbal orientation from rc client*/
+/*
+ *Sets gimbal orientation from rc client
+ */
 void rc_set_gimbal(int id, float yaw, float roll, float pitch, float t);
-/*sets rc requested command */
+/*
+ * sets rc requested command
+ */
 void rc_call(int rc_cmd);
-/* sets the battery state */
+/*
+ * sets the battery state
+ */
 void set_battery(float voltage, float current, float remaining);
+/*
+ * sets the xbee network status
+ */
 void set_deque_full(bool state);
 void set_rssi(float value);
 void set_raw_packet_loss(float value);
 void set_filtered_packet_loss(float value);
 void set_api_rssi(float value);
-/* sets current position */
+/*
+ * sets current position
+ */
 void set_currentpos(double latitude, double longitude, double altitude);
-/*retuns the current go to position */
+/*
+ * returns the current go to position
+ */
 double* getgoto();
+/*
+ * returns the current Buzz state
+ */
 std::string getuavstate();
+/*
+ * returns the gimbal commands
+ */
 float* getgimbal();
-/* updates flight status*/
+/*
+ *updates flight status
+ */
 void flight_status_update(uint8_t state);
-/* Update neighbors table */
+/*
+ *Update neighbors table
+ */
 void neighbour_pos_callback(int id, float range, float bearing, float elevation);
+/*
+ * update neighbors from in msgs
+ */
 void update_neighbors(buzzvm_t vm);
+/*
+ * closure to add a neighbor status
+ */
 int buzzuav_addNeiStatus(buzzvm_t vm);
+/*
+ * returns the current array of neighbors status
+ */
 mavros_msgs::Mavlink get_status();
 
-/*Flight status*/
+/*
+ *Flight status
+ */
 void set_obstacle_dist(float dist[]);
 
 /*
@@ -91,7 +140,8 @@ int buzzuav_disarm(buzzvm_t vm);
  */
 int buzzuav_land(buzzvm_t vm);
 
-/* Command the UAV to go to home location
+/*
+ * Command the UAV to go to home location
  */
 int buzzuav_gohome(buzzvm_t vm);
 
@@ -107,7 +157,9 @@ int buzzuav_update_xbee_status(buzzvm_t vm);
  * Updates current position in Buzz
  */
 int buzzuav_update_currentpos(buzzvm_t vm);
-int buzzuav_update_targets(buzzvm_t vm);
+/*
+ * add new target in the BVM
+ */
 int buzzuav_addtargetRB(buzzvm_t vm);
 /*
  * Updates flight status and rc command in Buzz, put it in a tabel to acess it
@@ -121,10 +173,10 @@ int buzzuav_update_flight_status(buzzvm_t vm);
  * Proximity and ground sensors to do !!!!
  */
 int buzzuav_update_prox(buzzvm_t vm);
-
+/*
+ * returns the current FC command
+ */
 int bzz_cmd();
 
 int dummy_closure(buzzvm_t vm);
-
-//#endif
 }

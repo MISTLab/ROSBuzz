@@ -363,8 +363,8 @@ function doesItIntersect(point,vector) {
     distance = math.vec2.length(dif)
     if(distance==0.0){
         # Find what block we're in right now
-        xi = math.round(point.x) #+1
-        yi = math.round(point.y) #+1
+        var xi = math.round(point.x) #+1
+        var yi = math.round(point.y) #+1
         if(xi!=cur_cell.x and yi!=cur_cell.y){
             if(rmat(map,xi,yi) > 0.5)
                 return 1
@@ -382,8 +382,8 @@ function doesItIntersect(point,vector) {
         pos_chk = math.vec2.sub(point,math.vec2.scale(vec,range));
 
         # Find what block we're in right now
-        xi = math.round(pos_chk.x) #+1
-        yi = math.round(pos_chk.y) #+1
+        var xi = math.round(pos_chk.x) #+1
+        var yi = math.round(pos_chk.y) #+1
         #log("Grid :", pos_chk.x, " ", pos_chk.y," ", xi," ", yi, " R: ", range)
 
         if(xi!=cur_cell.x and yi!=cur_cell.y){

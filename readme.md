@@ -99,4 +99,4 @@ References
 ------
 * ROS and Buzz : consensus-based behaviors for heterogeneous teams. Submitted to the Internaional Conference on Robotics and Automation (September 2017). 6pgs. St-Onge, D., Shankar Varadharajan, V., Li, G., Svogor, I. and Beltrame, G. arXiv : https://arxiv.org/abs/1710.08843
 
-* Over-The-Air Updates for Robotic Swarms. Accepted by IEEE Software (September 2017 - pending minor revision). 8pgs. Shankar Varadharajan, V., St-Onge, D., Guß, C. and Beltrame, G.
+* Over-The-Air Updates for Robotic Swarms. Submitted to IEEE Software (August 2017). 8pgs. Shankar Varadharajan, V., St-Onge, D., Guß, C. and Beltrame, G.
