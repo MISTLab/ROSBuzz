@@ -82,7 +82,7 @@ void roscontroller::GetRobotId()
   while (!xbeestatus_srv.call(robot_id_srv_request, robot_id_srv_response))
   {
     ros::Duration(0.1).sleep();
-    ROS_ERROR("Waiting for Xbee to respond to get device ID");
+    ROS_WARN("ROSBUZZ is waiting for Xbee device ID");
   }
 
   robot_id = robot_id_srv_response.value.integer;
