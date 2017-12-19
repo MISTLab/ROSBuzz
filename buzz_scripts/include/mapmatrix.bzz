@@ -15,7 +15,7 @@ function wmat(mat, row, col, val) {
 # Read from matrix
 function rmat(mat, row, col) {
     #log("rmat ", mat, row, col)
-    index = (row-1)*mat.nb_col + (col - 1)
+    var index = (row-1)*mat.nb_col + (col - 1)
     if (mat.mat[index] == nil) {
         log("Wrong matrix read index: ", row, " ", col)
         return -1
@@ -41,7 +41,7 @@ function getvec(t,row){
 
 function init_test_map(len){
     map = {.nb_col=len, .nb_row=len, .mat={}}
-    index = 0
+    var index = 0
     while(index<len*len){
         map.mat[index]=1.0
         index = index + 1
@@ -56,7 +56,7 @@ function init_test_map(len){
 
 function init_map(len){
     map = {.nb_col=len, .nb_row=len, .mat={}}
-    index = 0
+    var index = 0
     while(index<len*len){
         map.mat[index]=1.0
         index = index + 1
@@ -65,8 +65,8 @@ function init_map(len){
 }
 
 function add_obstacle(pos, off, inc_trust) {
-    xi = math.round(pos.x)
-    yi = math.round(pos.y)
+    var xi = math.round(pos.x)
+    var yi = math.round(pos.y)
 
     if(xi < map.nb_col+1 and yi < map.nb_row+1 and xi > 0 and yi > 0) {
         #log("Add obstacle in cell: ", xi, " ", yi)
@@ -79,8 +79,8 @@ function add_obstacle(pos, off, inc_trust) {
 }
 
 function remove_obstacle(pos, off, dec_trust) {
-    xi = math.round(pos.x)
-    yi = math.round(pos.y)
+    var xi = math.round(pos.x)
+    var yi = math.round(pos.y)
 
     if(xi < map.nb_col+1 and yi < map.nb_row+1 and xi > 0 and yi > 0){
         #log("Remove obstacle in cell: ", xi, " ", yi)
@@ -107,14 +107,14 @@ function table_copy(t) {
 }
 
 function print_pos(t) {
-  ir=1
+  var ir=1
   while(ir<=t.nb_row){
       log(ir, ": ", rmat(t,ir,1), " ", rmat(t,ir,2))
       ir = ir + 1
   }
 }
 function print_map(t) {
-  ir=t.nb_row
+  var ir=t.nb_row
   log("Printing a ", t.nb_row, " by ", t.nb_col, " map")
   while(ir>0){
       logst=string.concat("\t", string.tostring(ir), "\t:")
@@ -132,7 +132,7 @@ function print_map(t) {
 }
 
 function print_map_argos(t){
-  ir=t.nb_row
+  var ir=t.nb_row
   msg = string.tostring(ir)
   while(ir>0){
       ic=t.nb_col
@@ -147,5 +147,5 @@ function print_map_argos(t){
       }
       ir = ir - 1
   }
-  set_argos_map(msg)
+  #set_argos_map(msg)
 }
