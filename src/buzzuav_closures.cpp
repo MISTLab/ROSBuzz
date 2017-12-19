@@ -145,18 +145,16 @@ void parse_gpslist()
   const char* DELIMS = "\t ,";  // Tab, space or comma.
 
   // Read the file and load the data:
-  double lat, lon;
-  int alt, tilt, tid;
   buzz_utility::RB_struct RB_arr;
   // Read one line at a time.
   while (fin.getline(buffer, MAX_LINE_LENGTH))
   {
     // Extract the tokens:
-    tid = atoi(strtok(buffer, DELIMS));
-    lon = atof(strtok(NULL, DELIMS));
-    lat = atof(strtok(NULL, DELIMS));
-    alt = atoi(strtok(NULL, DELIMS));
-    tilt = atoi(strtok(NULL, DELIMS));
+    int tid = atoi(strtok(buffer, DELIMS));
+    double lon = atof(strtok(NULL, DELIMS));
+    double lat = atof(strtok(NULL, DELIMS));
+    int alt = atoi(strtok(NULL, DELIMS));
+    //int tilt = atoi(strtok(NULL, DELIMS));
     //  DEBUG
     // ROS_INFO("%.6f, %.6f, %i %i %i",lat, lon, alt, tilt, tid);
     RB_arr.latitude = lat;
@@ -593,10 +591,10 @@ void set_filtered_packet_loss(float value)
   filtered_packet_loss = round(100 * value);
 }
 
-void set_api_rssi(float value)
+/*void set_api_rssi(float value)
 {
   api_rssi = value;
-}
+}*/
 
 int buzzuav_update_xbee_status(buzzvm_t vm)
 /*
