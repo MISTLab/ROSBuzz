@@ -1,8 +1,8 @@
 /** @file      rosbuzz.cpp
- *  @version   1.0 
+ *  @version   1.0
  *  @date      27.09.2016
- *  @brief     Buzz Implementation as a node in ROS for Dji M100 Drone. 
- *  @author    Vivek Shankar Varadharajan
+ *  @brief     Buzz Implementation as a node in ROS.
+ *  @author    Vivek Shankar Varadharajan and David St-Onge
  *  @copyright 2016 MistLab. All rights reserved.
  */
 
@@ -11,18 +11,16 @@
 /**
  * This program implements Buzz node in ros using mavros_msgs.
  */
-	
-int main(int argc, char **argv)
+
+int main(int argc, char** argv)
 {
   /*Initialize rosBuzz node*/
-  ros::init(argc, argv, "rosBuzz"); 
+  ros::init(argc, argv, "rosBuzz");
   ros::NodeHandle nh_priv("~");
   ros::NodeHandle nh;
   rosbzz_node::roscontroller RosController(nh, nh_priv);
   /*Register ros controller object inside buzz*/
-  //buzzuav_closures::set_ros_controller_ptr(&RosController);
-  RosController.RosControllerRun(); 
+  // buzzuav_closures::set_ros_controller_ptr(&RosController);
+  RosController.RosControllerRun();
   return 0;
 }
-
-

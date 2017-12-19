@@ -5,6 +5,11 @@ if(UNIX)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=gnu++11")
 endif()
 
+if(SIM)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIMULATION=1")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIMULATION=0")
+endif()
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -54,7 +59,6 @@ add_executable(rosbuzz_node src/rosbuzz.cpp
   src/roscontroller.cpp
   src/buzz_utility.cpp
   src/buzzuav_closures.cpp
-  src/uav_utility.cpp 
   src/buzz_update.cpp)
 target_link_libraries(rosbuzz_node ${catkin_LIBRARIES} buzz buzzdbg pthread)
 add_dependencies(rosbuzz_node rosbuzz_generate_messages_cpp)
