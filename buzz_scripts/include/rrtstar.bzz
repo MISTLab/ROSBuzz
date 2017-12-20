@@ -6,10 +6,13 @@
 include "mapmatrix.bzz"
 
 RRT_TIMEOUT = 500
+RRT_RUNSTEP = 3
+PROX_SENSOR_THRESHOLD = 0.11
 GSCALE = {.x=1, .y=1}
 map = nil
 cur_cell = {}
 nei_cell = {}
+mapgoal = {}
 
 # create a map with its length to fit the goal (rel. pos.) and the current position as the center
 function dyn_init_map(m_navigation) {
@@ -29,8 +32,25 @@ function pathPlanner(m_goal, m_pos, kh4) {
     #print_map(map)
     export_map(map)
 
+    # Initialize RRTStar var
+    log("--------Initialize RRTStar--------------")
+    HEIGHT = size(map)
+    WIDTH = size(map[1])
+    RADIUS = 1.25 #TOL.x #size(map[1])/10.0 # to consider 2 points consecutive
+    goalBoundary = {.xmin=mapgoal.x-HEIGHT/20.0, .xmax=mapgoal.x+HEIGHT/20.0, .ymin=mapgoal.y-WIDTH/20.0, .ymax=mapgoal.y+WIDTH/20.0}
+    #table_print(goalBoundary)
+    numberOfPoints = 1
+    arrayOfPoints = {}
+    arrayOfPoints[1] = {.1=cur_cell.x, .2=cur_cell.y}
+    # RRT* tree matrix: x; y; predecessor line in Q; nb of pts; min. distance
+    Q = {}
+    Q[1] = {.1=cur_cell.x,.2=cur_cell.y,.3=1,.4=1,.5=0}
+    goalReached = 0
+    timeout = 0
+
     # search for a path
-    return RRTSTAR(mapgoal,math.vec2.new(5 * GSCALE.x, 5  * GSCALE.y))  #size(map[1])/20.0,size(map[1])/20.0))
+    old_statef = statef
+    rrtstar()
 }
 
 function getcell(m_curpos) {
@@ -53,12 +73,13 @@ function getcell(m_curpos) {
   return cell
 }
 
-function updateMap(m_pos) {
+function populateGrid(m_pos) {
     #getproxobs(m_pos)
-    UAVgetneiobs (m_pos)
+    getneiobs (m_pos)
 }
 
-function UAVgetneiobs (m_curpos) {
+# TODO: populate the map with a blob instead?
+function getneiobs (m_curpos) {
     cur_cell = getcell(m_curpos)
     # add all neighbors as obstacles in the grid
     neighbors.foreach(function(rid, data) {
@@ -66,54 +87,47 @@ function UAVgetneiobs (m_curpos) {
             })
 }
 
-function getneiobs (m_curpos) {
-  var foundobstacle = 0
-  cur_cell = getcell(m_curpos)
-  var old_nei = table_copy(nei_cell)
-  #log("NeiObs debug: ", nei_cell[9], " ", nei_cell[3])
+# old function tested with the khepera for reference
+# DS 20/11
+# function getneiobs (m_curpos) {
+#   var foundobstacle = 0
+#   cur_cell = getcell(m_curpos)
+#   var old_nei = table_copy(nei_cell)
 
-  neighbors.foreach(function(rid, data) {
-  #log("nei rel pos: ", data.distance, "m ", data.azimuth*180.0/math.pi, "deg")
-          Ncell = math.vec2.add(math.vec2.newp(data.distance*100,data.azimuth + absolute_position.theta), m_curpos)
-  #log("nei abs pos: ", Ncell.x, "cm ", Ncell.y, "cm")
-          Ncell = math.vec2.sub(Ncell, math.vec2.new(GRIDCM.xmin, GRIDCM.ymin))
-          Ncell = math.vec2.new(math.round(Ncell.x*CM2KH4.x), math.round(Ncell.y*CM2KH4.y))
-          nei_cell[rid] = {.x=Ncell.x, .y=Ncell.y}
-  #log("Neighbor in : ", Ncell.x, " ", Ncell.y)
-          if(old_nei[rid]!=nil) {
-            if(old_nei[rid].x!=nei_cell[rid].x or old_nei[rid].y!=nei_cell[rid].y) {
-  #log("Neighbor moved ! ", nei_cell[rid].x, " ", nei_cell[rid].y)
-              remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y), 0, 1)
-              remove_obstacle(math.vec2.new(old_nei[rid].x+1, old_nei[rid].y), 0, 1)
-              remove_obstacle(math.vec2.new(old_nei[rid].x-1, old_nei[rid].y), 0, 1)
-              remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y+1), 0, 1)
-              remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y-1), 0, 1)
-              add_obstacle(Ncell, 0, 1.0)
-              add_obstacle(math.vec2.new(Ncell.x+1, Ncell.y), 0, 1.0)
-              add_obstacle(math.vec2.new(Ncell.x-1, Ncell.y), 0, 1.0)
-              add_obstacle(math.vec2.new(Ncell.x, Ncell.y+1), 0, 1.0)
-              add_obstacle(math.vec2.new(Ncell.x, Ncell.y-1), 0, 1.0)
-              foundobstacle = 1
-            }
-          } else {
-            add_obstacle(Ncell, 0, 1.0)
-            add_obstacle(math.vec2.new(Ncell.x+1, Ncell.y), 0, 1.0)
-            add_obstacle(math.vec2.new(Ncell.x-1, Ncell.y), 0, 1.0)
-            add_obstacle(math.vec2.new(Ncell.x, Ncell.y+1), 0, 1.0)
-            add_obstacle(math.vec2.new(Ncell.x, Ncell.y-1), 0, 1.0)
-            foundobstacle = 1
-          }
-        })
+#   neighbors.foreach(function(rid, data) {
+#           Ncell = math.vec2.add(math.vec2.newp(data.distance*100,data.azimuth + absolute_position.theta), m_curpos)
+#           Ncell = math.vec2.sub(Ncell, math.vec2.new(GRIDCM.xmin, GRIDCM.ymin))
+#           Ncell = math.vec2.new(math.round(Ncell.x*CM2KH4.x), math.round(Ncell.y*CM2KH4.y))
+#           nei_cell[rid] = {.x=Ncell.x, .y=Ncell.y}
+#           if(old_nei[rid]!=nil) {
+#             if(old_nei[rid].x!=nei_cell[rid].x or old_nei[rid].y!=nei_cell[rid].y) {
+#               remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y), 0, 1)
+#               remove_obstacle(math.vec2.new(old_nei[rid].x+1, old_nei[rid].y), 0, 1)
+#               remove_obstacle(math.vec2.new(old_nei[rid].x-1, old_nei[rid].y), 0, 1)
+#               remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y+1), 0, 1)
+#               remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y-1), 0, 1)
+#               add_obstacle(Ncell, 0, 1.0)
+#               add_obstacle(math.vec2.new(Ncell.x+1, Ncell.y), 0, 1.0)
+#               add_obstacle(math.vec2.new(Ncell.x-1, Ncell.y), 0, 1.0)
+#               add_obstacle(math.vec2.new(Ncell.x, Ncell.y+1), 0, 1.0)
+#               add_obstacle(math.vec2.new(Ncell.x, Ncell.y-1), 0, 1.0)
+#               foundobstacle = 1
+#             }
+#           } else {
+#             add_obstacle(Ncell, 0, 1.0)
+#             add_obstacle(math.vec2.new(Ncell.x+1, Ncell.y), 0, 1.0)
+#             add_obstacle(math.vec2.new(Ncell.x-1, Ncell.y), 0, 1.0)
+#             add_obstacle(math.vec2.new(Ncell.x, Ncell.y+1), 0, 1.0)
+#             add_obstacle(math.vec2.new(Ncell.x, Ncell.y-1), 0, 1.0)
+#             foundobstacle = 1
+#           }
+#         })
+#   return foundobstacle
+# }
 
-  #if(foundobstacle) {
-    #print_map(map)
-  #}
-
-  return foundobstacle
-}
-
+# populate a line in front of the sensor using plateform independant proximity sensing
 function getproxobs (m_curpos) {
-  foundobstacle = 0
+  var foundobstacle = 0
   cur_cell = getcell(m_curpos)
 
   reduce(proximity,
@@ -125,7 +139,7 @@ function getproxobs (m_curpos) {
       obsr2 = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs2)
       obsl = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs)
       obsl2 = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs2)
-      if(value.value > IR_SENSOR_THRESHOLD) {
+      if(value.value > PROX_SENSOR_THRESHOLD) {
         if(map[math.round(obs.x)][math.round(obs.y)]!=0) {
           add_obstacle(obs, 0, 0.25)
           add_obstacle(obs2, 0, 0.25)
@@ -141,15 +155,6 @@ function getproxobs (m_curpos) {
       }
       return acc
   }, math.vec2.new(0, 0))
-
-  #if(foundobstacle) {
-  #  reduce(proximity,
-  #        function(key, value, acc){
-  #            log(value.value, ", ",  value.angle)
-  #            return acc
-  #        }, math.vec2.new(0, 0))
-  #  print_map(map)
-  #}
 
   return foundobstacle
 }			
@@ -176,29 +181,16 @@ function check_path(m_path, goal_l, m_curpos, kh4) {
   return pathisblocked
 }
 
-function RRTSTAR(GOAL,TOL) {
-    HEIGHT = size(map)
-    WIDTH = size(map[1])
-    RADIUS = 1.25 #TOL.x #size(map[1])/10.0 # to consider 2 points consecutive
+function rrtstar() {
+    # update state machine variables
+    statef = rrtstar
+    BVMSTATE = "RRTSTAR"
 
-
-    var goalBoundary = {.xmin=GOAL.x-TOL.x, .xmax=GOAL.x+TOL.x, .ymin=GOAL.y-TOL.y, .ymax=GOAL.y+TOL.y}
-    #table_print(goalBoundary)
-    var numberOfPoints = 1
-    var arrayOfPoints = {}
-    arrayOfPoints[1] = {.1=cur_cell.x, .2=cur_cell.y}
-    Path = {}
-    mat_copyrow(Path,1,arrayOfPoints,1)
-    # RRT* tree matrix: x; y; predecessor line in Q; nb of pts; min. distance
-    Q = {}
-    Q[1] = {.1=cur_cell.x,.2=cur_cell.y,.3=1,.4=1,.5=0}
-
-    goalReached = 0;
-    timeout = 0
     ##
     # main search loop
     ##
-    while(goalReached == 0 and timeout < RRT_TIMEOUT) {
+    step_timeout = 0
+    while(goalReached == 0 and timeout < RRT_TIMEOUT and step_timeout < RRT_RUNSTEP) {
 
         # Point generation only as grid cell centers
         pt = math.vec2.new(math.round(HEIGHT * math.rng.uniform(1.0) + 1), math.round(WIDTH * math.rng.uniform(1.0) + 1))
@@ -313,15 +305,19 @@ function RRTSTAR(GOAL,TOL) {
             log(numberOfPoints, " points processed. Still looking for goal.");
         }
         timeout = timeout + 1
+        step_timeout = step_timeout + 1
     }
+
     if(goalReached){
         log("Goal found(",numberOfPoints,")!")
         Path = getPath(Q,numberOfPoints, 1)
+        # done. resume the state machine
+        BVMSTATE = "GOTOGPS"
+        statef = old_statef
     } else {
-      log("FAILED TO FIND A PATH!!!")
+      #log("FAILED TO FIND A PATH!!!")
       Path = nil
     }
-    return Path
 }
 
 function findClosestPoint(point,aPt) {

@@ -16,7 +16,7 @@ function init() {
 	#statef=turnedoff
 	#UAVSTATE = "TURNEDOFF"
 	statef = takeoff
-	UAVSTATE = "TAKEOFF"
+	BVMSTATE = "TAKEOFF"
 }
 
 # Executed at each time step.
@@ -25,7 +25,7 @@ function step() {
 
 	statef()
 
-	log("Current state: ", UAVSTATE)
+	log("Current state: ", BVMSTATE)
 }
  
 # Executed once when the robot (or the simulator) is reset.
