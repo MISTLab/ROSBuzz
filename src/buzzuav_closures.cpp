@@ -184,12 +184,12 @@ int buzz_exportmap(buzzvm_t vm)
   buzzvm_lload(vm, 1);
   buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);    // dictionary
   buzzobj_t t = buzzvm_stack_at(vm, 1);
-  for(int32_t i = 1; i < buzzdict_size(t->t.value); ++i) {
+  for(int32_t i = 1; i <= buzzdict_size(t->t.value); ++i) {
     buzzvm_dup(vm);
     buzzvm_pushi(vm, i);
     buzzvm_tget(vm);
     std::map<int, int> row;
-    for(int32_t j = 1; j < buzzdict_size(buzzvm_stack_at(vm, 1)->t.value); ++j) {
+    for(int32_t j = 1; j <= buzzdict_size(buzzvm_stack_at(vm, 1)->t.value); ++j) {
       buzzvm_dup(vm);
       buzzvm_pushi(vm, j);
       buzzvm_tget(vm);
@@ -199,6 +199,8 @@ int buzz_exportmap(buzzvm_t vm)
     grid.insert(std::pair<int,std::map<int, int>>(i,row));
     buzzvm_pop(vm);
   }
+  // DEBUG
+  // ROS_INFO("----- Recorded a grid of %i(%i)", grid.size(), buzzdict_size(t->t.value));
   return buzzvm_ret0(vm);
 }
 

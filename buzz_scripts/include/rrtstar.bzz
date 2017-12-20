@@ -27,7 +27,7 @@ function pathPlanner(m_goal, m_pos, kh4) {
     mapgoal = getcell(math.vec2.add(m_goal, m_pos))
 
     #print_map(map)
-    #export_map(map)
+    export_map(map)
 
     # search for a path
     return RRTSTAR(mapgoal,math.vec2.new(5 * GSCALE.x, 5  * GSCALE.y))  #size(map[1])/20.0,size(map[1])/20.0))
