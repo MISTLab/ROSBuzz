@@ -480,7 +480,7 @@ string getuavstate()
 ---------------------------------------*/
 {
   static buzzvm_t VM = buzz_utility::get_vm();
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
   buzzvm_gload(VM);
   buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
   buzzvm_pop(VM);

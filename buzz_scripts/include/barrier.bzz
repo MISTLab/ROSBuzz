@@ -32,7 +32,7 @@ function barrier_set(threshold, transf, resumef, bdt) {
   statef = function() {
     barrier_wait(threshold, transf, resumef, bdt);
   }
-  UAVSTATE = "BARRIERWAIT"
+  BVMSTATE = "BARRIERWAIT"
   barrier_create()
 }
 
