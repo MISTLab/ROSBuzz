@@ -461,12 +461,14 @@ void roscontroller::grid_publisher()
   int g_h = grid.size();
 
   if(g_w!=0 && g_h!=0) {
+    // DEBUG
+    //ROS_INFO("------> Publishing a grid of %i x %i", g_h, g_w);
     auto current_time = ros::Time::now();
     nav_msgs::OccupancyGrid grid_msg;
     grid_msg.header.frame_id = "/world";
     grid_msg.header.stamp = current_time;
     grid_msg.info.map_load_time = current_time;  // Same as header stamp as we do not load the map.
-    //grid_msg.info.resolution = gridMap.getResolution();
+    grid_msg.info.resolution = 0.1;//gridMap.getResolution();
     grid_msg.info.width = g_w;
     grid_msg.info.height = g_h;
     grid_msg.info.origin.position.x = 0.0;
@@ -476,12 +478,13 @@ void roscontroller::grid_publisher()
     grid_msg.info.origin.orientation.y = 0.0;
     grid_msg.info.origin.orientation.z = 0.0;
     grid_msg.info.origin.orientation.w = 1.0;
-    grid_msg.data.resize(g_w*g_h);
+    grid_msg.data.resize(g_w * g_h);
 
     for (itr=grid.begin(); itr!=grid.end(); ++itr) {
       std::map<int,int>::iterator itc = itr->second.begin();
       for (itc=itr->second.begin(); itc!=itr->second.end(); ++itc) {
-        grid_msg.data[itr->first*g_w+itc->first] = round(itc->second*100.0);
+        //ROS_INFO("--------------> index: %i (%i,%i): %i", (itr->first-1)*g_w+itc->first, itr->first, itc->first, round(itc->second*100.0));
+        grid_msg.data[(itr->first-1)*g_w+itc->first] = round(itc->second*100.0);
       }
     }
     grid_pub.publish(grid_msg);
