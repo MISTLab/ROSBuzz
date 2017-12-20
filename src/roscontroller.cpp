@@ -318,7 +318,7 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
     system("rosnode kill rosbuzz_node");
   }
 
-  node_handle.getParam("obstacles", obstacles_topic);
+  node_handle.getParam("topics/obstacles", obstacles_topic);
 }
 
 void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c)
@@ -468,7 +468,7 @@ void roscontroller::grid_publisher()
     grid_msg.header.frame_id = "/world";
     grid_msg.header.stamp = current_time;
     grid_msg.info.map_load_time = current_time;  // Same as header stamp as we do not load the map.
-    grid_msg.info.resolution = 0.1;//gridMap.getResolution();
+    grid_msg.info.resolution = 0.01;//gridMap.getResolution();
     grid_msg.info.width = g_w;
     grid_msg.info.height = g_h;
     grid_msg.info.origin.position.x = 0.0;
@@ -483,8 +483,9 @@ void roscontroller::grid_publisher()
     for (itr=grid.begin(); itr!=grid.end(); ++itr) {
       std::map<int,int>::iterator itc = itr->second.begin();
       for (itc=itr->second.begin(); itc!=itr->second.end(); ++itc) {
-        //ROS_INFO("--------------> index: %i (%i,%i): %i", (itr->first-1)*g_w+itc->first, itr->first, itc->first, round(itc->second*100.0));
-        grid_msg.data[(itr->first-1)*g_w+itc->first] = round(itc->second*100.0);
+        grid_msg.data[(itr->first-1)*g_w+itc->first] = itc->second;
+        // DEBUG
+        //ROS_INFO("--------------> index: %i (%i,%i): %i", (itr->first-1)*g_w+itc->first, itr->first, itc->first, grid_msg.data[(itr->first-1)*g_w+itc->first]);
       }
     }
     grid_pub.publish(grid_msg);

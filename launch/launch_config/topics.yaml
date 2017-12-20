@@ -10,3 +10,4 @@ topics:
   localpos: local_position/pose
   stream:  set_stream_rate
   altitude: global_position/rel_alt
+  obstacles: obstacles
