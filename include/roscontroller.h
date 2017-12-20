@@ -1,6 +1,7 @@
 #pragma once
 #include <ros/ros.h>
 #include <sensor_msgs/NavSatFix.h>
+#include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/UInt8.h>
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/CommandCode.h"
@@ -124,6 +125,7 @@ private:
   ros::Publisher MPpayload_pub;
   ros::Publisher neigh_pos_pub;
   ros::Publisher uavstate_pub;
+  ros::Publisher grid_pub;
   ros::Publisher localsetpoint_nonraw_pub;
   ros::ServiceServer service;
   ros::Subscriber current_position_sub;
@@ -178,6 +180,9 @@ private:
 
   /*UAVState publisher*/
   void uavstate_publisher();
+
+  /*Grid publisher*/
+  void grid_publisher();
 
   /*BVM message payload publisher*/
   void send_MPpayload();

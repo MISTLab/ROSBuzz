@@ -95,6 +95,10 @@ void set_currentpos(double latitude, double longitude, double altitude);
  */
 double* getgoto();
 /*
+ * returns the current grid
+ */
+std::map<int, std::map<int,int>> getgrid();
+/*
  * returns the current Buzz state
  */
 std::string getuavstate();

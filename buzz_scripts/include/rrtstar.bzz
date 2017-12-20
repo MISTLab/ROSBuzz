@@ -6,54 +6,41 @@
 include "mapmatrix.bzz"
 
 RRT_TIMEOUT = 500
+GSCALE = {.x=1, .y=1}
 map = nil
 cur_cell = {}
 nei_cell = {}
 
-function UAVinit_map(m_navigation) {
+# create a map with its length to fit the goal (rel. pos.) and the current position as the center
+function dyn_init_map(m_navigation) {
     # create a map big enough for the goal
-    init_map(2*math.round(math.vec2.length(m_navigation))+10)
+    init_map(math.round(2*math.vec2.length(m_navigation))+10)
     # center the robot on the grid
     cur_cell = math.vec2.new(math.round(size(map)/2.0),math.round(size(map[1])/2.0))
 }
 
-function UAVpathPlanner(m_navigation, m_pos) {
+# start the RRT* to reach the goal (rel. pos.)
+function pathPlanner(m_goal, m_pos, kh4) {
     # place the robot on the grid
-    cur_cell = getcell(m_pos,0)
+    cur_cell = getcell(m_pos)
     # create the goal in the map grid
-    mapgoal = math.vec2.add(m_navigation,cur_cell)
-    mapgoal = math.vec2.new(math.round(mapgoal.x),math.round(mapgoal.y))
+    mapgoal = getcell(math.vec2.add(m_goal, m_pos))
+
+    #print_map(map)
+    #export_map(map)
 
     # search for a path
-    return RRTSTAR(mapgoal,math.vec2.new(5,5))  #size(map[1])/20.0,size(map[1])/20.0))
+    return RRTSTAR(mapgoal,math.vec2.new(5 * GSCALE.x, 5  * GSCALE.y))  #size(map[1])/20.0,size(map[1])/20.0))
 }
 
-function Kh4pathPlanner(m_goal, m_pos) {
-    # move 0,0 to a corner instead of the center
-    m_goal = math.vec2.sub(m_goal,math.vec2.new(GRIDCM.xmin, GRIDCM.ymin))
-    m_goal = math.vec2.new(math.round(m_goal.x*CM2KH4.x), math.round(m_goal.y*CM2KH4.y))
-
-    # place the robot on the grid
-    cur_cell = getcell(m_pos,1)
-    log("Starting from cell: ", cur_cell.x, " ", cur_cell.y)
-    log("Going to cell: ", m_goal.x, " ", m_goal.y)
-
-    # search for a path
-    print_map(map)
-    # print_map_argos(map)
-    return RRTSTAR(m_goal, math.vec2.new(10.0 * CM2KH4.x, 10.0 * CM2KH4.y))
-}
-
-function getcell(m_curpos, kh4) {
+function getcell(m_curpos) {
   var cell = {}
-  if(kh4) { # for khepera playground
-    cell = math.vec2.sub(m_curpos, math.vec2.new(GRIDCM.xmin, GRIDCM.ymin))
-    cell = math.vec2.new(math.round(cell.x*CM2KH4.x), math.round(cell.y*CM2KH4.y))
-  } else { # for uav map relative to home
-    cell = math.vec2.new(math.round(size(map)/2.0),math.round(size(map[1])/2.0))
-    cell = math.vec2.add(cell, m_curpos)
-    cell = math.vec2.new(math.round(cell.x), math.round(cell.y))
-  }
+  # relative to center (start position)
+  cell = math.vec2.new(math.round(size(map)/2.0),math.round(size(map[1])/2.0))
+  var offset = math.vec2.new(m_curpos.x*GSCALE.x, m_curpos.y*GSCALE.y)
+  cell = math.vec2.add(cell, offset)
+  cell = math.vec2.new(math.round(cell.x), math.round(cell.y))
+  
   if(cell.x > size(map))
     cell.x = size(map)
   if(cell.y > size(map[1]))
@@ -72,7 +59,7 @@ function updateMap(m_pos) {
 }
 
 function UAVgetneiobs (m_curpos) {
-    cur_cell = getcell(m_curpos,0)
+    cur_cell = getcell(m_curpos)
     # add all neighbors as obstacles in the grid
     neighbors.foreach(function(rid, data) {
             add_obstacle(math.vec2.add(math.vec2.newp(data.distance,data.azimuth),cur_cell), 0, 1.0)
@@ -81,7 +68,7 @@ function UAVgetneiobs (m_curpos) {
 
 function getneiobs (m_curpos) {
   var foundobstacle = 0
-  cur_cell = getcell(m_curpos,1)
+  cur_cell = getcell(m_curpos)
   var old_nei = table_copy(nei_cell)
   #log("NeiObs debug: ", nei_cell[9], " ", nei_cell[3])
 
@@ -127,7 +114,7 @@ function getneiobs (m_curpos) {
 
 function getproxobs (m_curpos) {
   foundobstacle = 0
-  cur_cell = getcell(m_curpos,1)
+  cur_cell = getcell(m_curpos)
 
   reduce(proximity,
     function(key, value, acc) {
@@ -170,13 +157,13 @@ function getproxobs (m_curpos) {
 function check_path(m_path, goal_l, m_curpos, kh4) {
   var pathisblocked = 0
   var nb = goal_l
-  cur_cell = getcell(m_curpos,kh4)
+  cur_cell = getcell(m_curpos)
   var Cvec = cur_cell
   while(nb <= size(m_path) and nb <= goal_l+1) {
     var Nvec = getvec(m_path, nb)
     if(kh4 == 0) {
         Nvec = vec_from_gps(Nvec.x,Nvec.y,1)
-        Nvec = getcell(Nvec,kh4)
+        Nvec = getcell(Nvec)
     }
     if(doesItIntersect(Cvec, Nvec)) {
       log("Path blocked ! (", Cvec.x, "/", Cvec.y, "->", Nvec.x, "/", Nvec.y, ")")
@@ -225,7 +212,7 @@ function RRTSTAR(GOAL,TOL) {
         minCounter = 0;
 
         if(size(pointList) != 0) {
-            log("Found ", size(pointList), " close to point: ", pointList[size(pointList)][3]) 
+            #log("Found ", size(pointList), " close to point: ", pointList[size(pointList)][3]) 
             ipt=1
             while(ipt <= size(pointList)) {
                 pointNumber = {}
@@ -329,8 +316,7 @@ function RRTSTAR(GOAL,TOL) {
     }
     if(goalReached){
         log("Goal found(",numberOfPoints,")!")
-        Path = getPathGPS(Q,numberOfPoints)
-        print_pos(Path)
+        Path = getPath(Q,numberOfPoints, 1)
     } else {
       log("FAILED TO FIND A PATH!!!")
       Path = nil
@@ -424,62 +410,40 @@ function doesItIntersect(point,vector) {
     return 0
 }
 
-function getPathGPS(Q,nb){
+# create a table with only the path's points in order
+function getPath(Q,nb,gps){
     #log("-----------CONVERTING PATH!!!")
-    path={}
+    var pathL={}
     var npt=0
-    var isrecursive = 0
     # get the path from the point list
-    while(nb > 1 and isrecursive!=1){
+    while(nb > 1) {
         npt=npt+1
-        path[npt] = {}
-        path[npt][1]=Q[nb][1]
-        path[npt][2]=Q[nb][2]
+        pathL[npt] = {}
+        pathL[npt][1]=Q[nb][1]
+        pathL[npt][2]=Q[nb][2]
         if(nb != Q[Q[nb][3]][3])
             nb = Q[nb][3];
         else {
-            isrecursive = 1
-            path={}
             log("ERROR - Recursive path !!!")
+            return nil
         }
-    }
-
-    # re-order the list and make the path points absolute
-    pathR={}
-    var totpt = npt + 1
-    while(npt > 0){
-        tmpgoal = gps_from_vec(math.vec2.sub(getvec(path,npt),cur_cell))
-        pathR[totpt-npt] = {}
-        pathR[totpt-npt][1]=tmpgoal.latitude
-        pathR[totpt-npt][2]=tmpgoal.longitude
-        npt = npt - 1
-    }
-    return pathR
-}
-
-# create a table with only the path's points in order
-function getPath(Q,nb){
-    path={}
-    var npt=0
-
-    # log("get the path from the point list")
-    while(nb > 1){
-        npt=npt+1
-        path[npt] = {}
-        path[npt][1]=Q[nb][1]
-        path[npt][2]=Q[nb][2]
-        nb = Q[nb][3];
     }
 
     # log("re-order the list")
     # table_print(path.mat)
-    pathR={}
+    var pathR={}
     var totpt = npt + 1
     while(npt > 0){
-        tmpgoal = getvec(path,npt)
         pathR[totpt-npt] = {}
-        pathR[totpt-npt][1]=tmpgoal.x
-        pathR[totpt-npt][2]=tmpgoal.y
+        if(gps) {
+            tmpgoal = gps_from_vec(math.vec2.sub(getvec(pathL,npt),cur_cell))
+            pathR[totpt-npt][1]=tmpgoal.latitude
+            pathR[totpt-npt][2]=tmpgoal.longitude
+        } else {
+            tmpgoal = getvec(path,npt)
+            pathR[totpt-npt][1]=tmpgoal.x
+            pathR[totpt-npt][2]=tmpgoal.y
+        }
         npt = npt - 1
     }
     #log("Double-check path: ", check_path(pathR, 1, cur_cell, 1))
