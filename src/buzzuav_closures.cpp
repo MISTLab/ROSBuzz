@@ -36,6 +36,7 @@ std::map<int, buzz_utility::RB_struct> targets_map;
 std::map<int, buzz_utility::RB_struct> wplist_map;
 std::map<int, buzz_utility::Pos_struct> neighbors_map;
 std::map<int, buzz_utility::neighbors_status> neighbors_status_map;
+std::map<int, std::map<int,int>> grid;
 
 /****************************************/
 /****************************************/
@@ -178,26 +179,24 @@ int buzz_exportmap(buzzvm_t vm)
 / Buzz closure to export a 2D map
 /----------------------------------------*/
 {
-  /* Make sure one parameter has been passed */
   buzzvm_lnum_assert(vm, 1);
-  /* Get the parameter */
+  // Get the parameter
   buzzvm_lload(vm, 1);
-  buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);  // matrix
-  /* Get the table */
+  buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);    // dictionary
   buzzobj_t t = buzzvm_stack_at(vm, 1);
-  /* Copy the values into a vector */
-  std::vector<float> mat;
-  for (int32_t i = 0; i < buzzdict_size(t->t.value); ++i)
-  {
-    /* Duplicate the table */
+  for(int32_t i = 1; i < buzzdict_size(t->t.value); ++i) {
     buzzvm_dup(vm);
-    /* Push the index */
     buzzvm_pushi(vm, i);
-    /* Get the value */
     buzzvm_tget(vm);
-    /* Store it in the vector (assume all values are float, no mistake...) */
-    mat.push_back((float)buzzvm_stack_at(vm, 1)->f.value);
-    /* Get rid of the value, now useless */
+    std::map<int, int> row;
+    for(int32_t j = 1; j < buzzdict_size(buzzvm_stack_at(vm, 1)->t.value); ++j) {
+      buzzvm_dup(vm);
+      buzzvm_pushi(vm, j);
+      buzzvm_tget(vm);
+      row.insert(std::pair<int,int>(j,round(buzzvm_stack_at(vm, 1)->f.value*100.0)));
+      buzzvm_pop(vm);
+    }
+    grid.insert(std::pair<int,std::map<int, int>>(i,row));
     buzzvm_pop(vm);
   }
   return buzzvm_ret0(vm);
@@ -455,6 +454,14 @@ double* getgoto()
 /-------------------------------------------------------------*/
 {
   return goto_pos;
+}
+
+std::map<int, std::map<int,int>> getgrid()
+/*
+/ return the grid
+/-------------------------------------------------------------*/
+{
+  return grid;
 }
 
 float* getgimbal()

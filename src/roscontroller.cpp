@@ -114,8 +114,10 @@ void roscontroller::RosControllerRun()
     // ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
     while (ros::ok() && !buzz_utility::buzz_script_done())
     {
-      //  Neighbours of the robot published with id in respective topic
+      //  Publish topics
       neighbours_pos_publisher();
+      uavstate_publisher();
+      grid_publisher();
       send_MPpayload();
       //  Check updater state and step code
       update_routine();
@@ -337,6 +339,7 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c)
   MPpayload_pub = n_c.advertise<mavros_msgs::Mavlink>("fleet_status", 5);
   neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos", 5);
   uavstate_pub = n_c.advertise<std_msgs::String>("uavstate", 5);
+  grid_pub = n_c.advertise<nav_msgs::OccupancyGrid>("grid", 5);
   localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name, 5);
 
   // Service Clients
@@ -446,6 +449,45 @@ void roscontroller::uavstate_publisher()
   uavstate_msg.data = buzzuav_closures::getuavstate();
   uavstate_pub.publish(uavstate_msg);
 }
+
+void roscontroller::grid_publisher()
+/*
+/ Publish current Grid from Buzz script
+/----------------------------------------------------*/
+{
+  std::map<int, std::map<int,int>> grid = buzzuav_closures::getgrid();
+  std::map<int, std::map<int,int>>::iterator itr = grid.begin();
+  int g_w = itr->second.size();
+  int g_h = grid.size();
+
+  if(g_w!=0 && g_h!=0) {
+    auto current_time = ros::Time::now();
+    nav_msgs::OccupancyGrid grid_msg;
+    grid_msg.header.frame_id = "/world";
+    grid_msg.header.stamp = current_time;
+    grid_msg.info.map_load_time = current_time;  // Same as header stamp as we do not load the map.
+    //grid_msg.info.resolution = gridMap.getResolution();
+    grid_msg.info.width = g_w;
+    grid_msg.info.height = g_h;
+    grid_msg.info.origin.position.x = 0.0;
+    grid_msg.info.origin.position.y = 0.0;
+    grid_msg.info.origin.position.z = 0.0;
+    grid_msg.info.origin.orientation.x = 0.0;
+    grid_msg.info.origin.orientation.y = 0.0;
+    grid_msg.info.origin.orientation.z = 0.0;
+    grid_msg.info.origin.orientation.w = 1.0;
+    grid_msg.data.resize(g_w*g_h);
+
+    for (itr=grid.begin(); itr!=grid.end(); ++itr) {
+      std::map<int,int>::iterator itc = itr->second.begin();
+      for (itc=itr->second.begin(); itc!=itr->second.end(); ++itc) {
+        grid_msg.data[itr->first*g_w+itc->first] = round(itc->second*100.0);
+      }
+    }
+    grid_pub.publish(grid_msg);
+  }
+}
+
 
 void roscontroller::Arm()
 /*
