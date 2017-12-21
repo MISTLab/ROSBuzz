@@ -136,8 +136,8 @@ function getproxobs (m_curpos) {
 
   reduce(proximity,
     function(key, value, acc) {
-      obs = getcell(math.vec2.newp(value.value, value.angle + absolute_position.yaw))
-      obs2 = getcell(math.vec2.newp(value.value + 1.0, value.angle + absolute_position.yaw))
+      obs = getcell(math.vec2.newp(value.value, value.angle + pose.orientation.yaw))
+      obs2 = getcell(math.vec2.newp(value.value + 1.0, value.angle + pose.orientation.yaw))
       per = math.vec2.sub(obs,cur_cell)
       obsr = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs)
       obsr2 = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs2)
