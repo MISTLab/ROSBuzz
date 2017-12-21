@@ -1,5 +1,6 @@
 #pragma once
 #include <ros/ros.h>
+#include <tf/tf.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <std_msgs/UInt8.h>
@@ -51,7 +52,6 @@ class roscontroller
 public:
   roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv);
   ~roscontroller();
-  // void RosControllerInit();
   void RosControllerRun();
 
   static const string CAPTURE_SRV_DEFAULT_NAME;
@@ -70,25 +70,27 @@ private:
 
   Num_robot_count count_robots;
 
-  struct gps
+  struct POSE
   {
     double longitude = 0.0;
     double latitude = 0.0;
     float altitude = 0.0;
+    // NED coordinates
+    float x = 0.0;
+    float y = 0.0;
+    float z = 0.0;
+    float yaw = 0.0;
   };
-  typedef struct gps GPS;
+  typedef struct POSE ros_pose;
 
-  GPS target, home, cur_pos;
-  double cur_rel_altitude;
+  ros_pose target, home, cur_pos;
 
   uint64_t payload;
   std::map<int, buzz_utility::Pos_struct> neighbours_pos_map;
   std::map<int, buzz_utility::Pos_struct> raw_neighbours_pos_map;
-  // std::map< int, buzz_utility::Pos_struct> pub_neigh_pos;
   int timer_step = 0;
   int robot_id = 0;
   std::string robot_name = "";
-  // int oldcmdID=0;
 
   int rc_cmd;
   float fcu_timeout;
@@ -96,7 +98,9 @@ private:
   int barrier;
   int message_number = 0;
   uint8_t no_of_robots = 0;
-  /*tmp to be corrected*/
+  bool rcclient;
+  bool xbeeplugged = false;
+  bool multi_msg;
   uint8_t no_cnt = 0;
   uint8_t old_val = 0;
   std::string bzzfile_name;
@@ -107,20 +111,18 @@ private:
   std::string bcfname, dbgfname;
   std::string out_payload;
   std::string in_payload;
-  std::string obstacles_topic;
   std::string stand_by;
   std::string xbeesrv_name;
   std::string capture_srv_name;
   std::string setpoint_name;
   std::string stream_client_name;
-  std::string relative_altitude_sub_name;
   std::string setpoint_nonraw;
-  bool rcclient;
-  bool xbeeplugged = false;
-  bool multi_msg;
+
+  // ROS service, publishers and subscribers
   ros::ServiceClient mav_client;
   ros::ServiceClient xbeestatus_srv;
   ros::ServiceClient capture_srv;
+  ros::ServiceClient stream_client;
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
   ros::Publisher neigh_pos_pub;
@@ -137,23 +139,16 @@ private:
   ros::Subscriber obstacle_sub;
   ros::Subscriber Robot_id_sub;
   ros::Subscriber relative_altitude_sub;
-
-  std::string local_pos_sub_name;
   ros::Subscriber local_pos_sub;
-  double local_pos_new[3];
 
-  ros::ServiceClient stream_client;
+  std::map<std::string, std::string> m_smTopic_infos;
 
   int setpoint_counter;
-  double my_x = 0, my_y = 0;
 
   std::ofstream log;
 
-  /*Commands for flight controller*/
-  // mavros_msgs::CommandInt cmd_srv;
+  //  Commands for flight controller
   mavros_msgs::CommandLong cmd_srv;
-  std::vector<std::string> m_sMySubscriptions;
-  std::map<std::string, std::string> m_smTopic_infos;
 
   mavros_msgs::CommandBool m_cmdBool;
   ros::ServiceClient arm_client;
@@ -161,7 +156,7 @@ private:
   mavros_msgs::SetMode m_cmdSetMode;
   ros::ServiceClient mode_client;
 
-  /*Initialize publisher and subscriber, done in the constructor*/
+  //  Initialize publisher and subscriber, done in the constructor
   void Initialize_pub_sub(ros::NodeHandle& n_c);
 
   std::string current_mode;
@@ -204,8 +199,8 @@ private:
 
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);
-  void gps_rb(GPS nei_pos, double out[]);
-  void gps_ned_cur(float& ned_x, float& ned_y, GPS t);
+  void gps_rb(POSE nei_pos, double out[]);
+  void gps_ned_cur(float& ned_x, float& ned_y, POSE t);
   void gps_convert_ned(float& ned_x, float& ned_y, double gps_t_lon, double gps_t_lat, double gps_r_lon,
                        double gps_r_lat);
 
@@ -219,10 +214,10 @@ private:
   void flight_status_update(const mavros_msgs::State::ConstPtr& msg);
 
   /*current position callback*/
-  void current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg);
+  void global_gps_callback(const sensor_msgs::NavSatFix::ConstPtr& msg);
 
   /*current relative altitude callback*/
-  void current_rel_alt(const std_msgs::Float64::ConstPtr& msg);
+  void rel_alt_callback(const std_msgs::Float64::ConstPtr& msg);
 
   /*payload callback callback*/
   void payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg);
@@ -234,7 +229,7 @@ private:
   void set_robot_id(const std_msgs::UInt8::ConstPtr& msg);
 
   /*Obstacle distance table callback*/
-  void obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg);
+  void obstacle_dist_callback(const sensor_msgs::LaserScan::ConstPtr& msg);
 
   /*Get publisher and subscriber from YML file*/
   void GetSubscriptionParameters(ros::NodeHandle& node_handle);
@@ -250,8 +245,6 @@ private:
 
   void local_pos_callback(const geometry_msgs::PoseStamped::ConstPtr& pose);
 
-  // void WaypointMissionSetup(float lat, float lng, float alt);
-
   void fc_command_setup();
 
   void SetLocalPosition(float x, float y, float z, float yaw);
@@ -262,6 +255,7 @@ private:
 
   void get_number_of_robots();
 
+  // functions related to Xbee modules information
   void GetRobotId();
   bool GetDequeFull(bool& result);
   bool GetRssi(float& result);
@@ -269,7 +263,7 @@ private:
   bool GetAPIRssi(const uint8_t short_id, float& result);
   bool GetRawPacketLoss(const uint8_t short_id, float& result);
   bool GetFilteredPacketLoss(const uint8_t short_id, float& result);
-
   void get_xbee_status();
+
 };
 }

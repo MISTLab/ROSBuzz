@@ -18,7 +18,7 @@ static double rc_goto_pos[3];
 static float rc_gimbal[4];
 static float batt[3];
 static float obst[5] = { 0, 0, 0, 0, 0 };
-static double cur_pos[3];
+static double cur_pos[4];
 static uint8_t status;
 static int cur_cmd = 0;
 static int rc_cmd = 0;
@@ -637,7 +637,7 @@ int buzzuav_update_xbee_status(buzzvm_t vm)
   return vm->state;
 }
 
-void set_currentpos(double latitude, double longitude, double altitude)
+void set_currentpos(double latitude, double longitude, float altitude, float yaw)
 /*
 / update interface position array
 -----------------------------------*/
@@ -645,6 +645,7 @@ void set_currentpos(double latitude, double longitude, double altitude)
   cur_pos[0] = latitude;
   cur_pos[1] = longitude;
   cur_pos[2] = altitude;
+  cur_pos[3] = yaw;
 }
 //  adds neighbours position
 void neighbour_pos_callback(int id, float range, float bearing, float elevation)
@@ -677,7 +678,7 @@ int buzzuav_update_currentpos(buzzvm_t vm)
 / Update the BVM position table
 /------------------------------------------------------*/
 {
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "position", 1));
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "absolute_position", 1));
   buzzvm_pusht(vm);
   buzzvm_dup(vm);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "latitude", 1));
@@ -690,6 +691,10 @@ int buzzuav_update_currentpos(buzzvm_t vm)
   buzzvm_dup(vm);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 1));
   buzzvm_pushf(vm, cur_pos[2]);
+  buzzvm_tput(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "yaw", 1));
+  buzzvm_pushf(vm, cur_pos[3]);
   buzzvm_tput(vm);
   buzzvm_gstore(vm);
   return vm->state;

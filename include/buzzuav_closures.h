@@ -89,7 +89,7 @@ void set_filtered_packet_loss(float value);
 /*
  * sets current position
  */
-void set_currentpos(double latitude, double longitude, double altitude);
+void set_currentpos(double latitude, double longitude, float altitude, float yaw);
 /*
  * returns the current go to position
  */
