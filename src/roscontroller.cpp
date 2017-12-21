@@ -249,30 +249,37 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
 /Obtains publisher, subscriber and services from yml config file
 /-----------------------------------------------------------------------------------*/
 {
-  m_sMySubscriptions.clear();
-  std::string gps_topic;
-  if (node_handle.getParam("topics/gps", gps_topic))
+  std::string topic;
+  if (node_handle.getParam("topics/gps", topic))
     ;
   else
   {
-    ROS_ERROR("Provide a gps topic in Launch file");
+    ROS_ERROR("Provide a gps topic in YAML file");
     system("rosnode kill rosbuzz_node");
   }
-  m_smTopic_infos.insert(pair<std::string, std::string>(gps_topic, "sensor_msgs/NavSatFix"));
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "sensor_msgs/NavSatFix"));
+  if (node_handle.getParam("topics/localpos", topic))
+    ;
+  else
+  {
+    ROS_ERROR("Provide a localpos name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "geometry_msgs/PoseStamped"));
 
-  std::string battery_topic;
-  node_handle.getParam("topics/battery", battery_topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(battery_topic, "mavros_msgs/BatteryStatus"));
+  node_handle.getParam("topics/obstacles", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "sensor_msgs/LaserScan"));
 
-  std::string status_topic;
-  node_handle.getParam("topics/status", status_topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(status_topic, "mavros_msgs/State"));
-  node_handle.getParam("topics/estatus", status_topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(status_topic, "mavros_msgs/ExtendedState"));
+  node_handle.getParam("topics/battery", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs/BatteryStatus"));
 
-  std::string altitude_topic;
-  node_handle.getParam("topics/altitude", altitude_topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(altitude_topic, "std_msgs/Float64"));
+  node_handle.getParam("topics/status", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs/State"));
+  node_handle.getParam("topics/estatus", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs/ExtendedState"));
+
+  node_handle.getParam("topics/altitude", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "std_msgs/Float64"));
 
   // Obtain required topic and service names from the parameter server
   if (node_handle.getParam("topics/fcclient", fcclient_name))
@@ -310,15 +317,6 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
     ROS_ERROR("Provide a mode client name in Launch file");
     system("rosnode kill rosbuzz_node");
   }
-  if (node_handle.getParam("topics/localpos", local_pos_sub_name))
-    ;
-  else
-  {
-    ROS_ERROR("Provide a localpos name in YAML file");
-    system("rosnode kill rosbuzz_node");
-  }
-
-  node_handle.getParam("topics/obstacles", obstacles_topic);
 }
 
 void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c)
@@ -331,8 +329,6 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c)
   Subscribe(n_c);
 
   payload_sub = n_c.subscribe(in_payload, 5, &roscontroller::payload_obt, this);
-
-  obstacle_sub = n_c.subscribe(obstacles_topic, 5, &roscontroller::obstacle_dist, this);
 
   // publishers
   payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 5);
@@ -352,8 +348,6 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c)
   xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
   capture_srv = n_c.serviceClient<mavros_msgs::CommandBool>(capture_srv_name);
   stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
-
-  local_pos_sub = n_c.subscribe(local_pos_sub_name, 5, &roscontroller::local_pos_callback, this);
 
   multi_msg = true;
 }
@@ -379,11 +373,19 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     }
     else if (it->second == "sensor_msgs/NavSatFix")
     {
-      current_position_sub = n_c.subscribe(it->first, 5, &roscontroller::current_pos, this);
+      current_position_sub = n_c.subscribe(it->first, 5, &roscontroller::global_gps_callback, this);
     }
     else if (it->second == "std_msgs/Float64")
     {
-      relative_altitude_sub = n_c.subscribe(it->first, 5, &roscontroller::current_rel_alt, this);
+      relative_altitude_sub = n_c.subscribe(it->first, 5, &roscontroller::rel_alt_callback, this);
+    }
+    else if (it->second == "geometry_msgs/PoseStamped")
+    {
+      local_pos_sub = n_c.subscribe(it->first, 5, &roscontroller::local_pos_callback, this);
+    }
+    else if (it->second == "sensor_msgs/LaserScan")
+    {
+      obstacle_sub = n_c.subscribe(it->first, 5, &roscontroller::obstacle_dist_callback, this);
     }
 
     std::cout << "Subscribed to: " << it->first << endl;
@@ -798,7 +800,7 @@ float roscontroller::constrainAngle(float x)
   return x;
 }
 
-void roscontroller::gps_rb(GPS nei_pos, double out[])
+void roscontroller::gps_rb(POSE nei_pos, double out[])
 /*
 / Compute Range and Bearing of a neighbor in a local reference frame
 / from GPS coordinates
@@ -814,7 +816,7 @@ void roscontroller::gps_rb(GPS nei_pos, double out[])
   out[2] = 0.0;
 }
 
-void roscontroller::gps_ned_cur(float& ned_x, float& ned_y, GPS t)
+void roscontroller::gps_ned_cur(float& ned_x, float& ned_y, POSE t)
 /*
 / Get GPS from NED and a reference GPS point (struct input)
 ----------------------------------------------------------- */
@@ -868,39 +870,47 @@ void roscontroller::flight_extended_status_update(const mavros_msgs::ExtendedSta
   buzzuav_closures::flight_status_update(msg->landed_state);
 }
 
-void roscontroller::current_pos(const sensor_msgs::NavSatFix::ConstPtr& msg)
+void roscontroller::global_gps_callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 /*
 / Update current GPS position into BVM from subscriber
 /-------------------------------------------------------------*/
 {
-  //  DEBUG
-  // ROS_INFO("Altitude out: %f", cur_rel_altitude);
+  // reset timeout counter
   fcu_timeout = TIMEOUT;
-  set_cur_pos(msg->latitude, msg->longitude, cur_rel_altitude);                       // msg->altitude);
-  buzzuav_closures::set_currentpos(msg->latitude, msg->longitude, cur_rel_altitude);  // msg->altitude);
+  set_cur_pos(msg->latitude, msg->longitude, cur_pos.z);
+  buzzuav_closures::set_currentpos(msg->latitude, msg->longitude, cur_pos.z, cur_pos.yaw);
 }
 
-void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPtr& pose)
+void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 /*
 / Update current position for flight controller NED offset
 /-------------------------------------------------------------*/
 {
-  local_pos_new[0] = pose->pose.position.x;
-  local_pos_new[1] = pose->pose.position.y;
-  local_pos_new[2] = pose->pose.position.z;
+  cur_pos.x = msg->pose.position.x;
+  cur_pos.y = msg->pose.position.y;
+  //  cur_pos.z = pose->pose.position.z; // Using relative altitude topic instead
+  tf::Quaternion q(
+    msg->pose.orientation.x,
+    msg->pose.orientation.y,
+    msg->pose.orientation.z,
+    msg->pose.orientation.w);
+  tf::Matrix3x3 m(q);
+  double roll, pitch, yaw;
+  m.getRPY(roll, pitch, yaw);
+  cur_pos.yaw = yaw;
 }
 
-void roscontroller::current_rel_alt(const std_msgs::Float64::ConstPtr& msg)
+void roscontroller::rel_alt_callback(const std_msgs::Float64::ConstPtr& msg)
 /*
 / Update altitude into BVM from subscriber
 /-------------------------------------------------------------*/
 {
   //  DEBUG
   // ROS_INFO("Altitude in: %f", msg->data);
-  cur_rel_altitude = (double)msg->data;
+  cur_pos.z = (double)msg->data;
 }
 
-void roscontroller::obstacle_dist(const sensor_msgs::LaserScan::ConstPtr& msg)
+void roscontroller::obstacle_dist_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 /*
 /Set obstacle Obstacle distance table into BVM from subscriber
 /-------------------------------------------------------------*/
@@ -925,9 +935,9 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw)
   moveMsg.header.frame_id = 1;
 
   //  DEBUG
-  // ROS_INFO("Lp: %.3f, %.3f - Del: %.3f, %.3f", local_pos_new[0], local_pos_new[1], x, y);
-  moveMsg.pose.position.x = local_pos_new[0] + y;
-  moveMsg.pose.position.y = local_pos_new[1] + x;
+  // ROS_INFO("Lp: %.3f, %.3f - Del: %.3f, %.3f", cur_pos.x, cur_pos.y, x, y);
+  moveMsg.pose.position.x = cur_pos.x + y;
+  moveMsg.pose.position.y = cur_pos.y + x;
   moveMsg.pose.position.z = z;
 
   moveMsg.pose.orientation.x = 0;
@@ -1038,7 +1048,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     memcpy(neighbours_pos_payload, message_obt, 3 * sizeof(uint64_t));
     buzz_utility::Pos_struct raw_neigh_pos(neighbours_pos_payload[0], neighbours_pos_payload[1],
                                            neighbours_pos_payload[2]);
-    GPS nei_pos;
+    POSE nei_pos;
     nei_pos.latitude = neighbours_pos_payload[0];
     nei_pos.longitude = neighbours_pos_payload[1];
     nei_pos.altitude = neighbours_pos_payload[2];
