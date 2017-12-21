@@ -34,13 +34,13 @@ function idle() {
 function takeoff() {
 	BVMSTATE = "TAKEOFF"
 	statef=takeoff
-	homegps = {.lat=absolute_position.latitude, .long=absolute_position.longitude}
+	homegps = {.lat=pose.position.latitude, .long=pose.position.longitude}
 
-	if( flight.status == 2 and absolute_position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+	if( flight.status == 2 and pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 		barrier_set(ROBOTS, action, land, -1)
 		barrier_ready()
 	} else {
-    log("Altitude: ", absolute_position.altitude)
+    log("Altitude: ", pose.position.altitude)
 		neighbors.broadcast("cmd", 22)
 		uav_takeoff(TARGET_ALTITUDE)
   }
@@ -105,8 +105,8 @@ function gotoWPRRT(transf) {
 	# create the map
 	if(map==nil) {
 		dyn_init_map(rc_goal)
-		homegps.lat = absolute_position.latitude
-		homegps.long = absolute_position.longitude
+		homegps.lat = pose.position.latitude
+		homegps.long = pose.position.longitude
 	}
 	
 	if(Path==nil) {			
@@ -122,7 +122,7 @@ function gotoWPRRT(transf) {
 		if(math.vec2.length(cur_goal_pt) > GOTODIST_TOL) {
 			populateGrid(m_pos)
 			if(check_path(Path, cur_goal_l, m_pos, 0)) {
-				uav_moveto(0.0, 0.0, rc_goto.altitude - absolute_position.altitude)
+				uav_moveto(0.0, 0.0, rc_goto.altitude - pose.position.altitude)
 				Path = nil
 				rc_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude,0)
 				# re-start the planner
@@ -130,7 +130,7 @@ function gotoWPRRT(transf) {
 				cur_goal_l = 1
 			} else {
 				cur_goal_pt = math.vec2.scale(cur_goal_pt, GOTO_MAXVEL/math.vec2.length(cur_goal_pt))
-				uav_moveto(cur_goal_pt.x, cur_goal_pt.y, rc_goto.altitude - absolute_position.altitude)
+				uav_moveto(cur_goal_pt.x, cur_goal_pt.y, rc_goto.altitude - pose.position.altitude)
 			}
 		} else
 			cur_goal_l = cur_goal_l + 1
@@ -148,11 +148,11 @@ function gotoWP(transf) {
 		log("Sorry this is too far.")
   else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
 		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
-		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude - absolute_position.altitude)
+		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
 	} else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
 		transf()
 	else
-		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude - absolute_position.altitude)
+		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
 }
 
 function follow() {
@@ -260,8 +260,8 @@ function LimitAngle(angle){
 }
 
 function vec_from_gps(lat, lon, home_ref) {
-  d_lon = lon - absolute_position.longitude
-  d_lat = lat - absolute_position.latitude
+  d_lon = lon - pose.position.longitude
+  d_lat = lat - pose.position.latitude
   if(home_ref == 1) {
 	  d_lon = lon - homegps.long
 	  d_lat = lat - homegps.lat
@@ -277,17 +277,17 @@ function gps_from_vec(vec) {
   Lgoal = {.latitude=0, .longitude=0}
   Vrange = math.vec2.length(vec)
   Vbearing = LimitAngle(math.atan(vec.y, vec.x))
-#  print("rb2gps: ",Vrange,Vbearing, absolute_position.latitude, absolute_position.longitude)
-  latR = absolute_position.latitude*math.pi/180.0;
-  lonR = absolute_position.longitude*math.pi/180.0;
+#  print("rb2gps: ",Vrange,Vbearing, pose.position.latitude, pose.position.longitude)
+  latR = pose.position.latitude*math.pi/180.0;
+  lonR = pose.position.longitude*math.pi/180.0;
   target_lat = math.asin(math.sin(latR) * math.cos(Vrange/6371000.0) + math.cos(latR) * math.sin(Vrange/6371000.0) * math.cos(Vbearing));
   target_lon = lonR + math.atan(math.sin(Vbearing) * math.sin(Vrange/6371000.0) * math.cos(latR), math.cos(Vrange/6371000.0) - math.sin(latR) * math.sin(target_lat));
   Lgoal.latitude = target_lat*180.0/math.pi;
   Lgoal.longitude = target_lon*180.0/math.pi;
   #d_lat = (vec.x / 6371000.0)*180.0/math.pi;
-  #goal.latitude = d_lat + absolute_position.latitude;
+  #goal.latitude = d_lat + pose.position.latitude;
   #d_lon = (vec.y / (6371000.0 * math.cos(goal.latitude*math.pi/180.0)))*180.0/math.pi;
-  #goal.longitude = d_lon + absolute_position.longitude;
+  #goal.longitude = d_lon + pose.position.longitude;
 
   return Lgoal
 }

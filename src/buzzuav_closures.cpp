@@ -678,25 +678,49 @@ int buzzuav_update_currentpos(buzzvm_t vm)
 / Update the BVM position table
 /------------------------------------------------------*/
 {
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "absolute_position", 1));
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "pose", 1));
   buzzvm_pusht(vm);
-  buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "latitude", 1));
+  buzzobj_t tPoseTable = buzzvm_stack_at(vm, 1);
+  buzzvm_gstore(vm);
+
+  //  Create table for i-th read
+  buzzvm_pusht(vm);
+  buzzobj_t tPosition = buzzvm_stack_at(vm, 1);
+  buzzvm_pop(vm);
+  //  Fill in the read
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "latitude", 0));
   buzzvm_pushf(vm, cur_pos[0]);
   buzzvm_tput(vm);
-  buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "longitude", 1));
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "longitude", 0));
   buzzvm_pushf(vm, cur_pos[1]);
   buzzvm_tput(vm);
-  buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 1));
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 0));
   buzzvm_pushf(vm, cur_pos[2]);
   buzzvm_tput(vm);
-  buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "yaw", 1));
+  //  Store read table in the proximity table
+  buzzvm_push(vm, tPoseTable);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "position", 0));
+  buzzvm_push(vm, tPosition);
+  buzzvm_tput(vm);
+
+  //  Create table for i-th read
+  buzzvm_pusht(vm);
+  buzzobj_t tOrientation = buzzvm_stack_at(vm, 1);
+  buzzvm_pop(vm);
+  //  Fill in the read
+  buzzvm_push(vm, tOrientation);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "yaw", 0));
   buzzvm_pushf(vm, cur_pos[3]);
   buzzvm_tput(vm);
-  buzzvm_gstore(vm);
+  //  Store read table in the proximity table
+  buzzvm_push(vm, tPoseTable);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "orientation", 0));
+  buzzvm_push(vm, tOrientation);
+  buzzvm_tput(vm);
+
   return vm->state;
 }
 
