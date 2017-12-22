@@ -56,7 +56,7 @@ function add_obstacle(pos, off, inc_trust) {
     var yi = math.round(pos.y)
 
     if(xi <= size(map) and yi <= size(map[1]) and xi > 0 and yi > 0) {
-        #log("Add obstacle in cell: ", xi, " ", yi)
+        # log("Add obstacle in cell: ", xi, " ", yi)
         var old=map[xi][yi]
         if(old-inc_trust > 0.0)
           map[xi][yi] = old-inc_trust
@@ -69,8 +69,8 @@ function remove_obstacle(pos, off, dec_trust) {
     var xi = math.round(pos.x)
     var yi = math.round(pos.y)
 
-    if(xi <= size(map) and yi <= size(map[1]) and xi > 0 and yi > 0){
-        #log("Remove obstacle in cell: ", xi, " ", yi)
+    if(xi <= size(map) and yi <= size(map[1]) and xi > 0 and yi > 0) {
+        # log("Remove obstacle in cell: ", xi, " ", yi)
         var old=map[xi][yi]
         if(old + dec_trust < 1.0)  #x,y
           map[xi][yi] = old+dec_trust

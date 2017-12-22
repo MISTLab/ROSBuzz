@@ -473,8 +473,8 @@ void roscontroller::grid_publisher()
     grid_msg.info.resolution = 0.01;//gridMap.getResolution();
     grid_msg.info.width = g_w;
     grid_msg.info.height = g_h;
-    grid_msg.info.origin.position.x = 0.0;
-    grid_msg.info.origin.position.y = 0.0;
+    grid_msg.info.origin.position.x = round(g_w/2.0) * grid_msg.info.resolution;
+    grid_msg.info.origin.position.y = round(g_h/2.0) * grid_msg.info.resolution;
     grid_msg.info.origin.position.z = 0.0;
     grid_msg.info.origin.orientation.x = 0.0;
     grid_msg.info.origin.orientation.y = 0.0;
