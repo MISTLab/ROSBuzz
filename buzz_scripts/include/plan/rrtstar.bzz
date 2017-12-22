@@ -3,7 +3,7 @@
 #
 # map table-based matrix
 #####
-include "mapmatrix.bzz"
+include "plan/mapmatrix.bzz"
 
 RRT_TIMEOUT = 500
 RRT_RUNSTEP = 3
@@ -78,7 +78,7 @@ function getcell(m_curpos) {
 }
 
 function populateGrid(m_pos) {
-    getproxobs(m_pos)
+    # getproxobs(m_pos)
     getneiobs (m_pos)
     export_map(map)
 }
@@ -211,8 +211,7 @@ function check_path(m_path, goal_l, m_curpos, kh4) {
 ##
 function rrtstar() {
     # update state machine variables
-    statef = rrtstar
-    BVMSTATE = "RRTSTAR"
+    BVMSTATE = "PATHPLAN"
 
 
     step_timeout = 0
@@ -336,16 +335,14 @@ function rrtstar() {
 
     if(goalReached){
       log("Goal found(",numberOfPoints,")!")
-      Path = getPath(Q,numberOfPoints, 1)
+      Path = convert_path(getPath(Q,numberOfPoints))
       # done. resume the state machine
-      BVMSTATE = "GOTOGPS"
-      statef = old_statef
+      BVMSTATE = "NAVIGATE"
     } else if(timeout >= RRT_TIMEOUT) {
       log("FAILED TO FIND A PATH!!!")
       Path = nil
       # done. resume the state machine
-      BVMSTATE = "GOTOGPS"
-      statef = old_statef
+      BVMSTATE = "NAVIGATE"
     }
 }
 
@@ -437,7 +434,7 @@ function doesItIntersect(point,vector) {
 }
 
 # create a table with only the path's points in order
-function getPath(Q,nb,gps){
+function getPath(Q,nb){
     var pathL={}
     var npt=0
     # get the path from the point list
@@ -460,15 +457,9 @@ function getPath(Q,nb,gps){
     var totpt = npt + 1
     while(npt > 0){
         pathR[totpt-npt] = {}
-        if(gps) {
-            tmpgoal = gps_from_vec(math.vec2.sub(getvec(pathL,npt),cur_cell))
-            pathR[totpt-npt][1]=tmpgoal.latitude
-            pathR[totpt-npt][2]=tmpgoal.longitude
-        } else {
-            tmpgoal = getvec(path,npt)
-            pathR[totpt-npt][1]=tmpgoal.x
-            pathR[totpt-npt][2]=tmpgoal.y
-        }
+        var tmpgoal = getvec(pathL,npt)
+        pathR[totpt-npt][1]=tmpgoal.x
+        pathR[totpt-npt][2]=tmpgoal.y
         npt = npt - 1
     }
     #log("Double-check path: ", check_path(pathR, 1, cur_cell, 1))

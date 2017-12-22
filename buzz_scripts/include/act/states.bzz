@@ -1,0 +1,234 @@
+########################################
+#
+# FLIGHT-RELATED FUNCTIONS
+#
+########################################
+include "utils/vec2.bzz"
+include "plan/rrtstar.bzz"
+include "act/barrier.bzz"
+include "utils/conversions.bzz"
+
+TARGET_ALTITUDE = 15.0 # m.
+BVMSTATE = "TURNEDOFF"
+PICTURE_WAIT = 20 # steps
+GOTO_MAXVEL = 1.5 # m/steps
+GOTO_MAXDIST = 150 # m.
+GOTODIST_TOL = 0.5  # m.
+GOTOANG_TOL = 0.1 # rad.
+path_it = 0
+rc_State = 0
+pic_time = 0
+g_it = 0
+
+function turnedoff() {
+    BVMSTATE = "TURNEDOFF"
+}
+
+function idle() {
+    BVMSTATE = "IDLE"
+}
+
+function launch() {
+	BVMSTATE = "LAUNCH"
+	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
+		homegps = {.lat=pose.position.latitude, .long=pose.position.longitude}
+		if( flight.status == 2 and pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+			barrier_set(ROBOTS, "NAVIGATE", "LAUNCH")
+			barrier_ready()
+		} else {
+			log("Altitude: ", pose.position.altitude)
+			neighbors.broadcast("cmd", 22)
+			uav_takeoff(TARGET_ALTITUDE)
+		}
+	} else {
+		barrier_set(ROBOTS, "NAVIGATE", "LAUNCH")
+		barrier_ready()
+	}
+}
+
+function stop() {
+    BVMSTATE = "STOP"
+	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
+		neighbors.broadcast("cmd", 21)
+		uav_land()
+		if(flight.status != 2 and flight.status != 3) {
+			barrier_set(ROBOTS,"TURNEDOFF","STOP")
+			barrier_ready()
+		}
+	} else {
+			barrier_set(ROBOTS,"TURNEDOFF","STOP")
+			barrier_ready()
+	}	
+}
+
+function take_picture() {
+  BVMSTATE="PICTURE"
+  uav_setgimbal(0.0, 0.0, -90.0, 20.0)
+	if(pic_time==PICTURE_WAIT/2) { # wait for the drone to stabilize
+	  uav_takepicture()
+  } else if(pic_time>=PICTURE_WAIT) { # wait for the picture
+  BVMSTATE="IDLE"
+    pic_time=0 
+  }
+  pic_time=pic_time+1
+}
+
+#
+# Work in progress....
+function navigate() {
+  BVMSTATE="NAVIGATE"
+	if(V_TYPE == 0) { # TODO: place these in a generic function in conversion.bzz
+		uav_storegoal(goal_list[g_it].x, goal_list[g_it].y, pose.position.altitude)
+		cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
+		m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.long, 0),-1)
+	}
+
+	print(" has to move ", math.vec2.length(cur_goal), "from ", m_pos.x, " ", m_pos.y)
+	if(math.vec2.length(cur_goal)>GOTO_MAXDIST*5) {
+		log("Sorry this is too far.")
+		return
+	}
+
+	# create the map
+	if(map==nil) {
+		dyn_init_map(cur_goal)
+		if(V_TYPE == 0) {
+			homegps.lat = pose.position.latitude
+			homegps.long = pose.position.longitude
+		}
+	}
+	
+	if(Path==nil) {			
+		# add proximity sensor and neighbor obstacles to the map
+		populateGrid(m_pos)
+		# start the planner
+		path_it = 1
+		pathPlanner(cur_goal, m_pos)
+	} else if(path_it <= size(Path)) {
+		var cur_path_pt = convert_pt(getvec(Path, path_it))
+		print(" heading to [", path_it, "/", size(Path), "]", cur_path_pt.x, cur_path_pt.y)
+		if(math.vec2.length(cur_path_pt) > GOTODIST_TOL) {
+			populateGrid(m_pos)
+			if(check_path(Path, path_it, m_pos, 0)) {
+        # stop
+				goto_abs(0.0, 0.0, rc_goto.altitude - pose.position.altitude)
+				Path = nil
+				if(V_TYPE == 0)
+					cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude,0)
+				# re-start the planner
+				path_it = 1
+				pathPlanner(cur_goal, m_pos)
+			} else {
+				cur_path_pt = math.vec2.scale(cur_path_pt, GOTO_MAXVEL/math.vec2.length(cur_path_pt))
+				goto_abs(cur_path_pt.x, cur_path_pt.y, rc_goto.altitude - pose.position.altitude)
+			}
+		} else
+			path_it = path_it + 1
+	} else {
+		Path = nil
+  		BVMSTATE="IDLE"
+	}
+}
+
+# function goto_direct(transf) {
+# 	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude)
+# 	print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
+
+# 	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
+# 		log("Sorry this is too far.")
+#   else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
+# 		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
+# 		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
+# 	} else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
+# 		transf()
+# 	else
+# 		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
+# }
+
+function follow() {
+	if(size(targets)>0) {
+		BVMSTATE = "FOLLOW"
+		attractor=math.vec2.newp(0,0)
+		foreach(targets, function(id, tab) {
+			force=(0.05)*(tab.range)^4
+			attractor=math.vec2.add(attractor, math.vec2.newp(force, tab.bearing))
+		})
+		uav_moveto(attractor.x, attractor.y, 0.0)
+	} else {
+		log("No target in local table!")
+		BVMSTATE = "IDLE"
+	}
+}
+
+function rc_cmd_listen() {
+    if(flight.rc_cmd==22) {
+		log("cmd 22")
+		flight.rc_cmd=0
+		BVMSTATE = "LAUNCH"		
+		neighbors.broadcast("cmd", 22)
+	} else if(flight.rc_cmd==21) {
+		log("cmd 21")
+		flight.rc_cmd=0
+		BVMSTATE = "STOP"
+		neighbors.broadcast("cmd", 21)
+	} else if(flight.rc_cmd==16) {
+		flight.rc_cmd=0
+		BVMSTATE = "PATHPLAN"
+	} else if(flight.rc_cmd==400) {
+		flight.rc_cmd=0
+		uav_arm()
+		neighbors.broadcast("cmd", 400)
+	} else if (flight.rc_cmd==401){
+		flight.rc_cmd=0
+		uav_disarm()
+		neighbors.broadcast("cmd", 401)
+	} else if (flight.rc_cmd==666){
+		flight.rc_cmd=0
+		stattab_send()
+	} else if (flight.rc_cmd==900){
+		flight.rc_cmd=0
+		rc_State = 0
+		neighbors.broadcast("cmd", 900)
+	} else if (flight.rc_cmd==901){
+		flight.rc_cmd=0
+		rc_State = 1
+		neighbors.broadcast("cmd", 901)
+	} else if (flight.rc_cmd==902){
+		flight.rc_cmd=0
+		rc_State = 2
+		neighbors.broadcast("cmd", 902)
+	} else if (flight.rc_cmd==903){
+		flight.rc_cmd=0
+		rc_State = 3
+		neighbors.broadcast("cmd", 903)
+	}
+}
+
+function nei_cmd_listen() {
+    neighbors.listen("cmd",
+			function(vid, value, rid) {
+				print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
+				if(value==22 and BVMSTATE!="LAUNCH" and BVMSTATE!="BARRIERWAIT") {
+		      		BVMSTATE = "LAUNCH"
+				} else if(value==21 and BVMSTATE!="STOP" and BVMSTATE!="BARRIERWAIT") {
+		      		BVMSTATE = "STOP"
+				} else if(value==400 and BVMSTATE=="TURNEDOFF") {
+					uav_arm()
+				} else if(value==401 and BVMSTATE=="TURNEDOFF"){
+					uav_disarm()
+				} else if(value==900){
+					rc_State = 0
+				} else if(value==901){
+					rc_State = 1
+				} else if(value==902){
+					rc_State = 2
+				} else if(value==903){
+					rc_State = 3
+				} else if(value==16 and BVMSTATE=="IDLE"){
+				#  neighbors.listen("gt",function(vid, value, rid) {
+				#    print("Got (", vid, ",", value, ") from robot #", rid)
+				#    # if(gt.id == id) statef=goto
+				#  }) 
+				}
+    })
+}

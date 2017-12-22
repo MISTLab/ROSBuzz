@@ -19,7 +19,13 @@ var v_ground = {}
 b_updating = 0
 vstig_counter = WAIT4STEP
 
-function uav_initstig() {
+
+function init_swarm() {
+	s = swarm.create(1)
+	s.join()
+}
+
+function init_stig() {
 	v_status = stigmergy.create(STATUS_VSTIG)
 	v_ground = stigmergy.create(GROUND_VSTIG)
 }
