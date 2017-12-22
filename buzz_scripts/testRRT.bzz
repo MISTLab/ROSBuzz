@@ -5,7 +5,7 @@ include "vstigenv.bzz"
 
 function action() {
   statef=action
-  uav_storegoal(45.5088103899,-73.1540826153,5.0)
+  uav_storegoal(45.5088103899,-73.1540826153,2.5)
   set_goto(idle)
 }
 
@@ -14,7 +14,7 @@ function init() {
   	uav_initstig()
 	uav_initswarm()
 
-	TARGET_ALTITUDE = 5.0 # m.
+	TARGET_ALTITUDE = 2.5 # m
 	# statef=turnedoff
 	# BVMSTATE = "TURNEDOFF"
 	statef = takeoff

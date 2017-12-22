@@ -7,7 +7,7 @@ include "mapmatrix.bzz"
 
 RRT_TIMEOUT = 500
 RRT_RUNSTEP = 3
-PROX_SENSOR_THRESHOLD_M = 10
+PROX_SENSOR_THRESHOLD_M = 8.0
 GSCALE = {.x=1, .y=1}
 map = nil
 cur_cell = {}
@@ -46,7 +46,7 @@ function pathPlanner(m_goal, m_pos, kh4) {
     arrayOfPoints[1] = {.1=cur_cell.x, .2=cur_cell.y}
     # RRT* tree matrix: x; y; predecessor line in Q; nb of pts; min. distance
     Q = {}
-    Q[1] = {.1=cur_cell.x,.2=cur_cell.y,.3=1,.4=1,.5=0}
+    Q[1] = {.1=cur_cell.x,.2=cur_cell.y,.3=0,.4=1,.5=0}
     goalReached = 0
     timeout = 0
 
@@ -56,6 +56,7 @@ function pathPlanner(m_goal, m_pos, kh4) {
 }
 
 # get the grid cell position (x,y) equivalent to the input position
+# input should be relative to home position (planing start point)
 function getcell(m_curpos) {
   var cell = {}
   # relative to center (start position)
@@ -79,6 +80,7 @@ function getcell(m_curpos) {
 function populateGrid(m_pos) {
     getproxobs(m_pos)
     getneiobs (m_pos)
+    export_map(map)
 }
 
 # TODO: populate the map with neighors as blobs instead ?
@@ -136,26 +138,43 @@ function getproxobs (m_curpos) {
 
   reduce(proximity,
     function(key, value, acc) {
-      obs = getcell(math.vec2.newp(value.value, value.angle + pose.orientation.yaw))
-      obs2 = getcell(math.vec2.newp(value.value + 1.0, value.angle + pose.orientation.yaw))
-      per = math.vec2.sub(obs,cur_cell)
-      obsr = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs)
-      obsr2 = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs2)
-      obsl = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs)
-      obsl2 = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs2)
-      if(value.value < PROX_SENSOR_THRESHOLD_M) {
-        if(map[math.round(obs.x)][math.round(obs.y)]!=0) {
-          add_obstacle(obs, 0, 0.25)
-          add_obstacle(obs2, 0, 0.25)
-          add_obstacle(obsr, 0, 0.25)
-          add_obstacle(obsr2, 0, 0.25)
-          add_obstacle(obsl, 0, 0.25)
-          add_obstacle(obsl2, 0, 0.25)
-          updated_obstacle = 1
+      if (value.angle != -1) {  # down sensor of M100
+        if(value.value < PROX_SENSOR_THRESHOLD_M) {
+          obs = getcell(math.vec2.add(m_curpos, math.vec2.newp(value.value, value.angle + pose.orientation.yaw)))
+          per = math.vec2.sub(obs,cur_cell)
+          obsr = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs)
+          obsl = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs)
+          obsr2 = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) + math.pi/2.0), obs)
+          obsl2 = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) - math.pi/2.0), obs)
+          # obs2 = getcell(math.vec2.newp(math.vec2.length(obs) + 1.0, math.vec2.angle(obs)))
+          # obsr2 = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs2)
+          # obsl2 = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs2)
+          if(map[math.round(obs.x)][math.round(obs.y)]!=0) {
+            add_obstacle(obs, 0, 0.25)
+            add_obstacle(obsr, 0, 0.25)
+            add_obstacle(obsl, 0, 0.25)
+            add_obstacle(obsr2, 0, 0.25)
+            add_obstacle(obsl2, 0, 0.25)
+            # add_obstacle(obs2, 0, 0.25)
+            # add_obstacle(obsr2, 0, 0.25)
+            # add_obstacle(obsl2, 0, 0.25)
+            updated_obstacle = 1
+          }
+        } else {
+          var line_length = PROX_SENSOR_THRESHOLD_M;
+          while(line_length > 0) {
+            obs = getcell(math.vec2.add(m_curpos, math.vec2.newp(line_length, value.angle + pose.orientation.yaw)))
+            per = math.vec2.sub(obs,cur_cell)
+            obsr = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs)
+            obsl = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs)
+            obsr = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) + math.pi/2.0), obs)
+            obsl = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) - math.pi/2.0), obs)
+            remove_obstacle(obs, 0, 0.05)
+            remove_obstacle(obsr, 0, 0.05)
+            remove_obstacle(obsl, 0, 0.05)
+            line_length = line_length - 1;
+          }
         }
-      } else if(map[math.round(obs.x)][math.round(obs.y)]!=1) {
-        remove_obstacle(obs, 0, 0.05)
-        updated_obstacle = 1
       }
       return acc
   }, math.vec2.new(0, 0))
@@ -225,7 +244,7 @@ function rrtstar() {
                 nbCount = nbCount + 1;
                 if(intersects != 1) {
                     #log(pointNumber, "do not intersect (",pointNumber.mat[3],")")
-                    var distance = math.vec2.length(math.vec2.sub(getvec(pointNumber,1),pt))+Q[pointNumber[1][3]][5]
+                    var distance = math.vec2.length(math.vec2.sub(getvec(pointNumber,1),pt))+Q[pointNumber[1][4]][5]
 
                     if(distance < minCounted) {
                         minCounted = distance;
@@ -422,17 +441,18 @@ function getPath(Q,nb,gps){
     var pathL={}
     var npt=0
     # get the path from the point list
-    while(nb > 1) {
+    while(nb > 0) {
         npt=npt+1
         pathL[npt] = {}
         pathL[npt][1]=Q[nb][1]
         pathL[npt][2]=Q[nb][2]
-        if(nb != Q[Q[nb][3]][3])
-            nb = Q[nb][3];
-        else {  # TODO: why is this happening?
-            log("ERROR - Recursive path !!!")
-            return nil
+        if( nb > 1) {
+          if(nb == Q[Q[nb][3]][3]) {# TODO: why is this happening?
+              log("ERROR - Recursive path !!!")
+              return nil
+          }
         }
+        nb = Q[nb][3];
     }
 
     # Re-Order the list.

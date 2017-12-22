@@ -179,6 +179,7 @@ int buzz_exportmap(buzzvm_t vm)
 / Buzz closure to export a 2D map
 /----------------------------------------*/
 {
+  grid.clear();
   buzzvm_lnum_assert(vm, 1);
   // Get the parameter
   buzzvm_lload(vm, 1);
@@ -193,7 +194,7 @@ int buzz_exportmap(buzzvm_t vm)
       buzzvm_dup(vm);
       buzzvm_pushi(vm, j);
       buzzvm_tget(vm);
-      row.insert(std::pair<int,int>(j,round(buzzvm_stack_at(vm, 1)->f.value*100.0)));
+      row.insert(std::pair<int,int>(j, 100.0 - round(buzzvm_stack_at(vm, 1)->f.value*100.0)));
       buzzvm_pop(vm);
     }
     grid.insert(std::pair<int,std::map<int, int>>(i,row));
