@@ -1,0 +1,63 @@
+function LimitAngle(angle){
+	if(angle>2*math.pi)
+		return angle-2*math.pi
+	else if (angle<0)
+		return angle+2*math.pi
+	else
+		return angle
+}
+
+# TODO: add other conversions....
+function convert_path(P) {
+    var pathR={}
+    if(V_TYPE == 0) {
+        var n = 1
+        while(n <= size(P)){
+          pathR[n] = {}
+          var tmpgoal = gps_from_vec(math.vec2.sub(getvec(P,n),cur_cell))
+          pathR[n][1]=tmpgoal.latitude
+          pathR[n][2]=tmpgoal.longitude
+          n = n + 1
+        }
+    }
+    return pathR
+}
+
+# TODO: add other conversions....
+function convert_pt(in) {
+    if(V_TYPE == 0)
+        return vec_from_gps(in.x, in.y, 0)
+}
+
+function vec_from_gps(lat, lon, home_ref) {
+  d_lon = lon - pose.position.longitude
+  d_lat = lat - pose.position.latitude
+  if(home_ref == 1) {
+	  d_lon = lon - homegps.long
+	  d_lat = lat - homegps.lat
+  }
+  ned_x = d_lat/180*math.pi * 6371000.0;
+  ned_y = d_lon/180*math.pi * 6371000.0 * math.cos(lat/180*math.pi);
+	#Lgoal.range = math.sqrt(ned_x*ned_x+ned_y*ned_y);
+	#Lgoal.bearing = LimitAngle(math.atan(ned_y,ned_x));
+  return math.vec2.new(ned_x,ned_y)
+}
+
+function gps_from_vec(vec) {
+  Lgoal = {.latitude=0, .longitude=0}
+  Vrange = math.vec2.length(vec)
+  Vbearing = LimitAngle(math.atan(vec.y, vec.x))
+#  print("rb2gps: ",Vrange,Vbearing, pose.position.latitude, pose.position.longitude)
+  latR = pose.position.latitude*math.pi/180.0;
+  lonR = pose.position.longitude*math.pi/180.0;
+  target_lat = math.asin(math.sin(latR) * math.cos(Vrange/6371000.0) + math.cos(latR) * math.sin(Vrange/6371000.0) * math.cos(Vbearing));
+  target_lon = lonR + math.atan(math.sin(Vbearing) * math.sin(Vrange/6371000.0) * math.cos(latR), math.cos(Vrange/6371000.0) - math.sin(latR) * math.sin(target_lat));
+  Lgoal.latitude = target_lat*180.0/math.pi;
+  Lgoal.longitude = target_lon*180.0/math.pi;
+  #d_lat = (vec.x / 6371000.0)*180.0/math.pi;
+  #goal.latitude = d_lat + pose.position.latitude;
+  #d_lon = (vec.y / (6371000.0 * math.cos(goal.latitude*math.pi/180.0)))*180.0/math.pi;
+  #goal.longitude = d_lon + pose.position.longitude;
+
+  return Lgoal
+}

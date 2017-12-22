@@ -28,9 +28,9 @@ function barrier_create() {
   barrier = stigmergy.create(BARRIER_VSTIG)
 }
 
-function barrier_set(threshold, transf, resumef, bdt) {
+function barrier_set(threshold, transf, resumef) {
   statef = function() {
-    barrier_wait(threshold, transf, resumef, bdt);
+    barrier_wait(threshold, transf, resumef);
   }
   BVMSTATE = "BARRIERWAIT"
   barrier_create()
@@ -48,7 +48,7 @@ function barrier_ready() {
 #
 # Executes the barrier
 #
-function barrier_wait(threshold, transf, resumef, bdt) {
+function barrier_wait(threshold, transf, resumef) {
   barrier.put(id, 1)
 
   barrier.get(id)
@@ -56,31 +56,13 @@ function barrier_wait(threshold, transf, resumef, bdt) {
   if(barrier.size() - 1 >= threshold or barrier.get("d") == 1) {
     barrier.put("d", 1)
     timeW = 0
-    transf()
+    BVMSTATE = transf
   } else if(timeW >= BARRIER_TIMEOUT) {
     log("------> Barrier Timeout !!!!")
     barrier=nil
     timeW = 0
-    resumef()
+    BVMSTATE = resumef
   }
-
-  if(bdt!=-1)
-    neighbors.broadcast("cmd", bdt)
 
   timeW = timeW+1
-}
-
-# get the lowest id of the fleet, but requires too much bandwidth...
-function getlowest(){
-  Lid = 15;
-  u=15
-  while(u>=0){
-				tab = barrier.get(u)
-				if(tab!=nil){
-          if(tab<Lid)
-            Lid=tab
-        }
-        u=u-1
-  }
-  log("--> LOWEST ID:",Lid)
 }
