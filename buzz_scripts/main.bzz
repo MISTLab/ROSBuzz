@@ -2,7 +2,11 @@ include "update.bzz"
 # don't use a stigmergy id=11 with this header, for barrier 
 # it requires an 'action' function to be defined here.
 include "act/states.bzz"
+include "plan/rrtstar.bzz"
 include "vstigenv.bzz"
+
+#State launched after takeoff
+AUTO_LAUNCH_STATE = "IDLE"
 
 #####
 # Vehicule type:
@@ -16,11 +20,6 @@ goal_list = {
 	.0={.x = 45.5088103899, .y = -73.1540826153, .z = 2.5}
 }
 
-function action() {
-  statef=action
-  set_goto(idle)
-}
-
 # Executed once at init time.
 function init() {
   	init_stig()
@@ -31,7 +30,7 @@ function init() {
 	# start the swarm command listener
 	# nei_cmd_listen()
 
-	# Starting state
+    # Starting state: TURNEDOFF to wait for user input, LAUNCHED to auto-takeoff at startup.
 	# BVMSTATE = "TURNEDOFF"
 	BVMSTATE = "LAUNCHED"
 }
@@ -51,15 +50,15 @@ function step() {
 		statef=turnedoff
 	else if(BVMSTATE=="STOP")	# ends on turnedoff
 		statef=stop
-	else if(BVMSTATE=="LAUNCHED") # ends on navigate
+	else if(BVMSTATE=="LAUNCHED") # ends on AUTO_LAUNCH_STATE
 		statef=launch
 	else if(BVMSTATE=="IDLE")
 		statef=idle
 	else if(BVMSTATE=="TASK_ALLOCATE")	#TODO: not tested in new structure
 		statef=makegraph	# or bidding
-	else if(BVMSTATE=="PATHPLAN")	# ends on navigate
+	else if(BVMSTATE=="PATHPLAN")	# ends on navigate, defined in rrtstar
 		statef=rrtstar
-	else if(BVMSTATE=="NAVIGATE")	# ends on idle
+	else if(BVMSTATE=="NAVIGATE")	# ends on idle, defined in rrtstar
 		statef=navigate
 	else if(BVMSTATE == "FOLLOW")	#TODO: not tested in new structure
 		statef=follow
