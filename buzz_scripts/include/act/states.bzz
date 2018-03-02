@@ -73,17 +73,17 @@ function take_picture() {
 }
 
 function goto_gps(transf) {
-	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude)
+	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
 	print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
  	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
 		log("Sorry this is too far.")
   else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
 		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
-		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
+		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
 	} else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
 		transf()
 	else
-		uav_moveto(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
+		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
 }
 
 function follow() {
@@ -94,7 +94,7 @@ function follow() {
 			force=(0.05)*(tab.range)^4
 			attractor=math.vec2.add(attractor, math.vec2.newp(force, tab.bearing))
 		})
-		uav_moveto(attractor.x, attractor.y, 0.0)
+		goto_abs(attractor.x, attractor.y, 0.0)
 	} else {
 		log("No target in local table!")
 		BVMSTATE = "IDLE"
