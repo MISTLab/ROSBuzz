@@ -7,7 +7,7 @@ include "taskallocate/graphformGPS.bzz"
 include "vstigenv.bzz"
 
 #State launched after takeoff
-AUTO_LAUNCH_STATE = "PURSUIT"
+AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
 
 #####
 # Vehicule type:
@@ -27,6 +27,7 @@ function init() {
 	init_swarm()
 
 	TARGET_ALTITUDE = 10 + id*2.0 # m
+	loop = 1
 
 	# start the swarm command listener
 	nei_cmd_listen()
@@ -60,21 +61,19 @@ function step() {
 		statef=formation
 	else if(BVMSTATE=="PURSUIT")
 		statef=pursuit
-	else if(BVMSTATE=="TASK_ALLOCATE") {	# or bidding ?
-		startGraph()
-	} else if(BVMSTATE=="GRAPH_FREE") {
+	else if(BVMSTATE=="TASK_ALLOCATE")	# or bidding ?
+		statef=resetGraph
+	else if(BVMSTATE=="GRAPH_FREE")
 		statef=DoFree
-	} else if(BVMSTATE=="GRAPH_ASKING") {
+	else if(BVMSTATE=="GRAPH_ASKING")
 		statef=DoAsking
-	} else if(BVMSTATE=="GRAPH_JOINING") {
+	else if(BVMSTATE=="GRAPH_JOINING")
 		statef=DoJoining
-	} else if(BVMSTATE=="GRAPH_JOINED") {
+	else if(BVMSTATE=="GRAPH_JOINED")
 		statef=DoJoined
-	} else if(BVMSTATE=="GRAPH_TRANSTOLOCK")
+	else if(BVMSTATE=="GRAPH_TRANSTOLOCK")
 		statef=TransitionToLock
-	else if(BVMSTATE=="GRAPH_LOCK" and old_state!=rc_State)	#switch to a new graph
-		startGraph()
-	else if(BVMSTATE=="GRAPH_LOCK" and old_state==rc_State)	# move all together (TODO: not tested)
+	else if(BVMSTATE=="GRAPH_LOCK")	# move all together (TODO: not tested), but auto-loop in graph list
 		statef=DoLock
 	else if(BVMSTATE=="PATHPLAN")	# ends on navigate, defined in rrtstar
 		statef=rrtstar
