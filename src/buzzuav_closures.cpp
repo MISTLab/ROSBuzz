@@ -13,7 +13,7 @@ namespace buzzuav_closures
 {
 // TODO: Minimize the required global variables and put them in the header
 // static const rosbzz_node::roscontroller* roscontroller_ptr;
-static double goto_pos[3];
+static double goto_pos[4];
 static double rc_goto_pos[3];
 static float rc_gimbal[4];
 static float batt[3];
@@ -207,22 +207,26 @@ int buzz_exportmap(buzzvm_t vm)
 
 int buzzuav_moveto(buzzvm_t vm)
 /*
-/ Buzz closure to move following a 2D vector
+/ Buzz closure to move following a 3D vector + Yaw
 /----------------------------------------*/
 {
-  buzzvm_lnum_assert(vm, 3);
+  buzzvm_lnum_assert(vm, 4);
   buzzvm_lload(vm, 1);  // dx
   buzzvm_lload(vm, 2);  // dy
-  buzzvm_lload(vm, 3);  //* dheight
+  buzzvm_lload(vm, 3);  // dheight
+  buzzvm_lload(vm, 4);  // dyaw
+  buzzvm_type_assert(vm, 4, BUZZTYPE_FLOAT);
   buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-  float dh = buzzvm_stack_at(vm, 1)->f.value;
-  float dy = buzzvm_stack_at(vm, 2)->f.value;
-  float dx = buzzvm_stack_at(vm, 3)->f.value;
+  float dyaw = buzzvm_stack_at(vm, 1)->f.value;
+  float dh = buzzvm_stack_at(vm, 2)->f.value;
+  float dy = buzzvm_stack_at(vm, 3)->f.value;
+  float dx = buzzvm_stack_at(vm, 4)->f.value;
   goto_pos[0] = dx;
   goto_pos[1] = dy;
   goto_pos[2] = height + dh;
+  goto_pos[3] = dyaw;
   //  DEBUG
   // ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
   // goto_pos[1], goto_pos[2]);

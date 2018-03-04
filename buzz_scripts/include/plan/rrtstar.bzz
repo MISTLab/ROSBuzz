@@ -53,7 +53,7 @@ function navigate() {
 			populateGrid(m_pos)
 			if(check_path(Path, path_it, m_pos, 0)) {
         # stop
-				goto_abs(0.0, 0.0, rc_goto.altitude - pose.position.altitude)
+				goto_abs(0.0, 0.0, rc_goto.altitude - pose.position.altitude, 0.0)
 				Path = nil
 				if(V_TYPE == 0)
 					cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude,0)
@@ -62,7 +62,7 @@ function navigate() {
 				pathPlanner(cur_goal, m_pos)
 			} else {
 				cur_path_pt = math.vec2.scale(cur_path_pt, GOTO_MAXVEL/math.vec2.length(cur_path_pt))
-				goto_abs(cur_path_pt.x, cur_path_pt.y, rc_goto.altitude - pose.position.altitude)
+				goto_abs(cur_path_pt.x, cur_path_pt.y, rc_goto.altitude - pose.position.altitude, 0.0)
 			}
 		} else
 			path_it = path_it + 1

@@ -711,7 +711,7 @@ script
 
     case buzzuav_closures::COMMAND_MOVETO:
       goto_pos = buzzuav_closures::getgoto();
-      roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], 0);
+      roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       break;
 
     case buzzuav_closures::COMMAND_GIMBAL:
@@ -935,15 +935,17 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw)
   moveMsg.header.frame_id = 1;
 
   //  DEBUG
-  // ROS_INFO("Lp: %.3f, %.3f - Del: %.3f, %.3f", cur_pos.x, cur_pos.y, x, y);
+  // ROS_INFO("Lp: %.3f, %.3f - Del: %.3f, %.3f, %.3f", cur_pos.x, cur_pos.y, x, y, yaw);
   moveMsg.pose.position.x = cur_pos.x + y;
   moveMsg.pose.position.y = cur_pos.y + x;
   moveMsg.pose.position.z = z;
 
-  moveMsg.pose.orientation.x = 0;
-  moveMsg.pose.orientation.y = 0;
-  moveMsg.pose.orientation.z = 0;
-  moveMsg.pose.orientation.w = 1;
+  tf::Quaternion q;
+  q.setRPY(0.0, 0.0, yaw);
+  moveMsg.pose.orientation.x = q[0];
+  moveMsg.pose.orientation.y = q[1];
+  moveMsg.pose.orientation.z = q[2];
+  moveMsg.pose.orientation.w = q[3];
 
   // To prevent drifting from stable position, uncomment
   // if(fabs(x)>0.005 || fabs(y)>0.005) {

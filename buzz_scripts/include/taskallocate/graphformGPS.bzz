@@ -694,7 +694,7 @@ function DoLock(){
       m_navigation=motion_vector()
   }
   #move
-  goto_abs(m_navigation.x, m_navigation.y, 0.0)
+  goto_abs(m_navigation.x, m_navigation.y, 0.0, 0.0)
   BroadcastGraph()
 }
 #
