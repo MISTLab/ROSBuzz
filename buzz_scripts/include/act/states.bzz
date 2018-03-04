@@ -10,12 +10,12 @@ include "utils/conversions.bzz"
 TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
 PICTURE_WAIT = 20 # steps
-GOTO_MAXVEL = 1.5 # m/steps
+GOTO_MAXVEL = 2.5 # m/steps
 GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 0.5  # m.
 GOTOANG_TOL = 0.1 # rad.
 path_it = 0
-rc_State = 0
+graphid = 0
 pic_time = 0
 g_it = 0
 
@@ -163,8 +163,8 @@ function formation() {
   var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
     math.vec2.scale(accum, 1.0 / neighbors.count())
-  if(math.vec2.length(accum)>GOTO_MAXVEL*15)
-  	accum = math.vec2.scale(accum, 15*GOTO_MAXVEL/math.vec2.length(accum))
+  if(math.vec2.length(accum)>GOTO_MAXVEL*10)
+  	accum = math.vec2.scale(accum, 10*GOTO_MAXVEL/math.vec2.length(accum))
   goto_abs(accum.x, accum.y, 0.0, 0.0)
 }
 
@@ -195,19 +195,22 @@ function rc_cmd_listen() {
 		stattab_send()
 	} else if (flight.rc_cmd==900){
 		flight.rc_cmd=0
-		rc_State = 0
+		BVMSTATE = "TASK_ALLOCATE"
 		neighbors.broadcast("cmd", 900)
 	} else if (flight.rc_cmd==901){
 		flight.rc_cmd=0
-		rc_State = 1
+		destroyGraph()
+		BVMSTATE = "PURSUIT"
 		neighbors.broadcast("cmd", 901)
 	} else if (flight.rc_cmd==902){
 		flight.rc_cmd=0
-		rc_State = 2
+		destroyGraph()
+		BVMSTATE = "AGGREGATE"
 		neighbors.broadcast("cmd", 902)
 	} else if (flight.rc_cmd==903){
 		flight.rc_cmd=0
-		rc_State = 3
+		destroyGraph()
+		BVMSTATE = "FORMATION"
 		neighbors.broadcast("cmd", 903)
 	}
 }
@@ -224,14 +227,17 @@ function nei_cmd_listen() {
 					uav_arm()
 				} else if(value==401 and BVMSTATE=="TURNEDOFF"){
 					uav_disarm()
-				} else if(value==900){
-					rc_State = 0
-				} else if(value==901){
-					rc_State = 1
-				} else if(value==902){
-					rc_State = 2
-				} else if(value==903){
-					rc_State = 3
+				} else if(value==900){	# Shapes
+					BVMSTATE = "TASK_ALLOCATE"
+				} else if(value==901){	# Pursuit
+					destroyGraph()
+					BVMSTATE = "PURSUIT"
+				} else if(value==902){	# Agreggate
+					destroyGraph()
+					BVMSTATE = "AGGREGATE"
+				} else if(value==903){	# Formation
+					destroyGraph()
+					BVMSTATE = "FORMATION"
 				} else if(value==16 and BVMSTATE=="IDLE"){
 				#  neighbors.listen("gt",function(vid, value, rid) {
 				#    print("Got (", vid, ",", value, ") from robot #", rid)
