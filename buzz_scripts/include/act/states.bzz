@@ -66,7 +66,7 @@ function take_picture() {
 	if(pic_time==PICTURE_WAIT/2) { # wait for the drone to stabilize
 	  uav_takepicture()
   } else if(pic_time>=PICTURE_WAIT) { # wait for the picture
-  BVMSTATE="IDLE"
+    BVMSTATE="IDLE"
     pic_time=0 
   }
   pic_time=pic_time+1
@@ -79,11 +79,11 @@ function goto_gps(transf) {
 		log("Sorry this is too far.")
   else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
 		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
-		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
+		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
 	} else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
 		transf()
 	else
-		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude)
+		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
 }
 
 function follow() {
@@ -94,11 +94,78 @@ function follow() {
 			force=(0.05)*(tab.range)^4
 			attractor=math.vec2.add(attractor, math.vec2.newp(force, tab.bearing))
 		})
-		goto_abs(attractor.x, attractor.y, 0.0)
+		goto_abs(attractor.x, attractor.y, 0.0, 0.0)
 	} else {
 		log("No target in local table!")
 		BVMSTATE = "IDLE"
 	}
+}
+
+# converge to centroid
+function aggregate() {
+  BVMSTATE="AGGREGATE"
+  centroid = neighbors.reduce(function(rid, data, centroid) {
+	  centroid = math.vec2.add(centroid, math.vec2.newp(data.distance, data.azimuth))
+	  return centroid
+  }, {.x=0, .y=0})
+  if(neighbors.count() > 0)
+    math.vec2.scale(centroid, 1.0 / neighbors.count())
+  if(math.vec2.length(centroid)>GOTO_MAXVEL)
+  	centroid = math.vec2.scale(centroid, GOTO_MAXVEL/math.vec2.length(centroid))
+  goto_abs(centroid.x, centroid.y, 0.0, 0.0) 
+}
+
+# follow one another
+rotang = 0.0
+function pursuit() {
+  BVMSTATE="PURSUIT"
+  insight = 0
+  leader = math.vec2.newp(0.0, 0.0)
+  var cmdbin = math.vec2.newp(0.0, 0.0)
+  neighbors.foreach(function(rid, data) {
+  	if(data.distance < 11.0 and data.azimuth < 3.2 and data.azimuth > 2.8) {
+		  insight = 1
+		  leader = math.vec2.newp(data.distance, data.azimuth)
+	  }
+  })
+  if(insight == 1) {
+	log("Leader in sight !")
+  	#cmdbin = math.vec2.newp(lj_magnitude(math.vec2.length(leader), 3.0, 0.01), math.vec2.angle(leader))
+	cmdbin = math.vec2.newp(2.0, math.vec2.angle(leader))
+  } else {
+	rotang = rotang + math.pi/60
+	cmdbin = math.vec2.newp(2.0, rotang)
+  }
+  goto_abs(cmdbin.x, cmdbin.y, 0.0, rotang)
+}
+
+# Lennard-Jones interaction magnitude
+TARGET     = 8.0
+EPSILON    = 0.000001
+function lj_magnitude(dist, target, epsilon) {
+  return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
+ 
+# Neighbor data to LJ interaction vector
+function lj_vector(rid, data) {
+  return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
+}
+ 
+# Accumulator of neighbor LJ interactions
+function lj_sum(rid, data, accum) {
+  return math.vec2.add(data, accum)
+}
+ 
+# Calculates and actuates the flocking interaction
+function formation() {
+  BVMSTATE="FORMATION"
+  # Calculate accumulator
+  var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
+  if(neighbors.count() > 0)
+    math.vec2.scale(accum, 1.0 / neighbors.count())
+  if(math.vec2.length(accum)>GOTO_MAXVEL*15)
+  	accum = math.vec2.scale(accum, 15*GOTO_MAXVEL/math.vec2.length(accum))
+  goto_abs(accum.x, accum.y, 0.0, 0.0)
 }
 
 function rc_cmd_listen() {
