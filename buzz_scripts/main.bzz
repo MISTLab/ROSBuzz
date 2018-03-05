@@ -7,7 +7,7 @@ include "taskallocate/graphformGPS.bzz"
 include "vstigenv.bzz"
 
 #State launched after takeoff
-AUTO_LAUNCH_STATE = "AGGREGATE"
+AUTO_LAUNCH_STATE = "PURSUIT"
 
 #####
 # Vehicule type:
