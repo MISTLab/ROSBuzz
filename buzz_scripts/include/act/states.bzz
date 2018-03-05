@@ -77,13 +77,12 @@ function goto_gps(transf) {
 	print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
  	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
 		log("Sorry this is too far.")
-  else if(math.vec2.length(m_navigation)>GOTO_MAXVEL) { # limit velocity
-		m_navigation = math.vec2.scale(m_navigation, GOTO_MAXVEL/math.vec2.length(m_navigation))
-		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
-	} else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
+	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
 		transf()
-	else
+	else {
+		LimitSpeed(m_navigation, 1.0)
 		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
+	}
 }
 
 function follow() {
@@ -110,40 +109,34 @@ function aggregate() {
   }, {.x=0, .y=0})
   if(neighbors.count() > 0)
     math.vec2.scale(centroid, 1.0 / neighbors.count())
-  if(math.vec2.length(centroid)>GOTO_MAXVEL)
-  	centroid = math.vec2.scale(centroid, GOTO_MAXVEL/math.vec2.length(centroid))
-  goto_abs(centroid.x, centroid.y, 0.0, 0.0) 
+	cmdbin = math.vec2.sub(centroid, math.vec2.newp(15.0, id * 2 * math.pi / ROBOTS))
+  cmdbin = LimitSpeed(cmdbin, 1.0/2.0)
+  goto_abs(cmdbin.x, cmdbin.y, 0.0, 0.0) 
 }
 
 # follow one another
 rotang = 0.0
 function pursuit() {
   BVMSTATE="PURSUIT"
-  insight = 0
-  leader = math.vec2.newp(0.0, 0.0)
-  var cmdbin = math.vec2.newp(0.0, 0.0)
-  neighbors.foreach(function(rid, data) {
-  	if(data.distance < 11.0 and data.azimuth < 3.2 and data.azimuth > 2.8) {
-		  insight = 1
-		  leader = math.vec2.newp(data.distance, data.azimuth)
-	  }
-  })
-  if(insight == 1) {
-	log("Leader in sight !")
-  	#cmdbin = math.vec2.newp(lj_magnitude(math.vec2.length(leader), 3.0, 0.01), math.vec2.angle(leader))
-	cmdbin = math.vec2.newp(2.0, math.vec2.angle(leader))
-  } else {
-	rotang = rotang + math.pi/60
-	cmdbin = math.vec2.newp(2.0, rotang)
-  }
-  goto_abs(cmdbin.x, cmdbin.y, 0.0, rotang)
+  centroid = neighbors.reduce(function(rid, data, centroid) {
+	  centroid = math.vec2.add(centroid, math.vec2.newp(data.distance, data.azimuth))
+	  return centroid
+  }, {.x=0, .y=0})
+  if(neighbors.count() > 0)
+    math.vec2.scale(centroid, 1.0 / neighbors.count())
+	rotang = rotang + math.pi/50.0
+	cmdbin = math.vec2.sub(centroid, math.vec2.newp(80.0, id * 2 * math.pi / ROBOTS + rotang))
+  cmdbin = LimitSpeed(cmdbin, 1.0/5.0)
+  goto_abs(cmdbin.x, cmdbin.y, 0.0, 0.0) 
 }
 
 # Lennard-Jones interaction magnitude
 TARGET     = 8.0
-EPSILON    = 0.000001
+EPSILON    = 3.0
 function lj_magnitude(dist, target, epsilon) {
-  return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+	lj = -(epsilon / dist) * ((target / dist)^4 - 1.2 * (target / dist)^2)
+	# log(dist, (target / dist), (epsilon / dist), lj)
+  return lj
 }
  
 # Neighbor data to LJ interaction vector
@@ -157,15 +150,15 @@ function lj_sum(rid, data, accum) {
 }
  
 # Calculates and actuates the flocking interaction
+old_lj = math.vec2.newp(0.0, 0.0)	# 1-step filter, to smoothen dir. changes
 function formation() {
   BVMSTATE="FORMATION"
   # Calculate accumulator
-  var accum = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
+  accum_lj = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
-    math.vec2.scale(accum, 1.0 / neighbors.count())
-  if(math.vec2.length(accum)>GOTO_MAXVEL*10)
-  	accum = math.vec2.scale(accum, 10*GOTO_MAXVEL/math.vec2.length(accum))
-  goto_abs(accum.x, accum.y, 0.0, 0.0)
+    math.vec2.scale(accum_lj, 1.0 / neighbors.count())
+	old_lj = LimitSpeed(math.vec2.add(old_lj, accum_lj), 1.0/4.0)
+  goto_abs(old_lj.x, old_lj.y, 0.0, 0.0)
 }
 
 function rc_cmd_listen() {
