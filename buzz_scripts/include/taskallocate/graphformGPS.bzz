@@ -78,14 +78,7 @@ m_fTargetDistanceTolerance=0
 m_lockstig = 1
 
 # Lennard-Jones parameters, may need change
-EPSILON	= 4000 #13.5 the LJ parameter for other robots
-
-# Lennard-Jones interaction magnitude
-
-function FlockInteraction(dist,target,epsilon){
-	var mag = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
-	return mag
-}
+EPSILON_GRAPH	= 4000 #13.5 the LJ parameter for other robots
 
 #
 #return the number of value in table
@@ -264,7 +257,7 @@ function LJ_vec(i){
     var target=target4label(nei_id)
     var cDir={.x=0.0,.y=0.0}
     if(target!="miss"){
-    	cDir=math.vec2.newp(FlockInteraction(dis,target,EPSILON),ljbearing)   
+    	cDir=math.vec2.newp(lj_magnitude(dis,target,EPSILON_GRAPH), ljbearing)   
     }
     #log(id,"dis=",dis,"target=",target,"label=",nei_id)
 		#log("x=",cDir.x,"y=",cDir.y)  
