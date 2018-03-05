@@ -108,26 +108,31 @@ function aggregate() {
 	  return centroid
   }, {.x=0, .y=0})
   if(neighbors.count() > 0)
-    math.vec2.scale(centroid, 1.0 / neighbors.count())
-	cmdbin = math.vec2.sub(centroid, math.vec2.newp(15.0, id * 2 * math.pi / ROBOTS))
+    centroid = math.vec2.scale(centroid, 1.0 / neighbors.count())
+	cmdbin = math.vec2.sub(centroid, math.vec2.newp(3.0, id * 2 * math.pi / ROBOTS))
   cmdbin = LimitSpeed(cmdbin, 1.0/2.0)
   goto_abs(cmdbin.x, cmdbin.y, 0.0, 0.0) 
 }
 
 # follow one another
-rotang = 0.0
 function pursuit() {
   BVMSTATE="PURSUIT"
-  centroid = neighbors.reduce(function(rid, data, centroid) {
-	  centroid = math.vec2.add(centroid, math.vec2.newp(data.distance, data.azimuth))
-	  return centroid
+	rd = 15.0
+	pc = 3.2
+	vd = 15.0
+  r_vec = neighbors.reduce(function(rid, data, r_vec) {
+	  r_vec = math.vec2.add(r_vec, math.vec2.newp(data.distance, data.azimuth))
+	  return r_vec
   }, {.x=0, .y=0})
   if(neighbors.count() > 0)
-    math.vec2.scale(centroid, 1.0 / neighbors.count())
-	rotang = rotang + math.pi/50.0
-	cmdbin = math.vec2.sub(centroid, math.vec2.newp(80.0, id * 2 * math.pi / ROBOTS + rotang))
-  cmdbin = LimitSpeed(cmdbin, 1.0/5.0)
-  goto_abs(cmdbin.x, cmdbin.y, 0.0, 0.0) 
+    r_vec = math.vec2.scale(r_vec, 1.0 / neighbors.count())
+	r = math.vec2.length(r_vec)
+	gamma = vd / math.sqrt((r-rd)*(r-rd)+pc*pc*r*r)
+	dr = -gamma * (r-rd)
+	dT = gamma * pc
+  vfg = math.vec2.newp(r+dr*0.1, math.vec2.angle(r_vec)+dT*0.1)
+  vfg = LimitSpeed(vfg, 2.0)
+  goto_abs(vfg.x, vfg.y, 0.0, 0.0) 
 }
 
 # Lennard-Jones interaction magnitude
@@ -135,7 +140,6 @@ TARGET     = 8.0
 EPSILON    = 3.0
 function lj_magnitude(dist, target, epsilon) {
 	lj = -(epsilon / dist) * ((target / dist)^4 - 1.2 * (target / dist)^2)
-	# log(dist, (target / dist), (epsilon / dist), lj)
   return lj
 }
  
@@ -156,7 +160,7 @@ function formation() {
   # Calculate accumulator
   accum_lj = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
-    math.vec2.scale(accum_lj, 1.0 / neighbors.count())
+    accum_lj = math.vec2.scale(accum_lj, 1.0 / neighbors.count())
 	old_lj = LimitSpeed(math.vec2.add(old_lj, accum_lj), 1.0/4.0)
   goto_abs(old_lj.x, old_lj.y, 0.0, 0.0)
 }
