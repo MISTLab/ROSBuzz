@@ -96,7 +96,7 @@ void setWPlist(string path)
 / set the absolute path for a csv list of waypoints
 ----------------------------------------------------------- */
 {
-  WPlistname = path + "include/graphs/waypointlist.csv";
+  WPlistname = path + "include/taskallocate/waypointlist.csv";
 }
 
 float constrainAngle(float x)
