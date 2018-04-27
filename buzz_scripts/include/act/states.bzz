@@ -114,7 +114,7 @@ function aggregate() {
   goto_abs(cmdbin.x, cmdbin.y, 0.0, 0.0) 
 }
 
-# follow one another
+# circle all together around centroid
 function pursuit() {
   BVMSTATE="PURSUIT"
 	rd = 15.0
