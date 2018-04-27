@@ -5,6 +5,7 @@ include "uavstates.bzz"	# require an 'action' function to be defined here.
 include "vstigenv.bzz"
 
 function action() {
+  statef=action
   uav_storegoal(-1.0,-1.0,-1.0)
   set_goto(picture)
 }
