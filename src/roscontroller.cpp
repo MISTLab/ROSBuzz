@@ -271,7 +271,7 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "sensor_msgs/LaserScan"));
 
   node_handle.getParam("topics/battery", topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs/BatteryStatus"));
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "sensor_msgs/BatteryState"));
 
   node_handle.getParam("topics/status", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs/State"));
@@ -367,7 +367,7 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     {
       flight_status_sub = n_c.subscribe(it->first, 5, &roscontroller::flight_status_update, this);
     }
-    else if (it->second == "mavros_msgs/BatteryStatus")
+    else if (it->second == "sensor_msgs/BatteryState")
     {
       battery_sub = n_c.subscribe(it->first, 5, &roscontroller::battery, this);
     }
@@ -682,7 +682,7 @@ script
       }
       else
         ROS_ERROR("Failed to call service from flight controller");
-      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
+      cmd_srv.request.command = mavros_msgs::CommandCode::MISSION_START;
       if (mav_client.call(cmd_srv))
       {
         ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
@@ -720,7 +720,7 @@ script
       cmd_srv.request.param2 = gimbal[1];
       cmd_srv.request.param3 = gimbal[2];
       cmd_srv.request.param4 = gimbal[3];
-      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+      cmd_srv.request.command = mavros_msgs::CommandCode::DO_MOUNT_CONTROL;
       if (mav_client.call(cmd_srv))
       {
         ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
@@ -836,12 +836,12 @@ void roscontroller::gps_convert_ned(float& ned_x, float& ned_y, double gps_t_lon
   ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(gps_t_lat));
 };
 
-void roscontroller::battery(const mavros_msgs::BatteryStatus::ConstPtr& msg)
+void roscontroller::battery(const sensor_msgs::BatteryState::ConstPtr& msg)
 /*
 / Update battery status into BVM from subscriber
 /------------------------------------------------------*/
 {
-  buzzuav_closures::set_battery(msg->voltage, msg->current, msg->remaining);
+  buzzuav_closures::set_battery(msg->voltage, msg->current, msg->percentage*100.0);
   //  DEBUG
   // ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage,
   // msg->current, msg ->remaining);
@@ -1094,8 +1094,8 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
-    case mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM:
-      rc_cmd = mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
+    case mavros_msgs::CommandCode::COMPONENT_ARM_DISARM:
+      rc_cmd = mavros_msgs::CommandCode::COMPONENT_ARM_DISARM;
       armstate = req.param1;
       if (armstate)
       {
@@ -1123,10 +1123,10 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
-    case mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL:
+    case mavros_msgs::CommandCode::DO_MOUNT_CONTROL:
       ROS_INFO("RC_Call: Gimbal!!!! ");
       buzzuav_closures::rc_set_gimbal(req.param1, req.param2, req.param3, req.param4, req.param5);
-      rc_cmd = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+      rc_cmd = mavros_msgs::CommandCode::DO_MOUNT_CONTROL;
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
