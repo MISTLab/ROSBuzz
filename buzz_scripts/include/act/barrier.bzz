@@ -7,10 +7,11 @@
 #
 # Constants
 #
-BARRIER_TIMEOUT = 1200 # in steps
+BARRIER_TIMEOUT = 200 # in steps
 BARRIER_VSTIG = 80
 timeW = 0
 barrier = nil
+bc = 0;
 
 #
 # Sets a barrier
@@ -22,15 +23,15 @@ function barrier_create() {
   #log("---> Prev. br. ", barrier, " ", BARRIER_VSTIG)
   if(barrier!=nil) {
     barrier=nil
-    BARRIER_VSTIG = BARRIER_VSTIG +1
+  #  BARRIER_VSTIG = BARRIER_VSTIG +1
   }
   #log("---> New. br. ", barrier, " ", BARRIER_VSTIG)
   barrier = stigmergy.create(BARRIER_VSTIG)
 }
 
-function barrier_set(threshold, transf, resumef) {
+function barrier_set(threshold, transf, resumef, bc) {
   statef = function() {
-    barrier_wait(threshold, transf, resumef);
+    barrier_wait(threshold, transf, resumef, bc);
   }
   BVMSTATE = "BARRIERWAIT"
   barrier_create()
@@ -39,30 +40,42 @@ function barrier_set(threshold, transf, resumef) {
 #
 # Make yourself ready
 #
-function barrier_ready() {
+function barrier_ready(bc) {
   #log("BARRIER READY -------")
-  barrier.put(id, 1)
+  barrier.put(id, bc)
   barrier.put("d", 0)
 }
 
 #
 # Executes the barrier
 #
-function barrier_wait(threshold, transf, resumef) {
-  barrier.put(id, 1)
-
+function barrier_wait(threshold, transf, resumef, bc) {
+  barrier.put(id, bc)
   barrier.get(id)
-  #log("--->BS: ", barrier.size(), " (", BARRIER_VSTIG, ")")
+  var allgood = 0
+
+  log("--->BS: ", barrier.size(), " / ", threshold, " (", BARRIER_VSTIG, " - ", barrier.get("d"), ") t= ", timeW)
   if(barrier.size() - 1 >= threshold or barrier.get("d") == 1) {
+    var bi = 0
+    allgood = 1
+    while (bi<threshold) {
+      if(barrier.get(bi) != bc)
+        allgood = 0
+      bi = bi + 1
+    }
+  }
+  
+  if(allgood) {
     barrier.put("d", 1)
     timeW = 0
     BVMSTATE = transf
   } else if(timeW >= BARRIER_TIMEOUT) {
     log("------> Barrier Timeout !!!!")
-    barrier=nil
+    barrier = nil
     timeW = 0
     BVMSTATE = resumef
-  }
+  } else if(timeW % 10 == 0 and bc > 0)
+    neighbors.broadcast("cmd", bc)
 
   timeW = timeW+1
 }
