@@ -11,7 +11,6 @@
 namespace rosbzz_node
 {
 const string roscontroller::CAPTURE_SRV_DEFAULT_NAME = "/image_sender/capture_image";
-const bool debug = false;
 
 roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
 /*
@@ -186,6 +185,14 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
   else
   {
     ROS_ERROR("Provide a .bzz file to run in Launch file");
+    system("rosnode kill rosbuzz_node");
+  }
+  // Obtain debug mode from launch file parameter
+  if (n_c.getParam("debug", debug))
+    ;
+  else
+  {
+    ROS_ERROR("Provide a debug mode in Launch file");
     system("rosnode kill rosbuzz_node");
   }
   // Obtain rc service option from parameter server
@@ -670,7 +677,7 @@ script
         ROS_ERROR("Failed to call service from flight controller");
       break;
 
-    case buzzuav_closures::COMMAND_GOTO:  // TOOD: NOT FULLY IMPLEMENTED/TESTED !!!
+    case buzzuav_closures::COMMAND_GOTO:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
       goto_pos = buzzuav_closures::getgoto();
       cmd_srv.request.param5 = goto_pos[0];
       cmd_srv.request.param6 = goto_pos[1];
@@ -794,10 +801,10 @@ float roscontroller::constrainAngle(float x)
 / Wrap the angle between -pi, pi
 ----------------------------------------------------------- */
 {
-  x = fmod(x, 2 * M_PI);
+  x = fmod(x + M_PI, 2 * M_PI);
   if (x < 0.0)
     x += 2 * M_PI;
-  return x;
+  return x - M_PI;
 }
 
 void roscontroller::gps_rb(POSE nei_pos, double out[])
@@ -809,10 +816,7 @@ void roscontroller::gps_rb(POSE nei_pos, double out[])
   float ned_x = 0.0, ned_y = 0.0;
   gps_ned_cur(ned_x, ned_y, nei_pos);
   out[0] = sqrt(ned_x * ned_x + ned_y * ned_y);
-  // out[0] = std::floor(out[0] * 1000000) / 1000000;
   out[1] = atan2(ned_y, ned_x);
-  out[1] = constrainAngle(atan2(ned_y, ned_x));
-  // out[1] = std::floor(out[1] * 1000000) / 1000000;
   out[2] = 0.0;
 }
 
@@ -1055,6 +1059,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     nei_pos.longitude = neighbours_pos_payload[1];
     nei_pos.altitude = neighbours_pos_payload[2];
     double cvt_neighbours_pos_payload[3];
+    // Compute RB in robot body ref. frame
     gps_rb(nei_pos, cvt_neighbours_pos_payload);
     //  Extract robot id of the neighbour
     uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + 3));

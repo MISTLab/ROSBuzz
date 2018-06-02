@@ -104,10 +104,10 @@ float constrainAngle(float x)
 / Wrap the angle between -pi, pi
 ----------------------------------------------------------- */
 {
-  x = fmod(x, 2 * M_PI);
+  x = fmod(x + M_PI, 2 * M_PI);
   if (x < 0.0)
     x += 2 * M_PI;
-  return x;
+  return x - M_PI;
 }
 
 void rb_from_gps(double nei[], double out[], double cur[])

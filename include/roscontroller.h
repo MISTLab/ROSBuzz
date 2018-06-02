@@ -103,6 +103,7 @@ private:
   bool multi_msg;
   uint8_t no_cnt = 0;
   uint8_t old_val = 0;
+  bool debug = false;
   std::string bzzfile_name;
   std::string fcclient_name;
   std::string armclient;

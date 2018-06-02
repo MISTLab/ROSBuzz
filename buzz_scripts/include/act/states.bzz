@@ -45,8 +45,13 @@ function launch() {
 	}
 }
 
+gohomeT=100
 function stop() {
   BVMSTATE = "STOP"
+	if(gohomeT > 0) {	# TODO: Make a real check if home is reached
+		gohome()
+		gohomeT = gohomeT - 1
+	}
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
 		neighbors.broadcast("cmd", 21)
 		uav_land()
@@ -64,7 +69,7 @@ function take_picture() {
   BVMSTATE="PICTURE"
   uav_setgimbal(0.0, 0.0, -90.0, 20.0)
 	if(pic_time==PICTURE_WAIT/2) { # wait for the drone to stabilize
-	  uav_takepicture()
+	  takepicture()
   } else if(pic_time>=PICTURE_WAIT) { # wait for the picture
     BVMSTATE="IDLE"
     pic_time=0 
@@ -137,9 +142,10 @@ function pursuit() {
 
 # Lennard-Jones interaction magnitude
 TARGET     = 8.0
-EPSILON    = 0.1
+EPSILON    = 30.0
 function lj_magnitude(dist, target, epsilon) {
-	lj = -(epsilon / dist) * ((target / dist)^4 - 1.02 * (target / dist)^2)
+	lj = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+	log(target, dist, epsilon, lj)
   return lj
 }
  
@@ -154,17 +160,17 @@ function lj_sum(rid, data, accum) {
 }
  
 # Calculates and actuates the flocking interaction
-old_lj = math.vec2.newp(0.0, 0.0)	# 1-step filter, to smoothen dir. changes
 function formation() {
   BVMSTATE="FORMATION"
   # Calculate accumulator
   accum_lj = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
     accum_lj = math.vec2.scale(accum_lj, 1.0 / neighbors.count())
-	old_lj = LimitSpeed(math.vec2.add(old_lj, accum_lj), 1.0/2.0)
-  goto_abs(old_lj.x, old_lj.y, 0.0, 0.0)
+	accum_lj = LimitSpeed(accum_lj, 1.0/3.0)
+  goto_abs(accum_lj.x, accum_lj.y, 0.0, 0.0)
 }
 
+# listens to commands from the remote control (web, commandline, etc)
 function rc_cmd_listen() {
   if(flight.rc_cmd==22) {
 		log("cmd 22")
@@ -216,6 +222,7 @@ function rc_cmd_listen() {
 	}
 }
 
+# listens to other fleet members broadcasting commands
 function nei_cmd_listen() {
     neighbors.listen("cmd",
 			function(vid, value, rid) {
