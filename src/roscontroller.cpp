@@ -622,7 +622,7 @@ script
   float* gimbal;
   switch (buzzuav_closures::bzz_cmd())
   {
-    case buzzuav_closures::COMMAND_TAKEOFF:
+    case mavros_msgs::CommandCode::NAV_TAKEOFF:
       goto_pos = buzzuav_closures::getgoto();
       cmd_srv.request.param7 = goto_pos[2];
       cmd_srv.request.command = buzzuav_closures::getcmd();
@@ -645,7 +645,7 @@ script
         ROS_ERROR("Failed to call service from flight controller");
       break;
 
-    case buzzuav_closures::COMMAND_LAND:
+    case mavros_msgs::CommandCode::NAV_LAND:
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (current_mode != "LAND")
       {
@@ -664,10 +664,7 @@ script
       armstate = 0;
       break;
 
-    case buzzuav_closures::COMMAND_GOHOME:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
-      cmd_srv.request.param5 = home.latitude;
-      cmd_srv.request.param6 = home.longitude;
-      cmd_srv.request.param7 = home.altitude;
+    case mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH:  // TODO: NOT FULLY TESTED HITL/FIELD !!!
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (mav_client.call(cmd_srv))
       {
@@ -677,28 +674,7 @@ script
         ROS_ERROR("Failed to call service from flight controller");
       break;
 
-    case buzzuav_closures::COMMAND_GOTO:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
-      goto_pos = buzzuav_closures::getgoto();
-      cmd_srv.request.param5 = goto_pos[0];
-      cmd_srv.request.param6 = goto_pos[1];
-      cmd_srv.request.param7 = goto_pos[2];
-      cmd_srv.request.command = buzzuav_closures::getcmd();
-      if (mav_client.call(cmd_srv))
-      {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      }
-      else
-        ROS_ERROR("Failed to call service from flight controller");
-      cmd_srv.request.command = mavros_msgs::CommandCode::MISSION_START;
-      if (mav_client.call(cmd_srv))
-      {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      }
-      else
-        ROS_ERROR("Failed to call service from flight controller");
-      break;
-
-    case buzzuav_closures::COMMAND_ARM:
+    case mavros_msgs::CommandCode::COMPONENT_ARM_DISARM:
       if (!armstate)
       {
         SetMode("LOITER", 0);
@@ -707,7 +683,7 @@ script
       }
       break;
 
-    case buzzuav_closures::COMMAND_DISARM:
+    case mavros_msgs::CommandCode::COMPONENT_ARM_DISARM+1:
       if (armstate)
       {
         armstate = 0;
@@ -716,12 +692,12 @@ script
       }
       break;
 
-    case buzzuav_closures::COMMAND_MOVETO:
+    case mavros_msgs::CommandCode::NAV_SPLINE_WAYPOINT:
       goto_pos = buzzuav_closures::getgoto();
       roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       break;
 
-    case buzzuav_closures::COMMAND_GIMBAL:
+    case mavros_msgs::CommandCode::DO_MOUNT_CONTROL:
       gimbal = buzzuav_closures::getgimbal();
       cmd_srv.request.param1 = gimbal[0];
       cmd_srv.request.param2 = gimbal[1];
@@ -736,7 +712,7 @@ script
         ROS_ERROR("Failed to call service from flight controller");
       break;
 
-    case buzzuav_closures::COMMAND_PICTURE:
+    case mavros_msgs::CommandCode::IMAGE_START_CAPTURE:
       ROS_INFO("TAKING A PICTURE HERE!! --------------");
       mavros_msgs::CommandBool capture_command;
       if (capture_srv.call(capture_command))

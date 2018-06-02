@@ -46,12 +46,18 @@ function launch() {
 }
 
 gohomeT=100
-function stop() {
-  BVMSTATE = "STOP"
+function goinghome() {
+  BVMSTATE = "GOHOME"
 	if(gohomeT > 0) {	# TODO: Make a real check if home is reached
 		gohome()
 		gohomeT = gohomeT - 1
-	}
+		neighbors.broadcast("cmd", 20)
+	} else
+  	BVMSTATE = AUTO_LAUNCH_STATE
+}
+
+function stop() {
+  BVMSTATE = "STOP"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
 		neighbors.broadcast("cmd", 21)
 		uav_land()
@@ -62,12 +68,12 @@ function stop() {
 	} else {
 			barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
 			barrier_ready(21)
-	}	
+	}
 }
 
 function take_picture() {
   BVMSTATE="PICTURE"
-  uav_setgimbal(0.0, 0.0, -90.0, 20.0)
+  setgimbal(0.0, 0.0, -90.0, 20.0)
 	if(pic_time==PICTURE_WAIT/2) { # wait for the drone to stabilize
 	  takepicture()
   } else if(pic_time>=PICTURE_WAIT) { # wait for the picture
@@ -180,18 +186,25 @@ function rc_cmd_listen() {
 	} else if(flight.rc_cmd==21) {
 		log("cmd 21")
 		flight.rc_cmd=0
-		BVMSTATE = "STOP"
+		AUTO_LAUNCH_STATE = "STOP"
+		BVMSTATE = "GOHOME"
 		neighbors.broadcast("cmd", 21)
+	} else if(flight.rc_cmd==20) {
+		log("cmd 20")
+		flight.rc_cmd=0
+		AUTO_LAUNCH_STATE = "IDLE"
+		BVMSTATE = "GOHOME"
+		neighbors.broadcast("cmd", 20)
 	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
 		BVMSTATE = "PATHPLAN"
 	} else if(flight.rc_cmd==400) {
 		flight.rc_cmd=0
-		uav_arm()
+		arm()
 		neighbors.broadcast("cmd", 400)
 	} else if (flight.rc_cmd==401){
 		flight.rc_cmd=0
-		uav_disarm()
+		disarm()
 		neighbors.broadcast("cmd", 401)
 	} else if (flight.rc_cmd==666){
 		flight.rc_cmd=0
@@ -230,12 +243,16 @@ function nei_cmd_listen() {
 				if(BVMSTATE!="BARRIERWAIT") {
 					if(value==22) {
 						BVMSTATE = "LAUNCH"
+					}else if(value==20) {
+						AUTO_LAUNCH_STATE = "IDLE"
+						BVMSTATE = "GOHOME"
 					} else if(value==21) {
-						BVMSTATE = "STOP"
+						AUTO_LAUNCH_STATE = "STOP"
+						BVMSTATE = "GOHOME"
 					} else if(value==400 and BVMSTATE=="TURNEDOFF") {
-						uav_arm()
+						arm()
 					} else if(value==401 and BVMSTATE=="TURNEDOFF"){
-						uav_disarm()
+						disarm()
 					} else if(value==900){	# Shapes
 						barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
 						#barrier_ready(900)

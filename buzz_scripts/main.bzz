@@ -53,6 +53,8 @@ function step() {
 		statef=stop
 	else if(BVMSTATE=="LAUNCH") # ends on AUTO_LAUNCH_STATE
 		statef=launch
+	else if(BVMSTATE=="GOHOME") # ends on AUTO_LAUNCH_STATE
+		statef=goinghome
 	else if(BVMSTATE=="IDLE")
 		statef=idle
 	else if(BVMSTATE=="AGGREGATE")

@@ -10,7 +10,7 @@
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >
     <rosparam file="$(find rosbuzz)/launch/launch_config/topics.yaml"/>
     <param name="bzzfile_name" value="$(find rosbuzz)/buzz_scripts/$(arg script).bzz" />
-    <param name="debug" value="true" />
+    <param name="debug" value="false" />
     <param name="rcclient" value="true" />
     <param name="rcservice_name" value="buzzcmd" />
     <param name="in_payload" value="inMavlink"/>

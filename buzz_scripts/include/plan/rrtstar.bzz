@@ -20,7 +20,7 @@ mapgoal = {}
 function navigate() {
   BVMSTATE="NAVIGATE"
 	if(V_TYPE == 0) { # TODO: place these in a generic function in conversion.bzz
-		uav_storegoal(goal_list[g_it].x, goal_list[g_it].y, pose.position.altitude)
+		storegoal(goal_list[g_it].x, goal_list[g_it].y, pose.position.altitude)
 		cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
 		m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.long, 0),-1)
 	}

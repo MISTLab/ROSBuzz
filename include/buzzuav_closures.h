@@ -13,19 +13,6 @@
 
 namespace buzzuav_closures
 {
-typedef enum {
-  COMMAND_NIL = 0,  // Dummy command
-  COMMAND_TAKEOFF,  // Take off
-  COMMAND_LAND,
-  COMMAND_GOHOME,
-  COMMAND_ARM,
-  COMMAND_DISARM,
-  COMMAND_GOTO,
-  COMMAND_MOVETO,
-  COMMAND_PICTURE,
-  COMMAND_GIMBAL,
-} Custom_CommandCode;
-
 /*
  * prextern int() function in Buzz
  * This function is used to print data from buzz
