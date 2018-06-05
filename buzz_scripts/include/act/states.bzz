@@ -51,7 +51,6 @@ function goinghome() {
 	if(gohomeT > 0) {	# TODO: Make a real check if home is reached
 		gohome()
 		gohomeT = gohomeT - 1
-		neighbors.broadcast("cmd", 20)
 	} else
   	BVMSTATE = AUTO_LAUNCH_STATE
 }
@@ -151,7 +150,6 @@ TARGET     = 8.0
 EPSILON    = 30.0
 function lj_magnitude(dist, target, epsilon) {
 	lj = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
-	log(target, dist, epsilon, lj)
   return lj
 }
  
@@ -184,16 +182,17 @@ function rc_cmd_listen() {
 		BVMSTATE = "LAUNCH"		
 		neighbors.broadcast("cmd", 22)
 	} else if(flight.rc_cmd==21) {
-		log("cmd 21")
 		flight.rc_cmd=0
 		AUTO_LAUNCH_STATE = "STOP"
+		barrier_set(ROBOTS, "GOHOME", BVMSTATE, 21)
+		barrier_ready(21)
 		BVMSTATE = "GOHOME"
 		neighbors.broadcast("cmd", 21)
 	} else if(flight.rc_cmd==20) {
-		log("cmd 20")
 		flight.rc_cmd=0
 		AUTO_LAUNCH_STATE = "IDLE"
-		BVMSTATE = "GOHOME"
+		barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
+		barrier_ready(20)
 		neighbors.broadcast("cmd", 20)
 	} else if(flight.rc_cmd==16) {
 		flight.rc_cmd=0
