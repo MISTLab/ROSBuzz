@@ -8,6 +8,8 @@ include "vstigenv.bzz"
 
 #State launched after takeoff
 AUTO_LAUNCH_STATE = "FORMATION"
+TARGET     = 9.0
+EPSILON    = 30.0
 
 #####
 # Vehicule type:
