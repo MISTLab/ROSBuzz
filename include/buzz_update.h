@@ -136,7 +136,7 @@ namespace buzz_update
   /***************************************************/
   /*Sets bzz file name*/
   /***************************************************/
-  void set_bzz_file(const char* in_bzz_file);
+  void set_bzz_file(const char* in_bzz_file, bool dbg);
 
   /****************************************************/
   /*Tests the code from a buffer*/

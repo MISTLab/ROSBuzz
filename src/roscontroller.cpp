@@ -26,7 +26,7 @@ roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
   std::string fname = Compile_bzz(bzzfile_name);
   bcfname = fname + ".bo";
   dbgfname = fname + ".bdb";
-  buzz_update::set_bzz_file(bzzfile_name.c_str());
+  buzz_update::set_bzz_file(bzzfile_name.c_str(),debug);
   buzzuav_closures::setWPlist(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/");
   //  Initialize variables
   SetMode("LOITER", 0);
@@ -576,8 +576,7 @@ with size.........  |   /
     ;
     int tot = 0;
     mavros_msgs::Mavlink update_packets;
-    fprintf(stdout, "Appending code into message ...\n");
-    fprintf(stdout, "Sent Update packet Size: %u \n", updater_msgSize);
+    if(debug) ROS_INFO("Broadcasted Update packet Size: %u", updater_msgSize);
     // allocate mem and clear it
     buff_send = (uint8_t*)malloc(sizeof(uint16_t) + updater_msgSize);
     memset(buff_send, 0, sizeof(uint16_t) + updater_msgSize);
@@ -1008,7 +1007,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     //  Copy packet into temporary buffer neglecting update constant
     memcpy((void*)pl, (void*)(message_obt + 1), obt_msg_size);
     uint16_t unMsgSize = *(uint16_t*)(pl);
-    fprintf(stdout, "Update packet received, read msg size : %u \n", unMsgSize);
+    if(debug) ROS_INFO("Update packet received, size : %u", unMsgSize);
     if (unMsgSize > 0)
     {
       buzz_update::code_message_inqueue_append((uint8_t*)(pl + sizeof(uint16_t)), unMsgSize);

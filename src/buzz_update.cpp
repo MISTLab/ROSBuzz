@@ -28,10 +28,9 @@ namespace buzz_update{
   static int neigh = -1;
   static int updater_msg_ready;
   static uint16_t update_try_counter = 0;
-  static int updated = 0;
   static const uint16_t MAX_UPDATE_TRY = 5;
-  static int packet_id_ = 0;
   static size_t old_byte_code_size = 0;
+  static bool debug = false;
 
   /*Initialize updater*/
   int init_update_monitor(const char* bo_filename, const char* stand_by_script, const char* dbgfname, int robot_id)
@@ -45,7 +44,7 @@ namespace buzz_update{
       dbgf_name = dbgfname;
       bcfname = bo_filename;
       ROS_WARN("UPDATES TURNED ON (modifying .bzz script file will update all robots)");
-      ROS_INFO("Initializing file monitor...");
+      if(debug) ROS_INFO("Initializing file monitor...");
       fd = inotify_init1(IN_NONBLOCK);
       if (fd < 0)
       {
@@ -140,23 +139,22 @@ namespace buzz_update{
     while (i < len)
     {
       struct inotify_event* event = (struct inotify_event*)&buf[i];
-      /* file was modified this flag is true in nano and self delet in gedit and other editors */
-      // fprintf(stdout,"inside file monitor.\n");
+      /*Report file changes and self deletes*/
       if (event->mask & (IN_MODIFY | IN_DELETE_SELF))
       {
-        /*respawn watch if the file is self deleted */
+        /*Respawn watch if the file is self deleted */
         inotify_rm_watch(fd, wd);
         close(fd);
         fd = inotify_init1(IN_NONBLOCK);
         wd = inotify_add_watch(fd, bzz_file, IN_ALL_EVENTS);
-        /* To mask multiple writes from editors*/
+        /*To mask multiple writes from editors*/
         if (!old_update)
         {
           check = 1;
           old_update = 1;
         }
       }
-      /* update index to start of next event */
+      /*Update index to start of next event*/
       i += sizeof(struct inotify_event) + event->len;
     }
     if (!check)
@@ -175,14 +173,14 @@ namespace buzz_update{
       /*Patch the old bo with new patch*/
       std::stringstream patch_writefile;
       patch_writefile << path << name1 << "tmp_patch.bo";
-      /*Write the patch to a file*/
+      /*Write the patch to a file and call bsdiff to patch*/
       FILE* fp = fopen(patch_writefile.str().c_str(), "wb");
       fwrite(patch, update_patch_size, 1, fp);
       fclose(fp);
       std::stringstream patch_exsisting;
       patch_exsisting << "bspatch " << path << name1 << ".bo " << path << name1 << "-patched.bo " << path << name1
                       << "tmp_patch.bo";
-      fprintf(stdout, "Launching bspatch command: %s \n", patch_exsisting.str().c_str());
+      if(debug) ROS_WARN("Launching bspatch command: %s", patch_exsisting.str().c_str());
       if (system(patch_exsisting.str().c_str()))
         return 0;
       else
@@ -197,7 +195,10 @@ namespace buzz_update{
       /*Read the exsisting file to simulate the patching*/
       std::stringstream read_patched;
       read_patched << path << name1 << ".bo";
-      fprintf(stdout, "read file name %s \n", read_patched.str().c_str());
+      if(debug){ 
+        ROS_WARN("Simulation patching ...");
+        ROS_WARN("Read file for patching %s", read_patched.str().c_str());
+      }
       uint8_t* patched_bo_buf = 0;
       FILE* fp = fopen(read_patched.str().c_str(), "rb");
       if (!fp)
@@ -227,7 +228,10 @@ namespace buzz_update{
       /*Read the new patched file*/
       std::stringstream read_patched;
       read_patched << path << name1 << "-patched.bo";
-      fprintf(stdout, "read file name %s \n", read_patched.str().c_str());
+      if(debug) {
+        ROS_WARN("Robot patching ...");
+        ROS_WARN("Read file for patching %s", read_patched.str().c_str());
+      }
       uint8_t* patched_bo_buf = 0;
       FILE* fp = fopen(read_patched.str().c_str(), "rb");
       if (!fp)
@@ -300,13 +304,13 @@ namespace buzz_update{
     size += sizeof(uint16_t);
     *(uint16_t*)(updater->outmsg_queue->size) = size + CODE_REQUEST_PADDING;
     updater_msg_ready = 1;
-    ROS_INFO("[Debug] Requested update no. %u  with try: %u \n", update_no, update_try_counter);
+    if(debug) ROS_WARN("[Debug] Requesting update no. %u for rebroadcast, try: %u", update_no, update_try_counter);
   }
 
   void code_message_inqueue_append(uint8_t* msg, uint16_t size)
   {
     updater->inmsg_queue = (updater_msgqueue_t)malloc(sizeof(struct updater_msgqueue_s));
-    // ROS_INFO("[DEBUG] Updater append code of size %d\n", (int) size);
+    // ROS_INFO("[DEBUG] Updater append code of size %d", (int) size);
     updater->inmsg_queue->queue = (uint8_t*)malloc(size);
     updater->inmsg_queue->size = (uint8_t*)malloc(sizeof(uint16_t));
     memcpy(updater->inmsg_queue->queue, msg, size);
@@ -321,19 +325,18 @@ namespace buzz_update{
   {
     int size = 0;
     updater_code_t out_code = NULL;
-
-    ROS_INFO("[Debug] Updater processing in msg with mode %d \n", *(int*)(updater->mode));
-    ROS_INFO("[Debug] %u : Current update number, %u : Received update no \n", (*(uint16_t*)(updater->update_no)),
-             (*(uint16_t*)(updater->inmsg_queue->queue + sizeof(uint8_t))));
-    ROS_INFO("[Debug] Updater received patch of size %u \n",
-             (*(uint16_t*)(updater->inmsg_queue->queue + sizeof(uint16_t) + sizeof(uint8_t))));
-
+    if(debug) {
+      ROS_WARN("[Debug] Updater processing in msg with mode %d", *(int*)(updater->mode));
+      ROS_WARN("[Debug] Current update no: %u, Received update no: %u", (*(uint16_t*)(updater->update_no)),
+               (*(uint16_t*)(updater->inmsg_queue->queue + sizeof(uint8_t))));
+      ROS_WARN("[Debug] Updater received patch of size %u",
+               (*(uint16_t*)(updater->inmsg_queue->queue + sizeof(uint16_t) + sizeof(uint8_t))));
+    }
     if (*(int*)(updater->mode) == CODE_RUNNING)
     {
       // fprintf(stdout,"[debug]Inside inmsg code running");
       if (*(uint8_t*)(updater->inmsg_queue->queue) == SENT_CODE)
       {
-        updated = 1;
         size += sizeof(uint8_t);
         if (*(uint16_t*)(updater->inmsg_queue->queue + size) > *(uint16_t*)(updater->update_no))
         {
@@ -360,7 +363,7 @@ namespace buzz_update{
 
             if (test_set_code((out_code->bcode), (char*)dbgf_name, (size_t)(*(uint16_t*)out_code->bcode_size)))
             {
-              printf("TEST PASSED!\n");
+              if(debug) ROS_WARN("Received patch PASSED tests!");
               *(uint16_t*)updater->update_no = update_no;
               /*Clear exisiting patch if any*/
               delete_p(updater->patch);
@@ -378,7 +381,7 @@ namespace buzz_update{
           }
           else
           {
-            ROS_ERROR("Patching the .bo file failed, could be corrupt patch\n");
+            ROS_ERROR("Patching the .bo file failed");
             update_try_counter++;
             outqueue_append_code_request(update_no);
           }
@@ -388,6 +391,7 @@ namespace buzz_update{
     size = 0;
     if (*(uint8_t*)(updater->inmsg_queue->queue) == RESEND_CODE)
     {
+      if(debug) ROS_WARN("Patch rebroadcast request received.");
       size += sizeof(uint8_t);
       if (*(uint16_t*)(updater->inmsg_queue->queue + size) == *(uint16_t*)(updater->update_no))
       {
@@ -395,11 +399,11 @@ namespace buzz_update{
         if (*(uint16_t*)(updater->inmsg_queue->queue + size) > update_try_counter)
         {
           update_try_counter = *(uint16_t*)(updater->inmsg_queue->queue + size);
-          ROS_ERROR("Code appended! update try : %u \n", update_try_counter);
+          if(debug) ROS_WARN("Rebroadcasting patch, try : %u", update_try_counter);
           code_message_outqueue_append();
         }
         if (update_try_counter > MAX_UPDATE_TRY)
-          ROS_ERROR("TODO: ROLL BACK !!");
+          ROS_ERROR("TODO: Max rebroadcast retry reached, ROLL BACK !!");
       }
     }
     // fprintf(stdout,"in queue freed\n");
@@ -421,12 +425,12 @@ namespace buzz_update{
 
     std::string name2 = name1 + "-update";
 
-    // CALL BSDIFF CMD
+    /*Launch bsdiff and create a patch*/
     genpatch << "bsdiff " << path << name1 << ".bo " << path << name2 << ".bo " << path << "diff.bo";
-    fprintf(stdout, "Launching bsdiff command: %s \n", genpatch.str().c_str());
+    if(debug) ROS_WARN("Launching bsdiff: %s", genpatch.str().c_str());
     system(genpatch.str().c_str());
 
-    /* delete old files & rename new files */
+    /*Delete old files & rename new files*/
 
     remove((path + name1 + ".bo").c_str());
     remove((path + name1 + ".bdb").c_str());
@@ -474,11 +478,11 @@ namespace buzz_update{
       // Check for update
       if (check_update())
       {
-        ROS_INFO("Update found \nUpdating script ...\n");
+        ROS_INFO("Update found \tUpdating script ...");
 
         if (compile_bzz(bzz_file))
         {
-          ROS_WARN("Errors in comipilg script so staying on old script\n");
+          ROS_ERROR("Error in compiling script, resuming old script.");
         }
         else
         {
@@ -510,12 +514,12 @@ namespace buzz_update{
 
             create_update_patch();
             VM = buzz_utility::get_vm();
-            ROS_INFO("Current Update no %d\n", *(uint16_t*)(updater->update_no));
+            if(debug) ROS_INFO("Current Update no %d", *(uint16_t*)(updater->update_no));
             buzzvm_pushs(VM, buzzvm_string_register(VM, "update_no", 1));
             buzzvm_pushi(VM, *(uint16_t*)(updater->update_no));
             buzzvm_gstore(VM);
             neigh = -1;
-            ROS_INFO("Sending code... \n");
+            if(debug) ROS_INFO("Broadcasting patch ...");
             code_message_outqueue_append();
           }
           delete_p(BO_BUF);
@@ -530,9 +534,10 @@ namespace buzz_update{
       buzzvm_gload(VM);
       buzzobj_t tObj = buzzvm_stack_at(VM, 1);
       buzzvm_pop(VM);
-      ROS_INFO("Barrier ..................... %i \n", tObj->i.value);
+      ROS_INFO("Barrier ............. No. of robots deployed: %i", tObj->i.value);
       if (tObj->i.value == no_of_robot)
       {
+        ROS_WARN("Patch deployment successful, rolling forward");
         *(int*)(updater->mode) = CODE_RUNNING;
         gettimeofday(&t2, NULL);
         // collect_data();
@@ -543,7 +548,7 @@ namespace buzz_update{
       }
       else if (timer_steps > TIMEOUT_FOR_ROLLBACK)
       {
-        ROS_ERROR("TIME OUT Reached, decided to roll back");
+        ROS_ERROR("TIME OUT Reached, rolling back");
         /*Time out hit deceided to roll back*/
         *(int*)(updater->mode) = CODE_RUNNING;
         buzz_utility::buzz_script_set(old_bcfname, dbgf_name, (int)VM->robot);
@@ -568,13 +573,13 @@ namespace buzz_update{
   {
     if (buzz_utility::buzz_update_init_test(BO_BUF, dbgfname, bcode_size))
     {
-      ROS_WARN("Initializtion of script test passed\n");
+      if(debug) ROS_WARN("Initializtion test passed");
       if (buzz_utility::update_step_test())
       {
         /*data logging*/
         old_byte_code_size = *(size_t*)updater->bcode_size;
         /*data logging*/
-        ROS_WARN("Step test passed\n");
+        if(debug) ROS_WARN("Step test passed");
         *(int*)(updater->mode) = CODE_STANDBY;
         // fprintf(stdout,"updater value = %i\n",updater->mode);
         delete_p(updater->bcode);
@@ -595,13 +600,13 @@ namespace buzz_update{
       {
         if (*(int*)(updater->mode) == CODE_RUNNING)
         {
-          ROS_ERROR("step test failed, stick to old script\n");
+          ROS_ERROR("Step test failed, resuming old script");
           buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (size_t) * (size_t*)(updater->bcode_size));
         }
         else
         {
           /*You will never reach here*/
-          ROS_ERROR("step test failed, Return to stand by\n");
+          ROS_ERROR("Step test failed, returning to standby");
           buzz_utility::buzz_update_init_test((updater)->standby_bcode, (char*)dbgfname,
                                               (size_t) * (size_t*)(updater->standby_bcode_size));
           buzzvm_t VM = buzz_utility::get_vm();
@@ -616,13 +621,13 @@ namespace buzz_update{
     {
       if (*(int*)(updater->mode) == CODE_RUNNING)
       {
-        ROS_ERROR("Initialization test failed, stick to old script\n");
+        ROS_ERROR("Initialization test failed, resuming old script");
         buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (int)*(size_t*)(updater->bcode_size));
       }
       else
       {
         /*You will never reach here*/
-        ROS_ERROR("Initialization test failed, Return to stand by\n");
+        ROS_ERROR("Initialization test failed, returning to standby");
         buzz_utility::buzz_update_init_test((updater)->standby_bcode, (char*)dbgfname,
                                             (size_t) * (size_t*)(updater->standby_bcode_size));
         buzzvm_t VM = buzz_utility::get_vm();
@@ -675,8 +680,9 @@ namespace buzz_update{
     close(fd);
   }
 
-  void set_bzz_file(const char* in_bzz_file)
+  void set_bzz_file(const char* in_bzz_file, bool dbg)
   {
+    debug=dbg;
     bzz_file = in_bzz_file;
   }
 
@@ -686,7 +692,7 @@ namespace buzz_update{
   }
 
   /*--------------------------------------------------------
-  / Create Buzz bytecode from the bzz script inputed
+  / Create Buzz bytecode from the bzz script input
   /-------------------------------------------------------*/
   int compile_bzz(std::string bzz_file)
   {

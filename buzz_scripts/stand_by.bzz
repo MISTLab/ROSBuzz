@@ -14,8 +14,6 @@ function init(){
 	if(r. data < l. data or (r. data == l. data )) return l
 	else return r
 	})
-
-	BVMSTATE = "UPDATESTANDBY"
 	init_swarm()
 	# start the swarm command listener
 	nei_cmd_listen()
@@ -27,7 +25,6 @@ function stand_by(){
 
 	neighbors.listen(updated,
 	   function(vid, value, rid) {
-		print("  got from",vid,"  ", " value = ",value," ","rid"," " )
 	      if(value==update_no) barrier.put(rid,1)
 	   }
 )
