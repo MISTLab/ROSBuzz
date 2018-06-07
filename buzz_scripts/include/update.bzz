@@ -4,6 +4,6 @@
 ####################################################################################################
 updated="update_ack"
 update_no=0
-function updated_neigh(){
+function updated_no_bct(){
 	neighbors.broadcast(updated, update_no)
 }

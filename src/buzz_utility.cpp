@@ -351,17 +351,17 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   // Set byte code
   if (buzzvm_set_bcode(VM, UP_BO_BUF, bcode_size) != BUZZVM_STATE_READY)
   {
+    ROS_ERROR("[%i] %s: Error loading Buzz bytecode, VM state : %i", Robot_id, VM->state);
     buzzvm_destroy(&VM);
     buzzdebug_destroy(&DBG_INFO);
-    ROS_ERROR("[%i] %s: Error loading Buzz bytecode (update)", Robot_id);
     return 0;
   }
   // Register hook functions
   if (buzz_register_hooks() != BUZZVM_STATE_READY)
   {
+    ROS_ERROR("[%i] Error registering hooks, VM state : %i", Robot_id, VM->state);
     buzzvm_destroy(&VM);
     buzzdebug_destroy(&DBG_INFO);
-    ROS_ERROR("[%i] Error registering hooks (update)", Robot_id);
     return 0;
   }
 
@@ -379,7 +379,7 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   // Call the Init() function
   if (buzzvm_function_call(VM, "init", 0) != BUZZVM_STATE_READY)
   {
-    ROS_ERROR("Error in  calling init, VM state : %i", VM->state);
+    ROS_ERROR("Error in calling init, VM state : %i", VM->state);
     return 0;
   }
   // All OK
@@ -564,4 +564,21 @@ int get_inmsg_size()
 {
   return IN_MSG.size();
 }
+
+string getuavstate()
+/*
+/ return current BVM state
+---------------------------------------*/
+{
+  std::string uav_state = "Unknown";
+  if(VM && VM->strings){
+    buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
+    buzzvm_gload(VM);
+    buzzobj_t obj = buzzvm_stack_at(VM, 1);
+    uav_state = string(obj->s.value.str);
+    buzzvm_pop(VM);
+  }
+  return uav_state;
+}
+
 }

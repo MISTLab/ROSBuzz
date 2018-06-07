@@ -479,19 +479,6 @@ float* getgimbal()
   return rc_gimbal;
 }
 
-string getuavstate()
-/*
-/ return current BVM state
----------------------------------------*/
-{
-  static buzzvm_t VM = buzz_utility::get_vm();
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
-  buzzvm_gload(VM);
-  buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
-  buzzvm_pop(VM);
-  return uav_state->s.value.str;
-}
-
 int getcmd()
 /*
 / return current mavros command to the FC

@@ -86,10 +86,6 @@ double* getgoto();
  */
 std::map<int, std::map<int,int>> getgrid();
 /*
- * returns the current Buzz state
- */
-std::string getuavstate();
-/*
  * returns the gimbal commands
  */
 float* getgimbal();

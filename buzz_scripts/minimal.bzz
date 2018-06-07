@@ -51,7 +51,6 @@ function step() {
 		statef=action
 
 	statef()
-
 	log("Current state: ", BVMSTATE)
 }
  

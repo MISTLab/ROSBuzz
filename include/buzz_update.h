@@ -1,7 +1,5 @@
 #ifndef BUZZ_UPDATE_H
 #define BUZZ_UPDATE_H
-/*Simulation or robot check*/
-//#define SIMULATION 1 // set in CMAKELIST
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -112,30 +110,29 @@ void code_message_inqueue_append(uint8_t* msg, uint16_t size);
 void code_message_inqueue_process();
 
 /*****************************************************/
-/* obtains messages from out msgs queue of the updater*/
+/*Obtains messages from out msgs queue of the updater*/
 /*******************************************************/
 uint8_t* getupdater_out_msg();
 
 /******************************************************/
-/*obtains out msg queue size*/
+/*Obtains out msg queue size*/
 /*****************************************************/
 uint8_t* getupdate_out_msg_size();
 
 /**************************************************/
-/*destroys the out msg queue*/
+/*Destroys the out msg queue*/
 /*************************************************/
 void destroy_out_msg_queue();
 
-/***************************************************/
-/*obatins updater state*/
-/***************************************************/
-// int get_update_mode();
-
 // buzz_updater_elem_t get_updater();
 /***************************************************/
-/*sets bzz file name*/
+/*Sets bzz file name*/
 /***************************************************/
 void set_bzz_file(const char* in_bzz_file);
+
+/****************************************************/
+/*Tests the code from a buffer*/
+/***************************************************/
 
 int test_set_code(uint8_t* BO_BUF, const char* dbgfname, size_t bcode_size);
 
@@ -145,17 +142,22 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname, size_t bcode_size);
 
 void destroy_updater();
 
+/****************************************************/
+/*Checks for updater message*/
+/***************************************************/
+
 int is_msg_present();
 
-int get_update_status();
-
-void set_read_update_status();
+/****************************************************/
+/*Compiles a bzz script to bo and bdbg*/
+/***************************************************/
 
 int compile_bzz(std::string bzz_file);
 
+/****************************************************/
+/*Set number of robots in the updater*/
+/***************************************************/
+
 void updates_set_robots(int robots);
 
-// void set_packet_id(int packet_id);
-
-// void collect_data(std::ofstream& logger);
 #endif

@@ -45,7 +45,7 @@ void init_update_monitor(const char* bo_filename, const char* stand_by_script, c
   {
     perror("inotify_init error");
   }
-  /*If simulation set the file monitor only for robot 1*/
+  /*If simulation set the file monitor only for robot 0*/
   if (SIMULATION == 1 && robot_id == 0)
   {
     /* watch /.bzz file for any activity and report it back to update */
@@ -321,6 +321,7 @@ void code_message_inqueue_process()
     // fprintf(stdout,"[debug]Inside inmsg code running");
     if (*(uint8_t*)(updater->inmsg_queue->queue) == SENT_CODE)
     {
+      updated = 1;
       size += sizeof(uint8_t);
       if (*(uint16_t*)(updater->inmsg_queue->queue + size) > *(uint16_t*)(updater->update_no))
       {
@@ -413,9 +414,6 @@ void create_update_patch()
   fprintf(stdout, "Launching bsdiff command: %s \n", genpatch.str().c_str());
   system(genpatch.str().c_str());
 
-  // BETTER: CALL THE FUNCTION IN BSDIFF.CPP
-  // bsdiff_do(path + name1 + ".bo", path + name2 + ".bo", path + "diff.bo");
-
   /* delete old files & rename new files */
 
   remove((path + name1 + ".bo").c_str());
@@ -460,7 +458,7 @@ void update_routine()
   // fprintf(stdout,"[Debug : ]updater value = %i \n",updater->mode);
   if (*(int*)updater->mode == CODE_RUNNING)
   {
-    buzzvm_function_call(VM, "updated_neigh", 0);
+    buzzvm_function_call(VM, "updated_no_bct", 0);
     // Check for update
     if (check_update())
     {
@@ -479,7 +477,7 @@ void update_routine()
         name = name.substr(0, name.find_last_of("."));
         bzzfile_in_compile << path << name << "-update.bo";
         uint8_t* BO_BUF = 0;
-        FILE* fp = fopen(bzzfile_in_compile.str().c_str(), "rb");  // to change file edit
+        FILE* fp = fopen(bzzfile_in_compile.str().c_str(), "rb");  
         if (!fp)
         {
           perror(bzzfile_in_compile.str().c_str());
@@ -528,7 +526,6 @@ void update_routine()
       // collect_data();
       buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgf_name, *(size_t*)(updater->bcode_size));
       // buzzvm_function_call(m_tBuzzVM, "updated", 0);
-      updated = 1;
       update_try_counter = 0;
       timer_steps = 0;
     }
@@ -538,7 +535,6 @@ void update_routine()
       /*Time out hit deceided to roll back*/
       *(int*)(updater->mode) = CODE_RUNNING;
       buzz_utility::buzz_script_set(old_bcfname, dbgf_name, (int)VM->robot);
-      updated = 1;
       update_try_counter = 0;
       timer_steps = 0;
     }
@@ -579,6 +575,9 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname, size_t bcode_size)
       gettimeofday(&t1, NULL);
       buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
       buzzvm_pushi(VM, no_of_robot);
+      buzzvm_gstore(VM);
+      buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
+      buzzvm_pushs(VM, buzzvm_string_register(VM, "UPDATE", 1));
       buzzvm_gstore(VM);
       return 1;
     }
@@ -634,18 +633,6 @@ void destroy_out_msg_queue()
   delete_p(updater->outmsg_queue);
   updater_msg_ready = 0;
 }
-int get_update_status()
-{
-  return updated;
-}
-void set_read_update_status()
-{
-  updated = 0;
-}
-/*int get_update_mode()
-{
-  return (int)*(int*)(updater->mode);
-}*/
 
 int is_msg_present()
 {

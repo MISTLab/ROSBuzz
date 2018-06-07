@@ -77,4 +77,6 @@ buzzvm_t get_vm();
 void set_robot_var(int ROBOTS);
 
 int get_inmsg_size();
+
+std::string getuavstate();
 }

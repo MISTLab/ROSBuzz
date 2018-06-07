@@ -120,6 +120,7 @@ void roscontroller::RosControllerRun()
       send_MPpayload();
       //  Check updater state and step code
       update_routine();
+      ROS_WARN("OUT OF UPDATE ROUTINE");
       if (time_step == BUZZRATE)
       {
         time_step = 0;
@@ -144,10 +145,10 @@ void roscontroller::RosControllerRun()
       // Call the flight controler service
       flight_controller_service_call();
       //  Set multi message available after update
-      if (get_update_status())
-      {
-        set_read_update_status();
-      }
+      //if (get_update_status())
+      //{
+      //  set_read_update_status();
+      //}
       //  Set ROBOTS variable (swarm size)
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
@@ -455,7 +456,7 @@ void roscontroller::uavstate_publisher()
 /----------------------------------------------------*/
 {
   std_msgs::String uavstate_msg;
-  uavstate_msg.data = buzzuav_closures::getuavstate();
+  uavstate_msg.data = buzz_utility::getuavstate();
   uavstate_pub.publish(uavstate_msg);
 }
 
