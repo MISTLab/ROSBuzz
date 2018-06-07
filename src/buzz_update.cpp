@@ -34,90 +34,101 @@ namespace buzz_update{
   static size_t old_byte_code_size = 0;
 
   /*Initialize updater*/
-  void init_update_monitor(const char* bo_filename, const char* stand_by_script, const char* dbgfname, int robot_id)
+  int init_update_monitor(const char* bo_filename, const char* stand_by_script, const char* dbgfname, int robot_id)
   {
     buzzvm_t VM = buzz_utility::get_vm();
-    Robot_id = robot_id;
-    dbgf_name = dbgfname;
-    bcfname = bo_filename;
-    ROS_INFO("Initializing file monitor...");
-    fd = inotify_init1(IN_NONBLOCK);
-    if (fd < 0)
-    {
-      perror("inotify_init error");
-    }
-    /*If simulation set the file monitor only for robot 0*/
-    if (SIMULATION == 1 && robot_id == 0)
-    {
-      /* watch /.bzz file for any activity and report it back to update */
-      wd = inotify_add_watch(fd, bzz_file, IN_ALL_EVENTS);
-    }
-    else if (SIMULATION == 0)
-    {
-      /* watch /.bzz file for any activity and report it back to update */
-      wd = inotify_add_watch(fd, bzz_file, IN_ALL_EVENTS);
-    }
-    /*load the .bo under execution into the updater*/
-    uint8_t* BO_BUF = 0;
-    FILE* fp = fopen(bo_filename, "rb");
-    if (!fp)
-    {
-      perror(bo_filename);
-    }
-    fseek(fp, 0, SEEK_END);
-    size_t bcode_size = ftell(fp);
-    rewind(fp);
-    BO_BUF = (uint8_t*)malloc(bcode_size);
-    if (fread(BO_BUF, 1, bcode_size, fp) < bcode_size)
-    {
-      perror(bo_filename);
-      // fclose(fp);
-      // return 0;
-    }
-    fclose(fp);
-    /*Load stand_by .bo file into the updater*/
-    uint8_t* STD_BO_BUF = 0;
-    fp = fopen(stand_by_script, "rb");
-    if (!fp)
-    {
-      perror(stand_by_script);
-    }
-    fseek(fp, 0, SEEK_END);
-    size_t stdby_bcode_size = ftell(fp);
-    rewind(fp);
-    STD_BO_BUF = (uint8_t*)malloc(stdby_bcode_size);
-    if (fread(STD_BO_BUF, 1, stdby_bcode_size, fp) < stdby_bcode_size)
-    {
-      perror(stand_by_script);
-      // fclose(fp);
-      // return 0;
-    }
-    fclose(fp);
-    /*Create the updater*/
-    updater = (buzz_updater_elem_t)malloc(sizeof(struct buzz_updater_elem_s));
-    /*Intialize the updater with the required data*/
-    updater->bcode = BO_BUF;
-    /*Store a copy of the Bcode for rollback*/
-    updater->outmsg_queue = NULL;
-    updater->inmsg_queue = NULL;
-    updater->patch = NULL;
-    updater->patch_size = (size_t*)malloc(sizeof(size_t));
-    updater->bcode_size = (size_t*)malloc(sizeof(size_t));
-    updater->update_no = (uint8_t*)malloc(sizeof(uint16_t));
-    *(uint16_t*)(updater->update_no) = 0;
-    *(size_t*)(updater->bcode_size) = bcode_size;
-    updater->standby_bcode = STD_BO_BUF;
-    updater->standby_bcode_size = (size_t*)malloc(sizeof(size_t));
-    *(size_t*)(updater->standby_bcode_size) = stdby_bcode_size;
-    updater->mode = (int*)malloc(sizeof(int));
-    *(int*)(updater->mode) = CODE_RUNNING;
-    // no_of_robot=barrier;
-    updater_msg_ready = 0;
+    buzzvm_pushs(VM, buzzvm_string_register(VM, "updates_active", 1));
+    buzzvm_gload(VM);
+    buzzobj_t obj = buzzvm_stack_at(VM, 1);
+    if(obj->o.type == BUZZTYPE_INT && obj->i.value == 1){
+      Robot_id = robot_id;
+      dbgf_name = dbgfname;
+      bcfname = bo_filename;
+      ROS_WARN("UPDATES TURNED ON (modifying .bzz script file will update all robots)");
+      ROS_INFO("Initializing file monitor...");
+      fd = inotify_init1(IN_NONBLOCK);
+      if (fd < 0)
+      {
+        perror("inotify_init error");
+      }
+      /*If simulation set the file monitor only for robot 0*/
+      if (SIMULATION == 1 && robot_id == 0)
+      {
+        /* watch /.bzz file for any activity and report it back to update */
+        wd = inotify_add_watch(fd, bzz_file, IN_ALL_EVENTS);
+      }
+      else if (SIMULATION == 0)
+      {
+        /* watch /.bzz file for any activity and report it back to update */
+        wd = inotify_add_watch(fd, bzz_file, IN_ALL_EVENTS);
+      }
+      /*load the .bo under execution into the updater*/
+      uint8_t* BO_BUF = 0;
+      FILE* fp = fopen(bo_filename, "rb");
+      if (!fp)
+      {
+        perror(bo_filename);
+      }
+      fseek(fp, 0, SEEK_END);
+      size_t bcode_size = ftell(fp);
+      rewind(fp);
+      BO_BUF = (uint8_t*)malloc(bcode_size);
+      if (fread(BO_BUF, 1, bcode_size, fp) < bcode_size)
+      {
+        perror(bo_filename);
+        // fclose(fp);
+        // return 0;
+      }
+      fclose(fp);
+      /*Load stand_by .bo file into the updater*/
+      uint8_t* STD_BO_BUF = 0;
+      fp = fopen(stand_by_script, "rb");
+      if (!fp)
+      {
+        perror(stand_by_script);
+      }
+      fseek(fp, 0, SEEK_END);
+      size_t stdby_bcode_size = ftell(fp);
+      rewind(fp);
+      STD_BO_BUF = (uint8_t*)malloc(stdby_bcode_size);
+      if (fread(STD_BO_BUF, 1, stdby_bcode_size, fp) < stdby_bcode_size)
+      {
+        perror(stand_by_script);
+        // fclose(fp);
+        // return 0;
+      }
+      fclose(fp);
+      /*Create the updater*/
+      updater = (buzz_updater_elem_t)malloc(sizeof(struct buzz_updater_elem_s));
+      /*Intialize the updater with the required data*/
+      updater->bcode = BO_BUF;
+      /*Store a copy of the Bcode for rollback*/
+      updater->outmsg_queue = NULL;
+      updater->inmsg_queue = NULL;
+      updater->patch = NULL;
+      updater->patch_size = (size_t*)malloc(sizeof(size_t));
+      updater->bcode_size = (size_t*)malloc(sizeof(size_t));
+      updater->update_no = (uint8_t*)malloc(sizeof(uint16_t));
+      *(uint16_t*)(updater->update_no) = 0;
+      *(size_t*)(updater->bcode_size) = bcode_size;
+      updater->standby_bcode = STD_BO_BUF;
+      updater->standby_bcode_size = (size_t*)malloc(sizeof(size_t));
+      *(size_t*)(updater->standby_bcode_size) = stdby_bcode_size;
+      updater->mode = (int*)malloc(sizeof(int));
+      *(int*)(updater->mode) = CODE_RUNNING;
+      // no_of_robot=barrier;
+      updater_msg_ready = 0;
 
-    /*Write the bcode to a file for rollback*/
-    fp = fopen("old_bcode.bo", "wb");
-    fwrite((updater->bcode), *(size_t*)updater->bcode_size, 1, fp);
-    fclose(fp);
+      /*Write the bcode to a file for rollback*/
+      fp = fopen("old_bcode.bo", "wb");
+      fwrite((updater->bcode), *(size_t*)updater->bcode_size, 1, fp);
+      fclose(fp);
+      return 1;
+    }
+    else{
+      ROS_WARN("UPDATES TURNED OFF... (Hint: Include update.bzz to turn on updates)");
+      return 0;
+    } 
   }
   /*Check for .bzz file chages*/
   int check_update()
@@ -187,7 +198,7 @@ namespace buzz_update{
       std::stringstream read_patched;
       read_patched << path << name1 << ".bo";
       fprintf(stdout, "read file name %s \n", read_patched.str().c_str());
-      uint8_t* patched_BO_Buf = 0;
+      uint8_t* patched_bo_buf = 0;
       FILE* fp = fopen(read_patched.str().c_str(), "rb");
       if (!fp)
       {
@@ -196,15 +207,15 @@ namespace buzz_update{
       fseek(fp, 0, SEEK_END);
       size_t patched_size = ftell(fp);
       rewind(fp);
-      patched_BO_Buf = (uint8_t*)malloc(patched_size);
-      if (fread(patched_BO_Buf, 1, patched_size, fp) < patched_size)
+      patched_bo_buf = (uint8_t*)malloc(patched_size);
+      if (fread(patched_bo_buf, 1, patched_size, fp) < patched_size)
       {
         perror(read_patched.str().c_str());
       }
       fclose(fp);
       /*Write the patched to a code struct and return*/
       updater_code_t update_code = (updater_code_t)malloc(sizeof(struct updater_code_s));
-      update_code->bcode = patched_BO_Buf;
+      update_code->bcode = patched_bo_buf;
       update_code->bcode_size = (uint8_t*)malloc(sizeof(uint16_t));
       *(uint16_t*)(update_code->bcode_size) = patched_size;
 
@@ -217,7 +228,7 @@ namespace buzz_update{
       std::stringstream read_patched;
       read_patched << path << name1 << "-patched.bo";
       fprintf(stdout, "read file name %s \n", read_patched.str().c_str());
-      uint8_t* patched_BO_Buf = 0;
+      uint8_t* patched_bo_buf = 0;
       FILE* fp = fopen(read_patched.str().c_str(), "rb");
       if (!fp)
       {
@@ -226,8 +237,8 @@ namespace buzz_update{
       fseek(fp, 0, SEEK_END);
       size_t patched_size = ftell(fp);
       rewind(fp);
-      patched_BO_Buf = (uint8_t*)malloc(patched_size);
-      if (fread(patched_BO_Buf, 1, patched_size, fp) < patched_size)
+      patched_bo_buf = (uint8_t*)malloc(patched_size);
+      if (fread(patched_bo_buf, 1, patched_size, fp) < patched_size)
       {
         perror(read_patched.str().c_str());
       }
@@ -239,7 +250,7 @@ namespace buzz_update{
 
       /*Write the patched to a code struct and return*/
       updater_code_t update_code = (updater_code_t)malloc(sizeof(struct updater_code_s));
-      update_code->bcode = patched_BO_Buf;
+      update_code->bcode = patched_bo_buf;
       update_code->bcode_size = (uint8_t*)malloc(sizeof(uint16_t));
       *(uint16_t*)(update_code->bcode_size) = patched_size;
 
@@ -576,9 +587,6 @@ namespace buzz_update{
         gettimeofday(&t1, NULL);
         buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
         buzzvm_pushi(VM, no_of_robot);
-        buzzvm_gstore(VM);
-        buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
-        buzzvm_pushs(VM, buzzvm_string_register(VM, "UPDATE", 1));
         buzzvm_gstore(VM);
         return 1;
       }

@@ -103,7 +103,7 @@ namespace buzz_update
   /************************************************/
   /*Initalizes the updater */
   /************************************************/
-  void init_update_monitor(const char* bo_filename, const char* stand_by_script, const char* dbgfname, int robot_id);
+  int init_update_monitor(const char* bo_filename, const char* stand_by_script, const char* dbgfname, int robot_id);
 
   /*********************************************************/
   /*Appends buffer of given size to in msg queue of updater*/

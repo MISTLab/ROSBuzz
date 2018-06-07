@@ -37,7 +37,7 @@ roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
   cur_pos.longitude = 0;
   cur_pos.latitude = 0;
   cur_pos.altitude = 0;
-
+  update=0;
   // set stream rate - wait for the FC to be started
   SetStreamRate(0, 10, 1);
 
@@ -106,7 +106,7 @@ void roscontroller::RosControllerRun()
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
     //  Intialize  the  update monitor
-    buzz_update::init_update_monitor(bcfname.c_str(), standby_bo.c_str(), dbgfname.c_str(), robot_id);
+    update = buzz_update::init_update_monitor(bcfname.c_str(), standby_bo.c_str(), dbgfname.c_str(), robot_id);
     //  set ROS loop rate
     ros::Rate loop_rate(BUZZRATE);
     //  DEBUG
@@ -119,8 +119,7 @@ void roscontroller::RosControllerRun()
       grid_publisher();
       send_MPpayload();
       //  Check updater state and step code
-      buzz_update::update_routine();
-      ROS_WARN("OUT OF UPDATE ROUTINE");
+      if(update) buzz_update::update_routine();
       if (time_step == BUZZRATE)
       {
         time_step = 0;
@@ -152,7 +151,7 @@ void roscontroller::RosControllerRun()
       //  Set ROBOTS variable (swarm size)
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
-      buzz_update::updates_set_robots(no_of_robots);
+      if(update) buzz_update::updates_set_robots(no_of_robots);
       // get_xbee_status();  // commented out because it may slow down the node too much, to be tested
 
       ros::spinOnce();
@@ -570,7 +569,7 @@ with size.........  |   /
   delete[] out;
   delete[] payload_out_ptr;
   //  Check for updater message if present send
-  if (buzz_update::is_msg_present())
+  if (update && buzz_update::is_msg_present())
   {
     uint8_t* buff_send = 0;
     uint16_t updater_msgSize = *(uint16_t*)(buzz_update::getupdate_out_msg_size());

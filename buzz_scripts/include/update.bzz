@@ -4,6 +4,7 @@
 ####################################################################################################
 updated="update_ack"
 update_no=0
+updates_active = 1
 function updated_no_bct(){
 	neighbors.broadcast(updated, update_no)
 }
