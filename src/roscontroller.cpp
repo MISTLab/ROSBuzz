@@ -732,6 +732,7 @@ void roscontroller::maintain_pos(int tim_step)
   if (timer_step >= BUZZRATE)
   {
     neighbours_pos_map.clear();
+    buzzuav_closures::clear_neighbours_pos();
     // raw_neighbours_pos_map.clear(); // TODO: currently not a problem, but
     // have to clear !
     timer_step = 0;

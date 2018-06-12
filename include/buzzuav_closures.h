@@ -102,6 +102,10 @@ void neighbour_pos_callback(int id, float range, float bearing, float elevation)
  */
 void update_neighbors(buzzvm_t vm);
 /*
+ *Clear neighbours struct
+ */
+void clear_neighbours_pos();
+/*
  * closure to add a neighbor status
  */
 int buzzuav_addNeiStatus(buzzvm_t vm);

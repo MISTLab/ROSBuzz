@@ -651,7 +651,10 @@ void neighbour_pos_callback(int id, float range, float bearing, float elevation)
     neighbors_map.erase(it);
   neighbors_map.insert(make_pair(id, pos_arr));
 }
-
+// Clear neighbours pos 
+void clear_neighbours_pos(){
+  neighbors_map.clear();
+}
 //  update at each step the VM table
 void update_neighbors(buzzvm_t vm)
 {
