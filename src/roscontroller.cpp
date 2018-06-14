@@ -27,7 +27,7 @@ roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
   std::string fname = Compile_bzz(bzzfile_name);
   bcfname = fname + ".bo";
   dbgfname = fname + ".bdb";
-  set_bzz_file(bzzfile_name.c_str());
+  buzz_update::set_bzz_file(bzzfile_name.c_str(),debug);
   buzzuav_closures::setWPlist(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/");
   //  Initialize variables
   SetMode("LOITER", 0);
@@ -107,7 +107,7 @@ void roscontroller::RosControllerRun()
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
     //  Intialize  the  update monitor
-    init_update_monitor(bcfname.c_str(), standby_bo.c_str(), dbgfname.c_str(), robot_id);
+    update = buzz_update::init_update_monitor(bcfname.c_str(), standby_bo.c_str(), dbgfname.c_str(), robot_id);
     //  set ROS loop rate
     ros::Rate loop_rate(BUZZRATE);
     //  DEBUG
@@ -120,7 +120,7 @@ void roscontroller::RosControllerRun()
       grid_publisher();
       send_MPpayload();
       //  Check updater state and step code
-      update_routine();
+      if(update) buzz_update::update_routine();
       if (time_step == BUZZRATE)
       {
         time_step = 0;
@@ -144,15 +144,10 @@ void roscontroller::RosControllerRun()
       prepare_msg_and_publish();
       // Call the flight controler service
       flight_controller_service_call();
-      //  Set multi message available after update
-      if (get_update_status())
-      {
-        set_read_update_status();
-      }
       //  Set ROBOTS variable (swarm size)
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
-      updates_set_robots(no_of_robots);
+      if(update) buzz_update::updates_set_robots(no_of_robots);
       // get_xbee_status();  // commented out because it may slow down the node too much, to be tested
 
       ros::spinOnce();
@@ -561,11 +556,11 @@ with size.........  |   /
   payload_pub.publish(payload_out);
   delete[] out;
   delete[] payload_out_ptr;
-  //  Check for updater message if present send
-  if (is_msg_present())
+  ///  Check for updater message if present send
+  if (update && buzz_update::is_msg_present())
   {
     uint8_t* buff_send = 0;
-    uint16_t updater_msgSize = *(uint16_t*)(getupdate_out_msg_size());
+    uint16_t updater_msgSize = *(uint16_t*)(buzz_update::getupdate_out_msg_size());
     ;
     int tot = 0;
     mavros_msgs::Mavlink update_packets;
@@ -578,10 +573,10 @@ with size.........  |   /
     *(uint16_t*)(buff_send + tot) = updater_msgSize;
     tot += sizeof(uint16_t);
     // Append updater msgs
-    memcpy(buff_send + tot, (uint8_t*)(getupdater_out_msg()), updater_msgSize);
+    memcpy(buff_send + tot, (uint8_t*)(buzz_update::getupdater_out_msg()), updater_msgSize);
     tot += updater_msgSize;
     // Destroy the updater out msg queue
-    destroy_out_msg_queue();
+    buzz_update::destroy_out_msg_queue();
     uint16_t total_size = (ceil((float)(float)tot / (float)sizeof(uint64_t)));
     uint64_t* payload_64 = new uint64_t[total_size];
     memcpy((void*)payload_64, (void*)buff_send, total_size * sizeof(uint64_t));
@@ -750,6 +745,7 @@ void roscontroller::maintain_pos(int tim_step)
   if (timer_step >= BUZZRATE)
   {
     neighbours_pos_map.clear();
+    buzzuav_closures::clear_neighbours_pos();
     // raw_neighbours_pos_map.clear(); // TODO: currently not a problem, but
     // have to clear !
     timer_step = 0;
@@ -1031,8 +1027,8 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     fprintf(stdout, "Update packet received, read msg size : %u \n", unMsgSize);
     if (unMsgSize > 0)
     {
-      code_message_inqueue_append((uint8_t*)(pl + sizeof(uint16_t)), unMsgSize);
-      code_message_inqueue_process();
+      buzz_update::code_message_inqueue_append((uint8_t*)(pl + sizeof(uint16_t)), unMsgSize);
+      buzz_update::code_message_inqueue_process();
     }
     free(pl);
   }

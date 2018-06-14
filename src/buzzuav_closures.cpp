@@ -678,6 +678,11 @@ void update_neighbors(buzzvm_t vm)
   }
 }
 
+// Clear neighbours pos 
+void clear_neighbours_pos(){
+  neighbors_map.clear();
+}
+
 int buzzuav_update_currentpos(buzzvm_t vm)
 /*
 / Update the BVM position table
