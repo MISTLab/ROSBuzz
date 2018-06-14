@@ -836,12 +836,12 @@ void roscontroller::gps_convert_ned(float& ned_x, float& ned_y, double gps_t_lon
   ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(gps_t_lat));
 };
 
-void roscontroller::battery(const mavros_msgs::BatteryStatus::ConstPtr& msg)
+void roscontroller::battery(const sensor_msgs::BatteryState::ConstPtr& msg)
 /*
 / Update battery status into BVM from subscriber
 /------------------------------------------------------*/
 {
-  buzzuav_closures::set_battery(msg->voltage, msg->current, msg->remaining);
+  buzzuav_closures::set_battery(msg->voltage, msg->current, msg->percentage);
   //  DEBUG
   // ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage,
   // msg->current, msg ->remaining);
