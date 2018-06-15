@@ -110,13 +110,24 @@ void roscontroller::RosControllerRun()
     update = buzz_update::init_update_monitor(bcfname.c_str(), standby_bo.c_str(), dbgfname.c_str(), robot_id);
     //  set ROS loop rate
     ros::Rate loop_rate(BUZZRATE);
+    // check for BVMSTATE variable
+    buzzvm_t VM = buzz_utility::get_vm();
+    buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
+    buzzvm_gload(VM);
+    buzzobj_t obj = buzzvm_stack_at(VM, 1);
+    if(obj->o.type == BUZZTYPE_STRING) statepub_active = 1;
+    else 
+    {
+      statepub_active = 0;
+      ROS_ERROR("BVMSTATE undeclared in .bzz file, BVMSTATE pusblisher disabled.");
+    }
     //  DEBUG
     // ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
     while (ros::ok() && !buzz_utility::buzz_script_done())
     {
       //  Publish topics
       neighbours_pos_publisher();
-      uavstate_publisher();
+      if(statepub_active) uavstate_publisher();
       grid_publisher();
       send_MPpayload();
       //  Check updater state and step code
@@ -652,88 +663,88 @@ script
       armstate = 0;
       break;
 
-    case buzzuav_closures::COMMAND_GOHOME:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
-      cmd_srv.request.param5 = home.latitude;
-      cmd_srv.request.param6 = home.longitude;
-      cmd_srv.request.param7 = home.altitude;
-      cmd_srv.request.command = buzzuav_closures::getcmd();
-      if (mav_client.call(cmd_srv))
-      {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      }
-      else
-        ROS_ERROR("Failed to call service from flight controller");
-      break;
+    // case buzzuav_closures::COMMAND_GOHOME:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
+    //   cmd_srv.request.param5 = home.latitude;
+    //   cmd_srv.request.param6 = home.longitude;
+    //   cmd_srv.request.param7 = home.altitude;
+    //   cmd_srv.request.command = buzzuav_closures::getcmd();
+    //   if (mav_client.call(cmd_srv))
+    //   {
+    //     ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+    //   }
+    //   else
+    //     ROS_ERROR("Failed to call service from flight controller");
+    //   break;
 
-    case buzzuav_closures::COMMAND_GOTO:  // TOOD: NOT FULLY IMPLEMENTED/TESTED !!!
-      goto_pos = buzzuav_closures::getgoto();
-      cmd_srv.request.param5 = goto_pos[0];
-      cmd_srv.request.param6 = goto_pos[1];
-      cmd_srv.request.param7 = goto_pos[2];
-      cmd_srv.request.command = buzzuav_closures::getcmd();
-      if (mav_client.call(cmd_srv))
-      {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      }
-      else
-        ROS_ERROR("Failed to call service from flight controller");
-      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
-      if (mav_client.call(cmd_srv))
-      {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      }
-      else
-        ROS_ERROR("Failed to call service from flight controller");
-      break;
+    // case buzzuav_closures::COMMAND_GOTO:  // TOOD: NOT FULLY IMPLEMENTED/TESTED !!!
+    //   goto_pos = buzzuav_closures::getgoto();
+    //   cmd_srv.request.param5 = goto_pos[0];
+    //   cmd_srv.request.param6 = goto_pos[1];
+    //   cmd_srv.request.param7 = goto_pos[2];
+    //   cmd_srv.request.command = buzzuav_closures::getcmd();
+    //   if (mav_client.call(cmd_srv))
+    //   {
+    //     ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+    //   }
+    //   else
+    //     ROS_ERROR("Failed to call service from flight controller");
+    //   cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
+    //   if (mav_client.call(cmd_srv))
+    //   {
+    //     ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+    //   }
+    //   else
+    //     ROS_ERROR("Failed to call service from flight controller");
+    //   break;
 
-    case buzzuav_closures::COMMAND_ARM:
-      if (!armstate)
-      {
-        SetMode("LOITER", 0);
-        armstate = 1;
-        Arm();
-      }
-      break;
+    // case buzzuav_closures::COMMAND_ARM:
+    //   if (!armstate)
+    //   {
+    //     SetMode("LOITER", 0);
+    //     armstate = 1;
+    //     Arm();
+    //   }
+    //   break;
 
-    case buzzuav_closures::COMMAND_DISARM:
-      if (armstate)
-      {
-        armstate = 0;
-        SetMode("LOITER", 0);
-        Arm();
-      }
-      break;
+    // case buzzuav_closures::COMMAND_DISARM:
+    //   if (armstate)
+    //   {
+    //     armstate = 0;
+    //     SetMode("LOITER", 0);
+    //     Arm();
+    //   }
+    //   break;
 
-    case buzzuav_closures::COMMAND_MOVETO:
-      goto_pos = buzzuav_closures::getgoto();
-      roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
-      break;
+    // case buzzuav_closures::COMMAND_MOVETO:
+    //   goto_pos = buzzuav_closures::getgoto();
+    //   roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
+    //   break;
 
-    case buzzuav_closures::COMMAND_GIMBAL:
-      gimbal = buzzuav_closures::getgimbal();
-      cmd_srv.request.param1 = gimbal[0];
-      cmd_srv.request.param2 = gimbal[1];
-      cmd_srv.request.param3 = gimbal[2];
-      cmd_srv.request.param4 = gimbal[3];
-      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
-      if (mav_client.call(cmd_srv))
-      {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      }
-      else
-        ROS_ERROR("Failed to call service from flight controller");
-      break;
+    // case buzzuav_closures::COMMAND_GIMBAL:
+    //   gimbal = buzzuav_closures::getgimbal();
+    //   cmd_srv.request.param1 = gimbal[0];
+    //   cmd_srv.request.param2 = gimbal[1];
+    //   cmd_srv.request.param3 = gimbal[2];
+    //   cmd_srv.request.param4 = gimbal[3];
+    //   cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+    //   if (mav_client.call(cmd_srv))
+    //   {
+    //     ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+    //   }
+    //   else
+    //     ROS_ERROR("Failed to call service from flight controller");
+    //   break;
 
-    case buzzuav_closures::COMMAND_PICTURE:
-      ROS_INFO("TAKING A PICTURE HERE!! --------------");
-      mavros_msgs::CommandBool capture_command;
-      if (capture_srv.call(capture_command))
-      {
-        ROS_INFO("Reply: %ld", (long int)capture_command.response.success);
-      }
-      else
-        ROS_ERROR("Failed to call service from camera streamer");
-      break;
+    // case buzzuav_closures::COMMAND_PICTURE:
+    //   ROS_INFO("TAKING A PICTURE HERE!! --------------");
+    //   mavros_msgs::CommandBool capture_command;
+    //   if (capture_srv.call(capture_command))
+    //   {
+    //     ROS_INFO("Reply: %ld", (long int)capture_command.response.success);
+    //   }
+    //   else
+    //     ROS_ERROR("Failed to call service from camera streamer");
+    //   break;
   }
 }
 

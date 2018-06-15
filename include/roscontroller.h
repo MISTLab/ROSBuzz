@@ -98,6 +98,7 @@ private:
   int armstate;
   int barrier;
   int update;
+  int statepub_active;
   int message_number = 0;
   uint8_t no_of_robots = 0;
   bool rcclient;
