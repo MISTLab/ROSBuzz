@@ -6,17 +6,7 @@ topics:
   setpoint:   mavros/setpoint_position/local
   armclient:  mavros/cmd/arming
   modeclient: mavros/set_mode
-  localpos: /mavros/local_position/pose
-  stream:  mavros/set_stream_rate
+  localpos: mavros/local_position/pose
+  stream: mavros/set_stream_rate
   altitude: mavros/global_position/rel_alt
-type:
-  gps  :  sensor_msgs/NavSatFix
-  # for SITL Solo 
-  # battery :   mavros_msgs/BatteryState
-  # for solo
-  battery :   mavros_msgs/BatteryStatus
-  status  :   mavros_msgs/State
-  altitude: std_msgs/Float64
-environment : 
-  environment : solo-simulator
 

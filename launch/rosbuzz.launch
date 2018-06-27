@@ -3,7 +3,7 @@
 <!-- This file is included in all ROS workspace launch files  -->
 <!-- Modify with great care!  -->
 <launch>
-	<arg name="name" default="robot0"/>
+  <arg name="name" default="robot0"/>
   <arg name="xbee_plugged" default="true"/>
   <arg name="script" default="testalone"/>
   <arg name="launch_config" default="topics"/>

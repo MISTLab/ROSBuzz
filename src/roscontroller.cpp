@@ -1001,8 +1001,7 @@ void roscontroller::SetStreamRate(int id, int rate, int on_off)
     ROS_INFO("Set stream rate call failed!, trying again...");
     ros::Duration(0.1).sleep();
   }
-  //  DEBUG
-  // ROS_INFO("Set stream rate call successful");
+   ROS_WARN("Set stream rate call successful");
 }
 
 void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
