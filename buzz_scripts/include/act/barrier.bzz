@@ -53,12 +53,11 @@ function barrier_wait(threshold, transf, resumef, bc) {
   barrier.put(id, bc)
   barrier.get(id)
   var allgood = 0
-
   log("--->BS: ", barrier.size(), " / ", threshold, " (", BARRIER_VSTIG, " - ", barrier.get("d"), ") t= ", timeW)
   if(barrier.size() - 1 >= threshold or barrier.get("d") == 1) {
-    var bi = 0
+    var bi = LOWEST_ROBOT_ID
     allgood = 1
-    while (bi<threshold) {
+    while (bi<LOWEST_ROBOT_ID+threshold) {
       if(barrier.get(bi) != bc)
         allgood = 0
       bi = bi + 1

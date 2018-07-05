@@ -7,7 +7,9 @@ include "taskallocate/graphformGPS.bzz"
 include "vstigenv.bzz"
 
 #State launched after takeoff
-AUTO_LAUNCH_STATE = "FORMATION"
+AUTO_LAUNCH_STATE = "CUSFUN"
+#Lowest robot id in the network
+LOWEST_ROBOT_ID = 97
 TARGET     = 9.0
 EPSILON    = 30.0
 
@@ -23,12 +25,13 @@ goal_list = {
 	.0={.x = 45.5088103899, .y = -73.1540826153, .z = 2.5}
 }
 
+
 # Executed once at init time.
 function init() {
   	init_stig()
 	init_swarm()
 
-	TARGET_ALTITUDE = 10 + id*2.0 # m
+	TARGET_ALTITUDE = 5 + (id-LOWEST_ROBOT_ID)*3.0 # m
 	loop = 1
 
 	# start the swarm command listener
@@ -51,6 +54,8 @@ function step() {
 	#
 	if(BVMSTATE=="TURNEDOFF")
 		statef=turnedoff
+	else if(BVMSTATE=="CUSFUN")
+		statef=cusfun
 	else if(BVMSTATE=="STOP")	# ends on turnedoff
 		statef=stop
 	else if(BVMSTATE=="LAUNCH") # ends on AUTO_LAUNCH_STATE
