@@ -60,6 +60,18 @@ roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
   {
     robot_id = strtol(robot_name.c_str() + 5, NULL, 10);
   }
+  // Create log dir and open log file
+  std::string path =
+      bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+  path = path.substr(0, bzzfile_name.find_last_of("\\/"))+"/log/";
+  std::string folder_check="mkdir -p "+path;
+  system(folder_check.c_str());
+  for(int i=5;i>0;i--){
+    rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i-1)+".log").c_str(),
+     (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i)+".log").c_str());
+  }
+  path += "logger_"+std::to_string(robot_id)+"_0.log";
+  log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
 }
 
 roscontroller::~roscontroller()
@@ -69,6 +81,8 @@ roscontroller::~roscontroller()
 {
   // Destroy the BVM
   buzz_utility::buzz_script_destroy();
+  // Close the data logging file
+  log.close();
 }
 
 void roscontroller::GetRobotId()
@@ -149,6 +163,13 @@ void roscontroller::RosControllerRun()
       }
       if (debug)
         ROS_WARN("CURRENT PACKET DROP : %f ", cur_packet_loss);
+      // log data
+      log<<ros::Time::now()<<",";
+      log<<cur_pos.latitude << "," << cur_pos.longitude << ","
+            << cur_pos.altitude << ",";
+      log << (int)no_of_robots<<",";
+      log <<(int)buzz_utility::get_inmsg_size()<<",";
+      log <<buzz_utility::getuavstate()<<std::endl;
       //  Call Step from buzz script
       buzz_utility::buzz_script_step();
       //  Prepare messages and publish them
