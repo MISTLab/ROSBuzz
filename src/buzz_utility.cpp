@@ -564,4 +564,19 @@ int get_inmsg_size()
 {
   return IN_MSG.size();
 }
+string getuavstate()
+/*
+/ return current BVM state
+---------------------------------------*/
+{
+  std::string uav_state = "Unknown";
+  if(VM && VM->strings){
+    buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
+    buzzvm_gload(VM);
+    buzzobj_t obj = buzzvm_stack_at(VM, 1);
+    uav_state = string(obj->s.value.str);
+    buzzvm_pop(VM);
+  }
+  return uav_state;
+}
 }

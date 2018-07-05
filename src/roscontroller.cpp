@@ -475,7 +475,7 @@ void roscontroller::uavstate_publisher()
 /----------------------------------------------------*/
 {
   std_msgs::String uavstate_msg;
-  uavstate_msg.data = buzzuav_closures::getuavstate();
+  uavstate_msg.data = buzz_utility::getuavstate();
   uavstate_pub.publish(uavstate_msg);
 }
 
