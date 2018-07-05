@@ -143,7 +143,8 @@ function pursuit() {
   if(neighbors.count() > 0)
     r_vec = math.vec2.scale(r_vec, 1.0 / neighbors.count())
 	r = math.vec2.length(r_vec)
-	gamma = vd / math.sqrt((r-rd)*(r-rd)+pc*pc*r*r)
+	var sqr = (r-rd)*(r-rd)+pc*pc*r*r
+    gamma = vd / math.sqrt(sqr)
 	dr = -gamma * (r-rd)
 	dT = gamma * pc
   vfg = math.vec2.newp(r+dr*0.1, math.vec2.angle(r_vec)+dT*0.1)
