@@ -43,6 +43,7 @@
 #define TIMEOUT 60
 #define BUZZRATE 10
 #define CMD_REQUEST_UPDATE 666
+#define CMD_SYNC_CLOCK 777
 
 using namespace std;
 

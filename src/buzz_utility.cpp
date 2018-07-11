@@ -564,6 +564,7 @@ int get_inmsg_size()
 {
   return IN_MSG.size();
 }
+
 string getuavstate()
 /*
 / return current BVM state
@@ -578,5 +579,21 @@ string getuavstate()
     buzzvm_pop(VM);
   }
   return uav_state;
+}
+
+int getlogicaltime()
+/*
+/ return current logical time
+--------------------------------------*/
+{
+  int logical_time = 0;
+  if(VM){
+    buzzvm_pushs(VM, buzzvm_string_register(VM, "logical_time", 1));
+    buzzvm_gload(VM);
+    buzzobj_t obj = buzzvm_stack_at(VM, 1);
+    if(obj->o.type == BUZZTYPE_INT) logical_time = obj->i.value;
+    buzzvm_pop(VM);
+  }
+  return logical_time;
 }
 }

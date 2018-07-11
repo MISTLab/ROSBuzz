@@ -5,6 +5,7 @@ include "act/states.bzz"
 include "plan/rrtstar.bzz"
 include "taskallocate/graphformGPS.bzz"
 include "vstigenv.bzz"
+include "timesync.bzz"
 
 #State launched after takeoff
 AUTO_LAUNCH_STATE = "CUSFUN"
@@ -31,6 +32,8 @@ function init() {
   	init_stig()
 	init_swarm()
 
+	init_time_sync()
+
 	TARGET_ALTITUDE = 5 + (id-LOWEST_ROBOT_ID)*3.0 # m
 	loop = 1
 
@@ -43,6 +46,10 @@ function init() {
 
 # Executed at each time step.
 function step() {
+
+	# step time sync algorithm
+	step_time_sync()
+
 	# listen to Remote Controller
 	rc_cmd_listen()
 

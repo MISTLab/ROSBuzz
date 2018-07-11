@@ -165,6 +165,8 @@ void roscontroller::RosControllerRun()
         ROS_WARN("CURRENT PACKET DROP : %f ", cur_packet_loss);
       // log data
       log<<ros::Time::now()<<",";
+      // Fetch logical time from BVM
+      log<<buzz_utility::getlogicaltime()<<",";
       log<<cur_pos.latitude << "," << cur_pos.longitude << ","
             << cur_pos.altitude << ",";
       log << (int)no_of_robots<<",";
@@ -1162,9 +1164,15 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
+    case CMD_SYNC_CLOCK:
+      rc_cmd = CMD_SYNC_CLOCK;
+      buzzuav_closures::rc_call(rc_cmd);
+      ROS_INFO("<---------------- Time Sync requested ----------->");
+      res.success = true;
+      break;
     default:
       buzzuav_closures::rc_call(req.command);
-      ROS_INFO("----> Received unregistered command: ", req.command);
+      ROS_ERROR("----> Received unregistered command: ", req.command);
       res.success = true;
       break;
   }
