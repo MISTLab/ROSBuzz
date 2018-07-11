@@ -11,6 +11,9 @@ function arm {
 function disarm {
 	rosservice call $1/buzzcmd 0 400 0 0 0 0 0 0 0 0
 }
+function timesync {
+        rosservice call $1/buzzcmd 0 777 0 0 0 0 0 0 0 0
+}
 function testWP {
 	rosservice call $1/buzzcmd 0 16 0 0 0 0 0 45.45782 -- -73.63608 10
 }
