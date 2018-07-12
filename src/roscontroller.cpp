@@ -11,7 +11,7 @@
 namespace rosbzz_node
 {
 const string roscontroller::CAPTURE_SRV_DEFAULT_NAME = "/image_sender/capture_image";
-const bool debug = false;
+const bool debug = true;
 
 roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
 /*
