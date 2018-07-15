@@ -6,7 +6,7 @@ logical_time = 0
 TIME_JUMP_THR = 5 
 TIME_TO_FORGET = 20
 TIME_TO_SYNC = 200
-COM_DELAY = 3
+COM_DELAY = 2
 # table to store neighbor time data
 time_nei_table = {}
 # Algo. global parameters
@@ -44,6 +44,7 @@ function init_time_sync(){
 function step_time_sync(){
 	logical_time = logical_time + 1
 	sync_timer = sync_timer + 1
+	log("Logical time now ", logical_time)
 	if(sync_timer < TIME_TO_SYNC){
 		log(" SYNC ALGO ACTIVE time:", sync_timer)
 		cnt = 0
@@ -51,8 +52,7 @@ function step_time_sync(){
 		if(size(time_nei_table) > 0){
 		  	foreach(time_nei_table, function(key, value) {
 		    	if(value.time != 0){
-		    		#log("ForEach neigh : id ", key, " time ", value.time, " , age ", value.age, " , diffmax ", value.max)
-		    		var local_offset = value.time - logical_time - value.age
+		    		var local_offset = value.time - logical_time + value.age
 		    		if(local_offset > 0){
 		    			avg_offset = avg_offset + 1 * local_offset
 		    			cnt = cnt + 1
@@ -80,10 +80,8 @@ function step_time_sync(){
 	    jumped = 0
 	    syncError=0
 	    var mstr = {.time = (logical_time + COM_DELAY) , .max = (logical_time + COM_DELAY + diffMaxLogical) }
-	    #string.concat(string.tostring(logical_time + 1),",",string.tostring(logical_time + 1 + diffMaxLogical))
 	    neighbors.broadcast("time_sync",mstr)
 	}
-	log("Logical time now ", logical_time)
 }
 
 # Function to set sync timer to zero and reinitiate sync. algo
