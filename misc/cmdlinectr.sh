@@ -34,7 +34,8 @@ function stoprobot {
 }
 function updaterobot {
 #	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzynocam.launch
-	rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TXbuzzy.launch
+	rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TXHeavenbuzzy.launch
+#	rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TXxbeebuzzy.launch
 #	rosrun robot_upstart install --logdir ~/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TXbuzzy.launch
 }
 function uavstate {
