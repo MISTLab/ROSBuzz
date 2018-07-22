@@ -67,7 +67,7 @@ function barrier_wait(threshold, transf, resumef, bc) {
     barrier = nil
     timeW = 0
     BVMSTATE = resumef
-  } else if(timeW % 50 == 0 and bc > 0)
+  } else if(timeW % 100 == 0 and bc > 0)
     neighbors.broadcast("cmd", bc)
 
   timeW = timeW+1

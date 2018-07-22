@@ -565,6 +565,10 @@ int get_inmsg_size()
   return IN_MSG.size();
 }
 
+std::vector<uint8_t*> get_inmsg_vector(){
+  return IN_MSG;
+} 
+
 string getuavstate()
 /*
 / return current BVM state
