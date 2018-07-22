@@ -706,88 +706,88 @@ script
       armstate = 0;
       break;
 
-    // case buzzuav_closures::COMMAND_GOHOME:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
-    //   cmd_srv.request.param5 = home.latitude;
-    //   cmd_srv.request.param6 = home.longitude;
-    //   cmd_srv.request.param7 = home.altitude;
-    //   cmd_srv.request.command = buzzuav_closures::getcmd();
-    //   if (mav_client.call(cmd_srv))
-    //   {
-    //     ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-    //   }
-    //   else
-    //     ROS_ERROR("Failed to call service from flight controller");
-    //   break;
+    case buzzuav_closures::COMMAND_GOHOME:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
+      cmd_srv.request.param5 = home.latitude;
+      cmd_srv.request.param6 = home.longitude;
+      cmd_srv.request.param7 = home.altitude;
+      cmd_srv.request.command = buzzuav_closures::getcmd();
+      if (mav_client.call(cmd_srv))
+      {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      }
+      else
+        ROS_ERROR("Failed to call service from flight controller");
+      break;
 
-    // case buzzuav_closures::COMMAND_GOTO:  // TOOD: NOT FULLY IMPLEMENTED/TESTED !!!
-    //   goto_pos = buzzuav_closures::getgoto();
-    //   cmd_srv.request.param5 = goto_pos[0];
-    //   cmd_srv.request.param6 = goto_pos[1];
-    //   cmd_srv.request.param7 = goto_pos[2];
-    //   cmd_srv.request.command = buzzuav_closures::getcmd();
-    //   if (mav_client.call(cmd_srv))
-    //   {
-    //     ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-    //   }
-    //   else
-    //     ROS_ERROR("Failed to call service from flight controller");
-    //   cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
-    //   if (mav_client.call(cmd_srv))
-    //   {
-    //     ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-    //   }
-    //   else
-    //     ROS_ERROR("Failed to call service from flight controller");
-    //   break;
+    case buzzuav_closures::COMMAND_GOTO:  // TOOD: NOT FULLY IMPLEMENTED/TESTED !!!
+      goto_pos = buzzuav_closures::getgoto();
+      cmd_srv.request.param5 = goto_pos[0];
+      cmd_srv.request.param6 = goto_pos[1];
+      cmd_srv.request.param7 = goto_pos[2];
+      cmd_srv.request.command = buzzuav_closures::getcmd();
+      if (mav_client.call(cmd_srv))
+      {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      }
+      else
+        ROS_ERROR("Failed to call service from flight controller");
+      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
+      if (mav_client.call(cmd_srv))
+      {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      }
+      else
+        ROS_ERROR("Failed to call service from flight controller");
+      break;
 
-    // case buzzuav_closures::COMMAND_ARM:
-    //   if (!armstate)
-    //   {
-    //     SetMode("LOITER", 0);
-    //     armstate = 1;
-    //     Arm();
-    //   }
-    //   break;
+    case buzzuav_closures::COMMAND_ARM:
+      if (!armstate)
+      {
+        SetMode("LOITER", 0);
+        armstate = 1;
+        Arm();
+      }
+      break;
 
-    // case buzzuav_closures::COMMAND_DISARM:
-    //   if (armstate)
-    //   {
-    //     armstate = 0;
-    //     SetMode("LOITER", 0);
-    //     Arm();
-    //   }
-    //   break;
+    case buzzuav_closures::COMMAND_DISARM:
+      if (armstate)
+      {
+        armstate = 0;
+        SetMode("LOITER", 0);
+        Arm();
+      }
+      break;
 
-    // case buzzuav_closures::COMMAND_MOVETO:
-    //   goto_pos = buzzuav_closures::getgoto();
-    //   roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
-    //   break;
+    case buzzuav_closures::COMMAND_MOVETO:
+      goto_pos = buzzuav_closures::getgoto();
+      roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
+      break;
 
-    // case buzzuav_closures::COMMAND_GIMBAL:
-    //   gimbal = buzzuav_closures::getgimbal();
-    //   cmd_srv.request.param1 = gimbal[0];
-    //   cmd_srv.request.param2 = gimbal[1];
-    //   cmd_srv.request.param3 = gimbal[2];
-    //   cmd_srv.request.param4 = gimbal[3];
-    //   cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
-    //   if (mav_client.call(cmd_srv))
-    //   {
-    //     ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-    //   }
-    //   else
-    //     ROS_ERROR("Failed to call service from flight controller");
-    //   break;
+    case buzzuav_closures::COMMAND_GIMBAL:
+      gimbal = buzzuav_closures::getgimbal();
+      cmd_srv.request.param1 = gimbal[0];
+      cmd_srv.request.param2 = gimbal[1];
+      cmd_srv.request.param3 = gimbal[2];
+      cmd_srv.request.param4 = gimbal[3];
+      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+      if (mav_client.call(cmd_srv))
+      {
+        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+      }
+      else
+        ROS_ERROR("Failed to call service from flight controller");
+      break;
 
-    // case buzzuav_closures::COMMAND_PICTURE:
-    //   ROS_INFO("TAKING A PICTURE HERE!! --------------");
-    //   mavros_msgs::CommandBool capture_command;
-    //   if (capture_srv.call(capture_command))
-    //   {
-    //     ROS_INFO("Reply: %ld", (long int)capture_command.response.success);
-    //   }
-    //   else
-    //     ROS_ERROR("Failed to call service from camera streamer");
-    //   break;
+    case buzzuav_closures::COMMAND_PICTURE:
+      ROS_INFO("TAKING A PICTURE HERE!! --------------");
+      mavros_msgs::CommandBool capture_command;
+      if (capture_srv.call(capture_command))
+      {
+        ROS_INFO("Reply: %ld", (long int)capture_command.response.success);
+      }
+      else
+        ROS_ERROR("Failed to call service from camera streamer");
+      break;
   }
 }
 
@@ -998,9 +998,9 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw)
   moveMsg.pose.orientation.w = q[3];
 
   // To prevent drifting from stable position, uncomment
-  // if(fabs(x)>0.005 || fabs(y)>0.005) {
-  localsetpoint_nonraw_pub.publish(moveMsg);
-  //        }
+  if(fabs(x)>0.005 || fabs(y)>0.005) {
+    localsetpoint_nonraw_pub.publish(moveMsg);
+  }
 }
 
 void roscontroller::SetMode(std::string mode, int delay_miliseconds)

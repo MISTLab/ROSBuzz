@@ -228,8 +228,8 @@ int buzzuav_moveto(buzzvm_t vm)
   goto_pos[2] = height + dh;
   goto_pos[3] = dyaw;
   //  DEBUG
-  // ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
-  // goto_pos[1], goto_pos[2]);
+   ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
+   goto_pos[1], goto_pos[2]);
   buzz_cmd = COMMAND_MOVETO;  // TODO: standard mavros?
   return buzzvm_ret0(vm);
 }
