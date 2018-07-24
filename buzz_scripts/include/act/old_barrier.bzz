@@ -1,0 +1,69 @@
+########################################
+#
+# BARRIER-RELATED FUNCTIONS
+#
+########################################
+
+#
+# Constants
+#
+BARRIER_TIMEOUT = 1200 # in steps
+BARRIER_VSTIG = 80
+timeW = 0
+barrier = nil
+
+#
+# Sets a barrier
+#
+function barrier_create() {
+  # reset
+  timeW = 0
+  # create barrier vstig
+  #log("---> Prev. br. ", barrier, " ", BARRIER_VSTIG)
+  if(barrier!=nil) {
+    barrier=nil
+    BARRIER_VSTIG = BARRIER_VSTIG +1
+  }
+  #log("---> New. br. ", barrier, " ", BARRIER_VSTIG)
+  barrier = stigmergy.create(BARRIER_VSTIG)
+}
+
+function barrier_set(threshold, transf, resumef,bc) {
+  statef = function() {
+    barrier_wait(threshold, transf, resumef,bc);
+  }
+  BVMSTATE = "BARRIERWAIT"
+  barrier_create()
+}
+
+#
+# Make yourself ready
+#
+function barrier_ready(bc) {
+  #log("BARRIER READY -------")
+  barrier.put(id, 1)
+  barrier.put("d", 0)
+}
+
+#
+# Executes the barrier
+#
+function barrier_wait(threshold, transf, resumef,bc) {
+  barrier.put(id, 1)
+
+  barrier.get(id)
+  log("--->BS: ", barrier.size(), " (", BARRIER_VSTIG, ")")
+  if(barrier.size() - 1 >= threshold or barrier.get("d") == 1) {
+    barrier.put("d", 1)
+    timeW = 0
+    BVMSTATE = transf
+  } else if(timeW >= BARRIER_TIMEOUT) {
+    log("------> Barrier Timeout !!!!")
+    barrier=nil
+    timeW = 0
+    BVMSTATE = resumef
+  }
+
+  timeW = timeW+1
+}
+

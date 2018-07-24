@@ -4,7 +4,7 @@
 #
 ########################################
 include "utils/vec2.bzz"
-include "act/barrier.bzz"
+include "act/old_barrier.bzz"
 include "utils/conversions.bzz"
 
 TARGET_ALTITUDE = 15.0 # m.
@@ -191,8 +191,8 @@ function rc_cmd_listen() {
 	} else if(flight.rc_cmd==21) {
 		flight.rc_cmd=0
 		AUTO_LAUNCH_STATE = "TURNEDOFF"
-		barrier_set(ROBOTS, "GOHOME", BVMSTATE, 21)
-		barrier_ready(21)
+		#barrier_set(ROBOTS, "GOHOME", BVMSTATE, 21)
+		#barrier_ready(21)
 		BVMSTATE = "STOP"
 		neighbors.broadcast("cmd", 21)
 	} else if(flight.rc_cmd==20) {

@@ -170,16 +170,18 @@ void roscontroller::RosControllerRun()
       log<<cur_pos.latitude << "," << cur_pos.longitude << ","
             << cur_pos.altitude << ",";
       log << (int)no_of_robots<<",";
+      log  << neighbours_pos_map.size()<< ",";
+      std::vector<uint8_t*> in_msg = buzz_utility::get_inmsg_vector();
+      log <<(int)in_msg.size()<<",";
+      log <<buzz_utility::getuavstate()<<",";
       map<int, buzz_utility::Pos_struct>::iterator it =
             neighbours_pos_map.begin();
-      log  << neighbours_pos_map.size()<< ",";
       for (; it != neighbours_pos_map.end(); ++it)
       {
         log << (double)it->second.x << "," << (double)it->second.y
             << "," << (double)it->second.z << ",";
       }
-      std::vector<uint8_t*> in_msg = buzz_utility::get_inmsg_vector();
-      log <<(int)in_msg.size()<<",";
+      
       for (std::vector<uint8_t*>::iterator it = in_msg.begin() ; it != in_msg.end(); ++it){
         uint8_t* first_INmsg = (uint8_t*)(*it);
         size_t tot = 0;
@@ -190,8 +192,7 @@ void roscontroller::RosControllerRun()
         uint16_t neigh_id = *(uint16_t*)(first_INmsg + tot);
         log<<(int)neigh_id<<","<<(int)msg_size<<",";
       }
-
-      log <<buzz_utility::getuavstate()<<std::endl;
+      log<<std::endl;
       //  Call Step from buzz script
       buzz_utility::buzz_script_step();
       //  Prepare messages and publish them
