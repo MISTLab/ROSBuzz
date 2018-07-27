@@ -11,7 +11,7 @@ include "timesync.bzz"
 AUTO_LAUNCH_STATE = "FORMATION"
 #AUTO_LAUNCH_STATE = "CUSFUN"
 #Lowest robot id in the network
-LOWEST_ROBOT_ID = 97
+LOWEST_ROBOT_ID = 1
 TARGET     = 9.0
 EPSILON    = 30.0
 
@@ -33,8 +33,6 @@ function init() {
   	init_stig()
 	init_swarm()
 
-	init_time_sync()
-
 	TARGET_ALTITUDE = 5 + (id-LOWEST_ROBOT_ID)*3.0 # m
 	loop = 1
 
@@ -48,8 +46,8 @@ function init() {
 # Executed at each time step.
 function step() {
 
-	# step time sync algorithm
-	step_time_sync()
+	# check time sync algorithm state
+    check_time_sync()
 
 	# listen to Remote Controller
 	rc_cmd_listen()

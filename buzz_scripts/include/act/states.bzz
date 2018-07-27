@@ -217,9 +217,7 @@ function rc_cmd_listen() {
 		stattab_send()
 	} else if (flight.rc_cmd==777){
 		flight.rc_cmd=0
-		if(logical_time != nil) reinit_time_sync()
-		barrier_set(ROBOTS, "TURNEDOFF", BVMSTATE, 777)
-		barrier_ready(777)
+		reinit_time_sync()
 		neighbors.broadcast("cmd", 777)
 	}else if (flight.rc_cmd==900){
 		flight.rc_cmd=0
@@ -266,9 +264,7 @@ function nei_cmd_listen() {
 					} else if(value==401 and BVMSTATE=="TURNEDOFF"){
 						disarm()
 					} else if(value==777 and BVMSTATE=="TURNEDOFF"){
-						if(logical_time != nil) reinit_time_sync()
-						barrier_set(ROBOTS, "TURNEDOFF", BVMSTATE, 777)
-						barrier_ready(777)
+						reinit_time_sync()
 						#neighbors.broadcast("cmd", 777)
 					}else if(value==900){	# Shapes
 						barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)

@@ -1,87 +1,15 @@
-include "utils/string.bzz"
-
-# Time to be sync
-logical_time = 0
-# sync algo. constants
-TIME_JUMP_THR = 5 
-TIME_TO_FORGET = 20
-TIME_TO_SYNC = 200
-COM_DELAY = 2
-# table to store neighbor time data
-time_nei_table = {}
-# Algo. global parameters
-diffMaxLogical = 0
-jumped = 0
-syncError = 99999 
+TIME_TO_SYNC = 100
 sync_timer = 0
-
-# Function to intialize sync algorithm
-function init_time_sync(){
-	neighbors.listen("time_sync",
-		function(vid, value, rid) {
-			if(value != nil){
-				log(" TIME SYNC Got (", vid, ",", value.time , " , ", value.max, ") #", rid)
-				var msg_time = value.time
-				var msg_max = value.max
-				#log("msg:  1: ", msg_time, " 2: ", msg_max )
-				if(msg_time != nil and msg_max != nil){
-					diffMaxLogical = math.max(diffMaxLogical,msg_max-logical_time)
-					var time_offset = msg_time - logical_time
-					if(math.abs(time_offset) > math.abs(syncError)) syncError = time_offset
-					if(time_offset > TIME_JUMP_THR){
-						logical_time = logical_time + time_offset
-						diffMaxLogical = math.max(diffMaxLogical-time_offset,0)
-						jumped = 1
-					}
-					time_nei_table[rid] = { .time=msg_time, .age=0, .max=msg_max} 
-				}
-			}
-		}
-	)
-}
+timesync_state = 0
 
 # Function to sync. algo
-function step_time_sync(){
-	logical_time = logical_time + 1
+function check_time_sync(){
 	sync_timer = sync_timer + 1
-	log("Logical time now ", logical_time)
-	if(sync_timer < TIME_TO_SYNC){
-		log(" SYNC ALGO ACTIVE time:", sync_timer)
-		cnt = 0
-		avg_offset = 0
-		if(size(time_nei_table) > 0){
-		  	foreach(time_nei_table, function(key, value) {
-		    	if(value.time != 0){
-		    		var local_offset = value.time - logical_time + value.age
-		    		if(local_offset > 0){
-		    			avg_offset = avg_offset + 1 * local_offset
-		    			cnt = cnt + 1
-		    		}
-		    		else{
-		    			if(math.abs(local_offset)<TIME_JUMP_THR){
-		    				avg_offset = avg_offset + local_offset
-		    				cnt = cnt + 1
-		    			}
-		    		}
-
-			    	if(value.age > TIME_TO_FORGET)
-			    		value.time = 0
-
-			    	value.age = value.age + 1
-			    }
-		    })
-		    if(cnt > 0 and jumped != 1){
-		    	var correction = math.ceil(avg_offset / (cnt + 1) )
-		    	if(math.abs(correction) < TIME_JUMP_THR){
-		    		logical_time = logical_time + correction
-		    	}
-		    }
-	    }
-	    jumped = 0
-	    syncError=0
-	    var mstr = {.time = (logical_time + COM_DELAY) , .max = (logical_time + COM_DELAY + diffMaxLogical) }
-	    neighbors.broadcast("time_sync",mstr)
+  	if(sync_timer < TIME_TO_SYNC){
+  		log(" Synchronizing Clock : ",sync_timer,"/",TIME_TO_SYNC)
+  		timesync_state = 1
 	}
+	else timesync_state = 0
 }
 
 # Function to set sync timer to zero and reinitiate sync. algo

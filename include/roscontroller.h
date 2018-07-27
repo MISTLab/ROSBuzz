@@ -35,11 +35,17 @@
 #include <signal.h>
 #include <ostream>
 #include <map>
+#include <cmath>
 #include "buzzuav_closures.h"
 
 #define UPDATER_MESSAGE_CONSTANT 987654321
-#define XBEE_MESSAGE_CONSTANT 586782343
-#define XBEE_STOP_TRANSMISSION 4355356352
+#define BUZZ_MESSAGE_CONSTANT_WTO_TIME 586782343
+#define BUZZ_MESSAGE_CONSTANT_TIME 523534343
+// Time sync algo. constants
+#define COM_DELAY 100000000 // in nano seconds i.e 100 ms
+#define TIME_SYNC_JUMP_THR 500000000 
+#define MOVING_AVERAGE_ALPHA 0.1
+
 #define TIMEOUT 60
 #define BUZZRATE 10
 #define CMD_REQUEST_UPDATE 666
@@ -90,8 +96,13 @@ private:
   uint64_t payload;
   std::map<int, buzz_utility::Pos_struct> neighbours_pos_map;
   std::map<int, buzz_utility::Pos_struct> raw_neighbours_pos_map;
+  std::map<int, buzz_utility::neighbor_time> neighbours_time_map;
   int timer_step = 0;
   int robot_id = 0;
+  ros::Time logical_clock;
+  ros::Time previous_step_time;
+  double logical_time_rate;
+  bool time_sync_jumped;
   std::string robot_name = "";
 
   int rc_cmd;
@@ -268,6 +279,7 @@ private:
   bool GetRawPacketLoss(const uint8_t short_id, float& result);
   bool GetFilteredPacketLoss(const uint8_t short_id, float& result);
   void get_xbee_status();
-
+  void time_sync_step();
+  void push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, double nr);
 };
 }

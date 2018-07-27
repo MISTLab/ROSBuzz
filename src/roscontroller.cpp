@@ -13,7 +13,8 @@ namespace rosbzz_node
 const string roscontroller::CAPTURE_SRV_DEFAULT_NAME = "/image_sender/capture_image";
 const bool debug = true;
 
-roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
+roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv): 
+logical_clock(ros::Time()), previous_step_time(ros::Time())
 /*
 / roscontroller class Constructor
 ---------------*/
@@ -60,6 +61,11 @@ roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
   {
     robot_id = strtol(robot_name.c_str() + 5, NULL, 10);
   }
+  // time sync algo. parameter intialization
+  previous_step_time.fromNSec(ros::Time::now().toNSec());
+  logical_clock.fromNSec(ros::Time::now().toNSec());
+  logical_time_rate = 0;
+  time_sync_jumped = false;
   // Create log dir and open log file
   std::string path =
       bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
@@ -164,9 +170,10 @@ void roscontroller::RosControllerRun()
       if (debug)
         ROS_WARN("CURRENT PACKET DROP : %f ", cur_packet_loss);
       // log data
-      log<<ros::Time::now()<<",";
-      // Fetch logical time from BVM
-      log<<buzz_utility::getlogicaltime()<<",";
+      // hardware time now
+      log<<ros::Time::now().toSec()<<",";
+      // logical time now
+      log<<logical_clock.toSec()<<",";
       log<<cur_pos.latitude << "," << cur_pos.longitude << ","
             << cur_pos.altitude << ",";
       log << (int)no_of_robots<<",";
@@ -178,6 +185,7 @@ void roscontroller::RosControllerRun()
             neighbours_pos_map.begin();
       for (; it != neighbours_pos_map.end(); ++it)
       {
+        log<< it->first<<",";
         log << (double)it->second.x << "," << (double)it->second.y
             << "," << (double)it->second.z << ",";
       }
@@ -193,6 +201,9 @@ void roscontroller::RosControllerRun()
         log<<(int)neigh_id<<","<<(int)msg_size<<",";
       }
       log<<std::endl;
+      time_sync_step();
+      if(debug)
+        ROS_INFO("[Debug : %i ] logical Time %f , har time %f",robot_id, logical_clock.toSec(), ros::Time::now().toSec());
       //  Call Step from buzz script
       buzz_utility::buzz_script_step();
       //  Prepare messages and publish them
@@ -589,16 +600,6 @@ with size.........  |   /
   tmp[2] = cur_pos.altitude;
   memcpy(position, tmp, 3 * sizeof(uint64_t));
   mavros_msgs::Mavlink payload_out;
-  payload_out.payload64.push_back(XBEE_MESSAGE_CONSTANT);
-  payload_out.payload64.push_back(position[0]);
-  payload_out.payload64.push_back(position[1]);
-  payload_out.payload64.push_back(position[2]);
-  //  Append Buzz message
-  uint16_t* out = buzz_utility::u64_cvt_u16(payload_out_ptr[0]);
-  for (int i = 0; i < out[0]; i++)
-  {
-    payload_out.payload64.push_back(payload_out_ptr[i]);
-  }
   //  Add Robot id and message number to the published message
   if (message_number < 0)
     message_number = 0;
@@ -606,7 +607,33 @@ with size.........  |   /
     message_number++;
   payload_out.sysid = (uint8_t)robot_id;
   payload_out.msgid = (uint32_t)message_number;
-
+  
+  if(buzz_utility::get_timesync_state()){
+    payload_out.payload64.push_back(BUZZ_MESSAGE_CONSTANT_TIME);
+    payload_out.payload64.push_back(position[0]);
+    payload_out.payload64.push_back(position[1]);
+    payload_out.payload64.push_back(position[2]);
+    //payload_out.payload64.push_back((uint64_t)message_number);
+    // add time sync algo data 
+    payload_out.payload64.push_back(ros::Time::now().toNSec()+COM_DELAY);
+    payload_out.payload64.push_back(logical_clock.toNSec()+COM_DELAY);
+    //uint64_t ltrate64 = 0;
+    //memcpy((void*)&ltrate64, (void*)&logical_time_rate, sizeof(uint64_t));
+    //payload_out.payload64.push_back(ltrate64);
+  }
+  else{
+    payload_out.payload64.push_back(BUZZ_MESSAGE_CONSTANT_WTO_TIME);
+    payload_out.payload64.push_back(position[0]);
+    payload_out.payload64.push_back(position[1]);
+    payload_out.payload64.push_back(position[2]);
+  }
+  //  Append Buzz message
+  uint16_t* out = buzz_utility::u64_cvt_u16(payload_out_ptr[0]);
+  for (int i = 0; i < out[0]; i++)
+  {
+    payload_out.payload64.push_back(payload_out_ptr[i]);
+  }
+  
   // publish prepared messages in respective topic
   payload_pub.publish(payload_out);
   delete[] out;
@@ -1087,7 +1114,8 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     free(pl);
   }
   //  BVM FIFO message
-  else if (msg->payload64[0] == (uint64_t)XBEE_MESSAGE_CONSTANT)
+  else if (msg->payload64[0] == (uint64_t)BUZZ_MESSAGE_CONSTANT_TIME ||
+           msg->payload64[0] == (uint64_t)BUZZ_MESSAGE_CONSTANT_WTO_TIME)
   {
     uint64_t message_obt[msg->payload64.size() - 1];
     //  Go throught the obtained payload
@@ -1106,8 +1134,10 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     nei_pos.altitude = neighbours_pos_payload[2];
     double cvt_neighbours_pos_payload[3];
     gps_rb(nei_pos, cvt_neighbours_pos_payload);
+    int index = 3;
+    if(msg->payload64[0] == (uint64_t)BUZZ_MESSAGE_CONSTANT_TIME) index = 5;
     //  Extract robot id of the neighbour
-    uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + 3));
+    uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + index));
     if (debug)
       ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
     //  Pass neighbour position to local maintaner
@@ -1118,8 +1148,17 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     //  TODO: remove roscontroller local map array for neighbors
     neighbours_pos_put((int)out[1], n_pos);
     buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, n_pos.z);
-    delete[] out;
-    buzz_utility::in_msg_append((message_obt + 3));
+     if(msg->payload64[0] == (uint64_t)BUZZ_MESSAGE_CONSTANT_TIME){
+      // update time struct for sync algo
+      double nr = 0;
+      push_timesync_nei_msg((int)out[1], message_obt[3],message_obt[4],nr);
+      delete[] out;
+      buzz_utility::in_msg_append((message_obt + index));
+    }
+    else{
+      delete[] out;
+      buzz_utility::in_msg_append((message_obt + index));
+    }
   }
 }
 
@@ -1381,5 +1420,115 @@ void roscontroller::get_xbee_status()
    * }
    * TriggerAPIRssi(all_ids);
    */
+}
+
+void roscontroller::time_sync_step()
+/*
+ * Steps the time syncronization algorithm  
+ ------------------------------------------------------------------ */
+{
+  // ROS_INFO("Stepping time sync : %f ", logical_clock.toSec());
+  double avgRate = logical_time_rate;
+  double avgOffset = 0;
+  int offsetCount = 0;
+  map<int, buzz_utility::neighbor_time>::iterator it;
+  for (it = neighbours_time_map.begin(); it != neighbours_time_map.end(); ++it)
+  {
+    avgRate += (it->second).relative_rate;
+    // estimate current offset
+    int64_t  offset = (int64_t)(it->second).nei_logical_time - (int64_t)(it->second).node_logical_time; 
+    // ROS_INFO("time sync loop offset %" PRId64 ", nei clock : %" PRId64 ", my clock :%" PRId64, offset,(int64_t)(it->second).nei_logical_time, (int64_t)(it->second).node_logical_time);
+    if(offset > 0){
+      // neighbor is ahead in time
+      avgOffset = avgOffset + (1 * offset);
+      offsetCount++;
+    }
+    else{
+      if(std::abs(offset)<TIME_SYNC_JUMP_THR){
+        avgOffset = avgOffset + offset;
+        offsetCount++;
+      }
+    } 
+    if((it->second).age < BUZZRATE) (it->second).age++;
+    else neighbours_time_map.erase(it);
+  }
+  if(offsetCount>0 && !time_sync_jumped){
+    int64_t correction = (int64_t)ceil(avgOffset / (offsetCount+1));
+    if(std::abs(correction) < TIME_SYNC_JUMP_THR){
+      // ROS_INFO("With correction before correcting time sync : %f ", logical_clock.toSec());
+      // correct time with the diff within this step + differnce in nei + rate change
+      uint64_t time_diff = ros::Time::now().toNSec() - previous_step_time.toNSec(); 
+      uint64_t old_time = logical_clock.toNSec();
+      avgRate = avgRate/(neighbours_time_map.size()+1);
+      // ROS_INFO(" time sync loop : avgOffset %f, offsetCount : %d , correction %" PRId64 "time diff %" PRIu64 " old_time %" PRIu64 " rate %f", 
+      //                             avgOffset, offsetCount, correction, time_diff, old_time, avgRate);
+      uint64_t final_time = old_time + time_diff + (uint64_t)correction;// + (time_diff * avgRate); 
+      
+      // ROS_INFO(" Final time:  %" PRIu64, final_time);
+      logical_clock.fromNSec(final_time);
+      previous_step_time.fromNSec(ros::Time::now().toNSec());
+
+      // ROS_INFO("With correction time sync : %f ", logical_clock.toSec());
+    }
+    else{
+      // correct time with the diff within this step + rate change 
+      uint64_t time_diff = ros::Time::now().toNSec() - previous_step_time.toNSec();
+      uint64_t old_time = logical_clock.toNSec();
+      avgRate = avgRate/(neighbours_time_map.size()+1);
+      logical_clock.fromNSec(old_time + time_diff); // + time_diff * avgRate);
+      previous_step_time.fromNSec(ros::Time::now().toNSec());
+      //ROS_INFO("inside non jump without coorection time sync : %f ", logical_clock.toSec());
+    }
+  }
+  else{
+    // correct time with the diff within this step + rate change 
+    uint64_t time_diff = ros::Time::now().toNSec() - previous_step_time.toNSec();
+    uint64_t old_time = logical_clock.toNSec();
+    avgRate = avgRate/(neighbours_time_map.size()+1);
+    logical_clock.fromNSec(old_time + time_diff); // + time_diff * avgRate);
+    previous_step_time.fromNSec(ros::Time::now().toNSec());
+
+    //ROS_INFO("without correction time sync : %f ", logical_clock.toSec());
+  }
+  time_sync_jumped = false;
+  //neighbours_time_map.clear();
+  logical_time_rate = avgRate;
+
+} 
+
+void roscontroller::push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, double nr)
+/*
+ * pushes a time syncronization msg into its data slot  
+ ------------------------------------------------------------------ */
+{
+  map<int, buzz_utility::neighbor_time>::iterator it = neighbours_time_map.find(nid);
+  double relativeRate =0;
+  if (it != neighbours_time_map.end()){
+    uint64_t deltaLocal = ros::Time::now().toNSec() - (it->second).node_hardware_time;
+    uint64_t delatNei = round((nh - (it->second).nei_hardware_time )
+                              + (nh - (it->second).nei_hardware_time ) * nr);
+    double currentRate = 0;
+    if(deltaLocal !=0) currentRate = ((double)delatNei - (double)deltaLocal)/(double)deltaLocal;
+    relativeRate =  MOVING_AVERAGE_ALPHA*((it->second).relative_rate) 
+                              + (1- MOVING_AVERAGE_ALPHA)*currentRate;
+    
+    // ROS_INFO("deltaLocal %" PRIu64 ", delatNei %" PRIu64 " , currentrate %f , this relative rate %f, final relativeRate %f", deltaLocal, delatNei, currentRate, 
+    //                                       (it->second).relative_rate, relativeRate);
+    neighbours_time_map.erase(it);
+  }
+  int64_t offset = (int64_t)nl - (int64_t)logical_clock.toNSec();
+  // ROS_INFO("neigh msg push from %i "", my clock  %" PRIu64 ", nei clock %" PRIu64 ", offset: %" PRId64", relative rate %f", nid, logical_clock.toNSec(), nl, offset, relativeRate);
+  if(offset > TIME_SYNC_JUMP_THR){
+    uint64_t time_diff = ros::Time::now().toNSec() - previous_step_time.toNSec();
+    uint64_t old_time = logical_clock.toNSec();
+    logical_clock.fromNSec(old_time + time_diff + offset );// + time_diff * logical_time_rate );
+    previous_step_time.fromNSec(ros::Time::now().toNSec());
+    time_sync_jumped = true;
+  }
+  buzz_utility::neighbor_time nt(nh, nl, ros::Time::now().toNSec(),
+                                    logical_clock.toNSec(), nr, relativeRate);
+  neighbours_time_map.insert(make_pair(nid, nt));
+  
+  // ROS_INFO("neigh time sync : %f , nei logical %i", logical_clock.toSec(), nl);
 }
 }
