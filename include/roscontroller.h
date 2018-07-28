@@ -42,7 +42,7 @@
 #define BUZZ_MESSAGE_CONSTANT_WTO_TIME 586782343
 #define BUZZ_MESSAGE_CONSTANT_TIME 523534343
 // Time sync algo. constants
-#define COM_DELAY 100000000 // in nano seconds i.e 100 ms
+#define COM_DELAY 33000000 // in nano seconds i.e 33 ms
 #define TIME_SYNC_JUMP_THR 500000000 
 #define MOVING_AVERAGE_ALPHA 0.1
 
