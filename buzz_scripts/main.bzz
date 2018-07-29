@@ -8,7 +8,7 @@ include "vstigenv.bzz"
 include "timesync.bzz"
 
 #State launched after takeoff
-AUTO_LAUNCH_STATE = "FORMATION"
+AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
 #AUTO_LAUNCH_STATE = "CUSFUN"
 #Lowest robot id in the network
 LOWEST_ROBOT_ID = 1
