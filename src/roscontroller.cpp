@@ -615,13 +615,14 @@ with size.........  |   /
     uint8_t mtype = (uint8_t)BUZZ_MESSAGE_TIME;
     uint16_t mid  = (uint16_t)msg_id;
     get_logical_time();
-    float stime   = (float)logical_clock.toSec();
+    uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
+    ROS_INFO("Sent stime %f for %d",stime,mid);
     uint8_t r8header[8];
     uint64_t rheader = 0;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
     memcpy(r8header+1, &mid, sizeof(uint16_t));
-    memcpy(r8header+3, &stime, sizeof(float)); 
-    memcpy(&rheader, r8header, 7*sizeof(uint8_t));
+    memcpy(r8header+3, &stime, sizeof(uint32_t)); 
+    memcpy(&rheader, r8header, sizeof(uint64_t));
     // push header into the buffer
     payload_out.payload64.push_back(rheader);
     payload_out.payload64.push_back(position[0]);
@@ -637,13 +638,14 @@ with size.........  |   /
     uint8_t mtype = (uint8_t)BUZZ_MESSAGE_WTO_TIME;
     uint16_t mid  = (uint16_t)msg_id;
     get_logical_time();
-    float stime   = (float)logical_clock.toSec();
+    uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
+    ROS_INFO("Sent stime %f for %d",stime,mid);
     uint8_t r8header[8];
     uint64_t rheader = 0;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
     memcpy(r8header+1, &mid, sizeof(uint16_t));
-    memcpy(r8header+3, &stime, sizeof(float)); 
-    memcpy(&rheader, r8header, 7*sizeof(uint8_t));
+    memcpy(r8header+3, &stime, sizeof(uint32_t)); 
+    memcpy(&rheader, r8header, sizeof(uint64_t));
     // push header into the buffer
     payload_out.payload64.push_back(rheader);
     payload_out.payload64.push_back(position[0]);
@@ -697,13 +699,13 @@ with size.........  |   /
     uint8_t mtype = (uint8_t)UPDATER_MESSAGE;
     uint16_t mid  = (uint16_t)msg_id;
     get_logical_time();
-    float stime   = (float)logical_clock.toSec();
+    uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
     uint8_t r8header[8];
     uint64_t rheader = 0;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
     memcpy(r8header+1, &mid, sizeof(uint16_t));
-    memcpy(r8header+3, &stime, sizeof(float)); 
-    memcpy(&rheader, r8header, 7*sizeof(uint8_t));
+    memcpy(r8header+3, &stime, sizeof(uint32_t)); 
+    memcpy(&rheader, r8header, sizeof(uint64_t));
     // push header into the buffer
     payload_out.payload64.push_back(rheader);
     for (int i = 0; i < total_size; i++)
@@ -1128,12 +1130,13 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
   uint8_t r8header[8];
   uint8_t mtype;
   uint16_t mid;
-  float stime;
-  memcpy(r8header,&rheader, 7*sizeof(uint8_t));
+  uint32_t temptime;
+  memcpy(r8header,&rheader, sizeof(uint64_t));
   memcpy(&mtype, r8header, sizeof(uint8_t));   
   memcpy(&mid, r8header+1, sizeof(uint16_t));
-  memcpy(&stime, r8header+3, sizeof(float)); 
-
+  memcpy(&temptime, r8header+3, sizeof(uint32_t)); 
+  float stime = (float)temptime/(float)100000;
+  ROS_INFO("received stime %f for %u",stime, mid);
   // Check for Updater message, if updater message push it into updater FIFO
   if ((int)mtype == (int)UPDATER_MESSAGE)
   {
