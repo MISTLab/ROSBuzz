@@ -49,7 +49,7 @@ typedef enum {
 } rosbuzz_msgtype;
 
 // Time sync algo. constants
-#define COM_DELAY 33000000 // in nano seconds i.e 33 ms
+#define COM_DELAY 100000000 // in nano seconds i.e 100 ms
 #define TIME_SYNC_JUMP_THR 500000000 
 #define MOVING_AVERAGE_ALPHA 0.1
 
@@ -62,25 +62,6 @@ using namespace std;
 
 namespace rosbzz_node
 {
-  
-template <typename T>
-class circularBuffer {
-private:
-  vector<T> data;
-  unsigned int lastEntryPos;
-  int size;
-
-public:
-  circularBuffer(uint8_t s): data(s), lastEntryPos(0), size(s){};
-  ~circularBuffer(){};
-  void push(T d){ 
-    data[lastEntryPos] = d;
-    if(lastEntryPos > size-1) lastEntryPos = 0;
-    else lastEntryPos++;
-  }
-  vector<T> get_data(){ return data;};
-};
-
 class roscontroller
 {
 public:
@@ -130,7 +111,6 @@ private:
   };
   typedef struct MsgData msg_data;
 
-
   ros_pose target, home, cur_pos;
 
   uint64_t payload;
@@ -141,11 +121,10 @@ private:
   int robot_id = 0;
   ros::Time logical_clock;
   ros::Time previous_step_time;
+  std::vector<msg_data> inmsgdata; 
+  double out_msg_time; 
   double logical_time_rate;
   bool time_sync_jumped;
-  double com_delay;
-  std::vector<msg_data> inmsgdata;
-  double out_msg_time;
   std::string robot_name = "";
 
   int rc_cmd;
@@ -154,7 +133,7 @@ private:
   int barrier;
   int update;
   int statepub_active;
-  int16_t msg_id = 0;
+  int message_number = 0;
   uint8_t no_of_robots = 0;
   bool rcclient;
   bool xbeeplugged = false;

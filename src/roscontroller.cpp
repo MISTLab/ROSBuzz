@@ -63,11 +63,9 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   }
   // time sync algo. parameter intialization
   previous_step_time.fromNSec(ros::Time::now().toNSec());
-  if(robot_id==10)logical_clock.fromSec(101.0);
-  else logical_clock.fromNSec(0);
-  logical_time_rate = 1;
+  logical_clock.fromSec(0);
+  logical_time_rate = 0;
   time_sync_jumped = false;
-  com_delay = 0;
   out_msg_time=0;
   // Create log dir and open log file
   std::string path =
@@ -172,12 +170,14 @@ void roscontroller::RosControllerRun()
       }
       if (debug)
         ROS_WARN("CURRENT PACKET DROP : %f ", cur_packet_loss);
+
       // log data
       // hardware time now
       log<<ros::Time::now().toSec()<<",";
       get_logical_time();
       // logical time now
       log<<logical_clock.toSec()<<",";
+      log<<buzz_utility::get_timesync_itr()<<",";
       log<<buzz_utility::get_timesync_state()<<",";
 
       log<<cur_pos.latitude << "," << cur_pos.longitude << ","
@@ -185,7 +185,7 @@ void roscontroller::RosControllerRun()
       log << (int)no_of_robots<<",";
       log  << neighbours_pos_map.size()<< ",";
       log<<(int)inmsgdata.size()<<",";
-      log<< msg_id<<",";
+      log<< message_number<<",";
       log<< out_msg_time<<",";
       log <<buzz_utility::getuavstate();
       if(neighbours_pos_map.size() > 0)log<<",";
@@ -203,10 +203,10 @@ void roscontroller::RosControllerRun()
       }
       inmsgdata.clear();
       log<<std::endl;
+
       time_sync_step();
       if(debug)
-        ROS_INFO("[Debug : %i ] logical Time %f , har time %f, rate: %f",robot_id, 
-                  logical_clock.toSec(), ros::Time::now().toSec(),logical_time_rate);
+        ROS_INFO("[Debug : %i ] logical Time %f , har time %f",robot_id, logical_clock.toSec(), ros::Time::now().toSec());
       //  Call Step from buzz script
       buzz_utility::buzz_script_step();
       //  Prepare messages and publish them
@@ -586,8 +586,8 @@ void roscontroller::prepare_msg_and_publish()
 / Message format of payload (Each slot is uint64_t)
 /
 /
-/|  |     |     |
-|                |   /
+/|	|     |	    |
+|			           |   /
 /|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs
 with size.........  |   /
 /|_____|_____|_____|________________________________________________|______________________________|
@@ -604,46 +604,47 @@ with size.........  |   /
   memcpy(position, tmp, 3 * sizeof(uint64_t));
   mavros_msgs::Mavlink payload_out;
   //  Add Robot id and message number to the published message
-  if (msg_id < 0)
-    msg_id = 0;
+  if (message_number < 0)
+    message_number = 0;
   else
-    msg_id++;
-  payload_out.sysid = (uint8_t)robot_id;
-  payload_out.msgid = (uint32_t)msg_id;
-  uint8_t mtype;
-  uint16_t mid  = (uint16_t)msg_id;
-  get_logical_time();
-  uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
-  ROS_INFO("Sent stime %u for %u",stime,mid);
-  uint8_t r8header[8];
-  uint64_t rheader = 0;
+    message_number++;
 
+  //header variables
+  uint16_t tmphead[4];
+  tmphead[1] = (uint16_t)message_number;
+  get_logical_time();
+  uint32_t stime = (uint32_t)(logical_clock.toSec() * 100000);
+  ROS_INFO("Sent stime %u for %u",stime,message_number);
+  memcpy((void*)(tmphead+2),(void*)&stime,sizeof(uint32_t));
+  uint64_t rheader[1];
+  payload_out.sysid = (uint8_t)robot_id;
+  payload_out.msgid = (uint32_t)message_number;
+  
   if(buzz_utility::get_timesync_state()){
     // prepare rosbuzz msg header
-    mtype = (uint8_t)BUZZ_MESSAGE_TIME;
-    memcpy(r8header, &mtype, sizeof(uint8_t));   
-    memcpy(r8header+1, &mid, sizeof(uint16_t));
-    memcpy(r8header+3, &stime, sizeof(uint32_t)); 
-    memcpy(&rheader, r8header, sizeof(uint64_t));
+    tmphead[0] = (uint8_t)BUZZ_MESSAGE_TIME;
+    ROS_INFO("sent header : type  %u mid  %u time  %u",tmphead[0],tmphead[1],tmphead[2]);
+    memcpy(rheader, tmphead, sizeof(uint64_t));
     // push header into the buffer
-    payload_out.payload64.push_back(rheader);
+    payload_out.payload64.push_back(rheader[0]);
     payload_out.payload64.push_back(position[0]);
     payload_out.payload64.push_back(position[1]);
     payload_out.payload64.push_back(position[2]);
-    //payload_out.payload64.push_back((uint64_t)msg_id);
+    //payload_out.payload64.push_back((uint64_t)message_number);
     // add time sync algo data 
     payload_out.payload64.push_back(ros::Time::now().toNSec());
     payload_out.payload64.push_back(logical_clock.toNSec());
+    //uint64_t ltrate64 = 0;
+    //memcpy((void*)&ltrate64, (void*)&logical_time_rate, sizeof(uint64_t));
+    //payload_out.payload64.push_back(ltrate64);
   }
   else{
     // prepare rosbuzz msg header
-    mtype = (uint8_t)BUZZ_MESSAGE_WTO_TIME;
-    memcpy(r8header, &mtype, sizeof(uint8_t));   
-    memcpy(r8header+1, &mid, sizeof(uint16_t));
-    memcpy(r8header+3, &stime, sizeof(uint32_t)); 
-    memcpy(&rheader, r8header, sizeof(uint64_t));
+    tmphead[0] = (uint8_t)BUZZ_MESSAGE_WTO_TIME;
+    ROS_INFO("sent header : type  %u mid  %u time  %u",tmphead[0],tmphead[1],tmphead[2]);
+    memcpy(rheader, tmphead, sizeof(uint64_t));
     // push header into the buffer
-    payload_out.payload64.push_back(rheader);
+    payload_out.payload64.push_back(rheader[0]);
     payload_out.payload64.push_back(position[0]);
     payload_out.payload64.push_back(position[1]);
     payload_out.payload64.push_back(position[2]);
@@ -654,13 +655,14 @@ with size.........  |   /
   {
     payload_out.payload64.push_back(payload_out_ptr[i]);
   }
+  //Store out msg time
   get_logical_time();
   out_msg_time = logical_clock.toSec();
   // publish prepared messages in respective topic
   payload_pub.publish(payload_out);
   delete[] out;
   delete[] payload_out_ptr;
-  //  Check for updater message if present send
+  ///  Check for updater message if present send
   if (update && buzz_update::is_msg_present())
   {
     uint8_t* buff_send = 0;
@@ -668,14 +670,8 @@ with size.........  |   /
     ;
     int tot = 0;
     mavros_msgs::Mavlink update_packets;
-    // Add Robot id and message number to the published message
-    if (msg_id < 0)
-      msg_id = 0;
-    else
-      msg_id++;
-    update_packets.sysid = (uint8_t)robot_id;
-    update_packets.msgid = (uint32_t)msg_id;
-    if(debug) ROS_INFO("Broadcasted Update packet Size: %u", updater_msgSize);
+    fprintf(stdout, "Appending code into message ...\n");
+    fprintf(stdout, "Sent Update packet Size: %u \n", updater_msgSize);
     // allocate mem and clear it
     buff_send = (uint8_t*)malloc(sizeof(uint16_t) + updater_msgSize);
     memset(buff_send, 0, sizeof(uint16_t) + updater_msgSize);
@@ -691,21 +687,19 @@ with size.........  |   /
     uint64_t* payload_64 = new uint64_t[total_size];
     memcpy((void*)payload_64, (void*)buff_send, total_size * sizeof(uint64_t));
     free(buff_send);
-    // prepare rosbuzz msg header
-    mtype = (uint8_t)UPDATER_MESSAGE;
-    mid  = (uint16_t)msg_id;
-    get_logical_time();
-    stime   = (uint32_t)logical_clock.toSec() * 100000;
-    memcpy(r8header, &mtype, sizeof(uint8_t));   
-    memcpy(r8header+1, &mid, sizeof(uint16_t));
-    memcpy(r8header+3, &stime, sizeof(uint32_t)); 
-    memcpy(&rheader, r8header, sizeof(uint64_t));
-    // push header into the buffer
-    payload_out.payload64.push_back(rheader);
+    // Send a constant number to differenciate updater msgs
+    update_packets.payload64.push_back((uint64_t)UPDATER_MESSAGE);
     for (int i = 0; i < total_size; i++)
     {
       update_packets.payload64.push_back(payload_64[i]);
     }
+    // Add Robot id and message number to the published message
+    if (message_number < 0)
+      message_number = 0;
+    else
+      message_number++;
+    update_packets.sysid = (uint8_t)robot_id;
+    update_packets.msgid = (uint32_t)message_number;
     payload_pub.publish(update_packets);
     delete[] payload_64;
   }
@@ -1111,7 +1105,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
 /----------------------------------------------------------------------------------------
 / Message format of payload (Each slot is uint64_t)
 / _________________________________________________________________________________________________
-/|  |     |     |                |
+/|	|     |	    |						     |
  * |
 /|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs
  * with size.........  |
@@ -1120,19 +1114,18 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
 -----------------------------------------------------------------------------------------------------*/
 {
   // decode msg header
-  uint64_t rheader = msg->payload64[0];
-  uint8_t r8header[8];
-  uint8_t mtype;
-  uint16_t mid;
-  uint32_t temptime;
-  memcpy(r8header,&rheader, sizeof(uint64_t));
-  memcpy(&mtype, r8header, sizeof(uint8_t));   
-  memcpy(&mid, r8header+1, sizeof(uint16_t));
-  memcpy(&temptime, r8header+3, sizeof(uint32_t)); 
+  uint64_t rhead = msg->payload64[0];
+  uint16_t r16head[4];
+  memcpy(r16head,&rhead, sizeof(uint64_t));
+  uint16_t mtype = r16head[0];
+  uint16_t mid = r16head[1];
+  uint32_t temptime=0;
+  memcpy(&temptime, r16head+2, sizeof(uint32_t)); 
   float stime = (float)temptime/(float)100000;
   ROS_INFO("received stime %f for %u",stime, mid);
+  ROS_INFO("Received header : type  %u mid  %u time  %u",r16head[0],r16head[1],r16head[2]);
   // Check for Updater message, if updater message push it into updater FIFO
-  if ((int)mtype == (int)UPDATER_MESSAGE)
+  if ((uint64_t)msg->payload64[0] == (uint64_t)UPDATER_MESSAGE)
   {
     uint16_t obt_msg_size = sizeof(uint64_t) * (msg->payload64.size());
     uint64_t message_obt[obt_msg_size];
@@ -1147,7 +1140,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     //  Copy packet into temporary buffer neglecting update constant
     memcpy((void*)pl, (void*)(message_obt + 1), obt_msg_size);
     uint16_t unMsgSize = *(uint16_t*)(pl);
-    if(debug) ROS_INFO("Update packet received, size : %u", unMsgSize);
+    fprintf(stdout, "Update packet received, read msg size : %u \n", unMsgSize);
     if (unMsgSize > 0)
     {
       buzz_update::code_message_inqueue_append((uint8_t*)(pl + sizeof(uint16_t)), unMsgSize);
@@ -1165,15 +1158,6 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     {
       message_obt[i - 1] = (uint64_t)msg->payload64[i];
     }
-    // determine buzz msg index based on msg type
-    int index = 3;
-    if((int)mtype == (int)BUZZ_MESSAGE_TIME) index = 5;
-    //  Extract robot id of the neighbour
-    uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + index));
-    get_logical_time();
-    // store in msg data for data log
-    msg_data inm(mid,out[1],out[0]*sizeof(uint64_t),stime,logical_clock.toSec());
-    inmsgdata.push_back(inm);
     // Extract neighbours position from payload
     double neighbours_pos_payload[3];
     memcpy(neighbours_pos_payload, message_obt, 3 * sizeof(uint64_t));
@@ -1184,8 +1168,16 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     nei_pos.longitude = neighbours_pos_payload[1];
     nei_pos.altitude = neighbours_pos_payload[2];
     double cvt_neighbours_pos_payload[3];
-    // Compute RB in robot body ref. frame
     gps_rb(nei_pos, cvt_neighbours_pos_payload);
+    int index = 3;
+    if((int)mtype == (int)BUZZ_MESSAGE_TIME) index = 5;
+    //  Extract robot id of the neighbour
+    uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + index));
+    get_logical_time();
+    // store in msg data for data log
+    msg_data inm(mid,out[1],out[0]*sizeof(uint64_t),stime,logical_clock.toSec());
+    inmsgdata.push_back(inm);
+
     if (debug)
       ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
     //  Pass neighbour position to local maintaner
@@ -1196,16 +1188,17 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     //  TODO: remove roscontroller local map array for neighbors
     neighbours_pos_put((int)out[1], n_pos);
     buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, n_pos.z);
-    if((int)mtype == (int)BUZZ_MESSAGE_TIME){
+     if((int)mtype == (int)BUZZ_MESSAGE_TIME){
       // update time struct for sync algo
       double nr = 0;
       push_timesync_nei_msg((int)out[1], message_obt[3],message_obt[4],nr);
+      delete[] out;
       buzz_utility::in_msg_append((message_obt + index));
     }
     else{
+      delete[] out;
       buzz_utility::in_msg_append((message_obt + index));
     }
-    delete[] out;
   }
 }
 
@@ -1529,7 +1522,7 @@ void roscontroller::push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, dou
   buzz_utility::neighbor_time nt(nh, nl, ros::Time::now().toNSec(),
                                     logical_clock.toNSec(), nr, relativeRate);
   neighbours_time_map.insert(make_pair(nid, nt));
-  
+ ROS_INFO("SYNC MSG RECEIVED deltaLocal from  %i",nid);  
 }
 
   uint64_t roscontroller::get_logical_time(){
