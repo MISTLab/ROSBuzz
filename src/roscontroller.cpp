@@ -610,15 +610,17 @@ with size.........  |   /
     msg_id++;
   payload_out.sysid = (uint8_t)robot_id;
   payload_out.msgid = (uint32_t)msg_id;
+  uint8_t mtype;
+  uint16_t mid  = (uint16_t)msg_id;
+  get_logical_time();
+  uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
+  ROS_INFO("Sent stime %u for %u",stime,mid);
+  uint8_t r8header[8];
+  uint64_t rheader = 0;
+
   if(buzz_utility::get_timesync_state()){
     // prepare rosbuzz msg header
-    uint8_t mtype = (uint8_t)BUZZ_MESSAGE_TIME;
-    uint16_t mid  = (uint16_t)msg_id;
-    get_logical_time();
-    uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
-    ROS_INFO("Sent stime %f for %d",stime,mid);
-    uint8_t r8header[8];
-    uint64_t rheader = 0;
+    mtype = (uint8_t)BUZZ_MESSAGE_TIME;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
     memcpy(r8header+1, &mid, sizeof(uint16_t));
     memcpy(r8header+3, &stime, sizeof(uint32_t)); 
@@ -635,13 +637,7 @@ with size.........  |   /
   }
   else{
     // prepare rosbuzz msg header
-    uint8_t mtype = (uint8_t)BUZZ_MESSAGE_WTO_TIME;
-    uint16_t mid  = (uint16_t)msg_id;
-    get_logical_time();
-    uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
-    ROS_INFO("Sent stime %f for %d",stime,mid);
-    uint8_t r8header[8];
-    uint64_t rheader = 0;
+    mtype = (uint8_t)BUZZ_MESSAGE_WTO_TIME;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
     memcpy(r8header+1, &mid, sizeof(uint16_t));
     memcpy(r8header+3, &stime, sizeof(uint32_t)); 
@@ -696,12 +692,10 @@ with size.........  |   /
     memcpy((void*)payload_64, (void*)buff_send, total_size * sizeof(uint64_t));
     free(buff_send);
     // prepare rosbuzz msg header
-    uint8_t mtype = (uint8_t)UPDATER_MESSAGE;
-    uint16_t mid  = (uint16_t)msg_id;
+    mtype = (uint8_t)UPDATER_MESSAGE;
+    mid  = (uint16_t)msg_id;
     get_logical_time();
-    uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
-    uint8_t r8header[8];
-    uint64_t rheader = 0;
+    stime   = (uint32_t)logical_clock.toSec() * 100000;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
     memcpy(r8header+1, &mid, sizeof(uint16_t));
     memcpy(r8header+3, &stime, sizeof(uint32_t)); 
