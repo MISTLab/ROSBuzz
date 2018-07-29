@@ -62,7 +62,7 @@ using namespace std;
 
 namespace rosbzz_node
 {
-+
+  
 template <typename T>
 class circularBuffer {
 private:
