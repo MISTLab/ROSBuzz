@@ -568,7 +568,7 @@ function set_rc_goto() {
 
     goal = gps_from_vec(math.vec2.newp(math.vec2.length(S2Target)/100.0, math.atan(S2Target.y,S2Target.x)))
 	print("Saving GPS goal: ",goal.latitude, goal.longitude)
-    storegoal(goal.latitude, goal.longitude, pose.position.altitude)
+    uav_storegoal(goal.latitude, goal.longitude, pose.position.altitude)
     m_gotjoinedparent = 1
   }
 }
