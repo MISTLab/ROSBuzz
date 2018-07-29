@@ -32,6 +32,7 @@ goal_list = {
 function init() {
   	init_stig()
 	init_swarm()
+	initGraph()
 
 	TARGET_ALTITUDE = 5 + (id-LOWEST_ROBOT_ID)*3.0 # m
 	loop = 1
@@ -108,8 +109,10 @@ function step() {
  
 # Executed once when the robot (or the simulator) is reset.
 function reset() {
+	resetGraph()
 }
  
 # Executed once at the end of experiment.
 function destroy() {
+	destroyGraph()
 }
