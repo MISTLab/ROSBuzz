@@ -615,8 +615,8 @@ with size.........  |   /
     uint8_t mtype = (uint8_t)BUZZ_MESSAGE_TIME;
     uint16_t mid  = (uint16_t)msg_id;
     get_logical_time();
-    uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
-    ROS_INFO("Sent stime %f for %d",stime,mid);
+    uint32_t stime   = (uint32_t) (logical_clock.toSec() * 100000);
+    ROS_INFO("Sent stime %u for %u",stime,mid);
     uint8_t r8header[8];
     uint64_t rheader = 0;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
@@ -638,8 +638,8 @@ with size.........  |   /
     uint8_t mtype = (uint8_t)BUZZ_MESSAGE_WTO_TIME;
     uint16_t mid  = (uint16_t)msg_id;
     get_logical_time();
-    uint32_t stime   = (uint32_t)logical_clock.toSec() * 100000;
-    ROS_INFO("Sent stime %f for %d",stime,mid);
+    uint32_t stime   = (uint32_t) (logical_clock.toSec() * 100000);
+    ROS_INFO("Sent stime %u for %u",stime,mid);
     uint8_t r8header[8];
     uint64_t rheader = 0;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
