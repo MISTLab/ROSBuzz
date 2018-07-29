@@ -38,9 +38,16 @@
 #include <cmath>
 #include "buzzuav_closures.h"
 
-#define UPDATER_MESSAGE_CONSTANT 987654321
-#define BUZZ_MESSAGE_CONSTANT_WTO_TIME 586782343
-#define BUZZ_MESSAGE_CONSTANT_TIME 523534343
+/*
+* ROSBuzz message types
+*/
+typedef enum {
+  ROS_BUZZ_MSG_NIL = 0,    // dummy msg
+  UPDATER_MESSAGE,         // Update msg
+  BUZZ_MESSAGE_WTO_TIME,   // Broadcast message wihout time info
+  BUZZ_MESSAGE_TIME,       // Broadcast message with time info
+} rosbuzz_msgtype;
+
 // Time sync algo. constants
 #define COM_DELAY 33000000 // in nano seconds i.e 33 ms
 #define TIME_SYNC_JUMP_THR 500000000 
@@ -55,6 +62,25 @@ using namespace std;
 
 namespace rosbzz_node
 {
++
+template <typename T>
+class circularBuffer {
+private:
+  vector<T> data;
+  unsigned int lastEntryPos;
+  int size;
+
+public:
+  circularBuffer(uint8_t s): data(s), lastEntryPos(0), size(s){};
+  ~circularBuffer(){};
+  void push(T d){ 
+    data[lastEntryPos] = d;
+    if(lastEntryPos > size-1) lastEntryPos = 0;
+    else lastEntryPos++;
+  }
+  vector<T> get_data(){ return data;};
+};
+
 class roscontroller
 {
 public:
@@ -91,6 +117,20 @@ private:
   };
   typedef struct POSE ros_pose;
 
+  struct MsgData
+  {
+    int msgid;
+    uint16_t nid;
+    uint16_t size;
+    double sent_time;
+    double received_time;
+    MsgData(int mi, uint16_t ni, uint16_t s, double st, double rt): 
+            msgid(mi), nid(ni), size(s),sent_time(st), received_time(rt){};
+    MsgData(){};
+  };
+  typedef struct MsgData msg_data;
+
+
   ros_pose target, home, cur_pos;
 
   uint64_t payload;
@@ -103,6 +143,9 @@ private:
   ros::Time previous_step_time;
   double logical_time_rate;
   bool time_sync_jumped;
+  double com_delay;
+  std::vector<msg_data> inmsgdata;
+  double out_msg_time;
   std::string robot_name = "";
 
   int rc_cmd;
@@ -111,7 +154,7 @@ private:
   int barrier;
   int update;
   int statepub_active;
-  int message_number = 0;
+  int16_t msg_id = 0;
   uint8_t no_of_robots = 0;
   bool rcclient;
   bool xbeeplugged = false;
@@ -281,5 +324,7 @@ private:
   void get_xbee_status();
   void time_sync_step();
   void push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, double nr);
+  uint64_t get_logical_time();
+  void set_logical_time_correction(uint64_t cor);
 };
 }

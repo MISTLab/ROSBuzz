@@ -34,6 +34,18 @@ struct rb_struct
 };
 typedef struct rb_struct RB_struct;
 
+struct neiMsg
+{
+  uint8_t* msg;
+  uint16_t msgid;
+  double time_received;
+  double time_sent;
+  neiMsg(uint8_t* m, uint16_t mid,  double tr, double ts)
+    : msg(m), msgid(mid), time_received(tr), time_sent(ts) {};
+  neiMsg();
+};
+typedef struct pos_struct nei_msg_struct;
+
 struct neiStatus
 {
   uint gps_strenght = 0;
@@ -54,7 +66,7 @@ struct neitime
   int age;
   neitime(uint64_t nht, uint64_t nlt, uint64_t mht, uint64_t mlt, double nr, double mr)
     : nei_hardware_time(nht), nei_logical_time(nlt), node_hardware_time(mht), node_logical_time(mlt), 
-      nei_rate(nr), relative_rate(mr) {};
+      nei_rate(nr), relative_rate(mr),age(0) {};
   neitime()
   {
   }
