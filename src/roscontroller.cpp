@@ -622,7 +622,6 @@ with size.........  |   /
     memcpy(r8header+1, &mid, sizeof(uint16_t));
     memcpy(r8header+3, &stime, sizeof(float)); 
     memcpy(&rheader, r8header, 7*sizeof(uint8_t));
-    ROS_INFO("SENT Header : mtype %u mid %u stime %f", mtype,mid,stime);
     // push header into the buffer
     payload_out.payload64.push_back(rheader);
     payload_out.payload64.push_back(position[0]);
@@ -632,9 +631,6 @@ with size.........  |   /
     // add time sync algo data 
     payload_out.payload64.push_back(ros::Time::now().toNSec());
     payload_out.payload64.push_back(logical_clock.toNSec());
-    // ROS_INFO("[%i] SENT_MSG NO : %i",robot_id, msg_id);
-    ROS_INFO("SENT L CLock : %"PRIu64" , H clock : %"PRIu64" , Rate %f",
-          ros::Time::now().toNSec(),logical_clock.toNSec(), logical_time_rate );
   }
   else{
     // prepare rosbuzz msg header
@@ -648,7 +644,6 @@ with size.........  |   /
     memcpy(r8header+1, &mid, sizeof(uint16_t));
     memcpy(r8header+3, &stime, sizeof(float)); 
     memcpy(&rheader, r8header, 7*sizeof(uint8_t));
-    ROS_INFO("SENT Header : mtype %u mid %u stime %f", mtype,mid,stime);
     // push header into the buffer
     payload_out.payload64.push_back(rheader);
     payload_out.payload64.push_back(position[0]);
@@ -1139,7 +1134,6 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
   memcpy(&mid, r8header+1, sizeof(uint16_t));
   memcpy(&stime, r8header+3, sizeof(float)); 
 
-  ROS_INFO("Received Header : mtype %u mid %u stime %f", mtype,mid,stime);
   // Check for Updater message, if updater message push it into updater FIFO
   if ((int)mtype == (int)UPDATER_MESSAGE)
   {
@@ -1495,7 +1489,6 @@ void roscontroller::time_sync_step()
     int64_t  offset = (int64_t)(it->second).nei_logical_time - (int64_t)(it->second).node_logical_time; 
     avgOffset = avgOffset + offset;
     offsetCount++;
-    ROS_INFO("time sync loop offset %" PRId64 ", nei clock : %" PRId64 ", my clock :%" PRId64, offset,(int64_t)(it->second).nei_logical_time, (int64_t)(it->second).node_logical_time);
     if((it->second).age < BUZZRATE) (it->second).age++;
     else neighbours_time_map.erase(it);
   }
@@ -1503,9 +1496,7 @@ void roscontroller::time_sync_step()
   if(offsetCount>0 && !time_sync_jumped){
     int64_t correction = (int64_t)ceil(avgOffset / (offsetCount+1));
     if(std::abs(correction) < TIME_SYNC_JUMP_THR){
-      // ROS_INFO("With correction before correcting time sync : %f ", logical_clock.toSec());
       set_logical_time_correction(correction);
-      ROS_INFO("With correction time sync : %f ", logical_clock.toSec());
     }
   }
   get_logical_time(); // just to update clock
@@ -1519,20 +1510,17 @@ void roscontroller::push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, dou
  * pushes a time syncronization msg into its data slot  
  ------------------------------------------------------------------ */
 {
-  ROS_INFO("Received from [%i] L %"PRIu64" , H: %"PRIu64" , nei rate %f",nid, nl,nh,nr);
   map<int, buzz_utility::neighbor_time>::iterator it = neighbours_time_map.find(nid);
   double relativeRate =1;
   if (it != neighbours_time_map.end()){
     int64_t deltaLocal = ros::Time::now().toNSec() - (it->second).node_hardware_time;
     int64_t delatNei = round(nh - (it->second).nei_hardware_time);
     double currentRate = 0;
-    ROS_INFO("current in hand for nei : me H %"PRIu64" , nei H %"PRIu64" ", (it->second).node_hardware_time,
-               (it->second).nei_hardware_time );
     if(deltaLocal !=0 && delatNei !=0) currentRate = ((double)delatNei - (double)deltaLocal)/(double)deltaLocal;
     relativeRate =  MOVING_AVERAGE_ALPHA*((it->second).relative_rate) 
                               + (1- MOVING_AVERAGE_ALPHA)*currentRate;
     
-    ROS_INFO("SYNC MSG RECEIVED deltaLocal %" PRIu64 ", delatNei %" PRId64 " , currentrate %f , this relative rate %f, final relativeRate %f", 
+    ROS_INFO("SYNC MSG RECEIVED deltaLocal %"PRIu64", delatNei %"PRId64" , currentrate %f , this relative rate %f, final relativeRate %f", 
       deltaLocal, delatNei, currentRate, (it->second).relative_rate, relativeRate);
     neighbours_time_map.erase(it);
   }
@@ -1540,7 +1528,6 @@ void roscontroller::push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, dou
   if(offset > TIME_SYNC_JUMP_THR){
     set_logical_time_correction(offset);// + time_diff * logical_time_rate );
     time_sync_jumped = true;
-    ROS_WARN("CLock Jumped %"PRIu64, logical_clock.toNSec());
   }
   buzz_utility::neighbor_time nt(nh, nl, ros::Time::now().toNSec(),
                                     logical_clock.toNSec(), nr, relativeRate);
