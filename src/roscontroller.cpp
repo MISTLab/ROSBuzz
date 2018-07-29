@@ -642,7 +642,7 @@ with size.........  |   /
     uint16_t mid  = (uint16_t)msg_id;
     get_logical_time();
     float stime   = (float)logical_clock.toSec();
-    uint8_t r8header[4];
+    uint8_t r8header[8];
     uint64_t rheader = 0;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
     memcpy(r8header+1, &mid, sizeof(uint16_t));
@@ -703,7 +703,7 @@ with size.........  |   /
     uint16_t mid  = (uint16_t)msg_id;
     get_logical_time();
     float stime   = (float)logical_clock.toSec();
-    uint8_t r8header[4];
+    uint8_t r8header[8];
     uint64_t rheader = 0;
     memcpy(r8header, &mtype, sizeof(uint8_t));   
     memcpy(r8header+1, &mid, sizeof(uint16_t));
@@ -1130,7 +1130,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
 {
   // decode msg header
   uint64_t rheader = msg->payload64[0];
-  uint8_t r8header[4];
+  uint8_t r8header[8];
   uint8_t mtype;
   uint16_t mid;
   float stime;
