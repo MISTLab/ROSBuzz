@@ -98,7 +98,7 @@ function goto_gps(transf) {
 	else {
 		#LimitSpeed(m_navigation, 1.0)
 		log("NAVIGATION !!!! distance to target: ", math.vec2.length(m_navigation)," angle", math.vec2.angle(m_navigation) )
-		goto_abs(m_navigation.x/2.0, m_navigation.y/2.0, rc_goto.altitude - pose.position.altitude, 0.0)
+		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
 	}
 }
 
