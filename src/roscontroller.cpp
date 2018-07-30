@@ -1468,15 +1468,20 @@ void roscontroller::time_sync_step()
   double avgOffset = 0;
   int offsetCount = 0;
   map<int, buzz_utility::neighbor_time>::iterator it;
-  for (it = neighbours_time_map.begin(); it != neighbours_time_map.end(); ++it)
+  for (it = neighbours_time_map.begin(); it != neighbours_time_map.end(); )
   {
     avgRate += (it->second).relative_rate;
     // estimate current offset
     int64_t  offset = (int64_t)(it->second).nei_logical_time - (int64_t)(it->second).node_logical_time; 
     avgOffset = avgOffset + offset;
     offsetCount++;
-    if((it->second).age < BUZZRATE) (it->second).age++;
-    else neighbours_time_map.erase(it);
+    if((it->second).age > BUZZRATE){
+      neighbours_time_map.erase(it);
+    }
+    else{ 
+      (it->second).age++;
+      ++it;
+    }
     ROS_INFO("Size of nei time %i",neighbours_time_map.size());
   }
   avgRate = avgRate/(neighbours_time_map.size()+1);
