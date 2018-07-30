@@ -1476,7 +1476,7 @@ void roscontroller::time_sync_step()
     avgOffset = avgOffset + offset;
     offsetCount++;
     if((it->second).age > BUZZRATE){
-      neighbours_time_map.erase(it);
+      neighbours_time_map.erase(it++);
     }
     else{ 
       (it->second).age++;
