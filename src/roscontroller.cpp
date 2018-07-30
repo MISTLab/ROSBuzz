@@ -1477,11 +1477,12 @@ void roscontroller::time_sync_step()
     offsetCount++;
     if((it->second).age < BUZZRATE) (it->second).age++;
     else neighbours_time_map.erase(it);
+    ROS_INFO("Size of nei time %i",neighbours_time_map.size());
   }
   avgRate = avgRate/(neighbours_time_map.size()+1);
   if(offsetCount>0 && !time_sync_jumped){
     int64_t correction = (int64_t)ceil(avgOffset / (offsetCount+1));
-    if(std::abs(correction) < TIME_SYNC_JUMP_THR){
+    if(correction < TIME_SYNC_JUMP_THR && correction > 0 ){
       set_logical_time_correction(correction);
     }
   }
@@ -1506,7 +1507,7 @@ void roscontroller::push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, dou
     relativeRate =  MOVING_AVERAGE_ALPHA*((it->second).relative_rate) 
                               + (1- MOVING_AVERAGE_ALPHA)*currentRate;
     
-    ROS_INFO("SYNC MSG RECEIVED deltaLocal %"PRIu64", delatNei %"PRId64" , currentrate %f , this relative rate %f, final relativeRate %f", 
+    ROS_INFO("SYNC MSG RECEIVED deltaLocal %" PRIu64 ", delatNei %" PRId64 " , currentrate %f , this relative rate %f, final relativeRate %f", 
       deltaLocal, delatNei, currentRate, (it->second).relative_rate, relativeRate);
     neighbours_time_map.erase(it);
   }
@@ -1517,6 +1518,7 @@ void roscontroller::push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, dou
   }
   buzz_utility::neighbor_time nt(nh, nl, ros::Time::now().toNSec(),
                                     logical_clock.toNSec(), nr, relativeRate);
+  nt.age=0;
   neighbours_time_map.insert(make_pair(nid, nt));
 }
 
