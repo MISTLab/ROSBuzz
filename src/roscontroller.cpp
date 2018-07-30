@@ -614,7 +614,6 @@ with size.........  |   /
   tmphead[1] = (uint16_t)message_number;
   get_logical_time();
   uint32_t stime = (uint32_t)(logical_clock.toSec() * 100000);
-  ROS_INFO("Sent stime %u for %u",stime,message_number);
   memcpy((void*)(tmphead+2),(void*)&stime,sizeof(uint32_t));
   uint64_t rheader[1];
   payload_out.sysid = (uint8_t)robot_id;
@@ -623,7 +622,6 @@ with size.........  |   /
   if(buzz_utility::get_timesync_state()){
     // prepare rosbuzz msg header
     tmphead[0] = (uint8_t)BUZZ_MESSAGE_TIME;
-    ROS_INFO("sent header : type  %u mid  %u time  %u",tmphead[0],tmphead[1],tmphead[2]);
     memcpy(rheader, tmphead, sizeof(uint64_t));
     // push header into the buffer
     payload_out.payload64.push_back(rheader[0]);
@@ -641,7 +639,6 @@ with size.........  |   /
   else{
     // prepare rosbuzz msg header
     tmphead[0] = (uint8_t)BUZZ_MESSAGE_WTO_TIME;
-    ROS_INFO("sent header : type  %u mid  %u time  %u",tmphead[0],tmphead[1],tmphead[2]);
     memcpy(rheader, tmphead, sizeof(uint64_t));
     // push header into the buffer
     payload_out.payload64.push_back(rheader[0]);
@@ -1122,8 +1119,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
   uint32_t temptime=0;
   memcpy(&temptime, r16head+2, sizeof(uint32_t)); 
   float stime = (float)temptime/(float)100000;
-  ROS_INFO("received stime %f for %u",stime, mid);
-  ROS_INFO("Received header : type  %u mid  %u time  %u",r16head[0],r16head[1],r16head[2]);
+  if(debug) ROS_INFO("Received Msg: sent time %f for id %u",stime, mid);
   // Check for Updater message, if updater message push it into updater FIFO
   if ((uint64_t)msg->payload64[0] == (uint64_t)UPDATER_MESSAGE)
   {
@@ -1522,7 +1518,6 @@ void roscontroller::push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, dou
   buzz_utility::neighbor_time nt(nh, nl, ros::Time::now().toNSec(),
                                     logical_clock.toNSec(), nr, relativeRate);
   neighbours_time_map.insert(make_pair(nid, nt));
- ROS_INFO("SYNC MSG RECEIVED deltaLocal from  %i",nid);  
 }
 
   uint64_t roscontroller::get_logical_time(){
