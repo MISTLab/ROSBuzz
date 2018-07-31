@@ -34,7 +34,7 @@ function init() {
 	init_swarm()
 	initGraph()
 
-	TARGET_ALTITUDE = 5 + (id-LOWEST_ROBOT_ID)*3.0 # m
+	TARGET_ALTITUDE = 5 + (id-LOWEST_ROBOT_ID)*4.0 # m
 	loop = 1
 
 	# start the swarm command listener
