@@ -537,7 +537,7 @@ function DoJoining(){
 
   if(m_gotjoinedparent!=1)
     set_rc_goto()
-	else
+  else
     goto_gps(TransitionToJoined)
 	#pack the communication package
 	m_selfMessage.State=s2i(BVMSTATE)

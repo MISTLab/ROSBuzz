@@ -10,7 +10,7 @@ include "utils/conversions.bzz"
 TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
 PICTURE_WAIT = 20 # steps
-GOTO_MAXVEL = 0.5 # m/steps
+GOTO_MAXVEL = 5.0 # m/steps
 GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 2.0  # m.
 GOTOANG_TOL = 0.2 # rad.
@@ -89,6 +89,7 @@ function take_picture() {
 }
 
 function goto_gps(transf) {
+	log(" has to move to lat : ", rc_goto.latitude, " long: ", rc_goto.longitude, "Current lat : ", pose.position.latitude," lon ",pose.position.longitude)
 	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
 	print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
  	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
@@ -96,8 +97,9 @@ function goto_gps(transf) {
 	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
 		transf()
 	else {
-		#LimitSpeed(m_navigation, 1.0)
-		log("NAVIGATION !!!! distance to target: ", math.vec2.length(m_navigation)," angle", math.vec2.angle(m_navigation) )
+		log("Waypoint before scale : x ",m_navigation.x, " Y ",m_navigation.y )
+               	m_navigation = LimitSpeed(m_navigation, 1.0)
+                log("Waypoint after scale : x ",m_navigation.x, " Y ",m_navigation.y )
 		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
 	}
 }
