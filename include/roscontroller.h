@@ -104,8 +104,8 @@ private:
     uint16_t nid;
     uint16_t size;
     double sent_time;
-    double received_time;
-    MsgData(int mi, uint16_t ni, uint16_t s, double st, double rt): 
+    uint64_t received_time;
+    MsgData(int mi, uint16_t ni, uint16_t s, double st, uint64_t rt): 
             msgid(mi), nid(ni), size(s),sent_time(st), received_time(rt){};
     MsgData(){};
   };
@@ -122,7 +122,7 @@ private:
   ros::Time logical_clock;
   ros::Time previous_step_time;
   std::vector<msg_data> inmsgdata; 
-  double out_msg_time; 
+  uint64_t out_msg_time; 
   double logical_time_rate;
   bool time_sync_jumped;
   std::string robot_name = "";
