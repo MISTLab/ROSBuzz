@@ -173,7 +173,7 @@ void roscontroller::RosControllerRun()
 
       // log data
       // hardware time now
-      log<<ros::Time::now().toSec()<<",";
+      log<<ros::Time::now().toNSec()<<",";
       get_logical_time();
       // logical time now
       log<<logical_clock.toNSec()<<",";
