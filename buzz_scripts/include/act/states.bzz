@@ -67,12 +67,14 @@ function stop() {
 		neighbors.broadcast("cmd", 21)
 		uav_land()
 		if(flight.status != 2 and flight.status != 3) {
-			barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
-			barrier_ready(21)
+			BVMSTATE = "TURNEDOFF"
+			#barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
+			#barrier_ready(21)
 		}
 	} else {
-			barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
-			barrier_ready(21)
+			BVMSTATE = "TURNEDOFF"
+			#barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
+			#barrier_ready(21)
 	}
 }
 
