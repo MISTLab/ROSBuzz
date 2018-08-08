@@ -10,7 +10,7 @@ include "utils/conversions.bzz"
 TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
 PICTURE_WAIT = 20 # steps
-GOTO_MAXVEL = 0.2 # m/steps
+GOTO_MAXVEL = 0.5 # m/steps
 GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 1.0  # m.
 GOTOANG_TOL = 0.1 # rad.
