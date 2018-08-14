@@ -613,7 +613,7 @@ with size.........  |   /
   uint16_t tmphead[4];
   tmphead[1] = (uint16_t)message_number;
   get_logical_time();
-  uint32_t stime = (uint32_t)(logical_clock.toSec() * 100000);
+  uint32_t stime = (uint32_t)(ros::Time::now().toSec());   //(uint32_t)(logical_clock.toSec() * 100000);
   memcpy((void*)(tmphead+2),(void*)&stime,sizeof(uint32_t));
   uint64_t rheader[1];
   payload_out.sysid = (uint8_t)robot_id;
@@ -654,7 +654,7 @@ with size.........  |   /
   }
   //Store out msg time
   get_logical_time();
-  out_msg_time = logical_clock.toNSec();
+  out_msg_time = ros::Time::now().toNSec(); //logical_clock.toNSec();
   // publish prepared messages in respective topic
   payload_pub.publish(payload_out);
   delete[] out;
@@ -1169,9 +1169,9 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     if((int)mtype == (int)BUZZ_MESSAGE_TIME) index = 5;
     //  Extract robot id of the neighbour
     uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + index));
-    get_logical_time();
+    //get_logical_time();
     // store in msg data for data log
-    msg_data inm(mid,out[1],out[0]*sizeof(uint64_t),stime,logical_clock.toNSec());
+    msg_data inm(mid,out[1],out[0]*sizeof(uint64_t),stime,ros::Time::now().toNSec());
     inmsgdata.push_back(inm);
 
     if (debug)
