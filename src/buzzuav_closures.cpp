@@ -19,6 +19,7 @@ static float rc_gimbal[4];
 static float batt[3];
 static float obst[5] = { 0, 0, 0, 0, 0 };
 static double cur_pos[4];
+static double cur_NEDpos[2];
 static uint8_t status;
 static int cur_cmd = 0;
 static int rc_cmd = 0;
@@ -629,6 +630,15 @@ int buzzuav_update_xbee_status(buzzvm_t vm)
   return vm->state;
 }
 
+void set_currentNEDpos(double x, double y)
+/*
+/ update interface position array
+-----------------------------------*/
+{
+  cur_NEDpos[0] = x;
+  cur_NEDpos[1] = y;
+}
+
 void set_currentpos(double latitude, double longitude, float altitude, float yaw)
 /*
 / update interface position array
@@ -696,6 +706,14 @@ int buzzuav_update_currentpos(buzzvm_t vm)
   buzzvm_push(vm, tPosition);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 0));
   buzzvm_pushf(vm, cur_pos[2]);
+  buzzvm_tput(vm);
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 0));
+  buzzvm_pushf(vm, cur_NEDpos[0]);
+  buzzvm_tput(vm);
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 0));
+  buzzvm_pushf(vm, cur_NEDpos[1]);
   buzzvm_tput(vm);
   //  Store read table in the proximity table
   buzzvm_push(vm, tPoseTable);

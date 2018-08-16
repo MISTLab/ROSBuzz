@@ -987,6 +987,7 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
 {
   cur_pos.x = msg->pose.position.x;
   cur_pos.y = msg->pose.position.y;
+  set_currentNEDpos(msg->pose.position.y,msg->pose.position.x);
   //  cur_pos.z = pose->pose.position.z; // Using relative altitude topic instead
   tf::Quaternion q(
     msg->pose.orientation.x,
