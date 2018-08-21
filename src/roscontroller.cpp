@@ -780,7 +780,11 @@ script
       }
       else
         ROS_ERROR("Failed to call service from flight controller");
+#ifdef MAVROSKINETIC
+      cmd_srv.request.command = mavros_msgs::CommandCode::MISSION_START;
+#else
       cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
+#endif
       if (mav_client.call(cmd_srv))
       {
         ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
@@ -818,7 +822,11 @@ script
       cmd_srv.request.param2 = gimbal[1];
       cmd_srv.request.param3 = gimbal[2];
       cmd_srv.request.param4 = gimbal[3];
+#ifdef MAVROSKINETIC
+      cmd_srv.request.command = mavros_msgs::CommandCode::DO_MOUNT_CONTROL;
+#else
       cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+#endif
       if (mav_client.call(cmd_srv))
       {
         ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
@@ -1220,8 +1228,13 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
+#ifdef MAVROSKINETIC
+    case mavros_msgs::CommandCode::COMPONENT_ARM_DISARM:
+      rc_cmd = mavros_msgs::CommandCode::COMPONENT_ARM_DISARM;
+#else
     case mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM:
       rc_cmd = mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
+#endif
       armstate = req.param1;
       if (armstate)
       {
@@ -1249,10 +1262,18 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
+#ifdef MAVROSKINETIC
+    case mavros_msgs::CommandCode::DO_MOUNT_CONTROL:
+#else
     case mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL:
+#endif
       ROS_INFO("RC_Call: Gimbal!!!! ");
       buzzuav_closures::rc_set_gimbal(req.param1, req.param2, req.param3, req.param4, req.param5);
+#ifdef MAVROSKINETIC
+      rc_cmd = mavros_msgs::CommandCode::DO_MOUNT_CONTROL;
+#else
       rc_cmd = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
+#endif
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
