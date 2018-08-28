@@ -204,9 +204,9 @@ void roscontroller::RosControllerRun()
       inmsgdata.clear();
       log<<std::endl;
 
-      time_sync_step();
-      if(debug)
-        ROS_INFO("[Debug : %i ] logical Time %f , har time %f",robot_id, logical_clock.toSec(), ros::Time::now().toSec());
+      // time_sync_step();
+      // if(debug)
+      //   ROS_INFO("[Debug : %i ] logical Time %f , har time %f",robot_id, logical_clock.toSec(), ros::Time::now().toSec());
       //  Call Step from buzz script
       buzz_utility::buzz_script_step();
       //  Prepare messages and publish them
@@ -616,6 +616,7 @@ with size.........  |   /
   uint32_t stime = (uint32_t)(ros::Time::now().toSec());   //(uint32_t)(logical_clock.toSec() * 100000);
   memcpy((void*)(tmphead+2),(void*)&stime,sizeof(uint32_t));
   uint64_t rheader[1];
+  rheader[0]=0;
   payload_out.sysid = (uint8_t)robot_id;
   payload_out.msgid = (uint32_t)message_number;
   
@@ -1128,7 +1129,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
   uint32_t temptime=0;
   memcpy(&temptime, r16head+2, sizeof(uint32_t)); 
   float stime = (float)temptime/(float)100000;
-  if(debug) ROS_INFO("Received Msg: sent time %f for id %u",stime, mid);
+  // if(debug) ROS_INFO("Received Msg: sent time %f for id %u",stime, mid);
   // Check for Updater message, if updater message push it into updater FIFO
   if ((uint64_t)msg->payload64[0] == (uint64_t)UPDATER_MESSAGE)
   {

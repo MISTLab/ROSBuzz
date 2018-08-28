@@ -6,19 +6,19 @@ timesync_state = 0
 
 # Function to sync. algo
 function check_time_sync(){
-	sync_timer = sync_timer + 1
-  	if(sync_timer < TIME_TO_SYNC){
-  		log(" Synchronizing Clock : ",sync_timer,"/",TIME_TO_SYNC)
-  		timesync_state = 1
-	}
-	else{
-		timesync_state = 0	
-	} 
-	if(timesync_old_state == 0 and timesync_state == 1){
-		timesync_itr = timesync_itr + 1
-		timesync_old_state = 0
-	}
-	timesync_old_state = timesync_state
+	# sync_timer = sync_timer + 1
+ #  	if(sync_timer < TIME_TO_SYNC){
+ #  		log(" Synchronizing Clock : ",sync_timer,"/",TIME_TO_SYNC)
+ #  		timesync_state = 1
+	# }
+	# else{
+	# 	timesync_state = 0	
+	# } 
+	# if(timesync_old_state == 0 and timesync_state == 1){
+	# 	timesync_itr = timesync_itr + 1
+	# 	timesync_old_state = 0
+	# }
+	# timesync_old_state = timesync_state
 }
 
 # Function to set sync timer to zero and reinitiate sync. algo
