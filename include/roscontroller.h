@@ -52,6 +52,7 @@ typedef enum {
 #define COM_DELAY 100000000 // in nano seconds i.e 100 ms
 #define TIME_SYNC_JUMP_THR 500000000 
 #define MOVING_AVERAGE_ALPHA 0.1
+#define MAX_NUMBER_OF_ROBOTS 10
 
 #define TIMEOUT 60
 #define BUZZRATE 10

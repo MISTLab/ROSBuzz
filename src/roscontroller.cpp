@@ -392,12 +392,12 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c)
 
   Subscribe(n_c);
 
-  payload_sub = n_c.subscribe(in_payload, 5, &roscontroller::payload_obt, this);
+  payload_sub = n_c.subscribe(in_payload, MAX_NUMBER_OF_ROBOTS, &roscontroller::payload_obt, this);
 
   // publishers
   payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 5);
   MPpayload_pub = n_c.advertise<mavros_msgs::Mavlink>("fleet_status", 5);
-  neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos", 5);
+  neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos", MAX_NUMBER_OF_ROBOTS);
   uavstate_pub = n_c.advertise<std_msgs::String>("uavstate", 5);
   grid_pub = n_c.advertise<nav_msgs::OccupancyGrid>("grid", 5);
   localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name, 5);

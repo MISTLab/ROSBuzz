@@ -15,7 +15,7 @@ GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 1.0  # m.
 GOTOANG_TOL = 0.1 # rad.
 path_it = 0
-graphid = 0
+graphid = 3
 pic_time = 0
 g_it = 0
 
