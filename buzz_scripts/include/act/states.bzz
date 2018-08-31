@@ -31,6 +31,15 @@ function idle() {
 function cusfun(){
 	BVMSTATE="CUSFUN"
 	log("cusfun: yay!!!")
+	LOCAL_TARGET = math.vec2.new(5 ,0 )
+	local_set_point = math.vec2.new(LOCAL_TARGET.x - pose.position.x ,LOCAL_TARGET.y - pose.position.y ) # has to move 5 meters in x from the home location
+	if(math.vec2.length(local_set_point) > GOTODIST_TOL){
+		local_set_point = LimitSpeed(local_set_point, 1.0)
+		goto_abs(local_set_point.x, local_set_point.y, 0.0, 0.0)
+    }
+    else{
+    	log("TARGET REACHED")
+    }
 }
 
 function launch() {
