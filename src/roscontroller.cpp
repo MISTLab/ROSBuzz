@@ -714,7 +714,7 @@ script
   float* gimbal;
   switch (buzzuav_closures::bzz_cmd())
   {
-    case buzzuav_closures::COMMAND_TAKEOFF:
+    case NAV_TAKEOFF:
       goto_pos = buzzuav_closures::getgoto();
       cmd_srv.request.param7 = goto_pos[2];
       cmd_srv.request.command = buzzuav_closures::getcmd();
@@ -737,7 +737,7 @@ script
         ROS_ERROR("Failed to call service from flight controller");
       break;
 
-    case buzzuav_closures::COMMAND_LAND:
+    case NAV_LAND:
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (current_mode != "LAND")
       {
@@ -756,7 +756,7 @@ script
       armstate = 0;
       break;
 
-    case buzzuav_closures::COMMAND_GOHOME:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
+    case NAV_RETURN_TO_LAUNCH:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
       cmd_srv.request.param5 = home.latitude;
       cmd_srv.request.param6 = home.longitude;
       cmd_srv.request.param7 = home.altitude;
@@ -769,32 +769,7 @@ script
         ROS_ERROR("Failed to call service from flight controller");
       break;
 
-    case buzzuav_closures::COMMAND_GOTO:  // TOOD: NOT FULLY IMPLEMENTED/TESTED !!!
-      goto_pos = buzzuav_closures::getgoto();
-      cmd_srv.request.param5 = goto_pos[0];
-      cmd_srv.request.param6 = goto_pos[1];
-      cmd_srv.request.param7 = goto_pos[2];
-      cmd_srv.request.command = buzzuav_closures::getcmd();
-      if (mav_client.call(cmd_srv))
-      {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      }
-      else
-        ROS_ERROR("Failed to call service from flight controller");
-#ifdef MAVROSKINETIC
-      cmd_srv.request.command = mavros_msgs::CommandCode::MISSION_START;
-#else
-      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_MISSION_START;
-#endif
-      if (mav_client.call(cmd_srv))
-      {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
-      }
-      else
-        ROS_ERROR("Failed to call service from flight controller");
-      break;
-
-    case buzzuav_closures::COMMAND_ARM:
+    case COMPONENT_ARM_DISARM:
       if (!armstate)
       {
         SetMode("LOITER", 0);
@@ -803,7 +778,7 @@ script
       }
       break;
 
-    case buzzuav_closures::COMMAND_DISARM:
+    case COMPONENT_ARM_DISARM+1:
       if (armstate)
       {
         armstate = 0;
@@ -812,22 +787,18 @@ script
       }
       break;
 
-    case buzzuav_closures::COMMAND_MOVETO:
+    case NAV_SPLINE_WAYPOINT:
       goto_pos = buzzuav_closures::getgoto();
       roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       break;
 
-    case buzzuav_closures::COMMAND_GIMBAL:
+    case DO_MOUNT_CONTROL:
       gimbal = buzzuav_closures::getgimbal();
       cmd_srv.request.param1 = gimbal[0];
       cmd_srv.request.param2 = gimbal[1];
       cmd_srv.request.param3 = gimbal[2];
       cmd_srv.request.param4 = gimbal[3];
-#ifdef MAVROSKINETIC
-      cmd_srv.request.command = mavros_msgs::CommandCode::DO_MOUNT_CONTROL;
-#else
-      cmd_srv.request.command = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
-#endif
+      cmd_srv.request.command = DO_MOUNT_CONTROL;
       if (mav_client.call(cmd_srv))
       {
         ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
@@ -836,7 +807,7 @@ script
         ROS_ERROR("Failed to call service from flight controller");
       break;
 
-    case buzzuav_closures::COMMAND_PICTURE:
+    case IMAGE_START_CAPTURE:
       ROS_INFO("TAKING A PICTURE HERE!! --------------");
       mavros_msgs::CommandBool capture_command;
       if (capture_srv.call(capture_command))
@@ -1218,25 +1189,20 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
   int rc_cmd;
   switch (req.command)
   {
-    case mavros_msgs::CommandCode::NAV_TAKEOFF:
+    case NAV_TAKEOFF:
       ROS_INFO("RC_call: TAKE OFF!!!!");
-      rc_cmd = mavros_msgs::CommandCode::NAV_TAKEOFF;
+      rc_cmd = NAV_TAKEOFF;
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
-    case mavros_msgs::CommandCode::NAV_LAND:
+    case NAV_LAND:
       ROS_INFO("RC_Call: LAND!!!!");
-      rc_cmd = mavros_msgs::CommandCode::NAV_LAND;
+      rc_cmd = NAV_LAND;
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
-#ifdef MAVROSKINETIC
-    case mavros_msgs::CommandCode::COMPONENT_ARM_DISARM:
-      rc_cmd = mavros_msgs::CommandCode::COMPONENT_ARM_DISARM;
-#else
-    case mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM:
-      rc_cmd = mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
-#endif
+    case COMPONENT_ARM_DISARM:
+      rc_cmd = COMPONENT_ARM_DISARM;
       armstate = req.param1;
       if (armstate)
       {
@@ -1251,31 +1217,23 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
         res.success = true;
       }
       break;
-    case mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH:
+    case NAV_RETURN_TO_LAUNCH:
       ROS_INFO("RC_Call: GO HOME!!!!");
-      rc_cmd = mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
+      rc_cmd = NAV_RETURN_TO_LAUNCH;
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
-    case mavros_msgs::CommandCode::NAV_WAYPOINT:
+    case NAV_WAYPOINT:
       ROS_INFO("RC_Call: GO TO!!!! ");
       buzzuav_closures::rc_set_goto(req.param1, req.param5, req.param6, req.param7);
-      rc_cmd = mavros_msgs::CommandCode::NAV_WAYPOINT;
+      rc_cmd = NAV_WAYPOINT;
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
-#ifdef MAVROSKINETIC
-    case mavros_msgs::CommandCode::DO_MOUNT_CONTROL:
-#else
-    case mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL:
-#endif
+    case DO_MOUNT_CONTROL:
       ROS_INFO("RC_Call: Gimbal!!!! ");
       buzzuav_closures::rc_set_gimbal(req.param1, req.param2, req.param3, req.param4, req.param5);
-#ifdef MAVROSKINETIC
-      rc_cmd = mavros_msgs::CommandCode::DO_MOUNT_CONTROL;
-#else
-      rc_cmd = mavros_msgs::CommandCode::CMD_DO_MOUNT_CONTROL;
-#endif
+      rc_cmd = DO_MOUNT_CONTROL;
       buzzuav_closures::rc_call(rc_cmd);
       res.success = true;
       break;
