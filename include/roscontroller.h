@@ -12,6 +12,7 @@
 #include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/State.h"
 #include "mavros_msgs/BatteryStatus.h"
+#include "sensor_msgs/BatteryState.h"
 #include "mavros_msgs/Mavlink.h"
 #include "mavros_msgs/PositionTarget.h"
 #include "sensor_msgs/NavSatStatus.h"
@@ -34,14 +35,29 @@
 #include <signal.h>
 #include <ostream>
 #include <map>
+#include <cmath>
 #include "buzzuav_closures.h"
 
-#define UPDATER_MESSAGE_CONSTANT 987654321
-#define XBEE_MESSAGE_CONSTANT 586782343
-#define XBEE_STOP_TRANSMISSION 4355356352
+/*
+* ROSBuzz message types
+*/
+typedef enum {
+  ROS_BUZZ_MSG_NIL = 0,    // dummy msg
+  UPDATER_MESSAGE,         // Update msg
+  BUZZ_MESSAGE_WTO_TIME,   // Broadcast message wihout time info
+  BUZZ_MESSAGE_TIME,       // Broadcast message with time info
+} rosbuzz_msgtype;
+
+// Time sync algo. constants
+#define COM_DELAY 100000000 // in nano seconds i.e 100 ms
+#define TIME_SYNC_JUMP_THR 500000000 
+#define MOVING_AVERAGE_ALPHA 0.1
+#define MAX_NUMBER_OF_ROBOTS 10
+
 #define TIMEOUT 60
 #define BUZZRATE 10
 #define CMD_REQUEST_UPDATE 666
+#define CMD_SYNC_CLOCK 777
 
 using namespace std;
 
@@ -83,19 +99,42 @@ private:
   };
   typedef struct POSE ros_pose;
 
+
+  struct MsgData
+  {
+    int msgid;
+    uint16_t nid;
+    uint16_t size;
+    double sent_time;
+    uint64_t received_time;
+    MsgData(int mi, uint16_t ni, uint16_t s, double st, uint64_t rt): 
+            msgid(mi), nid(ni), size(s),sent_time(st), received_time(rt){};
+    MsgData(){};
+  };
+  typedef struct MsgData msg_data;
+
   ros_pose target, home, cur_pos;
 
   uint64_t payload;
   std::map<int, buzz_utility::Pos_struct> neighbours_pos_map;
   std::map<int, buzz_utility::Pos_struct> raw_neighbours_pos_map;
+  std::map<int, buzz_utility::neighbor_time> neighbours_time_map;
   int timer_step = 0;
   int robot_id = 0;
+  ros::Time logical_clock;
+  ros::Time previous_step_time;
+  std::vector<msg_data> inmsgdata; 
+  uint64_t out_msg_time; 
+  double logical_time_rate;
+  bool time_sync_jumped;
   std::string robot_name = "";
 
   int rc_cmd;
   float fcu_timeout;
   int armstate;
   int barrier;
+  int update;
+  int statepub_active;
   int message_number = 0;
   uint8_t no_of_robots = 0;
   bool rcclient;
@@ -205,7 +244,7 @@ private:
                        double gps_r_lat);
 
   /*battery status callback */
-  void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
+  void battery(const sensor_msgs::BatteryState::ConstPtr& msg);
 
   /*flight extended status callback*/
   void flight_extended_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg);
@@ -265,5 +304,9 @@ private:
   bool GetFilteredPacketLoss(const uint8_t short_id, float& result);
   void get_xbee_status();
 
+  void time_sync_step();
+  void push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, double nr);
+  uint64_t get_logical_time();
+  void set_logical_time_correction(uint64_t cor);
 };
 }

@@ -43,6 +43,24 @@ struct neiStatus
 };
 typedef struct neiStatus neighbors_status;
 
+struct neitime
+{
+  uint64_t nei_hardware_time;
+  uint64_t nei_logical_time;
+  uint64_t node_hardware_time;
+  uint64_t node_logical_time;
+  double nei_rate;
+  double relative_rate;
+  int age;
+  neitime(uint64_t nht, uint64_t nlt, uint64_t mht, uint64_t mlt, double nr, double mr)
+    : nei_hardware_time(nht), nei_logical_time(nlt), node_hardware_time(mht), node_logical_time(mlt), 
+      nei_rate(nr), relative_rate(mr) {};
+  neitime()
+  {
+  }
+};
+typedef struct neitime neighbor_time;
+
 uint16_t* u64_cvt_u16(uint64_t u64);
 
 int buzz_listen(const char* type, int msg_size);
@@ -77,4 +95,12 @@ buzzvm_t get_vm();
 void set_robot_var(int ROBOTS);
 
 int get_inmsg_size();
+
+std::vector<uint8_t*> get_inmsg_vector();
+
+std::string getuavstate();
+
+int get_timesync_state();
+
+int get_timesync_itr();
 }

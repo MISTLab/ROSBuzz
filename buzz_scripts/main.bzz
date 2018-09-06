@@ -5,9 +5,15 @@ include "act/states.bzz"
 include "plan/rrtstar.bzz"
 include "taskallocate/graphformGPS.bzz"
 include "vstigenv.bzz"
+include "timesync.bzz"
 
 #State launched after takeoff
-AUTO_LAUNCH_STATE = "PURSUIT"
+AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
+#AUTO_LAUNCH_STATE = "CUSFUN"
+#Lowest robot id in the network
+LOWEST_ROBOT_ID = 1
+TARGET     = 9.0
+EPSILON    = 30.0
 
 #####
 # Vehicule type:
@@ -26,7 +32,10 @@ function init() {
   	init_stig()
 	init_swarm()
 
-	TARGET_ALTITUDE = 10 + id*2.0 # m
+#	initGraph()
+
+	TARGET_ALTITUDE = 5 + (id-LOWEST_ROBOT_ID)*4.0 # m
+	
 	loop = 1
 
 	# start the swarm command listener
@@ -38,6 +47,10 @@ function init() {
 
 # Executed at each time step.
 function step() {
+
+	# check time sync algorithm state
+    check_time_sync()
+
 	# listen to Remote Controller
 	rc_cmd_listen()
 
@@ -49,10 +62,14 @@ function step() {
 	#
 	if(BVMSTATE=="TURNEDOFF")
 		statef=turnedoff
+	else if(BVMSTATE=="CUSFUN")
+		statef=cusfun
 	else if(BVMSTATE=="STOP")	# ends on turnedoff
 		statef=stop
 	else if(BVMSTATE=="LAUNCH") # ends on AUTO_LAUNCH_STATE
 		statef=launch
+	else if(BVMSTATE=="GOHOME") # ends on AUTO_LAUNCH_STATE
+		statef=goinghome
 	else if(BVMSTATE=="IDLE")
 		statef=idle
 	else if(BVMSTATE=="AGGREGATE")

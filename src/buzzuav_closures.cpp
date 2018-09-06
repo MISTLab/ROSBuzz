@@ -19,6 +19,7 @@ static float rc_gimbal[4];
 static float batt[3];
 static float obst[5] = { 0, 0, 0, 0, 0 };
 static double cur_pos[4];
+static double cur_NEDpos[2];
 static uint8_t status;
 static int cur_cmd = 0;
 static int rc_cmd = 0;
@@ -228,8 +229,8 @@ int buzzuav_moveto(buzzvm_t vm)
   goto_pos[2] = height + dh;
   goto_pos[3] = dyaw;
   //  DEBUG
-  // ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
-  // goto_pos[1], goto_pos[2]);
+   ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
+   goto_pos[1], goto_pos[2]);
   buzz_cmd = COMMAND_MOVETO;  // TODO: standard mavros?
   return buzzvm_ret0(vm);
 }
@@ -400,7 +401,11 @@ int buzzuav_arm(buzzvm_t vm)
 / Buzz closure to arm
 /---------------------------------------*/
 {
+#ifdef MAVROSKINETIC
+  cur_cmd = mavros_msgs::CommandCode::COMPONENT_ARM_DISARM;
+#else
   cur_cmd = mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
+#endif
   printf(" Buzz requested Arm \n");
   buzz_cmd = COMMAND_ARM;
   return buzzvm_ret0(vm);
@@ -411,7 +416,11 @@ int buzzuav_disarm(buzzvm_t vm)
 / Buzz closure to disarm
 /---------------------------------------*/
 {
+#ifdef MAVROSKINETIC
+  cur_cmd = mavros_msgs::CommandCode::COMPONENT_ARM_DISARM + 1;
+#else
   cur_cmd = mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM + 1;
+#endif
   printf(" Buzz requested Disarm  \n");
   buzz_cmd = COMMAND_DISARM;
   return buzzvm_ret0(vm);
@@ -477,19 +486,6 @@ float* getgimbal()
 ---------------------------------------*/
 {
   return rc_gimbal;
-}
-
-string getuavstate()
-/*
-/ return current BVM state
----------------------------------------*/
-{
-  static buzzvm_t VM = buzz_utility::get_vm();
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
-  buzzvm_gload(VM);
-  buzzobj_t uav_state = buzzvm_stack_at(VM, 1);
-  buzzvm_pop(VM);
-  return uav_state->s.value.str;
 }
 
 int getcmd()
@@ -642,6 +638,15 @@ int buzzuav_update_xbee_status(buzzvm_t vm)
   return vm->state;
 }
 
+void set_currentNEDpos(double x, double y)
+/*
+/ update interface position array
+-----------------------------------*/
+{
+  cur_NEDpos[0] = x;
+  cur_NEDpos[1] = y;
+}
+
 void set_currentpos(double latitude, double longitude, float altitude, float yaw)
 /*
 / update interface position array
@@ -678,6 +683,11 @@ void update_neighbors(buzzvm_t vm)
   }
 }
 
+// Clear neighbours pos 
+void clear_neighbours_pos(){
+  neighbors_map.clear();
+}
+
 int buzzuav_update_currentpos(buzzvm_t vm)
 /*
 / Update the BVM position table
@@ -704,6 +714,14 @@ int buzzuav_update_currentpos(buzzvm_t vm)
   buzzvm_push(vm, tPosition);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 0));
   buzzvm_pushf(vm, cur_pos[2]);
+  buzzvm_tput(vm);
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 0));
+  buzzvm_pushf(vm, cur_NEDpos[0]);
+  buzzvm_tput(vm);
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 0));
+  buzzvm_pushf(vm, cur_NEDpos[1]);
   buzzvm_tput(vm);
   //  Store read table in the proximity table
   buzzvm_push(vm, tPoseTable);

@@ -89,6 +89,10 @@ void set_filtered_packet_loss(float value);
 /*
  * sets current position
  */
+
+void set_currentNEDpos(double x, double y);
+
+>>>>>>> 064760108611591426d86c679c7789b1a95cebee
 void set_currentpos(double latitude, double longitude, float altitude, float yaw);
 /*
  * returns the current go to position
@@ -98,10 +102,8 @@ double* getgoto();
  * returns the current grid
  */
 std::map<int, std::map<int,int>> getgrid();
-/*
- * returns the current Buzz state
- */
-std::string getuavstate();
+
+
 /*
  * returns the gimbal commands
  */
@@ -118,6 +120,10 @@ void neighbour_pos_callback(int id, float range, float bearing, float elevation)
  * update neighbors from in msgs
  */
 void update_neighbors(buzzvm_t vm);
+/*
+ *Clear neighbours struct
+ */
+void clear_neighbours_pos();
 /*
  * closure to add a neighbor status
  */

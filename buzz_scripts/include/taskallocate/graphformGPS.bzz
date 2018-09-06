@@ -10,7 +10,7 @@ include "taskallocate/graphs/shapes_Y.bzz"
 ROBOT_RADIUS = 50
 ROBOT_DIAMETER = 2.0*ROBOT_RADIUS
 ROBOT_SAFETYDIST = 2.0*ROBOT_DIAMETER
-ROOT_ID = 2
+ROOT_ID = 5
 
 #
 # Global variables
@@ -389,7 +389,7 @@ function TransitionToJoined(){
 	#write statues
 	#v_tag.put(m_nLabel, m_lockstig)
   	barrier_create()
-	barrier_ready()
+	barrier_ready(940)
 
 	m_navigation.x=0.0
 	m_navigation.y=0.0
@@ -537,7 +537,7 @@ function DoJoining(){
 
   if(m_gotjoinedparent!=1)
     set_rc_goto()
-	else
+  else
     goto_gps(TransitionToJoined)
 	#pack the communication package
 	m_selfMessage.State=s2i(BVMSTATE)
@@ -655,8 +655,7 @@ function DoJoined(){
 	      return
 	   }
 	}
-
-  barrier_wait(ROBOTS, "GRAPH_TRANSTOLOCK", "GRAPH_JOINED")
+  barrier_wait(ROBOTS, "GRAPH_TRANSTOLOCK", "GRAPH_JOINED",941)
   BroadcastGraph()
 }
 #
@@ -678,20 +677,21 @@ function DoLock() {
       m_navigation=motion_vector()
   }
 #  #move
-  goto_abs(m_navigation.x, m_navigation.y, 0.0, 0.0)
+
+#  goto_abs(m_navigation.x, m_navigation.y, 0.0, 0.0)
   BroadcastGraph()
 
-  if(loop) {
-	  if(timeout_graph==0) {
-		if(graphid < 3)
-			graphid = graphid + 1
-		else
-			graphid = 0
-		timeout_graph = 40
-		BVMSTATE="TASK_ALLOCATE"
-	  }
-  	timeout_graph = timeout_graph - 1
-  }
+#  if(loop) {
+#	  if(timeout_graph==0) {
+#		if(graphid < 3)
+#			graphid = graphid + 1
+#		else
+#			graphid = 0
+#		timeout_graph = 40
+#		BVMSTATE="TASK_ALLOCATE"
+#	  }
+#  	timeout_graph = timeout_graph - 1
+#  }
 }
 
 #

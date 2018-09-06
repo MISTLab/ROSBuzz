@@ -564,4 +564,56 @@ int get_inmsg_size()
 {
   return IN_MSG.size();
 }
+
+std::vector<uint8_t*> get_inmsg_vector(){
+  return IN_MSG;
+}
+
+string getuavstate()
+/*
+/ return current BVM state
+---------------------------------------*/
+{
+  std::string uav_state = "Unknown";
+  if(VM && VM->strings){
+    buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
+    buzzvm_gload(VM);
+    buzzobj_t obj = buzzvm_stack_at(VM, 1);
+    uav_state = string(obj->s.value.str);
+    buzzvm_pop(VM);
+  }
+  return uav_state;
+}
+
+int get_timesync_state()
+/*
+/ return time sync state from bzz script
+--------------------------------------*/
+{
+  int timesync_state = 0;
+  if(VM){
+    buzzvm_pushs(VM, buzzvm_string_register(VM, "timesync_state", 1));
+    buzzvm_gload(VM);
+    buzzobj_t obj = buzzvm_stack_at(VM, 1);
+    if(obj->o.type == BUZZTYPE_INT) timesync_state = obj->i.value;
+    buzzvm_pop(VM);
+  }
+  return timesync_state;
+}
+int get_timesync_itr()
+/*
+/ return time sync iteration from bzz script
+--------------------------------------*/
+{
+  int timesync_itr = 0;
+  if(VM){
+    buzzvm_pushs(VM, buzzvm_string_register(VM, "timesync_itr", 1));
+    buzzvm_gload(VM);
+    buzzobj_t obj = buzzvm_stack_at(VM, 1);
+    if(obj->o.type == BUZZTYPE_INT) timesync_itr = obj->i.value;
+    buzzvm_pop(VM);
+  }
+  return timesync_itr;
+}
+
 }

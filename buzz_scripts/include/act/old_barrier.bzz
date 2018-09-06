@@ -7,11 +7,10 @@
 #
 # Constants
 #
-BARRIER_TIMEOUT = 200 # in steps
+BARRIER_TIMEOUT = 1200 # in steps
 BARRIER_VSTIG = 80
 timeW = 0
 barrier = nil
-bc = 0;
 
 #
 # Sets a barrier
@@ -23,15 +22,15 @@ function barrier_create() {
   #log("---> Prev. br. ", barrier, " ", BARRIER_VSTIG)
   if(barrier!=nil) {
     barrier=nil
-  #  BARRIER_VSTIG = BARRIER_VSTIG +1
+    BARRIER_VSTIG = BARRIER_VSTIG +1
   }
   #log("---> New. br. ", barrier, " ", BARRIER_VSTIG)
   barrier = stigmergy.create(BARRIER_VSTIG)
 }
 
-function barrier_set(threshold, transf, resumef, bc) {
+function barrier_set(threshold, transf, resumef,bc) {
   statef = function() {
-    barrier_wait(threshold, transf, resumef, bc);
+    barrier_wait(threshold, transf, resumef,bc);
   }
   BVMSTATE = "BARRIERWAIT"
   barrier_create()
@@ -42,49 +41,29 @@ function barrier_set(threshold, transf, resumef, bc) {
 #
 function barrier_ready(bc) {
   #log("BARRIER READY -------")
-  barrier.put(id, bc)
+  barrier.put(id, 1)
   barrier.put("d", 0)
 }
 
 #
 # Executes the barrier
 #
-function barrier_wait(threshold, transf, resumef, bc) {
-  barrier.put(id, bc)
+function barrier_wait(threshold, transf, resumef,bc) {
+  barrier.put(id, 1)
+
   barrier.get(id)
-  var allgood = 0
-  log("--->BS: ", barrier.size(), " / ", threshold, " (", BARRIER_VSTIG, " - ", barrier.get("d"), ") t= ", timeW)
+  log("--->BS: ", barrier.size(), " (", BARRIER_VSTIG, ")")
   if(barrier.size() - 1 >= threshold or barrier.get("d") == 1) {
-    allgood = barrier_allgood(barrier,bc)
-  }
-  
-  if(allgood) {
     barrier.put("d", 1)
     timeW = 0
     BVMSTATE = transf
   } else if(timeW >= BARRIER_TIMEOUT) {
     log("------> Barrier Timeout !!!!")
-    barrier = nil
+    barrier=nil
     timeW = 0
     BVMSTATE = resumef
-  } else if(timeW % 100 == 0 and bc > 0)
-    neighbors.broadcast("cmd", bc)
+  }
 
   timeW = timeW+1
 }
 
-barriergood = 1
-
-# Barrer check all entries
-function barrier_allgood(barrier, bc) {
-  barriergood = 1
-  barrier.foreach(
-    function(key, value, robot){
-      #log("VS entry : ", key, " ", value, " ", robot)
-      if(value != bc and key != "d"){
-        barriergood = 0
-      }
-    }
-  )
-  return barriergood
-}
