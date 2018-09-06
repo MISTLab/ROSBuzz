@@ -92,7 +92,6 @@ void set_filtered_packet_loss(float value);
 
 void set_currentNEDpos(double x, double y);
 
->>>>>>> 064760108611591426d86c679c7789b1a95cebee
 void set_currentpos(double latitude, double longitude, float altitude, float yaw);
 /*
  * returns the current go to position
