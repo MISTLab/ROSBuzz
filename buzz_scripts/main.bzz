@@ -1,0 +1,117 @@
+include "update.bzz"
+# don't use a stigmergy id=11 with this header, for barrier 
+# it requires an 'action' function to be defined here.
+include "act/states.bzz"
+include "plan/rrtstar.bzz"
+include "taskallocate/graphformGPS.bzz"
+include "vstigenv.bzz"
+include "timesync.bzz"
+
+#State launched after takeoff
+AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
+#AUTO_LAUNCH_STATE = "CUSFUN"
+#Lowest robot id in the network
+LOWEST_ROBOT_ID = 0
+TARGET     = 9.0
+EPSILON    = 30.0
+
+#####
+# Vehicule type:
+# 0 -> outdoor flying vehicle
+# 1 -> indoor flying vehicle
+# 2 -> outdoor wheeled vehicle
+# 3 -> indoor wheeled vehicle
+V_TYPE = 0
+
+goal_list = {
+	.0={.x = 45.5088103899, .y = -73.1540826153, .z = 2.5}
+}
+
+# Executed once at init time.
+function init() {
+  	init_stig()
+	init_swarm()
+
+#	initGraph()
+
+	TARGET_ALTITUDE = 5 + (id-LOWEST_ROBOT_ID)*4.0 # m
+	
+	loop = 1
+
+	# start the swarm command listener
+	nei_cmd_listen()
+
+    # Starting state: TURNEDOFF to wait for user input.
+	BVMSTATE = "TURNEDOFF"
+}
+
+# Executed at each time step.
+function step() {
+
+	# check time sync algorithm state
+    check_time_sync()
+
+	# listen to Remote Controller
+	rc_cmd_listen()
+
+	# update the vstig (status/net/batt/...)
+  	# uav_updatestig()
+
+	#
+	# State machine
+	#
+	if(BVMSTATE=="TURNEDOFF")
+		statef=turnedoff
+	else if(BVMSTATE=="CUSFUN")
+		statef=cusfun
+	else if(BVMSTATE=="STOP")	# ends on turnedoff
+		statef=stop
+	else if(BVMSTATE=="LAUNCH") # ends on AUTO_LAUNCH_STATE
+		statef=launch
+	else if(BVMSTATE=="GOHOME") # ends on AUTO_LAUNCH_STATE
+		statef=goinghome
+	else if(BVMSTATE=="IDLE")
+		statef=idle
+	else if(BVMSTATE=="AGGREGATE")
+		statef=aggregate
+	else if(BVMSTATE=="FORMATION")
+		statef=formation
+	else if(BVMSTATE=="PURSUIT")
+		statef=pursuit
+	else if(BVMSTATE=="TASK_ALLOCATE")	# or bidding ?
+		statef=resetGraph
+	else if(BVMSTATE=="GRAPH_FREE")
+		statef=DoFree
+	else if(BVMSTATE=="GRAPH_ASKING")
+		statef=DoAsking
+	else if(BVMSTATE=="GRAPH_JOINING")
+		statef=DoJoining
+	else if(BVMSTATE=="GRAPH_JOINED")
+		statef=DoJoined
+	else if(BVMSTATE=="GRAPH_TRANSTOLOCK")
+		statef=TransitionToLock
+	else if(BVMSTATE=="GRAPH_LOCK")	# move all together (TODO: not tested), but auto-loop in graph list
+		statef=DoLock
+	else if(BVMSTATE=="PATHPLAN")	# ends on navigate, defined in rrtstar
+		statef=rrtstar
+	else if(BVMSTATE=="NAVIGATE")	# ends on idle, defined in rrtstar
+		statef=navigate
+	else if(BVMSTATE == "FOLLOW")	#TODO: not tested in new structure
+		statef=follow
+	else if(BVMSTATE == "PICTURE")	#TODO: not tested in new structure
+		statef=take_picture
+		
+
+	statef()
+
+	log("Current state: ", BVMSTATE)
+
+}
+ 
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+ 
+# Executed once at the end of experiment.
+function destroy() {
+}

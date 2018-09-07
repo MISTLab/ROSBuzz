@@ -1,0 +1,311 @@
+########################################
+#
+# FLIGHT-RELATED FUNCTIONS
+#
+########################################
+include "utils/vec2.bzz"
+include "act/barrier.bzz"
+#include "act/old_barrier.bzz"
+include "utils/conversions.bzz"
+
+TARGET_ALTITUDE = 15.0 # m.
+BVMSTATE = "TURNEDOFF"
+PICTURE_WAIT = 20 # steps
+
+GOTO_MAXVEL = 0.5 # m/steps
+GOTO_MAXDIST = 150 # m.
+GOTODIST_TOL = 1.0  # m.
+GOTOANG_TOL = 0.1 # rad.
+path_it = 0
+graphid = 3
+pic_time = 0
+g_it = 0
+
+function turnedoff() {
+    BVMSTATE = "TURNEDOFF"
+}
+
+function idle() {
+    BVMSTATE = "IDLE"
+}
+
+
+# Custom function for the user.
+function cusfun(){
+	BVMSTATE="CUSFUN"
+	log("cusfun: yay!!!")
+	LOCAL_TARGET = math.vec2.new(5 ,0 )
+	local_set_point = math.vec2.new(LOCAL_TARGET.x - pose.position.x ,LOCAL_TARGET.y - pose.position.y ) # has to move 5 meters in x from the home location
+	if(math.vec2.length(local_set_point) > GOTODIST_TOL){
+		local_set_point = LimitSpeed(local_set_point, 1.0)
+		goto_abs(local_set_point.x, local_set_point.y, 0.0, 0.0)
+    }
+    else{
+    	log("TARGET REACHED")
+    }
+}
+
+function launch() {
+	BVMSTATE = "LAUNCH"
+	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
+		homegps = {.lat=pose.position.latitude, .long=pose.position.longitude}
+		if( flight.status == 2 and pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
+			barrier_ready(22)
+		} else {
+			log("Altitude: ", pose.position.altitude)
+			neighbors.broadcast("cmd", 22)
+			uav_takeoff(TARGET_ALTITUDE)
+		}
+	} else {
+		barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
+		barrier_ready(22)
+	}
+}
+
+gohomeT=100
+function goinghome() {
+  BVMSTATE = "GOHOME"
+	if(gohomeT > 0) {	# TODO: Make a real check if home is reached
+		gohome()
+		gohomeT = gohomeT - 1
+	} else
+  	BVMSTATE = AUTO_LAUNCH_STATE
+}
+
+function stop() {
+  BVMSTATE = "STOP"
+	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
+		neighbors.broadcast("cmd", 21)
+		uav_land()
+		if(flight.status != 2 and flight.status != 3) {
+			BVMSTATE = "TURNEDOFF"
+			#barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
+			#barrier_ready(21)
+		}
+	} else {
+			BVMSTATE = "TURNEDOFF"
+			#barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
+			#barrier_ready(21)
+	}
+}
+
+function take_picture() {
+  BVMSTATE="PICTURE"
+  setgimbal(0.0, 0.0, -90.0, 20.0)
+	if(pic_time==PICTURE_WAIT/2) { # wait for the drone to stabilize
+	  takepicture()
+  } else if(pic_time>=PICTURE_WAIT) { # wait for the picture
+    BVMSTATE="IDLE"
+    pic_time=0
+  }
+  pic_time=pic_time+1
+}
+
+function goto_gps(transf) {
+	log(" has to move to lat : ", rc_goto.latitude, " long: ", rc_goto.longitude, "Current lat : ", pose.position.latitude," lon ",pose.position.longitude)
+	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
+	print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
+ 	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
+		log("Sorry this is too far.")
+	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
+		transf()
+	else {
+		m_navigation = LimitSpeed(m_navigation, 1.0)
+		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
+	}
+}
+
+function follow() {
+	if(size(targets)>0) {
+		BVMSTATE = "FOLLOW"
+		attractor=math.vec2.newp(0,0)
+		foreach(targets, function(id, tab) {
+			force=(0.05)*(tab.range)^4
+			attractor=math.vec2.add(attractor, math.vec2.newp(force, tab.bearing))
+		})
+		goto_abs(attractor.x, attractor.y, 0.0, 0.0)
+	} else {
+		log("No target in local table!")
+		BVMSTATE = "IDLE"
+	}
+}
+
+# converge to centroid
+function aggregate() {
+  BVMSTATE="AGGREGATE"
+  centroid = neighbors.reduce(function(rid, data, centroid) {
+	  centroid = math.vec2.add(centroid, math.vec2.newp(data.distance, data.azimuth))
+	  return centroid
+  }, {.x=0, .y=0})
+  if(neighbors.count() > 0)
+    centroid = math.vec2.scale(centroid, 1.0 / neighbors.count())
+	cmdbin = math.vec2.sub(centroid, math.vec2.newp(3.0, id * 2 * math.pi / ROBOTS))
+  cmdbin = LimitSpeed(cmdbin, 1.0/2.0)
+  goto_abs(cmdbin.x, cmdbin.y, 0.0, 0.0)
+}
+
+# circle all together around centroid
+function pursuit() {
+  BVMSTATE="PURSUIT"
+	rd = 20.0
+	pc = 3.2
+	vd = 15.0
+  r_vec = neighbors.reduce(function(rid, data, r_vec) {
+	  r_vec = math.vec2.add(r_vec, math.vec2.newp(data.distance, data.azimuth))
+	  return r_vec
+  }, {.x=0, .y=0})
+  if(neighbors.count() > 0)
+    r_vec = math.vec2.scale(r_vec, 1.0 / neighbors.count())
+	r = math.vec2.length(r_vec)
+	var sqr = (r-rd)*(r-rd)+pc*pc*r*r
+    gamma = vd / math.sqrt(sqr)
+	dr = -gamma * (r-rd)
+	dT = gamma * pc
+  vfg = math.vec2.newp(r+dr*0.1, math.vec2.angle(r_vec)+dT*0.1)
+  vfg = LimitSpeed(vfg, 2.0)
+  goto_abs(vfg.x, vfg.y, 0.0, 0.0)
+}
+
+# Lennard-Jones interaction magnitude
+TARGET     = 8.0
+EPSILON    = 30.0
+function lj_magnitude(dist, target, epsilon) {
+	lj = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+  return lj
+}
+
+# Neighbor data to LJ interaction vector
+function lj_vector(rid, data) {
+  return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
+}
+
+# Accumulator of neighbor LJ interactions
+function lj_sum(rid, data, accum) {
+  return math.vec2.add(data, accum)
+}
+
+# Calculates and actuates the flocking interaction
+function formation() {
+  BVMSTATE="FORMATION"
+  # Calculate accumulator
+  accum_lj = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
+  if(neighbors.count() > 0)
+    accum_lj = math.vec2.scale(accum_lj, 1.0 / neighbors.count())
+	accum_lj = LimitSpeed(accum_lj, 1.0/3.0)
+  goto_abs(accum_lj.x, accum_lj.y, 0.0, 0.0)
+}
+
+# listens to commands from the remote control (web, commandline, etc)
+function rc_cmd_listen() {
+  if(flight.rc_cmd==22) {
+		log("cmd 22")
+		flight.rc_cmd=0
+		BVMSTATE = "LAUNCH"
+		neighbors.broadcast("cmd", 22)
+	} else if(flight.rc_cmd==21) {
+		flight.rc_cmd=0
+		AUTO_LAUNCH_STATE = "TURNEDOFF"
+		#barrier_set(ROBOTS, "GOHOME", BVMSTATE, 21)
+		#barrier_ready(21)
+		BVMSTATE = "STOP"
+		neighbors.broadcast("cmd", 21)
+	} else if(flight.rc_cmd==20) {
+		flight.rc_cmd=0
+		AUTO_LAUNCH_STATE = "IDLE"
+		barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
+		barrier_ready(20)
+		neighbors.broadcast("cmd", 20)
+	} else if(flight.rc_cmd==16) {
+		flight.rc_cmd=0
+		BVMSTATE = "PATHPLAN"
+	} else if(flight.rc_cmd==400) {
+		flight.rc_cmd=0
+		arm()
+		neighbors.broadcast("cmd", 400)
+	} else if (flight.rc_cmd==401){
+		flight.rc_cmd=0
+		disarm()
+		neighbors.broadcast("cmd", 401)
+	} else if (flight.rc_cmd==666){
+		flight.rc_cmd=0
+		stattab_send()
+	} else if (flight.rc_cmd==777){
+		flight.rc_cmd=0
+		reinit_time_sync()
+		neighbors.broadcast("cmd", 777)
+	}else if (flight.rc_cmd==900){
+		flight.rc_cmd=0
+		barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
+		barrier_ready(900)
+		neighbors.broadcast("cmd", 900)
+	} else if (flight.rc_cmd==901){
+		flight.rc_cmd=0
+		destroyGraph()
+		barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 901)
+		barrier_ready(901)
+		neighbors.broadcast("cmd", 901)
+	} else if (flight.rc_cmd==902){
+		flight.rc_cmd=0
+		destroyGraph()
+		barrier_set(ROBOTS, "AGGREGATE", BVMSTATE, 902)
+		barrier_ready(902)
+		neighbors.broadcast("cmd", 902)
+	} else if (flight.rc_cmd==903){
+		flight.rc_cmd=0
+		destroyGraph()
+		barrier_set(ROBOTS, "FORMATION", BVMSTATE, 903)
+		barrier_ready(903)
+		neighbors.broadcast("cmd", 903)
+	}
+}
+
+# listens to other fleet members broadcasting commands
+function nei_cmd_listen() {
+    neighbors.listen("cmd",
+			function(vid, value, rid) {
+				print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
+				if(BVMSTATE!="BARRIERWAIT") {
+					if(value==22) {
+						BVMSTATE = "LAUNCH"
+					}else if(value==20) {
+						AUTO_LAUNCH_STATE = "IDLE"
+						BVMSTATE = "GOHOME"
+					} else if(value==21) {
+						AUTO_LAUNCH_STATE = "TURNEDOFF"
+						BVMSTATE = "STOP"
+					} else if(value==400 and BVMSTATE=="TURNEDOFF") {
+						arm()
+					} else if(value==401 and BVMSTATE=="TURNEDOFF"){
+						disarm()
+					} else if(value==777 and BVMSTATE=="TURNEDOFF"){
+						reinit_time_sync()
+						#neighbors.broadcast("cmd", 777)
+					}else if(value==900){	# Shapes
+						barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
+						#barrier_ready(900)
+						neighbors.broadcast("cmd", 900)
+					} else if(value==901){	# Pursuit
+						destroyGraph()
+						barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 901)
+						#barrier_ready(901)
+						neighbors.broadcast("cmd", 901)
+					} else if(value==902){	# Agreggate
+						destroyGraph()
+						barrier_set(ROBOTS, "AGGREGATE", BVMSTATE, 902)
+						#barrier_ready(902)
+						neighbors.broadcast("cmd", 902)
+					} else if(value==903){	# Formation
+						destroyGraph()
+						barrier_set(ROBOTS, "FORMATION", BVMSTATE, 903)
+						#barrier_ready(903)
+						neighbors.broadcast("cmd", 903)
+					} else if(value==16 and BVMSTATE=="IDLE"){
+					#  neighbors.listen("gt",function(vid, value, rid) {
+					#    print("Got (", vid, ",", value, ") from robot #", rid)
+					#    # if(gt.id == id) statef=goto
+					#  })
+					}
+				}
+    })
+}

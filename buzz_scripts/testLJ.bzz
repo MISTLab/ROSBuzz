@@ -1,0 +1,72 @@
+include "update.bzz"
+# don't use a stigmergy id=11 with this header, for barrier 
+# it requires an 'action' function to be defined here.
+include "act/states.bzz"
+include "vstigenv.bzz"
+
+V_TYPE = 0
+
+#State launched after takeoff
+AUTO_LAUNCH_STATE = "FORMATION"
+
+
+TARGET     = 8.0
+EPSILON    = 3.0
+GOTO_MAXVEL = 2.5 # m/steps
+
+# Executed once at init time.
+function init() {
+  	init_stig()
+	init_swarm()
+
+	# start the swarm command listener
+	nei_cmd_listen()
+
+    # Starting state: TURNEDOFF to wait for user input.
+	BVMSTATE = "TURNEDOFF"
+	TAKEOFF_COUNTER = 20
+}
+
+# Executed at each time step.
+function step() {
+	rc_cmd_listen()
+
+	# update the vstig (status/net/batt/...)
+  	# uav_updatestig()
+
+	#
+	# State machine
+	#
+	if(BVMSTATE=="TURNEDOFF")
+		statef=turnedoff
+	else if(BVMSTATE=="STOP")	# ends on turnedoff
+		statef=stop
+	else if(BVMSTATE=="LAUNCH") # ends on AUTO_LAUNCH_STATE
+		statef=launch
+	else if(BVMSTATE=="IDLE")
+		statef=idle
+	else if(BVMSTATE=="FORMATION")
+		statef=formation
+
+	statef()
+
+	log("Current state: ", BVMSTATE)
+
+	# Auto-takeoff (delayed for simulator boot)
+	if(id == 0) {
+		if(TAKEOFF_COUNTER>0)
+			TAKEOFF_COUNTER = TAKEOFF_COUNTER - 1
+		else if(TAKEOFF_COUNTER == 0) {
+			BVMSTATE="LAUNCH"
+			TAKEOFF_COUNTER = -1
+		}
+	}
+}
+ 
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+ 
+# Executed once at the end of experiment.
+function destroy() {
+}

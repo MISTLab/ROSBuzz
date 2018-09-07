@@ -1,0 +1,80 @@
+include "update.bzz"
+# don't use a stigmergy id=11 with this header, for barrier 
+# it requires an 'action' function to be defined here.
+include "act/states.bzz"
+include "plan/rrtstar.bzz"
+include "vstigenv.bzz"
+
+#State launched after takeoff
+AUTO_LAUNCH_STATE = "IDLE"
+
+#####
+# Vehicule type:
+# 0 -> outdoor flying vehicle
+# 1 -> indoor flying vehicle
+# 2 -> outdoor wheeled vehicle
+# 3 -> indoor wheeled vehicle
+V_TYPE = 0
+
+goal_list = {
+	.0={.x = 45.5088103899, .y = -73.1540826153, .z = 2.5}
+}
+
+# Executed once at init time.
+function init() {
+  	init_stig()
+	init_swarm()
+
+	TARGET_ALTITUDE = 25.0 # m
+
+	# start the swarm command listener
+	# nei_cmd_listen()
+
+    # Starting state: TURNEDOFF to wait for user input, LAUNCHED to auto-takeoff at startup.
+	# BVMSTATE = "TURNEDOFF"
+	BVMSTATE = "LAUNCHED"
+}
+
+# Executed at each time step.
+function step() {
+	# listen to Remote Controller
+	rc_cmd_listen()
+
+	# update the vstig (status/net/batt/...)
+  	# uav_updatestig()
+
+	#
+	# graph state machine
+	#
+	if(BVMSTATE=="TURNEDOFF")
+		statef=turnedoff
+	else if(BVMSTATE=="STOP")	# ends on turnedoff
+		statef=stop
+	else if(BVMSTATE=="LAUNCHED") # ends on AUTO_LAUNCH_STATE
+		statef=launch
+	else if(BVMSTATE=="IDLE")
+		statef=idle
+	else if(BVMSTATE=="TASK_ALLOCATE")	#TODO: not tested in new structure
+		statef=makegraph	# or bidding
+	else if(BVMSTATE=="PATHPLAN")	# ends on navigate, defined in rrtstar
+		statef=rrtstar
+	else if(BVMSTATE=="NAVIGATE")	# ends on idle, defined in rrtstar
+		statef=navigate
+	else if(BVMSTATE == "FOLLOW")	#TODO: not tested in new structure
+		statef=follow
+	else if(BVMSTATE == "PICTURE")	#TODO: not tested in new structure
+		statef=take_picture
+
+	statef()
+
+	log("Current state: ", BVMSTATE)
+
+}
+ 
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+ 
+# Executed once at the end of experiment.
+function destroy() {
+}

@@ -1,0 +1,13 @@
+topics:
+  gps     :   global_position/global
+  battery :   battery
+  status  :   state
+  estatus :   extended_state
+  fcclient:   cmd/command
+  setpoint:   setpoint_position/local
+  armclient:  cmd/arming
+  modeclient: set_mode
+  localpos: local_position/pose
+  stream:  set_stream_rate
+  altitude: global_position/rel_alt
+  obstacles: obstacles

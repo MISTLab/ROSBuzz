@@ -1,0 +1,38 @@
+include "act/states.bzz"
+include "vstigenv.bzz"
+
+updated="update_ack"
+update_no=0
+BVMSTATE = "UPDATESTANDBY"
+
+# Executed once at init time.
+function init(){
+	barrier = stigmergy.create(101)
+	barrier.put(id,1)
+	barrier_val=0
+	barrier.onconflict(function (k,l,r) {
+	if(r. data < l. data or (r. data == l. data )) return l
+	else return r
+	})
+	init_swarm()
+	# start the swarm command listener
+	nei_cmd_listen()
+}
+
+function stand_by(){
+	barrier.get(id)
+	barrier_val = barrier.size()
+
+	neighbors.listen(updated,
+	   function(vid, value, rid) {
+	      if(value==update_no) barrier.put(rid,1)
+	   }
+)
+
+}
+
+# Executed at each time step.
+function step() {
+	stand_by()
+
+}
