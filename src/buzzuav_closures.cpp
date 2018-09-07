@@ -105,10 +105,10 @@ float constrainAngle(float x)
 / Wrap the angle between -pi, pi
 ----------------------------------------------------------- */
 {
-  x = fmod(x, 2 * M_PI);
+  x = fmod(x + M_PI, 2 * M_PI);
   if (x < 0.0)
     x += 2 * M_PI;
-  return x;
+  return x - M_PI;
 }
 
 void rb_from_gps(double nei[], double out[], double cur[])
@@ -229,9 +229,9 @@ int buzzuav_moveto(buzzvm_t vm)
   goto_pos[2] = height + dh;
   goto_pos[3] = dyaw;
   //  DEBUG
-   ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
-   goto_pos[1], goto_pos[2]);
-  buzz_cmd = COMMAND_MOVETO;  // TODO: standard mavros?
+  // ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
+  // goto_pos[1], goto_pos[2]);
+  buzz_cmd = NAV_SPLINE_WAYPOINT;  // TODO: standard mavros?
   return buzzvm_ret0(vm);
 }
 
@@ -332,7 +332,7 @@ int buzzuav_takepicture(buzzvm_t vm)
 / Buzz closure to take a picture here.
 /----------------------------------------*/
 {
-  buzz_cmd = COMMAND_PICTURE;
+  buzz_cmd = IMAGE_START_CAPTURE;
   return buzzvm_ret0(vm);
 }
 
@@ -356,7 +356,7 @@ int buzzuav_setgimbal(buzzvm_t vm)
   rc_gimbal[3] = buzzvm_stack_at(vm, 1)->f.value;
 
   ROS_INFO("Set RC_GIMBAL ---- %f %f %f (%f)", rc_gimbal[0], rc_gimbal[1], rc_gimbal[2], rc_gimbal[3]);
-  buzz_cmd = COMMAND_GIMBAL;
+  buzz_cmd = DO_MOUNT_CONTROL;
   return buzzvm_ret0(vm);
 }
 
@@ -389,10 +389,10 @@ int buzzuav_storegoal(buzzvm_t vm)
   double rb[3];
 
   rb_from_gps(goal, rb, cur_pos);
-  if (fabs(rb[0]) < 150.0)
+  if (fabs(rb[0]) < 150.0) {
     rc_set_goto((int)buzz_utility::get_robotid(), goal[0], goal[1], goal[2]);
-
-  ROS_INFO("Set RC_GOTO ---- %f %f %f (%f %f, %f %f)", goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
+    ROS_INFO("Set RC_GOTO ---- %f %f %f (%f %f, %f %f)", goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
+  }
   return buzzvm_ret0(vm);
 }
 
@@ -401,13 +401,9 @@ int buzzuav_arm(buzzvm_t vm)
 / Buzz closure to arm
 /---------------------------------------*/
 {
-#ifdef MAVROSKINETIC
-  cur_cmd = mavros_msgs::CommandCode::COMPONENT_ARM_DISARM;
-#else
-  cur_cmd = mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM;
-#endif
+  cur_cmd = COMPONENT_ARM_DISARM;
   printf(" Buzz requested Arm \n");
-  buzz_cmd = COMMAND_ARM;
+  buzz_cmd = cur_cmd;
   return buzzvm_ret0(vm);
 }
 
@@ -416,13 +412,9 @@ int buzzuav_disarm(buzzvm_t vm)
 / Buzz closure to disarm
 /---------------------------------------*/
 {
-#ifdef MAVROSKINETIC
-  cur_cmd = mavros_msgs::CommandCode::COMPONENT_ARM_DISARM + 1;
-#else
-  cur_cmd = mavros_msgs::CommandCode::CMD_COMPONENT_ARM_DISARM + 1;
-#endif
+  cur_cmd = COMPONENT_ARM_DISARM + 1;
   printf(" Buzz requested Disarm  \n");
-  buzz_cmd = COMMAND_DISARM;
+  buzz_cmd = cur_cmd;
   return buzzvm_ret0(vm);
 }
 
@@ -436,9 +428,9 @@ int buzzuav_takeoff(buzzvm_t vm)
   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
   goto_pos[2] = buzzvm_stack_at(vm, 1)->f.value;
   height = goto_pos[2];
-  cur_cmd = mavros_msgs::CommandCode::NAV_TAKEOFF;
+  cur_cmd = NAV_TAKEOFF;
   printf(" Buzz requested Take off !!! \n");
-  buzz_cmd = COMMAND_TAKEOFF;
+  buzz_cmd = cur_cmd;
   return buzzvm_ret0(vm);
 }
 
@@ -447,9 +439,9 @@ int buzzuav_land(buzzvm_t vm)
 / Buzz closure to land
 /-------------------------------------------------------------*/
 {
-  cur_cmd = mavros_msgs::CommandCode::NAV_LAND;
+  cur_cmd = NAV_LAND;
   printf(" Buzz requested Land !!! \n");
-  buzz_cmd = COMMAND_LAND;
+  buzz_cmd = cur_cmd;
   return buzzvm_ret0(vm);
 }
 
@@ -458,9 +450,9 @@ int buzzuav_gohome(buzzvm_t vm)
 / Buzz closure to return Home
 /-------------------------------------------------------------*/
 {
-  cur_cmd = mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNCH;
+  cur_cmd = NAV_RETURN_TO_LAUNCH;
   printf(" Buzz requested gohome !!! \n");
-  buzz_cmd = COMMAND_GOHOME;
+  buzz_cmd = cur_cmd;
   return buzzvm_ret0(vm);
 }
 
@@ -683,7 +675,7 @@ void update_neighbors(buzzvm_t vm)
   }
 }
 
-// Clear neighbours pos 
+// Clear neighbours pos
 void clear_neighbours_pos(){
   neighbors_map.clear();
 }

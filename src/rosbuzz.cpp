@@ -17,7 +17,7 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "rosBuzz");
   ros::NodeHandle nh_priv("~");
   ros::NodeHandle nh;
-  rosbzz_node::roscontroller RosController(nh, nh_priv);
+  rosbuzz_node::roscontroller RosController(nh, nh_priv);
 
   RosController.RosControllerRun();
   return 0;

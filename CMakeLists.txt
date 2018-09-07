@@ -5,11 +5,8 @@ if(UNIX)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=gnu++11")
 endif()
 
-if(SIM)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIMULATION=1 -DMAVROSKINETIC=1")
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIMULATION=0 -DMAVROSKINETIC=1")
-endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSIMULATION=${SIM} -DMAVROSKINETIC=${KIN}")
+
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -70,6 +67,11 @@ install(TARGETS rosbuzz_node
    LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+## Install project namespaced headers
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h"
+  PATTERN ".svn" EXCLUDE)
 
 find_package(catkin REQUIRED COMPONENTS roslaunch)
 roslaunch_add_file_check(launch)

@@ -4,12 +4,14 @@
 #
 ########################################
 include "utils/vec2.bzz"
-include "act/old_barrier.bzz"
+include "act/barrier.bzz"
+#include "act/old_barrier.bzz"
 include "utils/conversions.bzz"
 
 TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
 PICTURE_WAIT = 20 # steps
+
 GOTO_MAXVEL = 0.5 # m/steps
 GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 1.0  # m.
@@ -26,6 +28,7 @@ function turnedoff() {
 function idle() {
     BVMSTATE = "IDLE"
 }
+
 
 # Custom function for the user.
 function cusfun(){
@@ -94,7 +97,7 @@ function take_picture() {
 	  takepicture()
   } else if(pic_time>=PICTURE_WAIT) { # wait for the picture
     BVMSTATE="IDLE"
-    pic_time=0 
+    pic_time=0
   }
   pic_time=pic_time+1
 }
@@ -108,9 +111,7 @@ function goto_gps(transf) {
 	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
 		transf()
 	else {
-		log("Waypoint before scale : x ",m_navigation.x, " Y ",m_navigation.y )
-               	m_navigation = LimitSpeed(m_navigation, 1.0)
-                log("Waypoint after scale : x ",m_navigation.x, " Y ",m_navigation.y )
+		m_navigation = LimitSpeed(m_navigation, 1.0)
 		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
 	}
 }
@@ -141,7 +142,7 @@ function aggregate() {
     centroid = math.vec2.scale(centroid, 1.0 / neighbors.count())
 	cmdbin = math.vec2.sub(centroid, math.vec2.newp(3.0, id * 2 * math.pi / ROBOTS))
   cmdbin = LimitSpeed(cmdbin, 1.0/2.0)
-  goto_abs(cmdbin.x, cmdbin.y, 0.0, 0.0) 
+  goto_abs(cmdbin.x, cmdbin.y, 0.0, 0.0)
 }
 
 # circle all together around centroid
@@ -163,7 +164,7 @@ function pursuit() {
 	dT = gamma * pc
   vfg = math.vec2.newp(r+dr*0.1, math.vec2.angle(r_vec)+dT*0.1)
   vfg = LimitSpeed(vfg, 2.0)
-  goto_abs(vfg.x, vfg.y, 0.0, 0.0) 
+  goto_abs(vfg.x, vfg.y, 0.0, 0.0)
 }
 
 # Lennard-Jones interaction magnitude
@@ -173,17 +174,17 @@ function lj_magnitude(dist, target, epsilon) {
 	lj = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
   return lj
 }
- 
+
 # Neighbor data to LJ interaction vector
 function lj_vector(rid, data) {
   return math.vec2.newp(lj_magnitude(data.distance, TARGET, EPSILON), data.azimuth)
 }
- 
+
 # Accumulator of neighbor LJ interactions
 function lj_sum(rid, data, accum) {
   return math.vec2.add(data, accum)
 }
- 
+
 # Calculates and actuates the flocking interaction
 function formation() {
   BVMSTATE="FORMATION"
@@ -200,7 +201,7 @@ function rc_cmd_listen() {
   if(flight.rc_cmd==22) {
 		log("cmd 22")
 		flight.rc_cmd=0
-		BVMSTATE = "LAUNCH"		
+		BVMSTATE = "LAUNCH"
 		neighbors.broadcast("cmd", 22)
 	} else if(flight.rc_cmd==21) {
 		flight.rc_cmd=0
@@ -303,7 +304,7 @@ function nei_cmd_listen() {
 					#  neighbors.listen("gt",function(vid, value, rid) {
 					#    print("Got (", vid, ",", value, ") from robot #", rid)
 					#    # if(gt.id == id) statef=goto
-					#  }) 
+					#  })
 					}
 				}
     })

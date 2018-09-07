@@ -44,9 +44,9 @@ function vec_from_gps(lat, lon, home_ref) {
   }
   ned_x = d_lat/180*math.pi * 6371000.0;
   ned_y = d_lon/180*math.pi * 6371000.0 * math.cos(lat/180*math.pi);
-  m_Lgoal_range = math.sqrt(ned_x*ned_x+ned_y*ned_y);
-  m_Lgoal_bearing = LimitAngle(math.atan(ned_y,ned_x));
-  return math.vec2.newp(m_Lgoal_range,m_Lgoal_bearing)
+	#Lgoal.range = math.sqrt(ned_x*ned_x+ned_y*ned_y);
+	#Lgoal.bearing = LimitAngle(math.atan(ned_y,ned_x));
+  return math.vec2.new(ned_x,ned_y)
 }
 
 function gps_from_vec(vec) {

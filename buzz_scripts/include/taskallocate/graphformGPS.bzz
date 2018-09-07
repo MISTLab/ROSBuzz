@@ -190,7 +190,7 @@ function pack_guide_msg(send_table){
     else{
     pon=1
     }
-    var b=math.abs(send_table.Bearing) 
+    var b=math.abs(send_table.Bearing)
     send_value=r_id*1000+pon*100+b
     return send_value
 }
@@ -257,10 +257,10 @@ function LJ_vec(i){
     var target=target4label(nei_id)
     var cDir={.x=0.0,.y=0.0}
     if(target!="miss"){
-    	cDir=math.vec2.newp(lj_magnitude(dis,target,EPSILON_GRAPH), ljbearing)   
+    	cDir=math.vec2.newp(lj_magnitude(dis,target,EPSILON_GRAPH), ljbearing)
     }
     #log(id,"dis=",dis,"target=",target,"label=",nei_id)
-		#log("x=",cDir.x,"y=",cDir.y)  
+		#log("x=",cDir.x,"y=",cDir.y)
     return cDir
 }
 #
@@ -272,11 +272,11 @@ function motion_vector(){
     while(i<m_neighbourCount){
 		#calculate and add the motion vector
 		m_vector=math.vec2.add(m_vector,LJ_vec(i))
-		#log(id,"x=",m_vector.x,"y=",m_vector.y)    
+		#log(id,"x=",m_vector.x,"y=",m_vector.y)
 		i=i+1
     }
     m_vector=math.vec2.scale(m_vector,1.0/m_neighbourCount)
-	#log(id,"fnal=","x=",m_vector.x,"y=",m_vector.y)    
+	#log(id,"fnal=","x=",m_vector.x,"y=",m_vector.y)
     return m_vector
 }
 #
@@ -373,7 +373,7 @@ function TransitionToAsking(un_label){
 #
 function TransitionToJoining(){
 	BVMSTATE="GRAPH_JOINING"
-	m_selfMessage.State=s2i(BVMSTATE) 
+	m_selfMessage.State=s2i(BVMSTATE)
 	m_selfMessage.Label=m_nLabel
 	m_unWaitCount=m_unJoiningLostPeriod
 }
@@ -389,7 +389,7 @@ function TransitionToJoined(){
 	#write statues
 	#v_tag.put(m_nLabel, m_lockstig)
   	barrier_create()
-	barrier_ready(940)
+	barrier_ready(900+50)
 
 	m_navigation.x=0.0
 	m_navigation.y=0.0
@@ -416,7 +416,7 @@ function TransitionToLock(){
   m_navigation.y=0.0
   goto_abs(m_navigation.x, m_navigation.y, 0.0, 0.0)
 
-	#stop listening 
+	#stop listening
 	neighbors.ignore("m")
 }
 #
@@ -464,7 +464,7 @@ function DoFree() {
 
 	#set message
 	m_selfMessage.State=s2i(BVMSTATE)
-    
+
     BroadcastGraph()
 }
 #
@@ -487,14 +487,14 @@ function DoAsking(){
 		}}
 		if(m_MessageState[i]=="GRAPH_JOINING" and m_MessageLabel[i]==m_nLabel){
 			TransitionToFree()
-			return		
+			return
 		}
 		i=i+1
 	}
 	#analyse response
 	if(psResponse==-1){
 		#no response, wait
-				
+
 		m_unWaitCount=m_unWaitCount-1
 		m_selfMessage.State=s2i(BVMSTATE)
 		m_selfMessage.ReqLabel=m_nLabel
@@ -568,7 +568,7 @@ function set_rc_goto() {
 
     goal = gps_from_vec(math.vec2.newp(math.vec2.length(S2Target)/100.0, math.atan(S2Target.y,S2Target.x)))
 	print("Saving GPS goal: ",goal.latitude, goal.longitude)
-    uav_storegoal(goal.latitude, goal.longitude, pose.position.altitude)
+    storegoal(goal.latitude, goal.longitude, pose.position.altitude)
     m_gotjoinedparent = 1
   }
 }
@@ -610,7 +610,7 @@ function DoJoined(){
 	        if(m_MessageState[i]=="GRAPH_JOINING" and repeat_assign==1 and m_MessageLabel[i]==assign_label){
                         repeat_assign=0
                 }
-		
+
 
 		#if it is the pred
 		if((m_MessageState[i]=="GRAPH_JOINED" or m_MessageState[i]=="GRAPH_LOCK") and m_MessageLabel[i]==m_vecNodes[m_nLabel].Pred){
@@ -677,6 +677,7 @@ function DoLock() {
       m_navigation=motion_vector()
   }
 #  #move
+
 #  goto_abs(m_navigation.x, m_navigation.y, 0.0, 0.0)
   BroadcastGraph()
 
@@ -716,7 +717,7 @@ function UpdateGraph() {
 	m_selfMessage={.State=s2i("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
 }
 
-function BroadcastGraph() {	
+function BroadcastGraph() {
 	#navigation
 	#broadcast message
 	neighbors.broadcast("m",packmessage(m_selfMessage))
@@ -792,6 +793,6 @@ function destroyGraph() {
 	m_navigation.y=0.0
 	goto_abs(m_navigation.x/100.0, m_navigation.y/100.0, 0.0, 0.0)
 	m_vecNodes={}
-	#stop listening 
+	#stop listening
 	neighbors.ignore("m")
 }

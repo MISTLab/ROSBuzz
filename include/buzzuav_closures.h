@@ -6,6 +6,7 @@
 #include "mavros_msgs/Mavlink.h"
 #include "ros/ros.h"
 #include "buzz_utility.h"
+#include "rosbuzz/mavrosCC.h"
 
 #define EARTH_RADIUS (double)6371000.0
 #define DEG2RAD(DEG) (double)((DEG) * ((M_PI) / (180.0)))
@@ -13,19 +14,6 @@
 
 namespace buzzuav_closures
 {
-typedef enum {
-  COMMAND_NIL = 0,  // Dummy command
-  COMMAND_TAKEOFF,  // Take off
-  COMMAND_LAND,
-  COMMAND_GOHOME,
-  COMMAND_ARM,
-  COMMAND_DISARM,
-  COMMAND_GOTO,
-  COMMAND_MOVETO,
-  COMMAND_PICTURE,
-  COMMAND_GIMBAL,
-} Custom_CommandCode;
-
 /*
  * prextern int() function in Buzz
  * This function is used to print data from buzz
@@ -89,6 +77,7 @@ void set_filtered_packet_loss(float value);
 /*
  * sets current position
  */
+
 void set_currentNEDpos(double x, double y);
 
 void set_currentpos(double latitude, double longitude, float altitude, float yaw);
@@ -100,6 +89,7 @@ double* getgoto();
  * returns the current grid
  */
 std::map<int, std::map<int,int>> getgrid();
+
 
 /*
  * returns the gimbal commands
