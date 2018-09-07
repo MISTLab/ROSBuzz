@@ -105,10 +105,10 @@ float constrainAngle(float x)
 / Wrap the angle between -pi, pi
 ----------------------------------------------------------- */
 {
-  x = fmod(x, 2 * M_PI);
+  x = fmod(x + M_PI, 2 * M_PI);
   if (x < 0.0)
     x += 2 * M_PI;
-  return x;
+  return x - M_PI;
 }
 
 void rb_from_gps(double nei[], double out[], double cur[])
@@ -229,8 +229,8 @@ int buzzuav_moveto(buzzvm_t vm)
   goto_pos[2] = height + dh;
   goto_pos[3] = dyaw;
   //  DEBUG
-   ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
-   goto_pos[1], goto_pos[2]);
+  // ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
+  // goto_pos[1], goto_pos[2]);
   buzz_cmd = NAV_SPLINE_WAYPOINT;  // TODO: standard mavros?
   return buzzvm_ret0(vm);
 }
@@ -389,10 +389,10 @@ int buzzuav_storegoal(buzzvm_t vm)
   double rb[3];
 
   rb_from_gps(goal, rb, cur_pos);
-  if (fabs(rb[0]) < 150.0)
+  if (fabs(rb[0]) < 150.0) {
     rc_set_goto((int)buzz_utility::get_robotid(), goal[0], goal[1], goal[2]);
-
-  ROS_INFO("Set RC_GOTO ---- %f %f %f (%f %f, %f %f)", goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
+    ROS_INFO("Set RC_GOTO ---- %f %f %f (%f %f, %f %f)", goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
+  }
   return buzzvm_ret0(vm);
 }
 
@@ -675,7 +675,7 @@ void update_neighbors(buzzvm_t vm)
   }
 }
 
-// Clear neighbours pos 
+// Clear neighbours pos
 void clear_neighbours_pos(){
   neighbors_map.clear();
 }

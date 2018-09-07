@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef MAVROSKINETIC
+#if MAVROSKINETIC
 
 const short MISSION_START = mavros_msgs::CommandCode::MISSION_START;
 const short DO_MOUNT_CONTROL = mavros_msgs::CommandCode::DO_MOUNT_CONTROL;

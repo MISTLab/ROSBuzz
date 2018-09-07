@@ -204,25 +204,25 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "goto_abs", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_moveto));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_storegoal", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "storegoal", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_storegoal));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_setgimbal", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "setgimbal", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_setgimbal));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_takepicture", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "takepicture", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_takepicture));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_arm", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "arm", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_arm));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_disarm", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "disarm", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_disarm));
   buzzvm_gstore(VM);
   buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_takeoff", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_takeoff));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_gohome", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "gohome", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_gohome));
   buzzvm_gstore(VM);
   buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_land", 1));
@@ -258,25 +258,25 @@ static int testing_buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "goto_abs", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_storegoal", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "storegoal", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_setgimbal", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "setgimbal", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_takepicture", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "takepicture", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_arm", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "arm", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_disarm", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "disarm", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
   buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_takeoff", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_gohome", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "gohome", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
   buzzvm_pushs(VM, buzzvm_string_register(VM, "uav_land", 1));
@@ -366,7 +366,7 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   }
 
   // Initialize UAVSTATE variable
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "BMVSTATE", 1));
   buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
   buzzvm_gstore(VM);
 
@@ -426,7 +426,7 @@ int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t 
   }
 
   // Initialize UAVSTATE variable
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "UAVSTATE", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
   buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
   buzzvm_gstore(VM);
 
@@ -539,14 +539,6 @@ int update_step_test()
   return a == BUZZVM_STATE_READY;
 }
 
-buzzvm_t get_vm()
-/*
-/ return the BVM
-----------------*/
-{
-  return VM;
-}
-
 void set_robot_var(int ROBOTS)
 /*
 / set swarm size in the BVM
@@ -569,7 +561,15 @@ std::vector<uint8_t*> get_inmsg_vector(){
   return IN_MSG;
 }
 
-string getuavstate()
+buzzvm_t get_vm()
+/*
+/ return the BVM
+----------------*/
+{
+  return VM;
+}
+
+string get_bvmstate()
 /*
 / return current BVM state
 ---------------------------------------*/
@@ -579,10 +579,17 @@ string getuavstate()
     buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
     buzzvm_gload(VM);
     buzzobj_t obj = buzzvm_stack_at(VM, 1);
-    uav_state = string(obj->s.value.str);
+    if(obj->o.type == BUZZTYPE_STRING)
+      uav_state = string(obj->s.value.str);
+    else
+      uav_state = "Not Available";
     buzzvm_pop(VM);
   }
   return uav_state;
+}
+
+int get_swarmsize() {
+  return (int)buzzdict_size(VM->swarmmembers) + 1;
 }
 
 int get_timesync_state()

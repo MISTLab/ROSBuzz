@@ -90,6 +90,8 @@ int update_step_test();
 
 int get_robotid();
 
+int get_swarmsize();
+
 buzzvm_t get_vm();
 
 void set_robot_var(int ROBOTS);
@@ -98,7 +100,7 @@ int get_inmsg_size();
 
 std::vector<uint8_t*> get_inmsg_vector();
 
-std::string getuavstate();
+std::string get_bvmstate();
 
 int get_timesync_state();
 

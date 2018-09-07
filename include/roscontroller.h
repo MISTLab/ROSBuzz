@@ -35,7 +35,6 @@
 #include <signal.h>
 #include <ostream>
 #include <map>
-#include <cmath>
 #include "buzzuav_closures.h"
 #include "rosbuzz/mavrosCC.h"
 
@@ -45,13 +44,13 @@
 typedef enum {
   ROS_BUZZ_MSG_NIL = 0,    // dummy msg
   UPDATER_MESSAGE,         // Update msg
-  BUZZ_MESSAGE_WTO_TIME,   // Broadcast message wihout time info
+  BUZZ_MESSAGE_NO_TIME,   // Broadcast message wihout time info
   BUZZ_MESSAGE_TIME,       // Broadcast message with time info
 } rosbuzz_msgtype;
 
 // Time sync algo. constants
 #define COM_DELAY 100000000 // in nano seconds i.e 100 ms
-#define TIME_SYNC_JUMP_THR 500000000 
+#define TIME_SYNC_JUMP_THR 500000000
 #define MOVING_AVERAGE_ALPHA 0.1
 #define MAX_NUMBER_OF_ROBOTS 10
 
@@ -60,7 +59,7 @@ typedef enum {
 
 using namespace std;
 
-namespace rosbzz_node
+namespace rosbuzz_node
 {
 class roscontroller
 {
@@ -98,6 +97,7 @@ private:
   };
   typedef struct POSE ros_pose;
 
+  ros_pose target, home, cur_pos;
 
   struct MsgData
   {
@@ -106,13 +106,11 @@ private:
     uint16_t size;
     double sent_time;
     uint64_t received_time;
-    MsgData(int mi, uint16_t ni, uint16_t s, double st, uint64_t rt): 
+    MsgData(int mi, uint16_t ni, uint16_t s, double st, uint64_t rt):
             msgid(mi), nid(ni), size(s),sent_time(st), received_time(rt){};
     MsgData(){};
   };
   typedef struct MsgData msg_data;
-
-  ros_pose target, home, cur_pos;
 
   uint64_t payload;
   std::map<int, buzz_utility::Pos_struct> neighbours_pos_map;
@@ -122,8 +120,8 @@ private:
   int robot_id = 0;
   ros::Time logical_clock;
   ros::Time previous_step_time;
-  std::vector<msg_data> inmsgdata; 
-  uint64_t out_msg_time; 
+  std::vector<msg_data> inmsgdata;
+  uint64_t out_msg_time;
   double logical_time_rate;
   bool time_sync_jumped;
   std::string robot_name = "";
@@ -133,7 +131,6 @@ private:
   int armstate;
   int barrier;
   int update;
-  int statepub_active;
   int message_number = 0;
   uint8_t no_of_robots = 0;
   bool rcclient;
@@ -141,6 +138,7 @@ private:
   bool multi_msg;
   uint8_t no_cnt = 0;
   uint8_t old_val = 0;
+  bool debug = false;
   std::string bzzfile_name;
   std::string fcclient_name;
   std::string armclient;
@@ -164,7 +162,7 @@ private:
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
   ros::Publisher neigh_pos_pub;
-  ros::Publisher uavstate_pub;
+  ros::Publisher bvmstate_pub;
   ros::Publisher grid_pub;
   ros::Publisher localsetpoint_nonraw_pub;
   ros::ServiceServer service;
@@ -212,7 +210,7 @@ private:
   void neighbours_pos_publisher();
 
   /*UAVState publisher*/
-  void uavstate_publisher();
+  void state_publisher();
 
   /*Grid publisher*/
   void grid_publisher();
