@@ -7,11 +7,13 @@
   <arg name="xbee_plugged" default="true"/>
   <arg name="script" default="testalone"/>
   <arg name="launch_config" default="topics"/>
+  <arg name="debug" default="true" />
 
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
     <rosparam file="$(find rosbuzz)/launch/launch_config/$(arg launch_config).yaml"/>
     <param name="bzzfile_name" value="$(find rosbuzz)/buzz_scripts/$(arg script).bzz" />
     <param name="rcclient" value="true" />
+    <param name="debug" value="$(arg debug)" />
     <param name="rcservice_name" value="buzzcmd" />
     <param name="in_payload" value="inMavlink"/>
     <param name="out_payload" value="outMavlink"/>

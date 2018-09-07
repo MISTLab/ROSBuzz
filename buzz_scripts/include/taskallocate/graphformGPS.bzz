@@ -10,7 +10,7 @@ include "taskallocate/graphs/shapes_Y.bzz"
 ROBOT_RADIUS = 50
 ROBOT_DIAMETER = 2.0*ROBOT_RADIUS
 ROBOT_SAFETYDIST = 2.0*ROBOT_DIAMETER
-ROOT_ID = 5
+ROOT_ID = 2
 
 #
 # Global variables

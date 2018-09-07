@@ -11,7 +11,7 @@ include "timesync.bzz"
 AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
 #AUTO_LAUNCH_STATE = "CUSFUN"
 #Lowest robot id in the network
-LOWEST_ROBOT_ID = 1
+LOWEST_ROBOT_ID = 0
 TARGET     = 9.0
 EPSILON    = 30.0
 
