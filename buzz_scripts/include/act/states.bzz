@@ -17,7 +17,6 @@ GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 1.0  # m.
 GOTOANG_TOL = 0.1 # rad.
 path_it = 0
-graphid = 3
 pic_time = 0
 g_it = 0
 
@@ -103,9 +102,8 @@ function take_picture() {
 }
 
 function goto_gps(transf) {
-	log(" has to move to lat : ", rc_goto.latitude, " long: ", rc_goto.longitude, "Current lat : ", pose.position.latitude," lon ",pose.position.longitude)
 	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
-	print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
+	#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
  	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
 		log("Sorry this is too far.")
 	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
@@ -265,13 +263,13 @@ function nei_cmd_listen() {
     neighbors.listen("cmd",
 			function(vid, value, rid) {
 				print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
-				if(BVMSTATE!="BARRIERWAIT") {
-					if(value==22) {
+				#if(BVMSTATE!="BARRIERWAIT") {
+					if(value==22 and BVMSTATE=="TURNEDOFF") {
 						BVMSTATE = "LAUNCH"
 					}else if(value==20) {
 						AUTO_LAUNCH_STATE = "IDLE"
 						BVMSTATE = "GOHOME"
-					} else if(value==21) {
+					} else if(value==21 and BVMSTATE!="TURNEDOFF") {
 						AUTO_LAUNCH_STATE = "TURNEDOFF"
 						BVMSTATE = "STOP"
 					} else if(value==400 and BVMSTATE=="TURNEDOFF") {
@@ -306,6 +304,6 @@ function nei_cmd_listen() {
 					#    # if(gt.id == id) statef=goto
 					#  })
 					}
-				}
+				#}
     })
 }

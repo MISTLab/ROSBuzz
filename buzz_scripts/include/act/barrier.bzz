@@ -50,19 +50,22 @@ function barrier_ready(bc) {
 # Executes the barrier
 #
 function barrier_wait(threshold, transf, resumef, bc) {
+  if(barrier==nil) #failsafe
+    barrier_create()
+  
   barrier.put(id, bc)
   barrier.get(id)
-  var allgood = 0
   log("--->BS: ", barrier.size(), " / ", threshold, " (", BARRIER_VSTIG, " - ", barrier.get("d"), ") t= ", timeW)
-  if(barrier.size() - 1 >= threshold or barrier.get("d") == 1) {
-    allgood = barrier_allgood(barrier,bc)
+  if(barrier.size()-1 >= threshold or barrier.get("d") == 1) {
+    if(barrier_allgood(barrier,bc)) {
+      barrier.put("d", 1)
+      timeW = 0
+      BVMSTATE = transf
+    } else 
+      barrier.put("d", 0)
   }
-  
-  if(allgood) {
-    barrier.put("d", 1)
-    timeW = 0
-    BVMSTATE = transf
-  } else if(timeW >= BARRIER_TIMEOUT) {
+
+  if(timeW >= BARRIER_TIMEOUT) {
     log("------> Barrier Timeout !!!!")
     barrier = nil
     timeW = 0
@@ -73,9 +76,7 @@ function barrier_wait(threshold, transf, resumef, bc) {
   timeW = timeW+1
 }
 
-barriergood = 1
-
-# Barrer check all entries
+# Check all members state
 function barrier_allgood(barrier, bc) {
   barriergood = 1
   barrier.foreach(

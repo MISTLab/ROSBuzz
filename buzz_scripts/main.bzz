@@ -14,6 +14,9 @@ AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
 LOWEST_ROBOT_ID = 0
 TARGET     = 9.0
 EPSILON    = 30.0
+ROOT_ID = 2
+graph_id = 3
+graph_loop = 0
 
 #####
 # Vehicule type:
@@ -34,9 +37,7 @@ function init() {
 
 #	initGraph()
 
-	TARGET_ALTITUDE = 5 + (id-LOWEST_ROBOT_ID)*4.0 # m
-	
-	loop = 1
+	TARGET_ALTITUDE = 4 + (id-LOWEST_ROBOT_ID)*3.0 # m
 
 	# start the swarm command listener
 	nei_cmd_listen()
@@ -88,8 +89,6 @@ function step() {
 		statef=DoJoining
 	else if(BVMSTATE=="GRAPH_JOINED")
 		statef=DoJoined
-	else if(BVMSTATE=="GRAPH_TRANSTOLOCK")
-		statef=TransitionToLock
 	else if(BVMSTATE=="GRAPH_LOCK")	# move all together (TODO: not tested), but auto-loop in graph list
 		statef=DoLock
 	else if(BVMSTATE=="PATHPLAN")	# ends on navigate, defined in rrtstar
