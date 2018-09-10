@@ -1023,9 +1023,9 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw)
   moveMsg.pose.orientation.w = q[3];
 
   // To prevent drifting from stable position, uncomment
-  if(fabs(x)>0.005 || fabs(y)>0.005) {
-    localsetpoint_nonraw_pub.publish(moveMsg);
-  }
+  //if(fabs(x)>0.005 || fabs(y)>0.005) {
+  //  localsetpoint_nonraw_pub.publish(moveMsg);
+  //}
 }
 
 void roscontroller::SetMode(std::string mode, int delay_miliseconds)
