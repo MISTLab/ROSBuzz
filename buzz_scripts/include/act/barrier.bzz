@@ -11,7 +11,8 @@ BARRIER_TIMEOUT = 200 # in steps
 BARRIER_VSTIG = 80
 timeW = 0
 barrier = nil
-bc = 0;
+hvs = 0;
+
 
 #
 # Sets a barrier
@@ -23,7 +24,13 @@ function barrier_create() {
   #log("---> Prev. br. ", barrier, " ", BARRIER_VSTIG)
   if(barrier!=nil) {
     barrier=nil
-  #  BARRIER_VSTIG = BARRIER_VSTIG +1
+    if(hvs) {
+      BARRIER_VSTIG = BARRIER_VSTIG -1
+      hvs = 0
+    }else{
+      BARRIER_VSTIG = BARRIER_VSTIG +1
+      hvs = 1
+    }
   }
   #log("---> New. br. ", barrier, " ", BARRIER_VSTIG)
   barrier = stigmergy.create(BARRIER_VSTIG)

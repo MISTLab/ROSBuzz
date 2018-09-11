@@ -176,7 +176,7 @@ function find(table,value){
 #
 function packmessage(send_table){
     var send_value
-    send_value=100000*send_table.State+10000*send_table.Label+1000*send_table.ReqLabel+10*send_table.ReqID+send_table.Response
+    send_value=1000000*send_table.State+100000*send_table.Label+10000*send_table.ReqLabel+100*send_table.ReqID+send_table.Response
     return send_value
 }
 #
@@ -200,14 +200,14 @@ function pack_guide_msg(send_table){
 #unpack message
 #
 function unpackmessage(recv_value){
-    var wan=(recv_value-recv_value%100000)/100000
-    recv_value=recv_value-wan*100000
-    var qian=(recv_value-recv_value%10000)/10000
-    recv_value=recv_value-qian*10000
-    var bai=(recv_value-recv_value%1000)/1000
-    recv_value=recv_value-bai*1000
-    var shi=(recv_value-recv_value%10)/10
-    recv_value=recv_value-shi*10
+    var wan=(recv_value-recv_value%1000000)/1000000
+    recv_value=recv_value-wan*1000000
+    var qian=(recv_value-recv_value%100000)/100000
+    recv_value=recv_value-qian*100000
+    var bai=(recv_value-recv_value%10000)/10000
+    recv_value=recv_value-bai*10000
+    var shi=(recv_value-recv_value%100)/100
+    recv_value=recv_value-shi*100
     var ge=recv_value
     var return_table={.State=0.0,.Label=0.0,.ReqLabel=0.0,.ReqID=0.0,.Response=0.0}
     return_table.State=wan
@@ -310,10 +310,10 @@ neighbors.listen("m",
 #
 #Function used to get the station info of the sender of the message
 #
-function Get_DisAndAzi(id){
+function Get_DisAndAzi(t_id){
 	neighbors.foreach(
 	function(rid, data) {
-		if(rid==id){
+		if(rid==t_id){
 		m_receivedMessage.Range=data.distance*100.0
 		m_receivedMessage.Bearing=data.azimuth
 		}
@@ -411,7 +411,8 @@ function DoFree() {
 function DoAsking(){
 	if(BVMSTATE!="GRAPH_ASKING"){
 	  BVMSTATE="GRAPH_ASKING"
-	  m_unRequestId=id	#don't know why the random numbers are the same, add id to make the ReqID different
+	  #math.rng.setseed(id)
+	  m_unRequestId=id#math.rng.uniform(0,10)	#don't know why the random numbers are the same, add id to make the ReqID different
 	  m_selfMessage.State=s2i(BVMSTATE)
 	  m_selfMessage.ReqLabel=m_nLabel
 	  m_selfMessage.ReqID=m_unRequestId
@@ -513,17 +514,17 @@ function set_rc_goto() {
 		m_unWaitCount=m_unJoiningLostPeriod#if see pred, reset the timer
 
 		var P2Target=math.vec2.newp(m_vecNodes[m_nLabel].distance,m_vecNodes[m_nLabel].bearing)
-		m_cMeToPred.Range=m_MessageRange[IDofPred]#the poition of self to pred in local coordinate
+		m_cMeToPred.Range=m_MessageRange[IDofPred]#the position of self to pred in local coordinate
 		m_cMeToPred.Bearing=m_MessageBearing[IDofPred]
 
-    var S2Pred=math.vec2.newp(m_cMeToPred.Range,m_cMeToPred.Bearing)
-    var S2Target=math.vec2.add(S2Pred,P2Target)
+		var S2Pred=math.vec2.newp(m_cMeToPred.Range,m_cMeToPred.Bearing)
+		var S2Target=math.vec2.add(S2Pred,P2Target)
 
-    goal = gps_from_vec(math.vec2.newp(math.vec2.length(S2Target)/100.0, math.atan(S2Target.y,S2Target.x)))
-	print("Saving GPS goal: ",goal.latitude, goal.longitude)
-    storegoal(goal.latitude, goal.longitude, pose.position.altitude)
-    m_gotjoinedparent = 1
-  }
+		goal = gps_from_vec(math.vec2.newp(math.vec2.length(S2Target)/100.0, math.atan(S2Target.y,S2Target.x)))
+		print("Saving GPS goal (", m_nLabel, " from ", IDofPred, "): ",goal.latitude, goal.longitude, "(", S2Target.x/100, S2Target.y/100, ")")
+		storegoal(goal.latitude, goal.longitude, pose.position.altitude)
+		m_gotjoinedparent = 1
+  	}
 }
 #
 #Do joined

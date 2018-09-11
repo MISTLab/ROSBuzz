@@ -1024,7 +1024,7 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw)
 
   // To prevent drifting from stable position, uncomment
   //if(fabs(x)>0.005 || fabs(y)>0.005) {
-  //  localsetpoint_nonraw_pub.publish(moveMsg);
+    localsetpoint_nonraw_pub.publish(moveMsg);
   //}
 }
 

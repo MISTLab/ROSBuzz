@@ -12,9 +12,9 @@ TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
 PICTURE_WAIT = 20 # steps
 
-GOTO_MAXVEL = 1.5 # m/steps
+GOTO_MAXVEL = 0.85 # m/steps
 GOTO_MAXDIST = 150 # m.
-GOTODIST_TOL = 0.8  # m.
+GOTODIST_TOL = 0.4  # m.
 GOTOANG_TOL = 0.1 # rad.
 path_it = 0
 pic_time = 0
@@ -270,7 +270,6 @@ function nei_cmd_listen() {
 						AUTO_LAUNCH_STATE = "IDLE"
 						BVMSTATE = "GOHOME"
 					} else if(value==21 and BVMSTATE!="TURNEDOFF") {
-						AUTO_LAUNCH_STATE = "TURNEDOFF"
 						BVMSTATE = "STOP"
 					} else if(value==400 and BVMSTATE=="TURNEDOFF") {
 						arm()
