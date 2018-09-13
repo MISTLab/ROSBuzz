@@ -175,18 +175,17 @@ void roscontroller::RosControllerRun()
             << cur_pos.altitude * 100000 << ",";
       log << (int)no_of_robots<<",";
       log  << neighbours_pos_map.size()<< ",";
-      // if(neighbours_pos_map.size() > 0)log<<",";
       map<int, buzz_utility::Pos_struct>::iterator it =
             neighbours_pos_map.begin();
       for (; it != neighbours_pos_map.end(); ++it)
       {
-        log<<","<< it->first<<",";
+        log<< it->first<<",";
         log<< (double)it->second.x << "," << (double)it->second.y
-            << "," << (double)it->second.z;
+            << "," << (double)it->second.z <<",";
       }
       for (std::vector<msg_data>::iterator it = inmsgdata.begin() ; it != inmsgdata.end(); ++it){
-        log<<","<<(int)it->nid <<","<<(int)it->msgid<<","<<(int)it->size<<","<<it->sent_time
-            <<","<<it->received_time;
+        log<<(int)it->nid <<","<<(int)it->msgid<<","<<(int)it->size<<","<<it->sent_time
+            <<","<<it->received_time <<",";
       }
       inmsgdata.clear();
       log<<(int)inmsgdata.size()<<","<< message_number<<",";
