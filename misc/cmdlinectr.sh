@@ -33,10 +33,50 @@ function stoprobot {
 	sudo service dji stop
 }
 function updaterobot {
-#	rosrun robot_upstart install --logdir ~/ROS_WS/log/ robot_upstart/launch/m100buzzynocam.launch
-	rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TX16US.launch
-#	rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TXxbeebuzzy.launch
-#	rosrun robot_upstart install --logdir ~/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TXbuzzy.launch
+	rosrun robot_upstart uninstall dji
+	if [ "$1" = 0 ] && [ "$2" = "X" ]
+	then
+	  echo "Installing launch file for TX-ubuntu16 with usb2serial"
+	  echo "With xbeemav"
+	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TX16US.launch
+	elif [ "$1" = 1 ] && [ "$2" = "X" ] 
+	then
+	  echo "Installing launch file for TX-ubuntu16"
+	  echo "With xbeemav"
+	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TX16.launch
+	elif [ "$1" = 2 ] && [ "$2" = "X" ]
+	then
+	  echo "Installing launch file for TK-ubuntu14"
+	  echo "With xbeemav"
+	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TKAll.launch
+	elif [ "$1" = 3 ] && [ "$2" = "X" ]
+	then
+	  echo "Installing launch file for Solo"
+	  echo "With xbeemav"
+	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/solo.launch
+	elif [ "$1" = 0 ] && [ "$2" = "H" ] 
+	then
+	  echo "Installing launch file for TX-ubuntu16 with usb2serial"
+	  echo "With heavenmav"
+	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TX16USHeaven.launch
+	elif [ "$1" = 1 ] && [ "$2" = "H" ] 
+	then
+	  echo "Installing launch file for TX-ubuntu16"
+	  echo "With heavenmav"
+	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TX16Heaven.launch
+	elif [ "$1" = 2 ] && [ "$2" = "H" ]
+	then
+	  echo "Installing launch file for TK-ubuntu14"
+	  echo "With heavenmav"
+	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TKAllHeaven.launch
+	elif [ "$1" = 3 ] && [ "$2" = "H" ]
+	then
+	  echo "Installing launch file for Solo"
+	  echo "With heavenmav"
+	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/soloHeaven.launch
+	else
+	  echo "Wrong arguments!"
+	fi
 }
 function uavstate {
 	let "a = $1 + 900"
