@@ -167,9 +167,9 @@ void roscontroller::RosControllerRun()
       log<<ros::Time::now().toNSec()<<",";
       get_logical_time();
       // logical time now
-      log<<logical_clock.toNSec()<<",";
-      log<<buzz_utility::get_timesync_itr()<<",";
-      log<<buzz_utility::get_timesync_state()<<",";
+      //log<<logical_clock.toNSec()<<",";
+      //log<<buzz_utility::get_timesync_itr()<<",";
+      //log<<buzz_utility::get_timesync_state()<<",";
 
       log<<cur_pos.latitude * 100000 << "," << cur_pos.longitude * 100000 << ","
             << cur_pos.altitude * 100000 << ",";
@@ -177,6 +177,10 @@ void roscontroller::RosControllerRun()
       log  << neighbours_pos_map.size()<< ",";
       map<int, buzz_utility::Pos_struct>::iterator it =
             neighbours_pos_map.begin();
+      log<<(int)inmsgdata.size()<<","<< message_number<<",";
+      log<< out_msg_time<<",";
+      log <<buzz_utility::get_bvmstate()<<",";
+      
       for (; it != neighbours_pos_map.end(); ++it)
       {
         log<< it->first<<",";
@@ -187,9 +191,9 @@ void roscontroller::RosControllerRun()
         log<<(int)it->nid <<","<<(int)it->msgid<<","<<(int)it->size<<","<<it->sent_time
             <<","<<it->received_time <<",";
       }
+      log << std::endl ;
       inmsgdata.clear();
-      log<<(int)inmsgdata.size()<<","<< message_number<<",";
-      log<< out_msg_time<<",";
+      
       log <<buzz_utility::get_bvmstate()<<std::endl;
 
       // time_sync_step();
