@@ -164,39 +164,38 @@ void roscontroller::RosControllerRun()
 
       // log data
       // hardware time now
-      log<<ros::Time::now().toNSec()<<",";
+      log << ros::Time::now().toNSec() << ",";
       get_logical_time();
       // logical time now
       //log<<logical_clock.toNSec()<<",";
       //log<<buzz_utility::get_timesync_itr()<<",";
       //log<<buzz_utility::get_timesync_state()<<",";
-
-      log<<cur_pos.latitude * 100000 << "," << cur_pos.longitude * 100000 << ","
-            << cur_pos.altitude * 100000 << ",";
-      log << (int)no_of_robots<<",";
-      log  << neighbours_pos_map.size()<< ",";
-      map<int, buzz_utility::Pos_struct>::iterator it =
-            neighbours_pos_map.begin();
-      log<<(int)inmsgdata.size()<<","<< message_number<<",";
-      log<< out_msg_time<<",";
-      log <<buzz_utility::get_bvmstate()<<",";
       
+      log << cur_pos.latitude * 100000 << "," << cur_pos.longitude * 100000 << ","
+      << cur_pos.altitude * 100000 << ",";
+      log << (int)no_of_robots << ",";
+      log << neighbours_pos_map.size() << ",";
+      log << (int)inmsgdata.size() << "," << message_number << ",";
+      log << out_msg_time <<",";
+      log << buzz_utility::get_bvmstate();
+      
+      map<int, buzz_utility::Pos_struct>::iterator it =
+      neighbours_pos_map.begin();
       for (; it != neighbours_pos_map.end(); ++it)
       {
-        log<< it->first<<",";
-        log<< (double)it->second.x << "," << (double)it->second.y
-            << "," << (double)it->second.z <<",";
+          log << "," << it->first << ",";
+          log << (double)it->second.x << "," << (double)it->second.y
+          << "," << (double)it->second.z;
       }
-      for (std::vector<msg_data>::iterator it = inmsgdata.begin() ; it != inmsgdata.end(); ++it){
-        log<<(int)it->nid <<","<<(int)it->msgid<<","<<(int)it->size<<","<<it->sent_time
-            <<","<<it->received_time <<",";
+      for (std::vector<msg_data>::iterator it = inmsgdata.begin() ; it != inmsgdata.end(); ++it)
+      {
+          log << "," << (int)it->nid << "," << (int)it->msgid << "," << (int)it->size << "," << 
+          it->sent_time << "," << it->received_time;
       }
-      log << std::endl ;
       inmsgdata.clear();
+      log << std::endl;
       
-      log <<buzz_utility::get_bvmstate()<<std::endl;
-
-      // time_sync_step();
+     // time_sync_step();
       // if(debug)
       //   ROS_INFO("[Debug : %i ] logical Time %f , har time %f",robot_id, logical_clock.toSec(), ros::Time::now().toSec());
       //  Call Step from buzz script
