@@ -190,7 +190,7 @@ void roscontroller::RosControllerRun()
       for (std::vector<msg_data>::iterator it = inmsgdata.begin() ; it != inmsgdata.end(); ++it)
       {
           log << "," << (int)it->nid << "," << (int)it->msgid << "," << (int)it->size << "," << 
-          it->sent_time << "," << it->received_time;
+          it->received_time;
       }
       inmsgdata.clear();
       log << std::endl;
