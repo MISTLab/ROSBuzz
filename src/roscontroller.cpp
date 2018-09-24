@@ -30,7 +30,8 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   buzz_update::set_bzz_file(bzzfile_name.c_str(),debug);
   buzzuav_closures::setWPlist(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/");
   //  Initialize variables
-  SetMode("LOITER", 0);
+  if(setmode)
+    SetMode("LOITER", 0);
   armstate = 0;
   multi_msg = true;
   setpoint_counter = 0;
@@ -251,6 +252,14 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
     ROS_ERROR("Provide a debug mode in Launch file");
     system("rosnode kill rosbuzz_node");
   }
+  // Obtain setmode mode from launch file parameter
+  if (n_c.getParam("setmode", setmode))
+    ;
+  else
+  {
+    ROS_ERROR("Provide a setmode mode in Launch file");
+    system("rosnode kill rosbuzz_node");
+  }
   // Obtain rc service option from parameter server
   if (n_c.getParam("rcclient", rcclient))
   {
@@ -403,9 +412,10 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c)
 
   // Service Clients
   arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
-  mode_client = n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
+  if(setmode)
+    mode_client = n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
   mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-  if (rcclient == true)
+  if (rcclient)
     service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback, this);
   ROS_INFO("Ready to receive Mav Commands from RC client");
   xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
@@ -719,14 +729,15 @@ script
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (!armstate)
       {
-        SetMode("LOITER", 0);
+        if(setmode)
+          SetMode("LOITER", 0);
         armstate = 1;
         Arm();
         ros::Duration(0.5).sleep();
         // Registering HOME POINT.
         home = cur_pos;
       }
-      if (current_mode != "GUIDED")
+      if (current_mode != "GUIDED" && setmode)
         SetMode("GUIDED", 2000);  // added for compatibility with 3DR Solo
       if (mav_client.call(cmd_srv))
       {
@@ -738,9 +749,14 @@ script
 
     case NAV_LAND:
       cmd_srv.request.command = buzzuav_closures::getcmd();
-      if (current_mode != "LAND")
+      if (current_mode != "LAND" && setmode)
       {
         SetMode("LAND", 0);
+        armstate = 0;
+        Arm();
+      }
+      else if(cur_pos.altitude < 0.1) //disarm only when close to ground
+      {
         armstate = 0;
         Arm();
       }
@@ -771,7 +787,8 @@ script
     case COMPONENT_ARM_DISARM:
       if (!armstate)
       {
-        SetMode("LOITER", 0);
+        if(setmode)
+          SetMode("LOITER", 0);
         armstate = 1;
         Arm();
       }
@@ -780,8 +797,9 @@ script
     case COMPONENT_ARM_DISARM+1:
       if (armstate)
       {
+        if(setmode)
+          SetMode("LOITER", 0);
         armstate = 0;
-        SetMode("LOITER", 0);
         Arm();
       }
       break;

@@ -48,7 +48,7 @@ function launch() {
 	BVMSTATE = "LAUNCH"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
 		homegps = {.lat=pose.position.latitude, .long=pose.position.longitude}
-		if( flight.status == 2 and pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+		if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
 			barrier_ready(22)
 		} else {
@@ -77,7 +77,7 @@ function stop() {
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
 		neighbors.broadcast("cmd", 21)
 		uav_land()
-		if(flight.status != 2 and flight.status != 3) {
+		if(pose.position.altitude <= 0.1) {
 			BVMSTATE = "TURNEDOFF"
 			#barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
 			#barrier_ready(21)
