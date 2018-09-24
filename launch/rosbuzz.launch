@@ -8,6 +8,7 @@
   <arg name="script" default="testalone"/>
   <arg name="launch_config" default="topics"/>
   <arg name="debug" default="false" />
+  <arg name="setmode" default="false" />
 
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >
     <rosparam file="$(find rosbuzz)/launch/launch_config/$(arg launch_config).yaml"/>
@@ -20,6 +21,7 @@
     <param name="xbee_plugged" value="$(arg xbee_plugged)"/>
     <param name="name" value="$(arg name)"/>
     <param name="xbee_status_srv" value="network_status"/>
+    <param name="setmode" value="$(arg setmode)"/>
     <param name="stand_by" value="$(find rosbuzz)/buzz_scripts/stand_by.bzz"/>
   </node>
 </launch>

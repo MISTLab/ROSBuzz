@@ -755,7 +755,7 @@ script
         armstate = 0;
         Arm();
       }
-      else if(cur_pos.altitude < 0.1) //disarm only when close to ground
+      else if(cur_pos.altitude < 0.3) //disarm only when close to ground
       {
         armstate = 0;
         Arm();

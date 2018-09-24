@@ -77,7 +77,7 @@ function stop() {
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
 		neighbors.broadcast("cmd", 21)
 		uav_land()
-		if(pose.position.altitude <= 0.1) {
+		if(pose.position.altitude <= 0.3) {
 			BVMSTATE = "TURNEDOFF"
 			#barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
 			#barrier_ready(21)
