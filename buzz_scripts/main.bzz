@@ -9,7 +9,7 @@ include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
-AUTO_LAUNCH_STATE = "IDLE"
+AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
 #AUTO_LAUNCH_STATE = "CUSFUN"
 #Lowest robot id in the network
 LOWEST_ROBOT_ID = 0
