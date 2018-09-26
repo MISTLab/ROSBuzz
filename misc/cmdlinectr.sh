@@ -39,7 +39,7 @@ function updaterobot {
 	  echo "Installing launch file for TX-ubuntu16 with usb2serial"
 	  echo "With xbeemav"
 	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TX16US.launch
-	elif [ "$1" = 1 ] && [ "$2" = "X" ] 
+	elif [ "$1" = 1 ] && [ "$2" = "X" ]
 	then
 	  echo "Installing launch file for TX-ubuntu16"
 	  echo "With xbeemav"
@@ -54,12 +54,17 @@ function updaterobot {
 	  echo "Installing launch file for Solo"
 	  echo "With xbeemav"
 	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/solo.launch
-	elif [ "$1" = 0 ] && [ "$2" = "H" ] 
+	elif [ "$1" = 4 ] && [ "$2" = "X" ]
+	then
+	  echo "Installing launch file for Spiris"
+	  echo "With xbeemav"
+	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/spiri.launch
+	elif [ "$1" = 0 ] && [ "$2" = "H" ]
 	then
 	  echo "Installing launch file for TX-ubuntu16 with usb2serial"
 	  echo "With heavenmav"
 	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/m100TX16USHeaven.launch
-	elif [ "$1" = 1 ] && [ "$2" = "H" ] 
+	elif [ "$1" = 1 ] && [ "$2" = "H" ]
 	then
 	  echo "Installing launch file for TX-ubuntu16"
 	  echo "With heavenmav"
