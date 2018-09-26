@@ -102,7 +102,4 @@ std::vector<uint8_t*> get_inmsg_vector();
 
 std::string get_bvmstate();
 
-int get_timesync_state();
-
-int get_timesync_itr();
 }

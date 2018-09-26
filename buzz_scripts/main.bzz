@@ -5,7 +5,7 @@ include "act/states.bzz"
 include "plan/rrtstar.bzz"
 include "taskallocate/graphformGPS.bzz"
 include "vstigenv.bzz"
-include "timesync.bzz"
+#include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
@@ -49,9 +49,6 @@ function init() {
 
 # Executed at each time step.
 function step() {
-
-	# check time sync algorithm state
-    check_time_sync()
 
 	# listen to Remote Controller
 	rc_cmd_listen()

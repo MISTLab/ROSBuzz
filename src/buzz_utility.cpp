@@ -592,35 +592,4 @@ int get_swarmsize() {
   return (int)buzzdict_size(VM->swarmmembers) + 1;
 }
 
-int get_timesync_state()
-/*
-/ return time sync state from bzz script
---------------------------------------*/
-{
-  int timesync_state = 0;
-  if(VM){
-    buzzvm_pushs(VM, buzzvm_string_register(VM, "timesync_state", 1));
-    buzzvm_gload(VM);
-    buzzobj_t obj = buzzvm_stack_at(VM, 1);
-    if(obj->o.type == BUZZTYPE_INT) timesync_state = obj->i.value;
-    buzzvm_pop(VM);
-  }
-  return timesync_state;
-}
-int get_timesync_itr()
-/*
-/ return time sync iteration from bzz script
---------------------------------------*/
-{
-  int timesync_itr = 0;
-  if(VM){
-    buzzvm_pushs(VM, buzzvm_string_register(VM, "timesync_itr", 1));
-    buzzvm_gload(VM);
-    buzzobj_t obj = buzzvm_stack_at(VM, 1);
-    if(obj->o.type == BUZZTYPE_INT) timesync_itr = obj->i.value;
-    buzzvm_pop(VM);
-  }
-  return timesync_itr;
-}
-
 }

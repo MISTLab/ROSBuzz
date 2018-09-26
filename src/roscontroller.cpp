@@ -134,6 +134,8 @@ void roscontroller::RosControllerRun()
     // check for BVMSTATE variable
     if(buzz_utility::get_bvmstate()=="Not Available")
       ROS_ERROR("BVMSTATE undeclared in .bzz file, please set BVMSTATE.");
+    // set log data double precision 
+    log <<std::setprecision(15) << std::fixed;
     //  DEBUG
     // ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
     while (ros::ok() && !buzz_utility::buzz_script_done())
@@ -166,18 +168,14 @@ void roscontroller::RosControllerRun()
       // log data
       // hardware time now
       log << ros::Time::now().toNSec() << ",";
-      get_logical_time();
-      // logical time now
-      //log<<logical_clock.toNSec()<<",";
-      //log<<buzz_utility::get_timesync_itr()<<",";
-      //log<<buzz_utility::get_timesync_state()<<",";
       
-      log << cur_pos.latitude * 100000 << "," << cur_pos.longitude * 100000 << ","
-      << cur_pos.altitude * 100000 << ",";
+      log << cur_pos.latitude << "," << cur_pos.longitude << ","
+      << cur_pos.altitude << ",";
       log << (int)no_of_robots << ",";
       log << neighbours_pos_map.size() << ",";
       log << (int)inmsgdata.size() << "," << message_number << ",";
       log << out_msg_time <<",";
+      log << out_msg_size<<",";
       log << buzz_utility::get_bvmstate();
       
       map<int, buzz_utility::Pos_struct>::iterator it =
@@ -191,14 +189,11 @@ void roscontroller::RosControllerRun()
       for (std::vector<msg_data>::iterator it = inmsgdata.begin() ; it != inmsgdata.end(); ++it)
       {
           log << "," << (int)it->nid << "," << (int)it->msgid << "," << (int)it->size << "," << 
-          it->received_time;
+          it->sent_time << ","<< it->received_time;
       }
       inmsgdata.clear();
       log << std::endl;
       
-     // time_sync_step();
-      // if(debug)
-      //   ROS_INFO("[Debug : %i ] logical Time %f , har time %f",robot_id, logical_clock.toSec(), ros::Time::now().toSec());
       //  Call Step from buzz script
       buzz_utility::buzz_script_step();
       //  Prepare messages and publish them
@@ -621,41 +616,23 @@ with size.........  |   /
   //header variables
   uint16_t tmphead[4];
   tmphead[1] = (uint16_t)message_number;
-  get_logical_time();
-  uint32_t stime = (uint32_t)(ros::Time::now().toSec());   //(uint32_t)(logical_clock.toSec() * 100000);
+  //uint32_t stime = (uint32_t)(ros::Time::now().toSec());   //(uint32_t)(logical_clock.toSec() * 100000);
   memcpy((void*)(tmphead+2),(void*)&stime,sizeof(uint32_t));
   uint64_t rheader[1];
   rheader[0]=0;
   payload_out.sysid = (uint8_t)robot_id;
   payload_out.msgid = (uint32_t)message_number;
 
-  if(buzz_utility::get_timesync_state()){
-    // prepare rosbuzz msg header
-    tmphead[0] = (uint8_t)BUZZ_MESSAGE_TIME;
-    memcpy(rheader, tmphead, sizeof(uint64_t));
-    // push header into the buffer
-    payload_out.payload64.push_back(rheader[0]);
-    payload_out.payload64.push_back(position[0]);
-    payload_out.payload64.push_back(position[1]);
-    payload_out.payload64.push_back(position[2]);
-    //payload_out.payload64.push_back((uint64_t)message_number);
-    // add time sync algo data
-    payload_out.payload64.push_back(ros::Time::now().toNSec());
-    payload_out.payload64.push_back(logical_clock.toNSec());
-    //uint64_t ltrate64 = 0;
-    //memcpy((void*)&ltrate64, (void*)&logical_time_rate, sizeof(uint64_t));
-    //payload_out.payload64.push_back(ltrate64);
-  }
-  else{
-    // prepare rosbuzz msg header
-    tmphead[0] = (uint8_t)BUZZ_MESSAGE_NO_TIME;
-    memcpy(rheader, tmphead, sizeof(uint64_t));
-    // push header into the buffer
-    payload_out.payload64.push_back(rheader[0]);
-    payload_out.payload64.push_back(position[0]);
-    payload_out.payload64.push_back(position[1]);
-    payload_out.payload64.push_back(position[2]);
-  }
+  // prepare rosbuzz msg header
+  tmphead[0] = (uint8_t)BUZZ_MESSAGE;
+  memcpy(rheader, tmphead, sizeof(uint64_t));
+  // push header into the buffer
+  payload_out.payload64.push_back(rheader[0]);
+  payload_out.payload64.push_back(ros::Time::now().toNSec());
+  payload_out.payload64.push_back(position[0]);
+  payload_out.payload64.push_back(position[1]);
+  payload_out.payload64.push_back(position[2]);
+
   //  Append Buzz message
   uint16_t* out = buzz_utility::u64_cvt_u16(payload_out_ptr[0]);
   for (int i = 0; i < out[0]; i++)
@@ -663,8 +640,8 @@ with size.........  |   /
     payload_out.payload64.push_back(payload_out_ptr[i]);
   }
   //Store out msg time
-  get_logical_time();
-  out_msg_time = ros::Time::now().toNSec(); //logical_clock.toNSec();
+  out_msg_time = ros::Time::now().toNSec();
+  out_msg_size = out[0];
   // publish prepared messages in respective topic
   payload_pub.publish(payload_out);
   delete[] out;
@@ -1114,7 +1091,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
   uint16_t mid = r16head[1];
   uint32_t temptime=0;
   memcpy(&temptime, r16head+2, sizeof(uint32_t));
-  float stime = (float)temptime/(float)100000;
+  //float stime = (float)temptime/(float)100000;
   // if(debug) ROS_INFO("Received Msg: sent time %f for id %u",stime, mid);
   // Check for Updater message, if updater message push it into updater FIFO
   if ((uint64_t)msg->payload64[0] == (uint64_t)UPDATER_MESSAGE)
@@ -1141,14 +1118,14 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     free(pl);
   }
   //  BVM FIFO message
-  else if ((int)mtype == (int)BUZZ_MESSAGE_TIME ||
-           (int)mtype == (int)BUZZ_MESSAGE_NO_TIME)
+  else if ((int)mtype == (int)BUZZ_MESSAGE)
   {
-    uint64_t message_obt[msg->payload64.size() - 1];
+    uint64_t stime = (uint64_t)msg->payload64[1];
+    uint64_t message_obt[msg->payload64.size() - 2];
     //  Go throught the obtained payload
-    for (int i = 1; i < (int)msg->payload64.size(); i++)
+    for (int i = 2; i < (int)msg->payload64.size(); i++)
     {
-      message_obt[i - 1] = (uint64_t)msg->payload64[i];
+      message_obt[i - 2] = (uint64_t)msg->payload64[i];
     }
     // Extract neighbours position from payload
     double neighbours_pos_payload[3];
@@ -1162,10 +1139,8 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     double cvt_neighbours_pos_payload[3];
     gps_rb(nei_pos, cvt_neighbours_pos_payload);
     int index = 3;
-    if((int)mtype == (int)BUZZ_MESSAGE_TIME) index = 5;
     //  Extract robot id of the neighbour
     uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + index));
-    //get_logical_time();
     // store in msg data for data log
     msg_data inm(mid,out[1],out[0]*sizeof(uint64_t),stime,ros::Time::now().toNSec());
     inmsgdata.push_back(inm);
@@ -1180,17 +1155,8 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     //  TODO: remove roscontroller local map array for neighbors
     neighbours_pos_put((int)out[1], n_pos);
     buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, n_pos.z);
-     if((int)mtype == (int)BUZZ_MESSAGE_TIME){
-      // update time struct for sync algo
-      double nr = 0;
-      push_timesync_nei_msg((int)out[1], message_obt[3],message_obt[4],nr);
-      delete[] out;
-      buzz_utility::in_msg_append((message_obt + index));
-    }
-    else{
-      delete[] out;
-      buzz_utility::in_msg_append((message_obt + index));
-    }
+    delete[] out;
+    buzz_utility::in_msg_append((message_obt + index));
   }
 }
 
@@ -1453,85 +1419,4 @@ void roscontroller::get_xbee_status()
    * TriggerAPIRssi(all_ids);
    */
 }
-
-void roscontroller::time_sync_step()
-/*
- * Steps the time syncronization algorithm
- ------------------------------------------------------------------ */
-{
-  //ROS_INFO("Stepping time sync : %f ", logical_clock.toSec());
-  double avgRate = logical_time_rate;
-  double avgOffset = 0;
-  int offsetCount = 0;
-  map<int, buzz_utility::neighbor_time>::iterator it;
-  for (it = neighbours_time_map.begin(); it != neighbours_time_map.end(); )
-  {
-    avgRate += (it->second).relative_rate;
-    // estimate current offset
-    int64_t  offset = (int64_t)(it->second).nei_logical_time - (int64_t)(it->second).node_logical_time;
-    avgOffset = avgOffset + offset;
-    offsetCount++;
-    if((it->second).age > BUZZRATE){
-      neighbours_time_map.erase(it++);
-    }
-    else{
-      (it->second).age++;
-      ++it;
-    }
-    ROS_INFO("Size of nei time %i",neighbours_time_map.size());
-  }
-  avgRate = avgRate/(neighbours_time_map.size()+1);
-  if(offsetCount>0 && !time_sync_jumped){
-    int64_t correction = (int64_t)ceil(avgOffset / (offsetCount+1));
-    if(correction < TIME_SYNC_JUMP_THR && correction > 0 ){
-      set_logical_time_correction(correction);
-    }
-  }
-  get_logical_time(); // just to update clock
-  time_sync_jumped = false;
-  //neighbours_time_map.clear();
-  logical_time_rate = avgRate;
-
-}
-void roscontroller::push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, double nr)
-/*
- * pushes a time syncronization msg into its data slot
- ------------------------------------------------------------------ */
-{
-  map<int, buzz_utility::neighbor_time>::iterator it = neighbours_time_map.find(nid);
-  double relativeRate =1;
-  if (it != neighbours_time_map.end()){
-    int64_t deltaLocal = ros::Time::now().toNSec() - (it->second).node_hardware_time;
-    int64_t delatNei = round(nh - (it->second).nei_hardware_time);
-    double currentRate = 0;
-    if(deltaLocal !=0 && delatNei !=0) currentRate = ((double)delatNei - (double)deltaLocal)/(double)deltaLocal;
-    relativeRate =  MOVING_AVERAGE_ALPHA*((it->second).relative_rate)
-                              + (1- MOVING_AVERAGE_ALPHA)*currentRate;
-
-    ROS_INFO("SYNC MSG RECEIVED deltaLocal %" PRIu64 ", delatNei %" PRId64 " , currentrate %f , this relative rate %f, final relativeRate %f",
-      deltaLocal, delatNei, currentRate, (it->second).relative_rate, relativeRate);
-    neighbours_time_map.erase(it);
-  }
-  int64_t offset = (int64_t)nl - (int64_t)logical_clock.toNSec();
-  if(offset > TIME_SYNC_JUMP_THR){
-    set_logical_time_correction(offset);// + time_diff * logical_time_rate );
-    time_sync_jumped = true;
-  }
-  buzz_utility::neighbor_time nt(nh, nl, ros::Time::now().toNSec(),
-                                    logical_clock.toNSec(), nr, relativeRate);
-  nt.age=0;
-  neighbours_time_map.insert(make_pair(nid, nt));
-}
-
-  uint64_t roscontroller::get_logical_time(){
-    uint64_t time_diff = ros::Time::now().toNSec() - previous_step_time.toNSec();
-    uint64_t old_time = logical_clock.toNSec();
-    logical_clock.fromNSec(old_time + time_diff);// + time_diff * logical_time_rate);
-    previous_step_time.fromNSec(ros::Time::now().toNSec());
-    return logical_clock.toNSec();
-  }
-  void roscontroller::set_logical_time_correction(uint64_t cor){
-    uint64_t l_time_now = get_logical_time();
-    logical_clock.fromNSec(l_time_now + cor);
-  }
 }

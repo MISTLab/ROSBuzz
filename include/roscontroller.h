@@ -44,7 +44,7 @@
 typedef enum {
   ROS_BUZZ_MSG_NIL = 0,    // dummy msg
   UPDATER_MESSAGE,         // Update msg
-  BUZZ_MESSAGE_NO_TIME,   // Broadcast message wihout time info
+  BUZZ_MESSAGE,            // Broadcast message
   BUZZ_MESSAGE_TIME,       // Broadcast message with time info
 } rosbuzz_msgtype;
 
@@ -104,9 +104,9 @@ private:
     int msgid;
     uint16_t nid;
     uint16_t size;
-    double sent_time;
+    uint64_t sent_time;
     uint64_t received_time;
-    MsgData(int mi, uint16_t ni, uint16_t s, double st, uint64_t rt):
+    MsgData(int mi, uint16_t ni, uint16_t s, uint64_t st, uint64_t rt):
             msgid(mi), nid(ni), size(s),sent_time(st), received_time(rt){};
     MsgData(){};
   };
@@ -122,6 +122,7 @@ private:
   ros::Time previous_step_time;
   std::vector<msg_data> inmsgdata;
   uint64_t out_msg_time;
+  int out_msg_size;
   double logical_time_rate;
   bool time_sync_jumped;
   std::string robot_name = "";
@@ -301,10 +302,5 @@ private:
   bool GetRawPacketLoss(const uint8_t short_id, float& result);
   bool GetFilteredPacketLoss(const uint8_t short_id, float& result);
   void get_xbee_status();
-
-  void time_sync_step();
-  void push_timesync_nei_msg(int nid, uint64_t nh, uint64_t nl, double nr);
-  uint64_t get_logical_time();
-  void set_logical_time_correction(uint64_t cor);
 };
 }
