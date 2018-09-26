@@ -44,7 +44,7 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   SetStreamRate(0, 10, 1);
 
   //  Get Home position - wait for none-zero value
-  while (cur_pos.latitude == 0.0f)
+  while ((cur_pos.latitude == 0.0f) || (cur_pos.altitude < -1000.0))
   {
     ROS_INFO("Waiting for GPS. ");
     ros::Duration(0.5).sleep();
