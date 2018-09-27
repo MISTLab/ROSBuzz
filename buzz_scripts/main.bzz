@@ -9,10 +9,7 @@ include "vstigenv.bzz"
 include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
-AUTO_LAUNCH_STATE = "IDLE"
-#AUTO_LAUNCH_STATE = "CUSFUN"
-#Lowest robot id in the network
-LOWEST_ROBOT_ID = 0
+AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
 TARGET     = 9.0
 EPSILON    = 30.0
 ROOT_ID = 3
@@ -38,7 +35,7 @@ function init() {
 
 #	initGraph()
 
-	TARGET_ALTITUDE = takeoff_heights[id] #4 + (id-LOWEST_ROBOT_ID)*3.0 # m
+	TARGET_ALTITUDE = takeoff_heights[id]
 
 	# start the swarm command listener
 	nei_cmd_listen()
