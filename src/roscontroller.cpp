@@ -743,6 +743,8 @@ script
   {
     case NAV_TAKEOFF:
       goto_pos = buzzuav_closures::getgoto();
+      cmd_srv.request.param5 = cur_pos.latitude;
+      cmd_srv.request.param6 = cur_pos.longitude;
       cmd_srv.request.param7 = goto_pos[2];
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (!armstate)
@@ -766,6 +768,9 @@ script
       break;
 
     case NAV_LAND:
+      cmd_srv.request.param5 = cur_pos.latitude;
+      cmd_srv.request.param6 = cur_pos.longitude;
+      cmd_srv.request.param7 = 0.0;
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (current_mode != "LAND" && setmode)
       {
