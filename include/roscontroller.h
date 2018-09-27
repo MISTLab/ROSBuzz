@@ -98,6 +98,7 @@ private:
   typedef struct POSE ros_pose;
 
   ros_pose target, home, cur_pos;
+  double* goto_pos;
 
   struct MsgData
   {
@@ -141,6 +142,7 @@ private:
   uint8_t old_val = 0;
   bool debug = false;
   bool setmode = false;
+  bool BClpose = false;
   std::string bzzfile_name;
   std::string bcfname, dbgfname;
   std::string stand_by;
