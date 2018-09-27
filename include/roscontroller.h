@@ -142,19 +142,9 @@ private:
   bool debug = false;
   bool setmode = false;
   std::string bzzfile_name;
-  std::string fcclient_name;
-  std::string armclient;
-  std::string modeclient;
-  std::string rcservice_name;
   std::string bcfname, dbgfname;
-  std::string out_payload;
-  std::string in_payload;
   std::string stand_by;
-  std::string xbeesrv_name;
   std::string capture_srv_name;
-  std::string setpoint_name;
-  std::string stream_client_name;
-  std::string setpoint_nonraw;
 
   // ROS service, publishers and subscribers
   ros::ServiceClient mav_client;
@@ -195,7 +185,7 @@ private:
   ros::ServiceClient mode_client;
 
   //  Initialize publisher and subscriber, done in the constructor
-  void Initialize_pub_sub(ros::NodeHandle& n_c);
+  void Initialize_pub_sub(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv);
 
   std::string current_mode;
 
@@ -280,6 +270,7 @@ private:
 
   /*Robot independent subscribers*/
   void Subscribe(ros::NodeHandle& n_c);
+  void PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv);
 
   void local_pos_callback(const geometry_msgs::PoseStamped::ConstPtr& pose);
 

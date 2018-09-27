@@ -3,11 +3,20 @@ topics:
   battery :   battery
   status  :   state
   estatus :   extended_state
-  fcclient:   cmd/command
   setpoint:   setpoint_position/local
-  armclient:  cmd/arming
-  modeclient: set_mode
   localpos: local_position/pose
-  stream:  set_stream_rate
   altitude: global_position/rel_alt
   obstacles: obstacles
+  inpayload:  inMavlink
+  outpayload: outMavlink
+  gridn: grid
+  bstate: bvmstate
+  npose: neighbours_pos
+  fstatus: fleet_status
+services:
+  fcclient:   cmd/command
+  armclient:  cmd/arming
+  modeclient: set_mode
+  stream:  set_stream_rate
+  rcservice:  buzzcmd
+  netstatus:  network_status

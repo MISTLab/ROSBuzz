@@ -22,7 +22,7 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   //  Obtain parameters from ros parameter server
   Rosparameters_get(n_c_priv);
   //  Initialize publishers, subscribers and client
-  Initialize_pub_sub(n_c);
+  Initialize_pub_sub(n_c, n_c_priv);
   //  Compile the .bzz file to .basm, .bo and .bdbg
   std::string fname = Compile_bzz(bzzfile_name);
   bcfname = fname + ".bo";
@@ -255,31 +255,6 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
     ROS_ERROR("Provide a setmode mode in Launch file");
     system("rosnode kill rosbuzz_node");
   }
-  // Obtain rc service option from parameter server
-  if (n_c.getParam("rcclient", rcclient))
-  {
-    if (rcclient == true)
-    {
-      if (!n_c.getParam("rcservice_name", rcservice_name))
-      {
-        ROS_ERROR("Provide a name topic name for rc service in Launch file");
-        system("rosnode kill rosbuzz_node");
-      }
-    }
-    else if (rcclient == false)
-    {
-      ROS_INFO("RC service is disabled");
-    }
-  }
-  else
-  {
-    ROS_ERROR("Provide a rc client option: yes or no in Launch file");
-    system("rosnode kill rosbuzz_node");
-  }
-  // Obtain out payload name
-  n_c.getParam("out_payload", out_payload);
-  //  Obtain in payload name
-  n_c.getParam("in_payload", in_payload);
   //  Obtain standby script to run during update
   n_c.getParam("stand_by", stand_by);
 
@@ -300,8 +275,6 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
       system("rosnode kill rosbuzz_node");
     }
   }
-  else
-    n_c.getParam("xbee_status_srv", xbeesrv_name);
 
   if (!n_c.getParam("capture_image_srv", capture_srv_name))
   {
@@ -313,7 +286,7 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
 
 void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
 /*
-/Obtains publisher, subscriber and services from yml config file
+/ Obtains subscribers names from yaml config file
 /-----------------------------------------------------------------------------------*/
 {
   std::string topic;
@@ -348,74 +321,122 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   node_handle.getParam("topics/altitude", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "std_msgs/Float64"));
 
-  // Obtain required topic and service names from the parameter server
-  if (node_handle.getParam("topics/fcclient", fcclient_name))
-    ;
+  node_handle.getParam("topics/inpayload", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs::Mavlink"));
+}
+
+void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handle)
+/*
+/ Obtains publishers and services names from yaml config file
+/-----------------------------------------------------------------------------------*/
+{
+  std::string topic;
+  if (node_handle.getParam("services/fcclient", topic))
+    mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(topic);
   else
   {
-    ROS_ERROR("Provide a fc client name in Launch file");
+    ROS_ERROR("Provide a fc client name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
-  if (node_handle.getParam("topics/setpoint", setpoint_name))
-    ;
+  if (node_handle.getParam("topics/setpoint", topic))
+    localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(topic, 5);
   else
   {
-    ROS_ERROR("Provide a Set Point name in Launch file");
+    ROS_ERROR("Provide a Set Point name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
-  if (node_handle.getParam("topics/armclient", armclient))
-    ;
+  if (node_handle.getParam("services/armclient", topic))
+    arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(topic);
   else
   {
-    ROS_ERROR("Provide an arm client name in Launch file");
+    ROS_ERROR("Provide an arm service name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
-  if (node_handle.getParam("topics/modeclient", modeclient))
-    ;
+  if (node_handle.getParam("services/modeclient", topic))
+  {
+    if(setmode)
+      mode_client = n_c.serviceClient<mavros_msgs::SetMode>(topic);
+  }
   else
   {
-    ROS_ERROR("Provide a mode client name in Launch file");
+    ROS_ERROR("Provide a set mode service name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
-  if (node_handle.getParam("topics/stream", stream_client_name))
-    ;
+  if (node_handle.getParam("services/stream", topic))
+    stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(topic);
   else
   {
-    ROS_ERROR("Provide a mode client name in Launch file");
+    ROS_ERROR("Provide a set stream rate service name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
+  if (node_handle.getParam("services/rcservice", topic))
+    service = n_c.advertiseService(topic, &roscontroller::rc_callback, this);
+  else
+  {
+    ROS_ERROR("Provide a remote controler service name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
+  if (node_handle.getParam("services/netstatus", topic))
+    xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(topic);
+  else
+  {
+    ROS_ERROR("Provide a network status service name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
+  if (node_handle.getParam("topics/outpayload", topic))
+    payload_pub = n_c.advertise<mavros_msgs::Mavlink>(topic, 5);
+  else
+  {
+    ROS_ERROR("Provide a Mavlink MSG out topic name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
+  if (node_handle.getParam("topics/fstatus", topic))
+    MPpayload_pub = n_c.advertise<mavros_msgs::Mavlink>(topic, 5);
+  else
+  {
+    ROS_ERROR("Provide a fleet status out topic name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
+  if (node_handle.getParam("topics/npose", topic))
+    neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>(topic, MAX_NUMBER_OF_ROBOTS);
+  else
+  {
+    ROS_ERROR("Provide a Neighbor pose out topic name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
+  if (node_handle.getParam("topics/bstate", topic))
+    bvmstate_pub = n_c.advertise<std_msgs::String>(topic, 5);
+  else
+  {
+    ROS_ERROR("Provide a BVM state out topic name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
+  if (node_handle.getParam("topics/gridn", topic))
+    grid_pub = n_c.advertise<nav_msgs::OccupancyGrid>(topic, 5);
+  else
+  {
+    ROS_ERROR("Provide a grid topic name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
 }
 
-void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c)
+void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
 /*
 / Create all required subscribers, publishers and ROS service clients
 /-------------------------------------------------------*/
 {
-  // subscribers
+  // Subscribers
 
   Subscribe(n_c);
 
-  payload_sub = n_c.subscribe(in_payload, MAX_NUMBER_OF_ROBOTS, &roscontroller::payload_obt, this);
+  // Publishers and service Clients
 
-  // publishers
-  payload_pub = n_c.advertise<mavros_msgs::Mavlink>(out_payload, 5);
-  MPpayload_pub = n_c.advertise<mavros_msgs::Mavlink>("fleet_status", 5);
-  neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>("neighbours_pos", MAX_NUMBER_OF_ROBOTS);
-  bvmstate_pub = n_c.advertise<std_msgs::String>("bvmstate", 5);
-  grid_pub = n_c.advertise<nav_msgs::OccupancyGrid>("grid", 5);
-  localsetpoint_nonraw_pub = n_c.advertise<geometry_msgs::PoseStamped>(setpoint_name, 5);
-
-  // Service Clients
-  arm_client = n_c.serviceClient<mavros_msgs::CommandBool>(armclient);
-  if(setmode)
-    mode_client = n_c.serviceClient<mavros_msgs::SetMode>(modeclient);
-  mav_client = n_c.serviceClient<mavros_msgs::CommandLong>(fcclient_name);
-  if (rcclient)
-    service = n_c.advertiseService(rcservice_name, &roscontroller::rc_callback, this);
+  PubandServ(n_c, n_c_priv);
+  
   ROS_INFO("Ready to receive Mav Commands from RC client");
-  xbeestatus_srv = n_c.serviceClient<mavros_msgs::ParamGet>(xbeesrv_name);
+  
   capture_srv = n_c.serviceClient<mavros_msgs::CommandBool>(capture_srv_name);
-  stream_client = n_c.serviceClient<mavros_msgs::StreamRate>(stream_client_name);
+  
 
   multi_msg = true;
 }
@@ -454,6 +475,10 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     else if (it->second == "sensor_msgs/LaserScan")
     {
       obstacle_sub = n_c.subscribe(it->first, 5, &roscontroller::obstacle_dist_callback, this);
+    }
+    else if (it->second == "mavros_msgs::Mavlink")
+    {
+      payload_sub = n_c.subscribe(it->first, MAX_NUMBER_OF_ROBOTS, &roscontroller::payload_obt, this);
     }
 
     std::cout << "Subscribed to: " << it->first << endl;
