@@ -193,7 +193,7 @@ function pack_guide_msg(send_table){
     pon=1
     }
     var b=math.abs(send_table.Bearing)
-    send_value=r_id*1000+pon*100+b
+    send_value=r_id*10000+pon*100+b
     return send_value
 }
 #
@@ -222,8 +222,8 @@ function unpackmessage(recv_value){
 #
 function unpack_guide_msg(recv_value){
 #log(id,"I pass value=",recv_value)
-    var qian=(recv_value-recv_value%1000)/1000
-    recv_value=recv_value-qian*1000
+    var qian=(recv_value-recv_value%10000)/10000
+    recv_value=recv_value-qian*10000
     var bai=(recv_value-recv_value%100)/100
     recv_value=recv_value-bai*100
     var b=recv_value
