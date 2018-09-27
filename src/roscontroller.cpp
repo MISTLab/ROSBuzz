@@ -68,17 +68,7 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   time_sync_jumped = false;
   out_msg_time=0;
   // Create log dir and open log file
-  std::string path =
-      bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
-  path = path.substr(0, bzzfile_name.find_last_of("\\/"))+"/log/";
-  std::string folder_check="mkdir -p "+path;
-  system(folder_check.c_str());
-  for(int i=5;i>0;i--){
-    rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i-1)+".log").c_str(),
-     (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i)+".log").c_str());
-  }
-  path += "logger_"+std::to_string(robot_id)+"_0.log";
-  log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
+  initcsvlog();
 }
 
 roscontroller::~roscontroller()
@@ -103,7 +93,7 @@ void roscontroller::GetRobotId()
   while (!xbeestatus_srv.call(robot_id_srv_request, robot_id_srv_response))
   {
     ros::Duration(0.1).sleep();
-    ROS_WARN("ROSBUZZ is waiting for Xbee device ID");
+    ROS_WARN("ROSBUZZ is waiting for Network device ID");
   }
 
   robot_id = robot_id_srv_response.value.integer;
@@ -134,8 +124,6 @@ void roscontroller::RosControllerRun()
     // check for BVMSTATE variable
     if(buzz_utility::get_bvmstate()=="Not Available")
       ROS_ERROR("BVMSTATE undeclared in .bzz file, please set BVMSTATE.");
-    // set log data double precision 
-    log <<std::setprecision(15) << std::fixed;
     //  DEBUG
     // ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
     while (ros::ok() && !buzz_utility::buzz_script_done())
@@ -166,33 +154,7 @@ void roscontroller::RosControllerRun()
         ROS_WARN("CURRENT PACKET DROP : %f ", cur_packet_loss);
 
       // log data
-      // hardware time now
-      log << ros::Time::now().toNSec() << ",";
-      
-      log << cur_pos.latitude << "," << cur_pos.longitude << ","
-      << cur_pos.altitude << ",";
-      log << (int)no_of_robots << ",";
-      log << neighbours_pos_map.size() << ",";
-      log << (int)inmsgdata.size() << "," << message_number << ",";
-      log << out_msg_time <<",";
-      log << out_msg_size<<",";
-      log << buzz_utility::get_bvmstate();
-      
-      map<int, buzz_utility::Pos_struct>::iterator it =
-      neighbours_pos_map.begin();
-      for (; it != neighbours_pos_map.end(); ++it)
-      {
-          log << "," << it->first << ",";
-          log << (double)it->second.x << "," << (double)it->second.y
-          << "," << (double)it->second.z;
-      }
-      for (std::vector<msg_data>::iterator it = inmsgdata.begin() ; it != inmsgdata.end(); ++it)
-      {
-          log << "," << (int)it->nid << "," << (int)it->msgid << "," << (int)it->size << "," << 
-          it->sent_time << ","<< it->received_time;
-      }
-      inmsgdata.clear();
-      log << std::endl;
+      logtocsv();
       
       //  Call Step from buzz script
       buzz_utility::buzz_script_step();
@@ -224,6 +186,60 @@ void roscontroller::RosControllerRun()
       // std::cout<< "HOME: " << home.latitude << ", " << home.longitude;
     }
   }
+}
+
+void roscontroller::initcsvlog()
+/*
+/ Create the CSV log file
+/-------------------------------------------------------*/
+{
+  std::string path =
+      bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+  path = path.substr(0, bzzfile_name.find_last_of("\\/"))+"/log/";
+  std::string folder_check="mkdir -p "+path;
+  system(folder_check.c_str());
+  for(int i=5;i>0;i--){
+    rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i-1)+".log").c_str(),
+     (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i)+".log").c_str());
+  }
+  path += "logger_"+std::to_string(robot_id)+"_0.log";
+  log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
+  // set log data double precision 
+  log <<std::setprecision(15) << std::fixed;
+}
+
+void roscontroller::logtocsv()
+/*
+/ Push a new line of data in the CSV log file
+/-------------------------------------------------------*/
+{
+  // hardware time now
+  log << ros::Time::now().toNSec() << ",";
+  
+  log << cur_pos.latitude << "," << cur_pos.longitude << ","
+  << cur_pos.altitude << ",";
+  log << (int)no_of_robots << ",";
+  log << neighbours_pos_map.size() << ",";
+  log << (int)inmsgdata.size() << "," << message_number << ",";
+  log << out_msg_time <<",";
+  log << out_msg_size<<",";
+  log << buzz_utility::get_bvmstate();
+  
+  map<int, buzz_utility::Pos_struct>::iterator it =
+  neighbours_pos_map.begin();
+  for (; it != neighbours_pos_map.end(); ++it)
+  {
+      log << "," << it->first << ",";
+      log << (double)it->second.x << "," << (double)it->second.y
+      << "," << (double)it->second.z;
+  }
+  for (std::vector<msg_data>::iterator it = inmsgdata.begin() ; it != inmsgdata.end(); ++it)
+  {
+      log << "," << (int)it->nid << "," << (int)it->msgid << "," << (int)it->size << "," << 
+      it->sent_time << ","<< it->received_time;
+  }
+  inmsgdata.clear();
+  log << std::endl;
 }
 
 void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)

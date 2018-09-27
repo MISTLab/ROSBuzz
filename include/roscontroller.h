@@ -184,6 +184,10 @@ private:
   mavros_msgs::SetMode m_cmdSetMode;
   ros::ServiceClient mode_client;
 
+  // CSV log management functions
+  void initcsvlog();
+  void logtocsv();
+
   //  Initialize publisher and subscriber, done in the constructor
   void Initialize_pub_sub(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv);
 
