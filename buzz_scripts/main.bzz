@@ -10,7 +10,8 @@ include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
 
-AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
+#AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
+AUTO_LAUNCH_STATE = "IDLE"
 TARGET     = 9.0
 EPSILON    = 30.0
 ROOT_ID = 3

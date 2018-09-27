@@ -746,19 +746,20 @@ script
   {
     case NAV_TAKEOFF:
       goto_pos = buzzuav_closures::getgoto();
-      goto_pos[0] = cur_pos.x;
-      goto_pos[1] = cur_pos.y;
+      goto_pos[0] = 0.0;
+      goto_pos[1] = 0.0;
       cmd_srv.request.param5 = cur_pos.latitude;
       cmd_srv.request.param6 = cur_pos.longitude;
       cmd_srv.request.param7 = goto_pos[2];
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (!armstate)
       {
-        if(setmode)
+        if(setmode){
           SetMode("LOITER", 0);
+          ros::Duration(0.5).sleep();
+        }
         armstate = 1;
         Arm();
-        ros::Duration(0.5).sleep();
         // Registering HOME POINT.
         home = cur_pos;
 	BClpose = true;
