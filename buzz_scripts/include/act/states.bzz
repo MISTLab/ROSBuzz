@@ -105,7 +105,7 @@ function goto_gps(transf) {
 	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
 	#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
  	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
-		log("Sorry this is too far.")
+		log("Sorry this is too far (", math.vec2.length(m_navigation), " / ", GOTO_MAXDIST, " )")
 	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
 		transf()
 	else {
