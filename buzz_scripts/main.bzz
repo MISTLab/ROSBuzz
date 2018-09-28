@@ -10,8 +10,7 @@ include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
 
-#AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
-AUTO_LAUNCH_STATE = "IDLE"
+AUTO_LAUNCH_STATE = "TASK_ALLOCATE"
 TARGET     = 9.0
 EPSILON    = 30.0
 ROOT_ID = 3
@@ -38,7 +37,7 @@ function init() {
 #	initGraph()
 
 	TARGET_ALTITUDE = takeoff_heights[id]
-	log("----------------------->alt",TARGET_ALTITUDE)
+	
 	# start the swarm command listener
 	nei_cmd_listen()
 
