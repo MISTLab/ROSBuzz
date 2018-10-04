@@ -110,8 +110,55 @@ function goto_gps(transf) {
 		transf()
 	else {
 		m_navigation = LimitSpeed(m_navigation, 1.0)
+		m_navigation = LCA(m_navigation)
 		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
 	}
+}
+
+function LCA(vel_vec) {
+	var safety_radius = 3.0
+	var default_velocity = 2.0
+	collide = 0
+
+	var k_v = 5 # velocity gain
+	var k_w = 10   # angular velocity gain
+
+	cart = neighbors.map(
+		function(rid, data) {
+			var c = {}
+			c.distance = data.distance 
+			c.azimuth = data.azimuth
+			if (c.distance < (safety_radius * 2.0) )
+				collide = 1
+			return c
+	})
+	if (collide) {
+		log("")
+		log("------>  AVOIDING NEIGHBOR!  <------")
+		log("")
+		result = cart.reduce(function(rid, data, accum) {
+			if(data.distance < accum.distance and data.distance > 0.0){
+				accum.distance = data.distance
+				accum.angle = data.azimuth
+				return accum
+			}
+				return accum
+			}, {.distance= safety_radius * 2.0, .angle= 0.0})
+
+		d_i = result.distance
+		data_alpha_i = result.angle
+
+		penalty = math.exp(d_i - safety_radius)
+		if( math.cos(math.vec2.angle(vel_vec)) < 0.0){
+			penalty = math.exp(-(d_i - safety_radius))
+		}
+
+		V = math.vec2.length(vel_vec) - math.cos(math.vec2.angle(vel_vec)) * penalty * k_v
+		W = -k_w * penalty * math.sin( math.vec2.angle(vel_vec) )
+
+		return math.vec2.newp(V, W)
+	}	else
+		return vel_vec
 }
 
 function follow() {
