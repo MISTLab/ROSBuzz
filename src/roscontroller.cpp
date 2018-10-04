@@ -165,7 +165,7 @@ void roscontroller::RosControllerRun()
       flight_controller_service_call();
       // Broadcast local position to FCU
       if(BClpose)
-	SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
+	      SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       //  Set ROBOTS variable (swarm size)
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
@@ -762,7 +762,6 @@ script
         Arm();
         // Registering HOME POINT.
         home = cur_pos;
-	BClpose = true;
       }
       if (current_mode != "GUIDED" && setmode)
         SetMode("GUIDED", 2000);  // added for compatibility with 3DR Solo
@@ -792,7 +791,6 @@ script
       {
         armstate = 0;
         Arm();
-	BClpose = false;
       }
       if (mav_client.call(cmd_srv))
       {
