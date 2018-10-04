@@ -8,7 +8,7 @@
   <arg name="script" default="testalone"/>
   <arg name="launch_config" default="topics"/>
   <arg name="debug" default="false" />
-  <arg name="setmode" default="true" />
+  <arg name="setmode" default="false" />
 
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >
     <rosparam file="$(find rosbuzz)/launch/launch_config/$(arg launch_config).yaml"/>
