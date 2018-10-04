@@ -12,7 +12,7 @@ TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
 PICTURE_WAIT = 20 # steps
 
-GOTO_MAXVEL = 0.85 # m/steps
+GOTO_MAXVEL = 1.5 # m/steps
 GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 0.4  # m.
 GOTOANG_TOL = 0.1 # rad.
@@ -35,7 +35,7 @@ function cusfun(){
 	log("cusfun: yay!!!")
 	LOCAL_TARGET = math.vec2.new(5 ,0 )
 	local_set_point = math.vec2.new(LOCAL_TARGET.x - pose.position.x ,LOCAL_TARGET.y - pose.position.y ) # has to move 5 meters in x from the home location
-	if(math.vec2.length(local_set_point) > GOTODIST_TOL){
+    if(math.vec2.length(local_set_point) > GOTODIST_TOL){
 		local_set_point = LimitSpeed(local_set_point, 1.0)
 		goto_abs(local_set_point.x, local_set_point.y, 0.0, 0.0)
     }
@@ -77,7 +77,7 @@ function stop() {
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
 		neighbors.broadcast("cmd", 21)
 		uav_land()
-		if(pose.position.altitude <= 0.3) {
+		if(pose.position.altitude <= 0.2) {
 			BVMSTATE = "TURNEDOFF"
 			#barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
 			#barrier_ready(21)
@@ -105,7 +105,7 @@ function goto_gps(transf) {
 	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
 	#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
  	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
-		log("Sorry this is too far.")
+		log("Sorry this is too far (", math.vec2.length(m_navigation), " / ", GOTO_MAXDIST, " )")
 	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
 		transf()
 	else {

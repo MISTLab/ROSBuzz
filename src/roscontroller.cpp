@@ -39,6 +39,7 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   cur_pos.longitude = 0;
   cur_pos.latitude = 0;
   cur_pos.altitude = 0;
+  goto_pos = buzzuav_closures::getgoto();
 
   // set stream rate - wait for the FC to be started
   SetStreamRate(0, 10, 1);
@@ -162,6 +163,9 @@ void roscontroller::RosControllerRun()
       prepare_msg_and_publish();
       // Call the flight controler service
       flight_controller_service_call();
+      // Broadcast local position to FCU
+      if(BClpose)
+	SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       //  Set ROBOTS variable (swarm size)
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
@@ -737,34 +741,40 @@ script
 /-------------------------------------------------------------------------------*/
 {
   //  flight controller client call if requested from Buzz
-  double* goto_pos;
   float* gimbal;
   switch (buzzuav_closures::bzz_cmd())
   {
     case NAV_TAKEOFF:
       goto_pos = buzzuav_closures::getgoto();
+      goto_pos[0] = 0.0;
+      goto_pos[1] = 0.0;
       cmd_srv.request.param5 = cur_pos.latitude;
       cmd_srv.request.param6 = cur_pos.longitude;
       cmd_srv.request.param7 = goto_pos[2];
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (!armstate)
       {
-        if(setmode)
+        if(setmode){
           SetMode("LOITER", 0);
+          ros::Duration(0.5).sleep();
+        }
         armstate = 1;
         Arm();
-        ros::Duration(0.5).sleep();
         // Registering HOME POINT.
         home = cur_pos;
+	BClpose = true;
       }
       if (current_mode != "GUIDED" && setmode)
         SetMode("GUIDED", 2000);  // added for compatibility with 3DR Solo
-      if (mav_client.call(cmd_srv))
+      if(setmode)
       {
-        ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+        if (mav_client.call(cmd_srv))
+        {
+          ROS_INFO("Reply: %ld", (long int)cmd_srv.response.success);
+        }
+        else
+          ROS_ERROR("Failed to call service from flight controller");
       }
-      else
-        ROS_ERROR("Failed to call service from flight controller");
       break;
 
     case NAV_LAND:
@@ -778,10 +788,11 @@ script
         armstate = 0;
         Arm();
       }
-      else if(cur_pos.altitude < 0.3) //disarm only when close to ground
+      else if(cur_pos.altitude < 0.4) //disarm only when close to ground
       {
         armstate = 0;
         Arm();
+	BClpose = false;
       }
       if (mav_client.call(cmd_srv))
       {
@@ -829,7 +840,6 @@ script
 
     case NAV_SPLINE_WAYPOINT:
       goto_pos = buzzuav_closures::getgoto();
-      roscontroller::SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       break;
 
     case DO_MOUNT_CONTROL:
@@ -1004,6 +1014,14 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
 {
   cur_pos.x = msg->pose.position.x;
   cur_pos.y = msg->pose.position.y;
+
+  if(!BClpose)
+  {
+  goto_pos[0]=cur_pos.x;
+  goto_pos[1]=cur_pos.y;
+  goto_pos[2]=0.0;
+  BClpose = true;
+  }
 
   buzzuav_closures::set_currentNEDpos(msg->pose.position.y,msg->pose.position.x);
   //  cur_pos.z = pose->pose.position.z; // Using relative altitude topic instead
