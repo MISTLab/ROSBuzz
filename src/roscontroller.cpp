@@ -164,7 +164,7 @@ void roscontroller::RosControllerRun()
       // Call the flight controler service
       flight_controller_service_call();
       // Broadcast local position to FCU
-      if(BClpose)
+      if(BClpose && !setmode)
 	      SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       //  Set ROBOTS variable (swarm size)
       get_number_of_robots();
@@ -838,6 +838,8 @@ script
 
     case NAV_SPLINE_WAYPOINT:
       goto_pos = buzzuav_closures::getgoto();
+      if(setmode) 
+        SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       break;
 
     case DO_MOUNT_CONTROL:
