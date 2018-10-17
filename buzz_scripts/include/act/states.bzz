@@ -62,6 +62,24 @@ function launch() {
 	}
 }
 
+function launch_switch() {
+	BVMSTATE = "LAUNCH_SWITCH"
+	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
+		homegps = {.lat=pose.position.latitude, .long=pose.position.longitude}
+		if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, AUTO_LAUNCH_STATE, 22)
+			barrier_ready(22)
+		} else {
+			log("Altitude: ", pose.position.altitude)
+			neighbors.broadcast("cmd", 22)
+			uav_takeoff(TARGET_ALTITUDE)
+		}
+	} else {
+		barrier_set(ROBOTS, AUTO_LAUNCH_STATE, AUTO_LAUNCH_STATE, 22)
+		barrier_ready(22)
+	}
+}
+
 gohomeT=100
 function goinghome() {
   BVMSTATE = "GOHOME"
@@ -110,7 +128,7 @@ function goto_gps(transf) {
 		transf()
 	else {
 		m_navigation = LimitSpeed(m_navigation, 1.0)
-		m_navigation = LCA(m_navigation)
+		#m_navigation = LCA(m_navigation)
 		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
 	}
 }
