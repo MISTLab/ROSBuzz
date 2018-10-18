@@ -6,8 +6,8 @@
 #
 ########################################
 
-CSV_FILENAME_AND_PATH = "/home/amber/rosbuzz-coverage/rosbuzz-coverage/waypoints/waypoints_15.csv"
-OUTPUT_FILENAME_AND_PATH = "/home/amber/bidding_output/output-" # automatically completed with 'ID.csv'
+CSV_FILENAME_AND_PATH = "/home/ubuntu/ROS_DRONES_WS2/src/rosbuzz/buzz_scripts/include/bidding/waypoints_15.csv"
+OUTPUT_FILENAME_AND_PATH = "/home/ubuntu/bidding_output/output-" # automatically completed with 'ID.csv'
 BID_WAIT = 40
 PICTURE_WAIT = 40
 BASE_ALTITUDE = 5.0
