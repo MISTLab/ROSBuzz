@@ -230,13 +230,13 @@ function sc_cover_assigned_area() {
     var pursuing_wp = current_area_wp_order[current_area_wp_index]
     sc_move_wp(pursuing_wp)
     if (distance_from_gps(wp_lat(pursuing_wp), wp_lon(pursuing_wp))<0.1) {
-        io.fwrite(output_file, string.concat(   string.tostring(wp_area(pursuing_wp)), ",",
-                                                string.tostring(wp_type(pursuing_wp)), ",", 
-                                                string.tostring(wp_lat(pursuing_wp)), ",", 
-                                                string.tostring(wp_lon(pursuing_wp)), ",", 
-                                                string.tostring(wp_alt(pursuing_wp)), ",", 
-                                                wp_filename(pursuing_wp), ",", 
-                                                string.tostring(id)     ))
+       # io.fwrite(output_file, string.concat(   string.tostring(wp_area(pursuing_wp)), ",",
+       #                                         string.tostring(wp_type(pursuing_wp)), ",", 
+       #                                         string.tostring(wp_lat(pursuing_wp)), ",", 
+       #                                         string.tostring(wp_lon(pursuing_wp)), ",", 
+       #                                         string.tostring(wp_alt(pursuing_wp)), ",", 
+       #                                         wp_filename(pursuing_wp), ",", 
+       #                                         string.tostring(id)     ))
         if (current_area_wp_index < (current_area_wp_number - 1)) {
             current_area_wp_index = current_area_wp_index + 1
         } else {
