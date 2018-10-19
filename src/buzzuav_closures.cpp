@@ -14,23 +14,29 @@ namespace buzzuav_closures
 // TODO: Minimize the required global variables and put them in the header
 // static const rosbzz_node::roscontroller* roscontroller_ptr;
 static double goto_pos[4];
-static double rc_goto_pos[3];
-static float rc_gimbal[4];
-static float batt[3];
-static float obst[5] = { 0, 0, 0, 0, 0 };
+static double goto_gpsgoal[3];
 static double cur_pos[4];
 static double cur_NEDpos[2];
-static uint8_t status;
-static int cur_cmd = 0;
-static int rc_cmd = 0;
+
 static int rc_id = -1;
+static int rc_cmd = 0;
+static double rc_gpsgoal[3];
+static float rc_gimbal[4];
+
+static float batt[3];
+static float obst[5] = { 0, 0, 0, 0, 0 };
+static uint8_t status;
+
+static int cur_cmd = 0;
 static int buzz_cmd = 0;
 static float height = 0;
+
 static bool deque_full = false;
 static int rssi = 0;
 static float raw_packet_loss = 0.0;
 static int filtered_packet_loss = 0;
 static float api_rssi = 0.0;
+
 string WPlistname = "";
 
 std::map<int, buzz_utility::RB_struct> targets_map;
@@ -231,7 +237,7 @@ int buzzuav_moveto(buzzvm_t vm)
   //  DEBUG
   // ROS_WARN("[%i] Buzz requested Move To: x: %.7f , y: %.7f, z: %.7f", (int)buzz_utility::get_robotid(), goto_pos[0],
   // goto_pos[1], goto_pos[2]);
-  buzz_cmd = NAV_SPLINE_WAYPOINT;  // TODO: standard mavros?
+  buzz_cmd = NAV_SPLINE_WAYPOINT;
   return buzzvm_ret0(vm);
 }
 
@@ -386,14 +392,24 @@ int buzzuav_storegoal(buzzvm_t vm)
     wplist_map.erase(wplist_map.begin()->first);
   }
 
-  double rb[3];
+  set_gpsgoal(goal);
+  // prevent an overwrite
+  rc_id = -1;
 
+  return buzzvm_ret0(vm);
+}
+
+void set_gpsgoal(double goal[3])
+/*
+/ update GPS goal value
+-----------------------------------*/
+{
+  double rb[3];
   rb_from_gps(goal, rb, cur_pos);
   if (fabs(rb[0]) < 150.0) {
-    rc_set_goto((int)buzz_utility::get_robotid(), goal[0], goal[1], goal[2]);
-    ROS_INFO("Set RC_GOTO ---- %f %f %f (%f %f, %f %f)", goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
+    goto_gpsgoal[0] = goal[0];goto_gpsgoal[1] = goal[1];goto_gpsgoal[2] = goal[2];
+    ROS_INFO("Set GPS GOAL TO ---- %f %f %f (%f %f, %f %f)", goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
   }
-  return buzzvm_ret0(vm);
 }
 
 int buzzuav_arm(buzzvm_t vm)
@@ -504,9 +520,9 @@ void rc_set_goto(int id, double latitude, double longitude, double altitude)
 -----------------------------------*/
 {
   rc_id = id;
-  rc_goto_pos[0] = latitude;
-  rc_goto_pos[1] = longitude;
-  rc_goto_pos[2] = altitude;
+  rc_gpsgoal[0] = latitude;
+  rc_gpsgoal[1] = longitude;
+  rc_gpsgoal[2] = altitude;
 }
 
 void rc_set_gimbal(int id, float yaw, float roll, float pitch, float t)
@@ -773,15 +789,30 @@ int buzzuav_update_flight_status(buzzvm_t vm)
   buzzvm_tput(vm);
   buzzvm_dup(vm);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "latitude", 1));
-  buzzvm_pushf(vm, rc_goto_pos[0]);
+  buzzvm_pushf(vm, rc_gpsgoal[0]);
   buzzvm_tput(vm);
   buzzvm_dup(vm);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "longitude", 1));
-  buzzvm_pushf(vm, rc_goto_pos[1]);
+  buzzvm_pushf(vm, rc_gpsgoal[1]);
   buzzvm_tput(vm);
   buzzvm_dup(vm);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 1));
-  buzzvm_pushf(vm, rc_goto_pos[2]);
+  buzzvm_pushf(vm, rc_gpsgoal[2]);
+  buzzvm_tput(vm);
+  buzzvm_gstore(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "cur_goal", 1));
+  buzzvm_pusht(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "latitude", 1));
+  buzzvm_pushf(vm, goto_gpsgoal[0]);
+  buzzvm_tput(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "longitude", 1));
+  buzzvm_pushf(vm, goto_gpsgoal[1]);
+  buzzvm_tput(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "altitude", 1));
+  buzzvm_pushf(vm, goto_gpsgoal[2]);
   buzzvm_tput(vm);
   buzzvm_gstore(vm);
   return vm->state;

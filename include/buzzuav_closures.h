@@ -51,6 +51,10 @@ int buzzuav_takepicture(buzzvm_t vm);
  */
 int getcmd();
 /*
+ * update GPS goal value
+ */
+void set_gpsgoal(double goal[3]);
+/*
  * Sets goto position from rc client
  */
 void rc_set_goto(int id, double latitude, double longitude, double altitude);
