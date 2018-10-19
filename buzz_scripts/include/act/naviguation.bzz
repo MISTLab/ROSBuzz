@@ -1,0 +1,20 @@
+# Core naviguation function to travel to a GPS target location.
+function goto_gps(transf) {
+	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
+	#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
+ 	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
+		log("Sorry this is too far (", math.vec2.length(m_navigation), " / ", GOTO_MAXDIST, " )")
+	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
+		transf()
+	else {
+		m_navigation = LimitSpeed(m_navigation, 1.0)
+		#m_navigation = LCA(m_navigation)
+		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
+	}
+}
+
+function LimitSpeed(vel_vec, factor){
+  if(math.vec2.length(vel_vec)>GOTO_MAXVEL*factor)
+  	vel_vec = math.vec2.scale(vel_vec, GOTO_MAXVEL*factor/math.vec2.length(vel_vec))
+	return vel_vec
+}

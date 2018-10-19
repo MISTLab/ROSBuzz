@@ -4,14 +4,14 @@ include "update.bzz"
 include "act/states.bzz"
 include "plan/rrtstar.bzz"
 include "taskallocate/graphformGPS.bzz"
-include "bidding/bidding.bzz"
+#include "taskallocate/bidding.bzz"
 include "vstigenv.bzz"
 #include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
 
-AUTO_LAUNCH_STATE = "BIDDING"
+AUTO_LAUNCH_STATE = "INDIWP"
 TARGET     = 9.0
 EPSILON    = 30.0
 ROOT_ID = 3
@@ -35,10 +35,8 @@ goal_list = {
 function init() {
   	init_stig()
 	init_swarm()
-	init_bidding()
+	#init_bidding()
 	
-#	initGraph()
-
 	TARGET_ALTITUDE = takeoff_heights[id]
 	
 	# start the swarm command listener
@@ -73,6 +71,8 @@ function step() {
 			statef=launch_switch
 	else if(BVMSTATE=="GOHOME") # ends on AUTO_LAUNCH_STATE
 		statef=goinghome
+	else if(BVMSTATE=="INDIWP")
+		statef=indiWP
 	else if(BVMSTATE=="IDLE")
 		statef=idle
 	else if(BVMSTATE=="AGGREGATE")

@@ -5,8 +5,10 @@
 ########################################
 include "utils/vec2.bzz"
 include "act/barrier.bzz"
-#include "act/old_barrier.bzz"
 include "utils/conversions.bzz"
+include "act/naviguation.bzz"
+include "act/CA.bzz"
+include "act/neighborcomm.bzz"
 
 TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
@@ -20,30 +22,17 @@ path_it = 0
 pic_time = 0
 g_it = 0
 
+# Core state function when on the ground
 function turnedoff() {
     BVMSTATE = "TURNEDOFF"
 }
 
+# Core state function when hovering
 function idle() {
     BVMSTATE = "IDLE"
 }
 
-
-# Custom function for the user.
-function cusfun(){
-	BVMSTATE="CUSFUN"
-	log("cusfun: yay!!!")
-	LOCAL_TARGET = math.vec2.new(5 ,0 )
-	local_set_point = math.vec2.new(LOCAL_TARGET.x - pose.position.x ,LOCAL_TARGET.y - pose.position.y ) # has to move 5 meters in x from the home location
-    if(math.vec2.length(local_set_point) > GOTODIST_TOL){
-		local_set_point = LimitSpeed(local_set_point, 1.0)
-		goto_abs(local_set_point.x, local_set_point.y, 0.0, 0.0)
-    }
-    else{
-    	log("TARGET REACHED")
-    }
-}
-
+# Core state function to launch the robot: takeoff and wait for others, or stop (land)
 function launch() {
 	BVMSTATE = "LAUNCH"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
@@ -62,6 +51,7 @@ function launch() {
 	}
 }
 
+# Launch function version without the timeout and stop state.
 function launch_switch() {
 	BVMSTATE = "LAUNCH_SWITCH"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
@@ -81,6 +71,7 @@ function launch_switch() {
 }
 
 gohomeT=100
+# State function to go back to ROSBuzz recorded home GPS position (at takeoff)
 function goinghome() {
   BVMSTATE = "GOHOME"
 	if(gohomeT > 0) {	# TODO: Make a real check if home is reached
@@ -90,6 +81,7 @@ function goinghome() {
   	BVMSTATE = AUTO_LAUNCH_STATE
 }
 
+# Core state function to stop and land.
 function stop() {
   BVMSTATE = "STOP"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
@@ -107,6 +99,13 @@ function stop() {
 	}
 }
 
+# State function for individual waypoint control
+function indiWP() {
+	BVMSTATE = "INDIWP"
+
+}
+
+# State function to take a picture from the camera server (developed by HS)
 function take_picture() {
   BVMSTATE="PICTURE"
   setgimbal(0.0, 0.0, -90.0, 20.0)
@@ -119,66 +118,7 @@ function take_picture() {
   pic_time=pic_time+1
 }
 
-function goto_gps(transf) {
-	m_navigation = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
-	#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
- 	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
-		log("Sorry this is too far (", math.vec2.length(m_navigation), " / ", GOTO_MAXDIST, " )")
-	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL) # reached destination
-		transf()
-	else {
-		m_navigation = LimitSpeed(m_navigation, 1.0)
-		#m_navigation = LCA(m_navigation)
-		goto_abs(m_navigation.x, m_navigation.y, rc_goto.altitude - pose.position.altitude, 0.0)
-	}
-}
-
-function LCA(vel_vec) {
-	var safety_radius = 3.0
-	var default_velocity = 2.0
-	collide = 0
-
-	var k_v = 5 # velocity gain
-	var k_w = 10   # angular velocity gain
-
-	cart = neighbors.map(
-		function(rid, data) {
-			var c = {}
-			c.distance = data.distance 
-			c.azimuth = data.azimuth
-			if (c.distance < (safety_radius * 2.0) )
-				collide = 1
-			return c
-	})
-	if (collide) {
-		log("")
-		log("------>  AVOIDING NEIGHBOR!  <------")
-		log("")
-		result = cart.reduce(function(rid, data, accum) {
-			if(data.distance < accum.distance and data.distance > 0.0){
-				accum.distance = data.distance
-				accum.angle = data.azimuth
-				return accum
-			}
-				return accum
-			}, {.distance= safety_radius * 2.0, .angle= 0.0})
-
-		d_i = result.distance
-		data_alpha_i = result.angle
-
-		penalty = math.exp(d_i - safety_radius)
-		if( math.cos(math.vec2.angle(vel_vec)) < 0.0){
-			penalty = math.exp(-(d_i - safety_radius))
-		}
-
-		V = math.vec2.length(vel_vec) - math.cos(math.vec2.angle(vel_vec)) * penalty * k_v
-		W = -k_w * penalty * math.sin( math.vec2.angle(vel_vec) )
-
-		return math.vec2.newp(V, W)
-	}	else
-		return vel_vec
-}
-
+# State function to follow a moving attractor (GPS sent from a user phone)
 function follow() {
 	if(size(targets)>0) {
 		BVMSTATE = "FOLLOW"
@@ -194,7 +134,7 @@ function follow() {
 	}
 }
 
-# converge to centroid
+# State function to converge to centroid
 function aggregate() {
   BVMSTATE="AGGREGATE"
   centroid = neighbors.reduce(function(rid, data, centroid) {
@@ -208,7 +148,7 @@ function aggregate() {
   goto_abs(cmdbin.x, cmdbin.y, 0.0, 0.0)
 }
 
-# circle all together around centroid
+# State fucntion to circle all together around centroid
 function pursuit() {
   BVMSTATE="PURSUIT"
 	rd = 20.0
@@ -248,7 +188,7 @@ function lj_sum(rid, data, accum) {
   return math.vec2.add(data, accum)
 }
 
-# Calculates and actuates the flocking interaction
+# Sate function that calculates and actuates the flocking interaction
 function formation() {
   BVMSTATE="FORMATION"
   # Calculate accumulator
@@ -259,115 +199,17 @@ function formation() {
   goto_abs(accum_lj.x, accum_lj.y, 0.0, 0.0)
 }
 
-# listens to commands from the remote control (web, commandline, etc)
-function rc_cmd_listen() {
-  if(flight.rc_cmd==22) {
-		log("cmd 22")
-		flight.rc_cmd=0
-		BVMSTATE = "LAUNCH"
-		neighbors.broadcast("cmd", 22)
-	} else if(flight.rc_cmd==21) {
-		flight.rc_cmd=0
-		AUTO_LAUNCH_STATE = "TURNEDOFF"
-		#barrier_set(ROBOTS, "GOHOME", BVMSTATE, 21)
-		#barrier_ready(21)
-		BVMSTATE = "STOP"
-		neighbors.broadcast("cmd", 21)
-	} else if(flight.rc_cmd==20) {
-		flight.rc_cmd=0
-		AUTO_LAUNCH_STATE = "IDLE"
-		barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
-		barrier_ready(20)
-		neighbors.broadcast("cmd", 20)
-	} else if(flight.rc_cmd==16) {
-		flight.rc_cmd=0
-		BVMSTATE = "PATHPLAN"
-	} else if(flight.rc_cmd==400) {
-		flight.rc_cmd=0
-		arm()
-		neighbors.broadcast("cmd", 400)
-	} else if (flight.rc_cmd==401){
-		flight.rc_cmd=0
-		disarm()
-		neighbors.broadcast("cmd", 401)
-	} else if (flight.rc_cmd==666){
-		flight.rc_cmd=0
-		stattab_send()
-	} else if (flight.rc_cmd==777){
-		flight.rc_cmd=0
-		reinit_time_sync()
-		neighbors.broadcast("cmd", 777)
-	}else if (flight.rc_cmd==900){
-		flight.rc_cmd=0
-		barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
-		barrier_ready(900)
-		neighbors.broadcast("cmd", 900)
-	} else if (flight.rc_cmd==901){
-		flight.rc_cmd=0
-		destroyGraph()
-		barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 901)
-		barrier_ready(901)
-		neighbors.broadcast("cmd", 901)
-	} else if (flight.rc_cmd==902){
-		flight.rc_cmd=0
-		destroyGraph()
-		barrier_set(ROBOTS, "AGGREGATE", BVMSTATE, 902)
-		barrier_ready(902)
-		neighbors.broadcast("cmd", 902)
-	} else if (flight.rc_cmd==903){
-		flight.rc_cmd=0
-		destroyGraph()
-		barrier_set(ROBOTS, "FORMATION", BVMSTATE, 903)
-		barrier_ready(903)
-		neighbors.broadcast("cmd", 903)
-	}
-}
-
-# listens to other fleet members broadcasting commands
-function nei_cmd_listen() {
-    neighbors.listen("cmd",
-			function(vid, value, rid) {
-				print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
-				#if(BVMSTATE!="BARRIERWAIT") {
-					if(value==22 and BVMSTATE=="TURNEDOFF") {
-						BVMSTATE = "LAUNCH"
-					}else if(value==20) {
-						AUTO_LAUNCH_STATE = "IDLE"
-						BVMSTATE = "GOHOME"
-					} else if(value==21 and BVMSTATE!="TURNEDOFF") {
-						BVMSTATE = "STOP"
-					} else if(value==400 and BVMSTATE=="TURNEDOFF") {
-						arm()
-					} else if(value==401 and BVMSTATE=="TURNEDOFF"){
-						disarm()
-					} else if(value==777 and BVMSTATE=="TURNEDOFF"){
-						reinit_time_sync()
-						#neighbors.broadcast("cmd", 777)
-					}else if(value==900){	# Shapes
-						barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
-						#barrier_ready(900)
-						neighbors.broadcast("cmd", 900)
-					} else if(value==901){	# Pursuit
-						destroyGraph()
-						barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 901)
-						#barrier_ready(901)
-						neighbors.broadcast("cmd", 901)
-					} else if(value==902){	# Agreggate
-						destroyGraph()
-						barrier_set(ROBOTS, "AGGREGATE", BVMSTATE, 902)
-						#barrier_ready(902)
-						neighbors.broadcast("cmd", 902)
-					} else if(value==903){	# Formation
-						destroyGraph()
-						barrier_set(ROBOTS, "FORMATION", BVMSTATE, 903)
-						#barrier_ready(903)
-						neighbors.broadcast("cmd", 903)
-					} else if(value==16 and BVMSTATE=="IDLE"){
-					#  neighbors.listen("gt",function(vid, value, rid) {
-					#    print("Got (", vid, ",", value, ") from robot #", rid)
-					#    # if(gt.id == id) statef=goto
-					#  })
-					}
-				#}
-    })
+# Custom state function for the developer to play with
+function cusfun(){
+	BVMSTATE="CUSFUN"
+	log("cusfun: yay!!!")
+	LOCAL_TARGET = math.vec2.new(5 ,0 )
+	local_set_point = math.vec2.new(LOCAL_TARGET.x - pose.position.x ,LOCAL_TARGET.y - pose.position.y ) # has to move 5 meters in x from the home location
+    if(math.vec2.length(local_set_point) > GOTODIST_TOL){
+		local_set_point = LimitSpeed(local_set_point, 1.0)
+		goto_abs(local_set_point.x, local_set_point.y, 0.0, 0.0)
+    }
+    else{
+    	log("TARGET REACHED")
+    }
 }

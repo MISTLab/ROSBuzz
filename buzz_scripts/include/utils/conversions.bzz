@@ -7,12 +7,6 @@ function LimitAngle(angle){
 		return angle
 }
 
-function LimitSpeed(vel_vec, factor){
-  if(math.vec2.length(vel_vec)>GOTO_MAXVEL*factor)
-  	vel_vec = math.vec2.scale(vel_vec, GOTO_MAXVEL*factor/math.vec2.length(vel_vec))
-	return vel_vec
-}
-
 # TODO: add other conversions....
 function convert_path(P) {
     var pathR={}
