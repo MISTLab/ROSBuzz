@@ -18,9 +18,9 @@ function rc_cmd_listen() {
 		barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
 		barrier_ready(20)
 		neighbors.broadcast("cmd", 20)
-	} else if(flight.rc_cmd==16) {
-		flight.rc_cmd=0
-		BVMSTATE = "PATHPLAN"
+#	} else if(flight.rc_cmd==16) {
+#		flight.rc_cmd=0
+#		BVMSTATE = "PATHPLAN"
 	} else if(flight.rc_cmd==400) {
 		flight.rc_cmd=0
 		arm()
@@ -108,5 +108,22 @@ function nei_cmd_listen() {
 					#  })
 					}
 				#}
+    })
+}
+
+# broadcast GPS goals
+function bd_goal() {
+    neighbors.broadcast("goal", {.id=rc_goto.id, .la=rc_goto.latitude, .lo=rc_goto.longitude, .al=rc_goto.altitude})
+}
+
+# listens to neighbors broadcasting gps goals
+function nei_goal_listen() {
+    neighbors.listen("goal",
+			function(vid, value, rid) {
+                print("Got (", vid, ",", value.id, value.la, value.lo, ") #", rid)
+				if(value.id==id) {
+                    print("Got (", vid, ",", value, ") #", rid)
+                    storegoal(value.la, value.lo, pose.position.altitude)
+                }
     })
 }

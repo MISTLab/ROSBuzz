@@ -14,10 +14,6 @@ TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
 PICTURE_WAIT = 20 # steps
 
-GOTO_MAXVEL = 1.5 # m/steps
-GOTO_MAXDIST = 150 # m.
-GOTODIST_TOL = 0.4  # m.
-GOTOANG_TOL = 0.1 # rad.
 path_it = 0
 pic_time = 0
 g_it = 0
@@ -100,8 +96,23 @@ function stop() {
 }
 
 # State function for individual waypoint control
+firsttimeinwp = 1
 function indiWP() {
+	if(firsttimeinwp) {
+		nei_goal_listen()
+		storegoal(pose.position.latitude, pose.position.longitude, pose.position.altitude)
+		firsttimeinwp = 0
+	}
 	BVMSTATE = "INDIWP"
+	if(rc_goto.id != -1) {
+		log(rc_goto.id)
+		if(rc_goto.id == id) {
+			storegoal(rc_goto.latitude, rc_goto.longitude, pose.position.altitude)
+		} else 
+			bd_goal()
+	}
+
+	goto_gps(nil)
 
 }
 

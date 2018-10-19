@@ -762,7 +762,10 @@ script
         Arm();
         // Registering HOME POINT.
         home = cur_pos;
-	BClpose = true;
+        // Initialize GPS goal for safety.
+        double gpspgoal[3] = {cur_pos.latitude,cur_pos.longitude,cur_pos.altitude};
+        buzzuav_closures::set_gpsgoal(gpspgoal);
+	      BClpose = true;
       }
       if (current_mode != "GUIDED" && setmode)
         SetMode("GUIDED", 2000);  // added for compatibility with 3DR Solo
@@ -792,7 +795,7 @@ script
       {
         armstate = 0;
         Arm();
-	BClpose = false;
+	      BClpose = false;
       }
       if (mav_client.call(cmd_srv))
       {
@@ -944,7 +947,7 @@ void roscontroller::gps_rb(POSE nei_pos, double out[])
 
 void roscontroller::gps_ned_cur(float& ned_x, float& ned_y, POSE t)
 /*
-/ Get GPS from NED and a reference GPS point (struct input)
+/ Get NED coordinates from a reference GPS point (struct input)
 ----------------------------------------------------------- */
 {
   gps_convert_ned(ned_x, ned_y, t.longitude, t.latitude, cur_pos.longitude, cur_pos.latitude);
@@ -953,7 +956,7 @@ void roscontroller::gps_ned_cur(float& ned_x, float& ned_y, POSE t)
 void roscontroller::gps_convert_ned(float& ned_x, float& ned_y, double gps_t_lon, double gps_t_lat, double gps_r_lon,
                                     double gps_r_lat)
 /*
-/ Get GPS from NED and a reference GPS point
+/ Get NED coordinates from a reference GPS point and current GPS location
 ----------------------------------------------------------- */
 {
   double d_lon = gps_t_lon - gps_r_lon;
