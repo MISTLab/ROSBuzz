@@ -4,20 +4,20 @@ include "update.bzz"
 include "act/states.bzz"
 include "plan/rrtstar.bzz"
 include "taskallocate/graphformGPS.bzz"
-#include "taskallocate/bidding.bzz"
+include "taskallocate/bidding.bzz"
 include "vstigenv.bzz"
 #include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
 
-AUTO_LAUNCH_STATE = "INDIWP"
+AUTO_LAUNCH_STATE = "BIDDING"
 TARGET     = 9.0
 EPSILON    = 30.0
 ROOT_ID = 3
 graph_id = 3
 graph_loop = 0
-LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barrier expire; if set to be 0, the robots will carry on to AUTO_LAUNCH_STATE.
+LAND_AFTER_BARRIER_EXPIRE = 0 # if set to be 1 , the robots will land after barrier expire; if set to be 0, the robots will carry on to AUTO_LAUNCH_STATE.
 
 #####
 # Vehicule type:
@@ -35,7 +35,7 @@ goal_list = {
 function init() {
   	init_stig()
 	init_swarm()
-	#init_bidding()
+	init_bidding()
 	
 	TARGET_ALTITUDE = takeoff_heights[id]
 	
@@ -83,7 +83,7 @@ function step() {
 		statef=pursuit
 	else if(BVMSTATE=="TASK_ALLOCATE")	# or bidding ?
 		statef=resetGraph
-	else if(BVMSTATE=="BIDDING")	
+	else if(BVMSTATE=="BIDDING")	# check the absolute path of the waypointlist csv file in bidding.bzz
 		statef=bidding
 	else if(BVMSTATE=="GRAPH_FREE")
 		statef=DoFree
