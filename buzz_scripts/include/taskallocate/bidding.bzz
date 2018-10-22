@@ -6,7 +6,7 @@
 #
 ########################################
 
-CSV_FILENAME_AND_PATH = "/home/amber/rosbuzz-coverage/rosbuzz-coverage/waypoints/waypoints_15.csv"
+CSV_FILENAME_AND_PATH = "/home/amber/ROS_WS/src/rosbuzz/buzz_scripts/include/taskallocate/waypoints_12.csv"
 OUTPUT_FILENAME_AND_PATH = "/home/amber/bidding_output/output-" # automatically completed with 'ID.csv'
 BID_WAIT = 40
 PICTURE_WAIT = 40
@@ -69,6 +69,7 @@ function read_from_csv(s) {
         waypoints[csv_entry] = string.sub(line, csv_value_begin_i, csv_scanner_i)
         csv_entry = csv_entry + 1      
     })
+    #table_print(waypoints)
     io.fclose(csv_file)
     NUM_AREAS = csv_area_counter
     NUM_WP = csv_wp_counter
@@ -423,8 +424,11 @@ function print_out_bidding_stigmergy() {
 function init_bidding() {
     
     # read the csv file with the waypoints information
-    read_from_csv(CSV_FILENAME_AND_PATH) 
+    #read_from_csv(CSV_FILENAME_AND_PATH)
     
+    # read the csv file using hook in rosbuzz
+    #storegoal(-1.0, -1.0, -1.0)
+
     # create bidding stigmergy
     bidding_stigmergy = stigmergy.create(1)
     
@@ -452,6 +456,9 @@ function init_bidding() {
 
 # executed at each time step
 function bidding() {
+
+    	# read the csv file with the waypoints information
+        read_from_csv(CSV_FILENAME_AND_PATH)
 
 	log("experiment_iteration: ", experiment_iteration)
 
