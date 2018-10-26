@@ -210,17 +210,117 @@ function formation() {
   goto_abs(accum_lj.x, accum_lj.y, 0.0, 0.0)
 }
 
+# Lightweight collision avoidance
+function LCA_rafael( vel_vec ) {
+	var safety_radius = 3.0
+	collide = 0
+
+	var k_v = 5   # x axis gain
+	var k_w = 5   # y axis gain
+
+	cart = neighbors.map(
+		function(rid, data) {
+			var c = {}
+			c.distance = data.distance 
+			c.azimuth = data.azimuth
+			if (c.distance < (safety_radius * 2.0) )
+				collide = 1
+			return c
+	})
+	if (collide) {
+		log("")
+		log("------>  AVOIDING NEIGHBOR!  <------")
+		log("")
+		result = cart.reduce(function(rid, data, accum) {
+			if(data.distance < accum.distance and data.distance > 0.0){
+				accum.distance = data.distance
+				accum.angle = data.azimuth
+				return accum
+			}
+				return accum
+			}, {.distance= safety_radius * 2.0, .angle= 0.0})
+
+
+		d_i = result.distance
+		data_alpha_i = result.angle
+
+		delta = math.vec2.new( d_i * math.cos(data_alpha_i), d_i * math.sin(data_alpha_i) )
+
+		p = math.exp(-(d_i - safety_radius))
+		if ( math.cos( math.vec2.angle(vel_vec) - data_alpha_i ) < 0.0 ) {
+			p = math.exp(d_i - safety_radius)
+		}
+
+		V = -1 * (p / d_i) * k_v * delta.x
+		W = -1 * (p / d_i) * k_w * delta.y
+
+		Uavd = math.vec2.new( V, W )
+
+		return math.vec2.add( vel_vec, Uavd )
+
+	}	else
+		return vel_vec
+}
+
 # Custom state function for the developer to play with
 function cusfun(){
 	BVMSTATE="CUSFUN"
-	log("cusfun: yay!!!")
-	LOCAL_TARGET = math.vec2.new(5 ,0 )
-	local_set_point = math.vec2.new(LOCAL_TARGET.x - pose.position.x ,LOCAL_TARGET.y - pose.position.y ) # has to move 5 meters in x from the home location
-    if(math.vec2.length(local_set_point) > GOTODIST_TOL){
-		local_set_point = LimitSpeed(local_set_point, 1.0)
-		goto_abs(local_set_point.x, local_set_point.y, 0.0, 0.0)
-    }
-    else{
-    	log("TARGET REACHED")
-    }
+	#log("cusfun: yay!!!")
+	#LOCAL_TARGET = math.vec2.new(5 ,0 )
+	#local_set_point = math.vec2.new(LOCAL_TARGET.x - pose.position.x ,LOCAL_TARGET.y - pose.position.y ) # has to move 5 meters in x from the home location
+    #if(math.vec2.length(local_set_point) > GOTODIST_TOL){
+	#	local_set_point = LimitSpeed(local_set_point, 1.0)
+	#	goto_abs(local_set_point.x, local_set_point.y, 0.0, 0.0)
+    #}
+    #else{
+    #	log("TARGET REACHED")
+    #}
+
+	initialPoint = 0
+
+	# Get waypoint list
+	if (id == 1) {
+		waypoints = {
+			.0 = math.vec2.new(-5.0, -5.0),
+			.1 = math.vec2.new(5.0, 5.0)
+		}
+	} else if (id == 2 ) {
+		waypoints = {
+			.0 = math.vec2.new(5.0, 5.0),
+			.1 = math.vec2.new(-5.0, -5.0)
+		}
+	}
+
+	# Current waypoint
+	target_point = waypoints[point]
+
+	# Get drone position and transform to global frame - depends on lauch file
+	offset_x = 0.0
+	offset_y = 0.0
+	if (id == 1) {
+		offset_x = 5.0
+		offset_y = 5.0
+	} else if (id == 2 ) {
+		offset_x = -5.0
+		offset_y = -5.0
+	}
+	pos_x = pose.position.x + offset_x;
+	pos_y = pose.position.y + offset_y;
+
+	# Get a vector pointing to target and target distance
+	vector_to_target = math.vec2.sub(target_point, math.vec2.new(pos_x, pos_y))
+	distance_to_target = math.vec2.length(vector_to_target)
+
+	# Run LCA and increment waypoint
+	if(distance_to_target > 0.2){
+		vector_to_target = LCA_rafael(vector_to_target)
+		vector_to_target = LimitSpeed(vector_to_target, 0.5)
+		goto_abs(vector_to_target.x, vector_to_target.y, 0.0, 0.0)
+	} else {
+		if(point < size(waypoints) - 1){
+			point = point + 1
+		} else {
+			point = 0
+		}
+	}
 }
