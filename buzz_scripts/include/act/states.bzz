@@ -210,58 +210,6 @@ function formation() {
   goto_abs(accum_lj.x, accum_lj.y, 0.0, 0.0)
 }
 
-# Lightweight collision avoidance
-function LCA_rafael( vel_vec ) {
-	var safety_radius = 3.0
-	collide = 0
-
-	var k_v = 5   # x axis gain
-	var k_w = 5   # y axis gain
-
-	cart = neighbors.map(
-		function(rid, data) {
-			var c = {}
-			c.distance = data.distance 
-			c.azimuth = data.azimuth
-			if (c.distance < (safety_radius * 2.0) )
-				collide = 1
-			return c
-	})
-	if (collide) {
-		log("")
-		log("------>  AVOIDING NEIGHBOR!  <------")
-		log("")
-		result = cart.reduce(function(rid, data, accum) {
-			if(data.distance < accum.distance and data.distance > 0.0){
-				accum.distance = data.distance
-				accum.angle = data.azimuth
-				return accum
-			}
-				return accum
-			}, {.distance= safety_radius * 2.0, .angle= 0.0})
-
-
-		d_i = result.distance
-		data_alpha_i = result.angle
-
-		delta = math.vec2.new( d_i * math.cos(data_alpha_i), d_i * math.sin(data_alpha_i) )
-
-		p = math.exp(-(d_i - safety_radius))
-		if ( math.cos( math.vec2.angle(vel_vec) - data_alpha_i ) < 0.0 ) {
-			p = math.exp(d_i - safety_radius)
-		}
-
-		V = -1 * (p / d_i) * k_v * delta.x
-		W = -1 * (p / d_i) * k_w * delta.y
-
-		Uavd = math.vec2.new( V, W )
-
-		return math.vec2.add( vel_vec, Uavd )
-
-	}	else
-		return vel_vec
-}
-
 # Custom state function for the developer to play with
 function cusfun(){
 	BVMSTATE="CUSFUN"
@@ -313,7 +261,7 @@ function cusfun(){
 
 	# Run LCA and increment waypoint
 	if(distance_to_target > 0.2){
-		vector_to_target = LCA_rafael(vector_to_target)
+		vector_to_target = LCA(vector_to_target)
 		vector_to_target = LimitSpeed(vector_to_target, 0.5)
 		goto_abs(vector_to_target.x, vector_to_target.y, 0.0, 0.0)
 	} else {
