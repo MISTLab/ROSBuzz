@@ -95,25 +95,46 @@ function stop() {
 	}
 }
 
-# State function for individual waypoint control
+# State functions for individual waypoint control
 firsttimeinwp = 1
+wpreached = 1
 function indiWP() {
 	if(firsttimeinwp) {
-		nei_goal_listen()
+		v_wp = stigmergy.create(8)
 		storegoal(pose.position.latitude, pose.position.longitude, pose.position.altitude)
 		firsttimeinwp = 0
 	}
 	BVMSTATE = "INDIWP"
 	if(rc_goto.id != -1) {
-		log(rc_goto.id)
 		if(rc_goto.id == id) {
+			wpreached = 0
 			storegoal(rc_goto.latitude, rc_goto.longitude, pose.position.altitude)
-		} else 
-			bd_goal()
+			return
+		} else {
+			v_wp.put(rc_goto.id,{.lat=rc_goto.latitude, .lon=rc_goto.longitude, .pro=0})
+			reset_rc()
+		}
 	}
 
-	goto_gps(nil)
+  wp = v_wp.get(id)
+	if(wp!=nil) {
+		#log(wp.pro,wpreached)
+		if(wp.pro == 0) {
+				wpreached = 0
+        storegoal(wp.lat, wp.lon, pose.position.altitude)
+				v_wp.put(id,{.lat=wp.lat, .lon=wp.lon, .pro=1})
+				return
+			}      
+	}
 
+	if(wpreached!=1)
+		goto_gps(indiWP_done)
+
+}
+
+function indiWP_done() {
+	BVMSTATE = "INDIWP"
+	wpreached = 1
 }
 
 # State function to take a picture from the camera server (developed by HS)

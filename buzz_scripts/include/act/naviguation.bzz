@@ -10,7 +10,6 @@ function goto_gps(transf) {
  	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
 		log("Sorry this is too far (", math.vec2.length(m_navigation), " / ", GOTO_MAXDIST, " )")
 	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL){ # reached destination
-		if(transf!=nil)
 			transf()
 	} else {
 		m_navigation = LimitSpeed(m_navigation, 1.0)

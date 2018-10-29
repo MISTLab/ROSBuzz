@@ -47,6 +47,10 @@ int buzz_exportmap(buzzvm_t vm);
  */
 int buzzuav_takepicture(buzzvm_t vm);
 /*
+ * closure to reset RC input
+ */
+int buzzuav_resetrc(buzzvm_t vm);
+/*
  * Returns the current command from local variable
  */
 int getcmd();
