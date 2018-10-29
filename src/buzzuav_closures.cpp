@@ -333,6 +333,15 @@ mavros_msgs::Mavlink get_status()
   return payload_out;
 }
 
+int buzzuav_resetrc(buzzvm_t vm)
+/*
+/ Buzz closure to reset the RC input.
+/----------------------------------------*/
+{
+  rc_id = -1;
+  return buzzvm_ret0(vm);
+}
+
 int buzzuav_takepicture(buzzvm_t vm)
 /*
 / Buzz closure to take a picture here.
