@@ -13,6 +13,7 @@ include "act/neighborcomm.bzz"
 TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
 PICTURE_WAIT = 20 # steps
+WP_STIG = 8
 
 path_it = 0
 pic_time = 0
@@ -100,7 +101,7 @@ firsttimeinwp = 1
 wpreached = 1
 function indiWP() {
 	if(firsttimeinwp) {
-		v_wp = stigmergy.create(8)
+		v_wp = stigmergy.create(WP_STIG)
 		storegoal(pose.position.latitude, pose.position.longitude, pose.position.altitude)
 		firsttimeinwp = 0
 	}
@@ -111,21 +112,27 @@ function indiWP() {
 			storegoal(rc_goto.latitude, rc_goto.longitude, pose.position.altitude)
 			return
 		} else {
-			v_wp.put(rc_goto.id,{.lat=rc_goto.latitude, .lon=rc_goto.longitude, .pro=0})
+			var ls = packWP2i(rc_goto.latitude, rc_goto.longitude, 0)
+			v_wp.put(rc_goto.id,ls)
 			reset_rc()
 		}
 	}
 
-  wp = v_wp.get(id)
-	if(wp!=nil) {
-		#log(wp.pro,wpreached)
-		if(wp.pro == 0) {
-				wpreached = 0
-        storegoal(wp.lat, wp.lon, pose.position.altitude)
-				v_wp.put(id,{.lat=wp.lat, .lon=wp.lon, .pro=1})
-				return
-			}      
-	}
+  #if(vstig_buzzy == 0) {
+		wpi = v_wp.get(id)
+		if(wpi!=nil) {
+			#log(wp.pro,wpreached)
+			wp = unpackWP2i(wpi)
+			table_print(wp)
+			if(wp.pro == 0) {
+					wpreached = 0
+					storegoal(wp.lat, wp.lon, pose.position.altitude)
+					var ls = packWP2i(wp.lat, wp.lon, 1)
+					v_wp.put(id,ls)
+					return
+				}      
+		}
+	#}
 
 	if(wpreached!=1)
 		goto_gps(indiWP_done)

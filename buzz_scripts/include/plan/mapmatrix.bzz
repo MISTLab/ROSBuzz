@@ -102,21 +102,6 @@ function is_in(dictionary, x, y){
   return 0
 }
 
-
-function table_print(t) {
-  foreach(t, function(key, value) {
-      log(key, " -> ", value)
-    })
-}
-
-function table_copy(t) {
-  var t2 = {}
-  foreach(t, function(key, value) {
-      t2[key] = value
-    })
-  return t2
-}
-
 function print_pos(t) {
   var ir=1
   while(ir <= size(t)) {

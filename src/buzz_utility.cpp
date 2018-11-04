@@ -291,6 +291,12 @@ static int testing_buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "add_neighborStatus", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "export_map", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "reset_rc", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+  buzzvm_gstore(VM);
 
   return VM->state;
 }

@@ -8,15 +8,14 @@
 #
 STATUS_VSTIG = 20
 GROUND_VSTIG = 21
-HIGHEST_ROBOTID = 14
-WAIT4STEP = 10
+WAIT4STEP = 5
+vstig_buzzy = 0
 
 #
 # Init var
 #
 var v_status = {}
 var v_ground = {}
-b_updating = 0
 vstig_counter = WAIT4STEP
 
 
@@ -27,36 +26,36 @@ function init_swarm() {
 
 function init_stig() {
 	v_status = stigmergy.create(STATUS_VSTIG)
-	v_ground = stigmergy.create(GROUND_VSTIG)
+	#v_ground = stigmergy.create(GROUND_VSTIG)
 }
 
 function uav_updatestig() {
-	# TODO: Push values on update only.
+	# TODO: Push values on update only?
 	if(vstig_counter<=0) {
-		b_updating=1
-		#var ls={.1=0,.2=battery.capacity,.3=xbee_status.rssi,.4=flight.status}
-		ls = 50*1000000 + battery.capacity*1000 + xbee_status.rssi*10 + flight.status
-	    log("Pushing ", ls, "on vstig with id:", id)
+		vstig_buzzy = 1
+		var ls = battery.capacity*10 + s2i(BVMSTATE)
+	    #log("Pushing ", ls, "on vstig with id:", id)
 	    v_status.put(id, ls)
 		vstig_counter=WAIT4STEP
+	} else if(vstig_counter==WAIT4STEP-1){ # ensure comm. delay between fetch and update stig
+		vstig_buzzy = 1
+		vstig_counter=vstig_counter-1
+		stattab_send()
 	} else {
-		b_updating=0
+		vstig_buzzy = 0
 		vstig_counter=vstig_counter-1
 	}
 }
 
-function unpackstatus(recv_value){
-    gps=(recv_value-recv_value%1000000)/1000000
-    recv_value=recv_value-gps*1000000
-    batt=(recv_value-recv_value%1000)/1000
-    recv_value=recv_value-batt*1000
-    xbee=(recv_value-recv_value%10)/10
-    recv_value=recv_value-xbee*10
-    fc=recv_value
-	log("- GPS ", gps)
-	log("- Battery ", batt)
-	log("- Xbee ", xbee)
-	log("- Status ", fc)
+function unpackstatus(recv_value,state_struct){
+    #state_struct.gp=(recv_value-recv_value%1000000)/1000000
+    #recv_value=recv_value-state_struct.gp*1000000
+    state_struct.ba=(recv_value-recv_value%10)/10
+    recv_value=recv_value-state_struct.ba*10
+    #state_struct.xb=(recv_value-recv_value%10)/10
+    #recv_value=recv_value-state_struct.xb*10
+    state_struct.st=recv_value
+	return state_struct
 }
 	
 function checkusers() {
@@ -95,37 +94,29 @@ function usertab_print(t) {
 
 function stattab_print() {
 	if(v_status.size()>0) {
-		if(b_updating==0) {
-			u=0
-			while(u<HIGHEST_ROBOTID){
-				tab = v_status.get(u)
-				if(tab!=nil)
-					unpackstatus(tab)
+		var state_struct = {.id = -1, .gp = -1, .ba = -1, .xb = -1, .st = -1}
+		neighbors.foreach(function(rid, data) {
+			var nei_state = v_status.get(rid)
+			if(nei_state!=nil){
+					state_struct.id=u
+					state_struct = unpackstatus(nei_state, state_struct)
+					table_print(state_struct)
+				}					
 				u=u+1
-			}
-		}
+			} )
 	}
 }
 
 function stattab_send() {
 	if(v_status.size()>0) {
-		if(b_updating==0) {
-			u=0
-			while(u<HIGHEST_ROBOTID){
-				tab = v_status.get(u)
-				if(tab!=nil){
-					recv_value=tab
-					gps=(recv_value-recv_value%1000000)/1000000
-					recv_value=recv_value-gps*1000000
-					batt=(recv_value-recv_value%1000)/1000
-					recv_value=recv_value-batt*1000
-					xbee=(recv_value-recv_value%10)/10
-					recv_value=recv_value-xbee*10
-					fc=recv_value
-					add_neighborStatus(u,gps,batt,xbee,fc)
+			var state_struct = {.id = -1, .gp = -1, .ba = -1, .xb = -1, .st = 0}
+			neighbors.foreach(function(rid, data) {
+				var nei_state = v_status.get(rid)
+				if(nei_state!=nil){
+					state_struct.id=rid
+					state_struct = unpackstatus(nei_state,state_struct)
+					add_neighborStatus(state_struct)
 				}
-				u=u+1
-			}
-		}
+			} )
 	}
 }

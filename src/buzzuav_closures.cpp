@@ -54,7 +54,7 @@ int buzzros_print(buzzvm_t vm)
 ----------------------------------------------------------- */
 {
   std::ostringstream buffer(std::ostringstream::ate);
-  buffer << "[" << buzz_utility::get_robotid() << "] ";
+  buffer << std::fixed << std::setprecision(6) << "[" << buzz_utility::get_robotid() << "] ";
   for (uint32_t index = 1; index < buzzdarray_size(vm->lsyms->syms); ++index)
   {
     buzzvm_lload(vm, index);
@@ -288,23 +288,42 @@ int buzzuav_addNeiStatus(buzzvm_t vm)
 / closure to add neighbors status to the BVM
 /----------------------------------------*/
 {
-  buzzvm_lnum_assert(vm, 5);
-  buzzvm_lload(vm, 1);  // fc
-  buzzvm_lload(vm, 2);  // xbee
-  buzzvm_lload(vm, 3);  // batt
-  buzzvm_lload(vm, 4);  // gps
-  buzzvm_lload(vm, 5);  // id
-  buzzvm_type_assert(vm, 5, BUZZTYPE_INT);
-  buzzvm_type_assert(vm, 4, BUZZTYPE_INT);
-  buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
-  buzzvm_type_assert(vm, 2, BUZZTYPE_INT);
-  buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+  buzzvm_lnum_assert(vm, 1);
+  buzzvm_lload(vm, 1);  // state table
+  buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);
+  buzzobj_t t = buzzvm_stack_at(vm, 1);
+  if(buzzdict_size(t->t.value) != 5) {
+    ROS_WARN("Wrong neighbor status size.");
+    return vm->state;
+  }
+
   buzz_utility::neighbors_status newRS;
-  uint8_t id = buzzvm_stack_at(vm, 5)->i.value;
-  newRS.gps_strenght = buzzvm_stack_at(vm, 4)->i.value;
-  newRS.batt_lvl = buzzvm_stack_at(vm, 3)->i.value;
-  newRS.xbee = buzzvm_stack_at(vm, 2)->i.value;
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "id", 1));
+  buzzvm_tget(vm);
+  uint8_t id = buzzvm_stack_at(vm, 1)->i.value;
+  buzzvm_pop(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "ba", 1));
+  buzzvm_tget(vm);
+  newRS.batt_lvl = buzzvm_stack_at(vm, 1)->i.value;
+  buzzvm_pop(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "gp", 1));
+  buzzvm_tget(vm);
+  newRS.gps_strenght = buzzvm_stack_at(vm, 1)->i.value;
+  buzzvm_pop(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "xb", 1));
+  buzzvm_tget(vm);
+  newRS.xbee = buzzvm_stack_at(vm, 1)->i.value;
+  buzzvm_pop(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "st", 1));
+  buzzvm_tget(vm);
   newRS.flight_status = buzzvm_stack_at(vm, 1)->i.value;
+  buzzvm_pop(vm);
+  
   map<int, buzz_utility::neighbors_status>::iterator it = neighbors_status_map.find(id);
   if (it != neighbors_status_map.end())
     neighbors_status_map.erase(it);
@@ -417,8 +436,10 @@ void set_gpsgoal(double goal[3])
   rb_from_gps(goal, rb, cur_pos);
   if (fabs(rb[0]) < 150.0) {
     goto_gpsgoal[0] = goal[0];goto_gpsgoal[1] = goal[1];goto_gpsgoal[2] = goal[2];
-    ROS_INFO("Set GPS GOAL TO ---- %f %f %f (%f %f, %f %f)", goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
-  }
+    ROS_INFO("[%i] Set GPS GOAL TO ---- %f %f %f (%f %f, %f %f)", buzz_utility::get_robotid(), goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
+  } else
+    ROS_WARN("[%i] GPS GOAL TOO FAR !!-- %f %f %f (%f %f, %f %f)", buzz_utility::get_robotid(), goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
+
 }
 
 int buzzuav_arm(buzzvm_t vm)
