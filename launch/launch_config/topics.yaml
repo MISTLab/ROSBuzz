@@ -13,6 +13,7 @@ topics:
   bstate: bvmstate
   npose: neighbours_pos
   fstatus: fleet_status
+  targetf: targets_found
 services:
   fcclient:   cmd/command
   armclient:  cmd/arming

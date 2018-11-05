@@ -115,6 +115,7 @@ private:
 
   uint64_t payload;
   std::map<int, buzz_utility::Pos_struct> neighbours_pos_map;
+  std::map<int, buzz_utility::Pos_struct> targets_found;
   std::map<int, buzz_utility::Pos_struct> raw_neighbours_pos_map;
   std::map<int, buzz_utility::neighbor_time> neighbours_time_map;
   int timer_step = 0;
@@ -143,7 +144,7 @@ private:
   bool debug = false;
   bool setmode = false;
   bool BClpose = false;
-  std::string bzzfile_name;
+  std::string bzzfile_name, WPfile;
   std::string bcfname, dbgfname;
   std::string stand_by;
   std::string capture_srv_name;
@@ -155,6 +156,7 @@ private:
   ros::ServiceClient stream_client;
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
+  ros::Publisher targetf_pub;
   ros::Publisher neigh_pos_pub;
   ros::Publisher bvmstate_pub;
   ros::Publisher grid_pub;

@@ -98,12 +98,13 @@ int buzzros_print(buzzvm_t vm)
   return buzzvm_ret0(vm);
 }
 
-void setWPlist(string path)
+void setWPlist(string file)
 /*
 / set the absolute path for a csv list of waypoints
 ----------------------------------------------------------- */
 {
-  WPlistname = path + "include/taskallocate/waypointlist.csv";
+  WPlistname = file;//path + "include/taskallocate/waypointlist.csv";
+  parse_gpslist();
 }
 
 float constrainAngle(float x)
@@ -179,6 +180,28 @@ void parse_gpslist()
 
   // Close the file:
   fin.close();
+}
+
+void check_targets_sim(double lat, double lon, double *res)
+/*
+/ check if a listed target is close
+----------------------------------------------------------- */
+{
+  map<int, buzz_utility::RB_struct>::iterator it;
+  for (it = wplist_map.begin(); it != wplist_map.end(); ++it)
+  {
+    double rb[3];
+    double ref[2]={lat, lon};
+    double tar[2]={it->second.latitude, it->second.longitude};
+    rb_from_gps(tar, rb, ref);
+    if(rb[0]<3.0){
+      ROS_WARN("FOUND A TARGET!!! [%i]", it->first);
+      res[0] = it->first;
+      res[1] = it->second.latitude;
+      res[2] = it->second.longitude;
+      res[3] = it->second.altitude;
+    }
+  }
 }
 
 int buzz_exportmap(buzzvm_t vm)

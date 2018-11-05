@@ -6,6 +6,7 @@
   <arg name="name" default="robot0"/>
   <arg name="xbee_plugged" default="true"/>
   <arg name="script" default="testalone"/>
+  <arg name="wpfile" default="waypointlist"/>
   <arg name="launch_config" default="topics"/>
   <arg name="debug" default="false" />
   <arg name="setmode" default="false" />
@@ -13,6 +14,7 @@
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >
     <rosparam file="$(find rosbuzz)/launch/launch_config/$(arg launch_config).yaml"/>
     <param name="bzzfile_name" value="$(find rosbuzz)/buzz_scripts/$(arg script).bzz" />
+    <param name="WPfile" value="$(find rosbuzz)/buzz_scripts/include/taskallocate/$(arg wpfile).csv" />
     <param name="debug" value="$(arg debug)" />
     <param name="xbee_plugged" value="$(arg xbee_plugged)"/>
     <param name="name" value="$(arg name)"/>

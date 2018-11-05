@@ -94,7 +94,7 @@ function usertab_print(t) {
 
 function stattab_print() {
 	if(v_status.size()>0) {
-		var state_struct = {.id = -1, .gp = -1, .ba = -1, .xb = -1, .st = -1}
+		var state_struct = {.id = -1, .gp = 0, .ba = 0, .xb = 0, .st = 0}
 		neighbors.foreach(function(rid, data) {
 			var nei_state = v_status.get(rid)
 			if(nei_state!=nil){

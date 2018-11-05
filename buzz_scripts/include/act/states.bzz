@@ -121,9 +121,7 @@ function indiWP() {
   #if(vstig_buzzy == 0) {
 		wpi = v_wp.get(id)
 		if(wpi!=nil) {
-			#log(wp.pro,wpreached)
 			wp = unpackWP2i(wpi)
-			table_print(wp)
 			if(wp.pro == 0) {
 					wpreached = 0
 					storegoal(wp.lat, wp.lon, pose.position.altitude)

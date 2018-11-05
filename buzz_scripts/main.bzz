@@ -51,7 +51,7 @@ function step() {
 	rc_cmd_listen()
 
 	# update the vstig (status/net/batt/...)
-  	#uav_updatestig()
+  	uav_updatestig()
 
 	#
 	# State machine

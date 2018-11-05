@@ -62,18 +62,16 @@ function gps_from_vec(vec) {
   return Lgoal
 }
 
-GPSoffset = {.lat=45.50, .lon=-73.62}
+GPSoffset = {.lat=45.50, .lon=-73.61}
 
 function packWP2i(in_lat, in_long, processed) {
   var dlat = math.round((in_lat - GPSoffset.lat)*1000000)
   var dlon = math.round((in_long - GPSoffset.lon)*1000000)
-  return dlat*100000+dlon*10+processed
+  return {.dla=dlat, .dlo=dlon*10+processed}
 }
 
 function unpackWP2i(wp_int){
-  dlat = (wp_int-wp_int%100000)/100000
-  wp_int=wp_int-dlat*100000
-  dlon = (wp_int-wp_int%10)/10
-  wp_int=wp_int-dlon*10
-  return {.lat=dlat/1000000.0+GPSoffset.lat, .lon=dlon/1000000.0+GPSoffset.lon, .pro=wp_int}
+  var dlon = (wp_int.dlo-wp_int.dlo%10)/10.0
+  var pro = wp_int.dlo-dlon*10
+  return {.lat=wp_int.dla/1000000.0+GPSoffset.lat, .lon=dlon/1000000.0+GPSoffset.lon, .pro=pro}
 }
