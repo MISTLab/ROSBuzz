@@ -19,6 +19,14 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
 ---------------*/
 {
   ROS_INFO("Buzz_node");
+  armstate = 0;
+  multi_msg = true;
+  setpoint_counter = 0;
+  fcu_timeout = TIMEOUT;
+  cur_pos.longitude = 0;
+  cur_pos.latitude = 0;
+  cur_pos.altitude = 0;
+  
   //  Obtain parameters from ros parameter server
   Rosparameters_get(n_c_priv);
   //  Initialize publishers, subscribers and client
@@ -32,13 +40,6 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   //  Initialize variables
   if(setmode)
     SetMode("LOITER", 0);
-  armstate = 0;
-  multi_msg = true;
-  setpoint_counter = 0;
-  fcu_timeout = TIMEOUT;
-  cur_pos.longitude = 0;
-  cur_pos.latitude = 0;
-  cur_pos.altitude = 0;
   goto_pos = buzzuav_closures::getgoto();
 
   // set stream rate - wait for the FC to be started
@@ -280,6 +281,14 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
   else
   {
     ROS_ERROR("Provide a setmode mode in Launch file");
+    system("rosnode kill rosbuzz_node");
+  }
+  // Obtain GPS position from launch file (facultative)
+  if (n_c.getParam("latitude", cur_pos.latitude))
+    n_c.getParam("longitude", cur_pos.longitude);
+  else
+  {
+    ROS_ERROR("Provide latitude in Launch file (default 0)");
     system("rosnode kill rosbuzz_node");
   }
   //  Obtain standby script to run during update
@@ -554,6 +563,7 @@ void roscontroller::neighbours_pos_publisher()
   rosbuzz::neigh_pos neigh_pos_array;
   neigh_pos_array.header.frame_id = "/world";
   neigh_pos_array.header.stamp = current_time;
+  // Fill the msg array with neighbors
   for (it = raw_neighbours_pos_map.begin(); it != raw_neighbours_pos_map.end(); ++it)
   {
     sensor_msgs::NavSatFix neigh_tmp;
@@ -569,6 +579,7 @@ void roscontroller::neighbours_pos_publisher()
     // <<(uint8_t) buzz_utility::get_rid_uint8compac(it->first)<<endl;
     // std::cout<<"long obt"<<neigh_tmp.longitude<<endl;
     
+    // Check if any simulated target are in range
     double tf[4] = {-1, 0, 0, 0};
     buzzuav_closures::check_targets_sim((it->second).x, (it->second).y, tf);
     if(tf[0]!=-1){
@@ -582,6 +593,17 @@ void roscontroller::neighbours_pos_publisher()
       targets_found.insert(make_pair(round(tf[0]), pos_tmp));
     }
   }
+  // Add this robot to the list
+  sensor_msgs::NavSatFix neigh_tmp;
+  neigh_tmp.header.stamp = current_time;
+  neigh_tmp.header.frame_id = "/world";
+  neigh_tmp.position_covariance_type = robot_id;  // custom robot id storage
+  neigh_tmp.latitude = cur_pos.latitude;
+  neigh_tmp.longitude = cur_pos.longitude;
+  neigh_tmp.altitude = cur_pos.altitude;
+  neigh_pos_array.pos_neigh.push_back(neigh_tmp);
+
+  // Create the targets_found msg
   for (it = targets_found.begin(); it != targets_found.end(); ++it)
   {
     sensor_msgs::NavSatFix target_tmp;
@@ -593,6 +615,8 @@ void roscontroller::neighbours_pos_publisher()
     target_tmp.altitude = (it->second).z;
     msg_target_out.pos_neigh.push_back(target_tmp);
   }
+
+  // Publish both msgs
   targetf_pub.publish(msg_target_out);
   neigh_pos_pub.publish(neigh_pos_array);
 }
@@ -1170,13 +1194,18 @@ void roscontroller::SetStreamRate(int id, int rate, int on_off)
   message.request.stream_id = id;
   message.request.message_rate = rate;
   message.request.on_off = on_off;
+  int timeout = 20; // 2sec at 10Hz
 
-  while (!stream_client.call(message))
+  while (!stream_client.call(message) && timeout>0)
   {
     ROS_INFO("Set stream rate call failed!, trying again...");
     ros::Duration(0.1).sleep();
+    timeout--;
   }
-   ROS_WARN("Set stream rate call successful");
+  if(timeout<1)
+    ROS_ERROR("Set stream rate timed out!");
+  else
+    ROS_WARN("Set stream rate call successful");
 }
 
 void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
