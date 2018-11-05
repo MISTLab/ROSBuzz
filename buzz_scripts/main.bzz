@@ -26,7 +26,10 @@ LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barr
 # 1 -> indoor flying vehicle
 # 2 -> outdoor wheeled vehicle
 # 3 -> indoor wheeled vehicle
-V_TYPE = 0
+if(id==0)	# No network ID=0, it's the groundstation/charging station.
+	V_TYPE = 2
+else
+	V_TYPE = 0
 
 
 # Executed once at init time.

@@ -10,6 +10,8 @@
   <arg name="launch_config" default="topics"/>
   <arg name="debug" default="true" />
   <arg name="setmode" default="false" />
+  <arg name="latitude" default="0" />
+  <arg name="longitude" default="0" />
 
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
     <rosparam file="$(find rosbuzz)/launch/launch_config/$(arg launch_config).yaml"/>
@@ -19,6 +21,8 @@
     <param name="xbee_plugged" value="$(arg xbee_plugged)"/>
     <param name="name" value="$(arg name)"/>
     <param name="setmode" value="$(arg setmode)"/>
+    <param name="latitude" value="$(arg latitude)"/>
+    <param name="longitude" value="$(arg longitude)"/>
     <param name="stand_by" value="$(find rosbuzz)/buzz_scripts/stand_by.bzz"/>
   </node>
 </launch>
