@@ -2,6 +2,7 @@ include "update.bzz"
 # don't use a stigmergy id=11 with this header, for barrier 
 # it requires an 'action' function to be defined here.
 include "act/states.bzz"
+include "utils/table.bzz"
 include "plan/rrtstar.bzz"
 include "taskallocate/graphformGPS.bzz"
 include "taskallocate/bidding.bzz"
@@ -27,9 +28,6 @@ LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barr
 # 3 -> indoor wheeled vehicle
 V_TYPE = 0
 
-goal_list = {
-	.0={.x = 45.5088103899, .y = -73.1540826153, .z = 2.5}
-}
 
 # Executed once at init time.
 function init() {
@@ -53,7 +51,7 @@ function step() {
 	rc_cmd_listen()
 
 	# update the vstig (status/net/batt/...)
-  	# uav_updatestig()
+  	uav_updatestig()
 
 	#
 	# State machine

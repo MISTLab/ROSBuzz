@@ -28,7 +28,7 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   bcfname = fname + ".bo";
   dbgfname = fname + ".bdb";
   buzz_update::set_bzz_file(bzzfile_name.c_str(),debug);
-  buzzuav_closures::setWPlist(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/");
+  buzzuav_closures::setWPlist(WPfile);
   //  Initialize variables
   if(setmode)
     SetMode("LOITER", 0);
@@ -259,6 +259,13 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
     ROS_ERROR("Provide a .bzz file to run in Launch file");
     system("rosnode kill rosbuzz_node");
   }
+  if (n_c.getParam("WPfile", WPfile))
+    ;
+  else
+  {
+    ROS_ERROR("Provide a .csv file to with target WP list");
+    system("rosnode kill rosbuzz_node");
+  }
   // Obtain debug mode from launch file parameter
   if (n_c.getParam("debug", debug))
     ;
@@ -417,8 +424,15 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     ROS_ERROR("Provide a fleet status out topic name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
+  if (node_handle.getParam("topics/targetf", topic))
+    targetf_pub = n_c.advertise<rosbuzz::neigh_pos>(topic, 5);
+  else
+  {
+    ROS_ERROR("Provide a fleet status out topic name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
   if (node_handle.getParam("topics/npose", topic))
-    neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>(topic, MAX_NUMBER_OF_ROBOTS);
+    neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>(topic, 5);
   else
   {
     ROS_ERROR("Provide a Neighbor pose out topic name in YAML file");
@@ -529,11 +543,14 @@ std::string roscontroller::Compile_bzz(std::string bzzfile_name)
 
 void roscontroller::neighbours_pos_publisher()
 /*
-/ Publish neighbours pos and id in neighbours pos topic
+/ Publish neighbours pos and id in neighbours pos topic AND TARGET ACQUIRED (SIMULATED)
 /----------------------------------------------------*/
 {
   auto current_time = ros::Time::now();
   map<int, buzz_utility::Pos_struct>::iterator it;
+  rosbuzz::neigh_pos msg_target_out;
+  msg_target_out.header.frame_id = "/world";
+  msg_target_out.header.stamp = current_time;
   rosbuzz::neigh_pos neigh_pos_array;
   neigh_pos_array.header.frame_id = "/world";
   neigh_pos_array.header.stamp = current_time;
@@ -551,7 +568,32 @@ void roscontroller::neighbours_pos_publisher()
     // cout<<"iterator it val: "<< it-> first << " After convertion: "
     // <<(uint8_t) buzz_utility::get_rid_uint8compac(it->first)<<endl;
     // std::cout<<"long obt"<<neigh_tmp.longitude<<endl;
+    
+    double tf[4] = {-1, 0, 0, 0};
+    buzzuav_closures::check_targets_sim((it->second).x, (it->second).y, tf);
+    if(tf[0]!=-1){
+      buzz_utility::Pos_struct pos_tmp;
+      pos_tmp.x = tf[1];
+      pos_tmp.y = tf[2];
+      pos_tmp.z = tf[3];
+      map<int, buzz_utility::Pos_struct>::iterator it = targets_found.find(round(tf[0]));
+      if (it != targets_found.end())
+        targets_found.erase(it);
+      targets_found.insert(make_pair(round(tf[0]), pos_tmp));
+    }
   }
+  for (it = targets_found.begin(); it != targets_found.end(); ++it)
+  {
+    sensor_msgs::NavSatFix target_tmp;
+    target_tmp.header.stamp = current_time;
+    target_tmp.header.frame_id = "/world";
+    target_tmp.position_covariance_type = it->first;  // custom robot id storage
+    target_tmp.latitude = (it->second).x;
+    target_tmp.longitude = (it->second).y;
+    target_tmp.altitude = (it->second).z;
+    msg_target_out.pos_neigh.push_back(target_tmp);
+  }
+  targetf_pub.publish(msg_target_out);
   neigh_pos_pub.publish(neigh_pos_array);
 }
 

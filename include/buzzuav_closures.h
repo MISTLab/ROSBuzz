@@ -20,7 +20,8 @@ namespace buzzuav_closures
  * The command to use in Buzz is buzzros_print takes any available datatype in Buzz
  */
 int buzzros_print(buzzvm_t vm);
-void setWPlist(std::string path);
+void setWPlist(std::string file);
+void check_targets_sim(double lat, double lon, double *res);
 
 /*
  * closure to move following a vector

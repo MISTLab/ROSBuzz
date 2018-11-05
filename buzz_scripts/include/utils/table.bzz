@@ -1,0 +1,97 @@
+function table_print(t) {
+  foreach(t, function(key, value) {
+      log(key, " -> ", value)
+    })
+}
+
+function table_copy(t) {
+  var t2 = {}
+  foreach(t, function(key, value) {
+      t2[key] = value
+    })
+  return t2
+}
+
+#
+#return the number of value in table
+#
+function count(table,value){
+	var number=0
+	var i=0
+	while(i<size(table)){
+		if(table[i]==value){
+			number=number+1
+		}
+		i=i+1
+	}
+	return number
+}
+#
+#map from int to state
+#
+function i2s(value){
+	if(value==1){
+	return "GRAPH_ASKING"
+	}
+	else if(value==2){
+	return "GRAPH_JOINING"
+	}
+	else if(value==3){
+	return "GRAPH_JOINED"
+	}
+	else if(value==4){
+	return "TURNEDOFF"
+	}
+	else if(value==5){
+	return "BARRIERWAIT"
+	}
+  else if(value==6){
+	return "INDIWP"
+	}
+  else if(value==7){
+	return "TASK_ALLOCATE"
+	}
+  else if(value==8){
+	return "LAUNCH"
+	}
+  else if(value==9){
+	return "STOP"
+	}
+  else {
+	return "UNDETERMINED"
+	}
+}
+#
+#map from state to int
+#
+function s2i(value){
+	if(value=="GRAPH_ASKING"){
+	return 1
+	}
+	else if(value=="GRAPH_JOINING"){
+	return 2
+	}
+	else if(value=="GRAPH_JOINED"){
+	return 3
+	}
+	else if(value=="TURNEDOFF"){
+	return 4
+	}
+	else if(value=="BARRIERWAIT"){
+	return 5
+	}
+	else if(value=="INDIWP"){
+	return 6
+	}
+	else if(value=="TASK_ALLOCATE"){
+	return 7
+	}
+	else if(value=="LAUNCH"){
+	return 8
+	}
+	else if(value=="STOP"){
+	return 9
+	}
+  else
+    return 0
+}

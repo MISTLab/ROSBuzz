@@ -17,7 +17,7 @@ static buzzvm_t VM = 0;
 static char* BO_FNAME = 0;
 static uint8_t* BO_BUF = 0;
 static buzzdebug_t DBG_INFO = 0;
-static uint32_t MAX_MSG_SIZE = 250;  // Maximum Msg size for sending update packets
+static uint32_t MAX_MSG_SIZE = 210;//250;  // Maximum Msg size for sending update packets
 static uint8_t Robot_id = 0;
 static std::vector<uint8_t*> IN_MSG;
 std::map<int, Pos_struct> users_map;
@@ -289,6 +289,12 @@ static int testing_buzz_register_hooks()
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
   buzzvm_pushs(VM, buzzvm_string_register(VM, "add_neighborStatus", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "export_map", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "reset_rc", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::dummy_closure));
   buzzvm_gstore(VM);
 
