@@ -55,7 +55,7 @@ function i2s(value){
 	return "LAUNCH"
 	}
   else if(value==9){
-	return "STOP"
+	return "FORMATION"
 	}
   else {
 	return "UNDETERMINED"
@@ -80,7 +80,7 @@ function s2i(value){
 	else if(value=="BARRIERWAIT"){
 	return 5
 	}
-	else if(value=="INDIWP"){
+	else if(value=="WAYPOINT"){
 	return 6
 	}
 	else if(value=="TASK_ALLOCATE"){
@@ -89,7 +89,7 @@ function s2i(value){
 	else if(value=="LAUNCH"){
 	return 8
 	}
-	else if(value=="STOP"){
+	else if(value=="POTENTIAL"){
 	return 9
 	}
   else

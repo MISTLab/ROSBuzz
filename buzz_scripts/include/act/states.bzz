@@ -97,40 +97,23 @@ function stop() {
 }
 
 # State functions for individual waypoint control
-firsttimeinwp = 1
+
 wpreached = 1
 function indiWP() {
-	if(firsttimeinwp) {
-		v_wp = stigmergy.create(WP_STIG)
-		storegoal(pose.position.latitude, pose.position.longitude, pose.position.altitude)
-		firsttimeinwp = 0
-	}
 	BVMSTATE = "INDIWP"
-	if(rc_goto.id != -1) {
-		if(rc_goto.id == id) {
-			wpreached = 0
-			storegoal(rc_goto.latitude, rc_goto.longitude, pose.position.altitude)
-			return
-		} else {
-			var ls = packWP2i(rc_goto.latitude, rc_goto.longitude, 0)
-			v_wp.put(rc_goto.id,ls)
-			reset_rc()
-		}
-	}
+	check_rc_wp()
 
-  #if(vstig_buzzy == 0) {
-		wpi = v_wp.get(id)
-		if(wpi!=nil) {
-			wp = unpackWP2i(wpi)
-			if(wp.pro == 0) {
-					wpreached = 0
-					storegoal(wp.lat, wp.lon, pose.position.altitude)
-					var ls = packWP2i(wp.lat, wp.lon, 1)
-					v_wp.put(id,ls)
-					return
-				}      
-		}
-	#}
+	wpi = v_wp.get(id)
+	if(wpi!=nil) {
+		wp = unpackWP2i(wpi)
+		if(wp.pro == 0) {
+				wpreached = 0
+				storegoal(wp.lat, wp.lon, pose.position.altitude)
+				var ls = packWP2i(wp.lat, wp.lon, 1)
+				v_wp.put(id,ls)
+				return
+			}      
+	}
 
 	if(wpreached!=1)
 		goto_gps(indiWP_done)
@@ -138,7 +121,7 @@ function indiWP() {
 }
 
 function indiWP_done() {
-	BVMSTATE = "INDIWP"
+	BVMSTATE = "WAYPOINT"
 	wpreached = 1
 }
 
@@ -208,10 +191,12 @@ function pursuit() {
 }
 
 # Lennard-Jones interaction magnitude
-TARGET     = 8.0
-EPSILON    = 30.0
+TARGET     = 16.0
+EPSILON    = 30.0 #30
+GAIN_ATT	 = 50.0
+GAIN_REP	 = 30.0
 function lj_magnitude(dist, target, epsilon) {
-	lj = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+	lj = -(epsilon / dist) * ((target / dist)^4)# - (target / dist)^2) #repulse only to avoid each other
   return lj
 }
 
@@ -225,14 +210,32 @@ function lj_sum(rid, data, accum) {
   return math.vec2.add(data, accum)
 }
 
-# Sate function that calculates and actuates the flocking interaction
-function formation() {
-  BVMSTATE="FORMATION"
+# State function that calculates and actuates LJ flocking interaction with vstig targets (attractor/repulsors)
+function lennardjones() {
+  BVMSTATE="POTENTIAL"
+	check_rc_wp()
   # Calculate accumulator
   accum_lj = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
     accum_lj = math.vec2.scale(accum_lj, 1.0 / neighbors.count())
-	accum_lj = LimitSpeed(accum_lj, 1.0/3.0)
+	# Add attractor/repulsor effects
+	log(v_wp.size())
+	accum_t = math.vec2.new(0.0, 0.0);
+	v_wp.foreach(
+    function(key, value, robot){
+			wp = unpackWP2i(value)
+			dvec = vec_from_gps(wp.lat, wp.lon, 0)
+			Tdist = math.vec2.length(dvec)
+			if(key > 99 and Tdist < 40)
+				accum_t = math.vec2.sub(accum_t, math.vec2.newp(GAIN_REP*(TARGET/Tdist)^4, math.vec2.angle(dvec)))
+			else if(key > 49 and Tdist > 10)
+				accum_t = math.vec2.add(accum_t, math.vec2.newp(GAIN_ATT*(TARGET/Tdist)^2, math.vec2.angle(dvec)))
+	})
+	if(v_wp.size() > 0)
+    accum_t = math.vec2.scale(accum_t, 1.0 / v_wp.size())
+	#log(math.vec2.length(accum_t),math.vec2.length(accum_lj))
+	
+	accum_lj = LimitSpeed(math.vec2.add(accum_t,accum_lj), 1.0) #1/3
   goto_abs(accum_lj.x, accum_lj.y, 0.0, 0.0)
 }
 
