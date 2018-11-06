@@ -63,14 +63,14 @@ function barrier_wait(threshold, transf, resumef, bc) {
   barrier.put(id, bc)
   barrier.get(id)
   log("--->BS: ", barrier.size(), " / ", threshold, " (", BARRIER_VSTIG, " - ", barrier.get("d"), ") t= ", timeW)
-  if(barrier.size()-1 >= threshold or barrier.get("d") == 1) {
+  #if(barrier.size()-1 >= threshold or barrier.get("d") == 1) {
     if(barrier_allgood(barrier,bc)) {
       barrier.put("d", 1)
       timeW = 0
       BVMSTATE = transf
     } else 
       barrier.put("d", 0)
-  }
+  #}
 
   if(timeW >= BARRIER_TIMEOUT) {
     log("------> Barrier Timeout !!!!")
@@ -86,13 +86,13 @@ function barrier_wait(threshold, transf, resumef, bc) {
 # Check all members state
 function barrier_allgood(barrier, bc) {
   barriergood = 1
-  barrier.foreach(
-    function(key, value, robot){
-      #log("VS entry : ", key, " ", value, " ", robot)
-      if(value != bc and key != "d"){
+  barrier.foreach(function(key, value, robot){
+      log("VS entry : ", key, " ", value, " ", robot)
+      if(key == "d"){
+        if(value == 1)
+          return 1
+      } else if(value != bc)
         barriergood = 0
-      }
-    }
-  )
+    })
   return barriergood
 }

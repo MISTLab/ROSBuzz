@@ -12,7 +12,7 @@ include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
 
-AUTO_LAUNCH_STATE = "INDIWP"
+AUTO_LAUNCH_STATE = "IDLE"
 TARGET     = 9.0
 EPSILON    = 30.0
 ROOT_ID = 3
@@ -78,8 +78,8 @@ function step() {
 		statef=idle
 	else if(BVMSTATE=="AGGREGATE")
 		statef=aggregate
-	else if(BVMSTATE=="FORMATION")
-		statef=formation
+	else if(BVMSTATE=="POTENTIAL")
+		statef=lennardjones
 	else if(BVMSTATE=="PURSUIT")
 		statef=pursuit
 	else if(BVMSTATE=="TASK_ALLOCATE")	# or bidding ?
