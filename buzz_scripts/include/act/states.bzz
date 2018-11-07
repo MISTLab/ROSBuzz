@@ -191,12 +191,12 @@ function pursuit() {
 }
 
 # Lennard-Jones interaction magnitude
-TARGET     = 16.0
+TARGET     = 8.0
 EPSILON    = 30.0 #30
 GAIN_ATT	 = 50.0
 GAIN_REP	 = 30.0
 function lj_magnitude(dist, target, epsilon) {
-	lj = -(epsilon / dist) * ((target / dist)^4)# - (target / dist)^2) #repulse only to avoid each other
+	lj = -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2) #repulse only to avoid each other
   return lj
 }
 
@@ -237,6 +237,71 @@ function lennardjones() {
 	
 	accum_lj = LimitSpeed(math.vec2.add(accum_t,accum_lj), 1.0) #1/3
   goto_abs(accum_lj.x, accum_lj.y, 0.0, 0.0)
+}
+
+# State function that calculates and actuates Voronoi Centroidal tessellation coverage (attractor/repulsors)
+counter = 0
+function voronoicentroid() {
+  BVMSTATE="DEPLOY"
+	if(counter==0 and id!=0) {
+		pts = getbounds()
+		it_pts = 0
+		#table_print(pts)
+		if(neighbors.count() > 0) {
+			neighbors.foreach(function(rid, data) {
+				pts[it_pts]=math.vec2.newp(data.distance,data.azimuth+pts.oa)
+				it_pts = it_pts + 1})
+			#table_print(pts)
+			voronoi(pts)
+		}
+		counter=10
+	}
+	counter=counter-1
+
+	goto_gps(voronoicentroid_done)
+}
+
+function voronoicentroid_done() {
+  BVMSTATE="DEPLOY"
+}
+
+function getbounds(){
+	var RBlimit = {}
+	foreach(GPSlimit, function(key, value) {
+		RBlimit[key] = vec_from_gps(value.lat, value.lng, 0)
+	})
+	minY = RBlimit[1].y
+	minYid = 1
+	maxY = RBlimit[1].y
+	maxYid = 1
+	foreach(RBlimit, function(key, value) {
+		if(value.y<minY){
+			minY = value.y
+			minYid = key
+		}
+		if(value.y>maxY){
+			maxY = value.y
+			maxYid = key
+		}
+	})
+	minY2 = maxY
+	minY2id = maxYid
+	foreach(RBlimit, function(key, value) {
+		if(value.y<minY2 and key!=minYid){
+			minY2 = value.y
+			minY2id = key
+		}
+	})
+	angle_offset = math.atan(RBlimit[minY2id].y-RBlimit[minYid].y,RBlimit[minY2id].x-RBlimit[minYid].x)
+	if(angle_offset > math.pi/2.0)
+		angle_offset = math.pi - angle_offset
+	#log(angle_offset, minYid, minY2id, maxYid)
+	dvec = math.vec2.sub(RBlimit[maxYid],RBlimit[minYid])
+	new_maxY = math.vec2.add(RBlimit[minYid], math.vec2.newp(math.vec2.length(dvec),math.vec2.angle(dvec)+angle_offset))
+	if(new_maxY.x > RBlimit[minYid].x)
+		return {.miny=minY, .minx=RBlimit[minYid].x, .maxy=new_maxY.y, .maxx=new_maxY.x}
+	else
+		return {.miny=minY, .minx=new_maxY.x, .maxy=new_maxY.y, .maxx=RBlimit[minYid].x, .oa=angle_offset}
 }
 
 # Custom state function for the developer to play with

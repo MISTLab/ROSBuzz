@@ -98,7 +98,7 @@ double* getgoto();
  * returns the current grid
  */
 std::map<int, std::map<int,int>> getgrid();
-
+int voronoi_center(buzzvm_t vm);
 
 /*
  * returns the gimbal commands
