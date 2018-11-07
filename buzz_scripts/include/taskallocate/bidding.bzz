@@ -457,6 +457,9 @@ function init_bidding() {
 # executed at each time step
 function bidding() {
 
+	# enable debug will increase the message size
+        debug = 0
+
     	# read the csv file with the waypoints information
         read_from_csv(CSV_FILENAME_AND_PATH)
 
@@ -565,11 +568,11 @@ function bidding() {
                                     bid_made = 1
                                     bid_time = experiment_iteration
                                     bidded_area = highest_area
-                                    log("Drone", id, "SET its bid", highest_bid, "on", highest_area, "at iter", experiment_iteration, "status was", stig_get_status(highest_area))
+                                    log("Drone", id, "SET its bid", highest_bid, "on", highest_area, "at iter", experiment_iteration)
                                 } else {
                                     bid_made = 0
                                     bidded_area = -1
-                                    log("Drone", id, "GAVE UP bid", highest_bid, "on", highest_area, "at iter", experiment_iteration, "status was", stig_get_status(highest_area))
+                                    log("Drone", id, "GAVE UP bid", highest_bid, "on", highest_area, "at iter", experiment_iteration)
                                 }                    
                             }
                         }    
@@ -616,7 +619,7 @@ function bidding() {
     ######################################## 
     # TEMP DEBUG BLOCK START ###############
     ########################################   
-    if (id == 2) {
+    if (id == 2 and debug == 1) {
         if (experiment_iteration%20==0){
             print_out_bidding_stigmergy()
         }  
