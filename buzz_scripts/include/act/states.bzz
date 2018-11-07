@@ -100,7 +100,7 @@ function stop() {
 
 wpreached = 1
 function indiWP() {
-	BVMSTATE = "INDIWP"
+	BVMSTATE = "WAYPOINT"
 	check_rc_wp()
 
 	wpi = v_wp.get(id)

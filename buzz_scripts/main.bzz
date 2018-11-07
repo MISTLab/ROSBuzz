@@ -72,7 +72,7 @@ function step() {
 			statef=launch_switch
 	else if(BVMSTATE=="GOHOME") # ends on AUTO_LAUNCH_STATE
 		statef=goinghome
-	else if(BVMSTATE=="INDIWP")
+	else if(BVMSTATE=="WAYPOINT")
 		statef=indiWP
 	else if(BVMSTATE=="IDLE")
 		statef=idle
