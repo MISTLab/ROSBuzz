@@ -87,7 +87,7 @@ function barrier_wait(threshold, transf, resumef, bc) {
 function barrier_allgood(barrier, bc) {
   barriergood = 1
   barrier.foreach(function(key, value, robot){
-      log("VS entry : ", key, " ", value, " ", robot)
+      #log("VS entry : ", key, " ", value, " ", robot)
       if(key == "d"){
         if(value == 1)
           return 1

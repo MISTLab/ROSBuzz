@@ -8,6 +8,7 @@
 
 #include "buzzuav_closures.h"
 #include "math.h"
+#include "VoronoiDiagramGenerator.h"
 
 namespace buzzuav_closures
 {
@@ -132,6 +133,18 @@ void rb_from_gps(double nei[], double out[], double cur[])
   out[2] = 0.0;
 }
 
+void gps_from_vec(double vec[], double gps[]) {
+  double Vrange = sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
+  double Vbearing = constrainAngle(atan2(vec[1], vec[0]));
+  double latR = cur_pos[0]*M_PI/180.0;
+  double lonR = cur_pos[1]*M_PI/180.0;
+  double target_lat = asin(sin(latR) * cos(Vrange/EARTH_RADIUS) + cos(latR) * sin(Vrange/EARTH_RADIUS) * cos(Vbearing));
+  double target_lon = lonR + atan2(sin(Vbearing) * sin(Vrange/EARTH_RADIUS) * cos(latR), cos(Vrange/EARTH_RADIUS) - sin(latR) * sin(target_lat));
+  gps[0] = target_lat*180.0/M_PI;
+  gps[1] = target_lon*180.0/M_PI;
+  gps[2] = cur_pos[2];
+}
+
 void parse_gpslist()
 /*
 / parse a csv of GPS targets
@@ -232,6 +245,134 @@ int buzz_exportmap(buzzvm_t vm)
   }
   // DEBUG
   // ROS_INFO("----- Recorded a grid of %i(%i)", grid.size(), buzzdict_size(t->t.value));
+  return buzzvm_ret0(vm);
+}
+
+int voronoi_center(buzzvm_t vm) {
+  float *xValues;//[4] = {-22, -17, 4,22};
+	float *yValues;//[4] = {-9, 31,13,-5};
+  float minx, miny, maxx, maxy;
+	buzzvm_lnum_assert(vm, 1);
+  // Get the parameter
+  buzzvm_lload(vm, 1);
+  buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);    // dictionary
+  buzzobj_t t = buzzvm_stack_at(vm, 1);
+   
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "maxx", 1));
+  buzzvm_tget(vm);
+  maxx = buzzvm_stack_at(vm, 1)->f.value;
+  buzzvm_pop(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "maxy", 1));
+  buzzvm_tget(vm);
+  maxy = buzzvm_stack_at(vm, 1)->f.value;
+  buzzvm_pop(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "minx", 1));
+  buzzvm_tget(vm);
+  minx = buzzvm_stack_at(vm, 1)->f.value;
+  buzzvm_pop(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "miny", 1));
+  buzzvm_tget(vm);
+  miny = buzzvm_stack_at(vm, 1)->f.value;
+  buzzvm_pop(vm);
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "oa", 1));
+  buzzvm_tget(vm);
+  float offset_angle = buzzvm_stack_at(vm, 1)->f.value;
+  buzzvm_pop(vm);
+
+  long count = buzzdict_size(t->t.value)-5;
+  xValues = new float[count];
+  yValues = new float[count];
+  for(int32_t i = 0; i < count; ++i) {
+    buzzvm_dup(vm);
+    buzzvm_pushi(vm, i);
+    buzzvm_tget(vm);
+   
+    buzzvm_dup(vm);
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 1));
+    buzzvm_tget(vm);
+    //ROS_INFO("---x-->%f",buzzvm_stack_at(vm, 1)->f.value);
+    xValues[i] = buzzvm_stack_at(vm, 1)->f.value;
+    buzzvm_pop(vm);
+    buzzvm_dup(vm);
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 1));
+    buzzvm_tget(vm);
+    //ROS_INFO("---y-->%f",buzzvm_stack_at(vm, 1)->f.value);
+    yValues[i] = buzzvm_stack_at(vm, 1)->f.value;
+    buzzvm_pop(vm);
+
+    buzzvm_pop(vm);
+  }
+
+	VoronoiDiagramGenerator vdg;
+	vdg.generateVoronoi(xValues,yValues,count, minx, maxx, miny, maxy,3);
+
+	vdg.resetIterator();
+
+	float x1,y1,x2,y2;
+  map<float, std::array<float, 4>> edges;
+	while(vdg.getNext(x1,y1,x2,y2))
+	{
+		ROS_INFO("GOT Line (%f,%f)->(%f,%f)\n",x1,y1,x2, y2);
+    edges.insert(make_pair(sqrt((x2+x1)*(x2+x1)/4+(y2+y1)*(y2+y1)/4), std::array<float, 4>{x1,y1,x2,y2}));
+	}
+  double center_dist[2] = {0,0};
+  float closest_points[8];
+  int nit = 1;
+  float prev;
+  map<float, std::array<float, 4>>::iterator it;
+  int got3 = 0;
+  for (it = edges.begin(); it != edges.end(); ++it)
+  {
+     if(nit == 1) {
+      //center_dist[0] += it->second[0] + it->second[2];
+      //center_dist[1] += it->second[1] + it->second[3];
+      closest_points[0] = it->second[0]; closest_points[1] = it->second[1]; closest_points[2] = it->second[2]; closest_points[3] = it->second[3];
+      ROS_INFO("USE Line (%f,%f)->(%f,%f): %f\n",it->second[0],it->second[1],it->second[2], it->second[3], it->first);
+      prev = it->first;
+     } else if(nit == 2) {
+       map<float, std::array<float, 4>>::iterator it_prev = edges.find(prev);
+      if(it->second[0]!=it_prev->second[0] && it->second[1]!=it_prev->second[1] && it->second[0]!=it_prev->second[2] && it->second[1]!=it_prev->second[3]){
+        //center_dist[0] += it->second[0];
+        //center_dist[1] += it->second[1];
+        closest_points[4] = it->second[0]; closest_points[5] = it->second[1];
+        ROS_INFO("USE Point (%f,%f): %f\n",it->second[0],it->second[1], it->first);
+        got3 = 1;
+      }
+      if(it->second[2]!=it_prev->second[0] && it->second[3]!=it_prev->second[1] && it->second[2]!=it_prev->second[2] && it->second[3]!=it_prev->second[3]){
+        //center_dist[0] += it->second[2];
+        //center_dist[1] += it->second[3];
+        if(!got3) {
+          closest_points[4] = it->second[2]; closest_points[5] = it->second[3];
+        } else {
+          closest_points[6] = it->second[2]; closest_points[7] = it->second[3];
+          got3=2;
+        }
+        ROS_INFO("USE Point (%f,%f): %f (%i)\n",it->second[2],it->second[3], it->first, got3);
+      }
+     } else
+      break;
+     nit++;
+  }
+  if(got3==2)
+    center_dist[0]=(closest_points[0]+closest_points[2]+closest_points[4]+closest_points[6])/4;
+  else
+    center_dist[0]=(closest_points[0]+closest_points[2]+closest_points[4])/3;
+  if(got3==2)
+    center_dist[1]=(closest_points[1]+closest_points[3]+closest_points[5]+closest_points[7])/4;
+  else
+    center_dist[1]=(closest_points[1]+closest_points[3]+closest_points[5])/3;
+  center_dist[0]=center_dist[0]*cos(offset_angle)-center_dist[1]*sin(offset_angle);
+  center_dist[1]=center_dist[0]*sin(offset_angle)+center_dist[1]*cos(offset_angle);
+  double gps[3];
+  gps_from_vec(center_dist, gps);
+  ROS_INFO("[%i] Voronoi cell center: %f, %f, %f, %f", buzz_utility::get_robotid(), center_dist[0], center_dist[1], gps[0], gps[1]);
+  set_gpsgoal(gps);
+
   return buzzvm_ret0(vm);
 }
 

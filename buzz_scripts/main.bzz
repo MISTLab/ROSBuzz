@@ -72,7 +72,7 @@ function step() {
 			statef=launch_switch
 	else if(BVMSTATE=="GOHOME") # ends on AUTO_LAUNCH_STATE
 		statef=goinghome
-	else if(BVMSTATE=="INDIWP")
+	else if(BVMSTATE=="WAYPOINT")
 		statef=indiWP
 	else if(BVMSTATE=="IDLE")
 		statef=idle
@@ -86,6 +86,8 @@ function step() {
 		statef=resetGraph
 	else if(BVMSTATE=="BIDDING")	# check the absolute path of the waypointlist csv file in bidding.bzz
 		statef=bidding
+	else if(BVMSTATE=="DEPLOY")	# check the absolute path of the waypointlist csv file in bidding.bzz
+		statef=voronoicentroid
 	else if(BVMSTATE=="GRAPH_FREE")
 		statef=DoFree
 	else if(BVMSTATE=="GRAPH_ASKING")
