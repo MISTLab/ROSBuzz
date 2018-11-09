@@ -154,6 +154,7 @@ int buzzuav_land(buzzvm_t vm);
  * Command the UAV to go to home location
  */
 int buzzuav_gohome(buzzvm_t vm);
+int buzzuav_geofence(buzzvm_t vm);
 
 /*
  * Updates battery information in Buzz

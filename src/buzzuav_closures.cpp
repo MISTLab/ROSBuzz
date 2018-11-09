@@ -376,6 +376,152 @@ int voronoi_center(buzzvm_t vm) {
   return buzzvm_ret0(vm);
 }
 
+/*
+ *  Geofence(): test for a point in a polygon
+ *     TAKEN from https://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/  
+ */
+struct Point 
+{ 
+    int x; 
+    int y; 
+};
+// Given three colinear points p, q, r, the function checks if 
+// point q lies on line segment 'pr' 
+bool onSegment(Point p, Point q, Point r) 
+{ 
+    if (q.x <= max(p.x, r.x) && q.x >= min(p.x, r.x) && 
+            q.y <= max(p.y, r.y) && q.y >= min(p.y, r.y)) 
+        return true; 
+    return false; 
+}
+// To find orientation of ordered triplet (p, q, r). 
+// The function returns following values 
+// 0 --> p, q and r are colinear 
+// 1 --> Clockwise 
+// 2 --> Counterclockwise 
+int orientation(Point p, Point q, Point r) 
+{ 
+    int val = (q.y - p.y) * (r.x - q.x) - 
+              (q.x - p.x) * (r.y - q.y); 
+  
+    if (val == 0) return 0;  // colinear 
+    return (val > 0)? 1: 2; // clock or counterclock wise 
+}
+// The function that returns true if line segment 'p1q1' 
+// and 'p2q2' intersect. 
+bool doIntersect(Point p1, Point q1, Point p2, Point q2) 
+{ 
+    // Find the four orientations needed for general and 
+    // special cases 
+    int o1 = orientation(p1, q1, p2); 
+    int o2 = orientation(p1, q1, q2); 
+    int o3 = orientation(p2, q2, p1); 
+    int o4 = orientation(p2, q2, q1); 
+  
+    // General case 
+    if (o1 != o2 && o3 != o4) 
+        return true; 
+  
+    // Special Cases 
+    // p1, q1 and p2 are colinear and p2 lies on segment p1q1 
+    if (o1 == 0 && onSegment(p1, p2, q1)) return true; 
+  
+    // p1, q1 and p2 are colinear and q2 lies on segment p1q1 
+    if (o2 == 0 && onSegment(p1, q2, q1)) return true; 
+  
+    // p2, q2 and p1 are colinear and p1 lies on segment p2q2 
+    if (o3 == 0 && onSegment(p2, p1, q2)) return true; 
+  
+     // p2, q2 and q1 are colinear and q1 lies on segment p2q2 
+    if (o4 == 0 && onSegment(p2, q1, q2)) return true; 
+  
+    return false; // Doesn't fall in any of the above cases 
+}
+int buzzuav_geofence(buzzvm_t vm)
+{
+    bool onedge = false;
+    Point P;
+    Point V[4];
+    int tmp;
+    buzzvm_lnum_assert(vm, 1);
+    // Get the parameter
+    buzzvm_lload(vm, 1);
+    buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);    // dictionary
+    buzzobj_t t = buzzvm_stack_at(vm, 1);
+
+    if(buzzdict_size(t->t.value) != 5) {
+      ROS_ERROR("Wrong Geofence input size (%i).", buzzdict_size(t->t.value));
+      return buzzvm_ret0(vm);
+    }
+    for(int32_t i = 0; i < buzzdict_size(t->t.value); ++i) {
+      buzzvm_dup(vm);
+      buzzvm_pushi(vm, i);
+      buzzvm_tget(vm);
+    
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 1));
+      buzzvm_tget(vm);
+      tmp = round(buzzvm_stack_at(vm, 1)->f.value*10);
+      ROS_INFO("[%i]---x-->%i",buzz_utility::get_robotid(), tmp);
+      if(i==0)
+        P.x = tmp;
+      else
+        V[i-1].x = tmp;
+      buzzvm_pop(vm);
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 1));
+      buzzvm_tget(vm);
+      tmp = round(buzzvm_stack_at(vm, 1)->f.value*10);
+      ROS_INFO("[%i]---x-->%i",buzz_utility::get_robotid(), tmp);
+      if(i==0)
+        P.y = tmp;
+      else
+        V[i-1].y = tmp;
+      buzzvm_pop(vm);
+
+      buzzvm_pop(vm);
+    }
+
+    // simple polygon: rectangle, 4 points
+    int n = 4;
+    // Create a point for line segment from p to infinite 
+    Point extreme = {10000, P.y}; 
+  
+    // Count intersections of the above line with sides of polygon 
+    int count = 0, i = 0; 
+    do
+    {
+        int next = (i+1)%n;
+  
+        // Check if the line segment from 'p' to 'extreme' intersects 
+        // with the line segment from 'polygon[i]' to 'polygon[next]' 
+        if (doIntersect(V[i], V[next], P, extreme)) 
+        { 
+            // If the point 'p' is colinear with line segment 'i-next', 
+            // then check if it lies on segment. If it lies, return true, 
+            // otherwise false 
+            if (orientation(V[i], P, V[next]) == 0) {
+              onedge = onSegment(V[i], P, V[next]);
+              if(onedge)
+                break;
+            }
+  
+            count++; 
+        }
+      i = next; 
+    } while (i != 0); 
+  
+  ROS_INFO("[%i] Geofence: %i, %i",buzz_utility::get_robotid(),count, onedge);
+
+  if((count%2 == 0) || onedge) {
+    goto_gpsgoal[0] = cur_pos[0];
+    goto_gpsgoal[1] = cur_pos[1];
+    ROS_WARN("Geofencing trigered, not going any further!");
+  }
+
+  return buzzvm_ret0(vm);
+}
+
 int buzzuav_moveto(buzzvm_t vm)
 /*
 / Buzz closure to move following a 3D vector + Yaw
@@ -457,8 +603,8 @@ int buzzuav_addNeiStatus(buzzvm_t vm)
   buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);
   buzzobj_t t = buzzvm_stack_at(vm, 1);
   if(buzzdict_size(t->t.value) != 5) {
-    ROS_WARN("Wrong neighbor status size.");
-    return vm->state;
+    ROS_ERROR("Wrong neighbor status size.");
+    return buzzvm_ret0(vm);
   }
 
   buzz_utility::neighbors_status newRS;

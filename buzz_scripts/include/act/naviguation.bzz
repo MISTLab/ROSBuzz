@@ -2,44 +2,31 @@ GOTO_MAXVEL = 1.5 # m/steps
 GOTO_MAXDIST = 150 # m.
 GOTODIST_TOL = 0.4  # m.
 GOTOANG_TOL = 0.1 # rad.
-GPSlimit = {.1={.lat=45.510386, .lng=-73.610400},
-			.2={.lat=45.509839, .lng=-73.610047},
-			.3={.lat=45.510859, .lng=-73.608714},
-			.4={.lat=45.510327, .lng=-73.608393}}
+GPSlimit = {.1={.lat=45.510400, .lng=-73.610421},
+			.2={.lat=45.510896, .lng=-73.608731},
+			.3={.lat=45.510355, .lng=-73.608404},
+			.4={.lat=45.509840, .lng=-73.610072}}
 
 # Core naviguation function to travel to a GPS target location.
 function goto_gps(transf) {
-	if(Geofence()) {
-		m_navigation = vec_from_gps(cur_goal.latitude, cur_goal.longitude, 0)
-		#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
-		if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
-			log("Sorry this is too far (", math.vec2.length(m_navigation), " / ", GOTO_MAXDIST, " )")
-		else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL){ # reached destination
-				transf()
-		} else {
-			m_navigation = LimitSpeed(m_navigation, 1.0)
-			#m_navigation = LCA(m_navigation)
-			goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
-		}
-	} else
-		log("Geofencing prevents from going to that location!")
+	m_navigation = vec_from_gps(cur_goal.latitude, cur_goal.longitude, 0)
+	#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
+	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
+		log("Sorry this is too far (", math.vec2.length(m_navigation), " / ", GOTO_MAXDIST, " )")
+	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL){ # reached destination
+			transf()
+	} else {
+		m_navigation = LimitSpeed(m_navigation, 1.0)
+		table_print(m_navigation)
+		gf = {.0=m_navigation, .1=vec_from_gps(GPSlimit[1].lat, GPSlimit[1].lng, 0), .2=vec_from_gps(GPSlimit[2].lat, GPSlimit[2].lng, 0), .3=vec_from_gps(GPSlimit[3].lat, GPSlimit[3].lng, 0), .4=vec_from_gps(GPSlimit[4].lat, GPSlimit[4].lng, 0)}
+		geofence(gf)
+		#m_navigation = LCA(m_navigation)
+		goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
+	}
 }
 
 function LimitSpeed(vel_vec, factor){
   if(math.vec2.length(vel_vec)>GOTO_MAXVEL*factor)
   	vel_vec = math.vec2.scale(vel_vec, GOTO_MAXVEL*factor/math.vec2.length(vel_vec))
 	return vel_vec
-}
-
-function Geofence(){ #TODO: rotate the fence box to really fit the coordinates
-	if(cur_goal.latitude > GPSlimit[1].lat and cur_goal.latitude > GPSlimit[2].lat and cur_goal.latitude > GPSlimit[3].lat and cur_goal.latitude > GPSlimit[4].lat)
-		return 0;
-	if(cur_goal.latitude < GPSlimit[1].lat and cur_goal.latitude < GPSlimit[2].lat and cur_goal.latitude < GPSlimit[3].lat and cur_goal.latitude < GPSlimit[4].lat)
-		return 0;
-	if(cur_goal.longitude > GPSlimit[1].lng and cur_goal.longitude > GPSlimit[2].lng and cur_goal.longitude > GPSlimit[3].lng and cur_goal.longitude > GPSlimit[4].lng)
-		return 0;
-	if(cur_goal.longitude < GPSlimit[1].lng and cur_goal.longitude < GPSlimit[2].lng and cur_goal.longitude < GPSlimit[3].lng and cur_goal.longitude < GPSlimit[4].lng)
-		return 0;
-
-	return 1
 }

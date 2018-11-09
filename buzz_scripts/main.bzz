@@ -12,7 +12,7 @@ include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
 
-AUTO_LAUNCH_STATE = "IDLE"
+AUTO_LAUNCH_STATE = "DEPLOY"
 TARGET     = 9.0
 EPSILON    = 30.0
 ROOT_ID = 3
@@ -44,7 +44,7 @@ function init() {
 	nei_cmd_listen()
 
     # Starting state: TURNEDOFF to wait for user input.
-	BVMSTATE = "TURNEDOFF"
+	BVMSTATE = "LAUNCH"
 }
 
 # Executed at each time step.
