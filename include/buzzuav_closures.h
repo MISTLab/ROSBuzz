@@ -21,6 +21,7 @@ namespace buzzuav_closures
  */
 int buzzros_print(buzzvm_t vm);
 void setWPlist(std::string file);
+void setVorlog(std::string path);
 void check_targets_sim(double lat, double lon, double *res);
 
 /*

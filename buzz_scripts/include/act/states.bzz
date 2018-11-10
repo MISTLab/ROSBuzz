@@ -245,12 +245,16 @@ function voronoicentroid() {
   BVMSTATE="DEPLOY"
 	if(counter==0 and id!=0) {
 		pts = getbounds()
-		it_pts = 0
+		pts[0] = {.x=0, .y=0}	#add itself
+		it_pts = 1
 		#table_print(pts)
 		if(neighbors.count() > 0) {
 			neighbors.foreach(function(rid, data) {
-				pts[it_pts]=math.vec2.newp(data.distance,data.azimuth+pts.oa)
-				it_pts = it_pts + 1})
+				if(rid!=0){	#remove GS (?)
+					pts[it_pts]=math.vec2.newp(data.distance,data.azimuth+pts.oa)
+					it_pts = it_pts + 1
+				}
+			})
 			#table_print(pts)
 			voronoi(pts)
 		}
@@ -271,37 +275,20 @@ function getbounds(){
 		RBlimit[key] = vec_from_gps(value.lat, value.lng, 0)
 	})
 	minY = RBlimit[1].y
-	minYid = 1
 	maxY = RBlimit[1].y
-	maxYid = 1
+	minX = RBlimit[1].x
+	maxX = RBlimit[1].x
 	foreach(RBlimit, function(key, value) {
-		if(value.y<minY){
+		if(value.y<minY)
 			minY = value.y
-			minYid = key
-		}
-		if(value.y>maxY){
+		if(value.y>maxY)
 			maxY = value.y
-			maxYid = key
-		}
+		if(value.x>maxX)
+			maxX = value.x
+		if(value.x<minX)
+			minX = value.x
 	})
-	minY2 = maxY
-	minY2id = maxYid
-	foreach(RBlimit, function(key, value) {
-		if(value.y<minY2 and key!=minYid){
-			minY2 = value.y
-			minY2id = key
-		}
-	})
-	angle_offset = math.atan(RBlimit[minY2id].y-RBlimit[minYid].y,RBlimit[minY2id].x-RBlimit[minYid].x)
-	if(angle_offset > math.pi/2.0)
-		angle_offset = math.pi - angle_offset
-	#log(angle_offset, minYid, minY2id, maxYid)
-	dvec = math.vec2.sub(RBlimit[maxYid],RBlimit[minYid])
-	new_maxY = math.vec2.add(RBlimit[minYid], math.vec2.newp(math.vec2.length(dvec),math.vec2.angle(dvec)+angle_offset))
-	if(new_maxY.x > RBlimit[minYid].x)
-		return {.miny=minY, .minx=RBlimit[minYid].x, .maxy=new_maxY.y, .maxx=new_maxY.x}
-	else
-		return {.miny=minY, .minx=new_maxY.x, .maxy=new_maxY.y, .maxx=RBlimit[minYid].x, .oa=angle_offset}
+	return {.miny=minY, .minx=minX, .maxy=maxY, .maxx=maxX, .oa=0.0}
 }
 
 # Custom state function for the developer to play with

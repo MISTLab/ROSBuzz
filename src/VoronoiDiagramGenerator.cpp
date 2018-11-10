@@ -295,7 +295,7 @@ void VoronoiDiagramGenerator::geominit()
 }
 
 
-struct Edge * VoronoiDiagramGenerator::bisect(struct Site *s1,struct	Site *s2)
+struct Edge * VoronoiDiagramGenerator::bisect(struct Site *s1,struct Site *s2)
 {
 	float dx,dy,adx,ady;
 	struct Edge *newedge;	
@@ -325,8 +325,10 @@ struct Edge * VoronoiDiagramGenerator::bisect(struct Site *s1,struct	Site *s2)
 	};
 	
 	newedge -> edgenbr = nedges;
+	newedge -> sites[0] = s1->sitenbr;
+	newedge -> sites[1] = s2->sitenbr;
 
-	//printf("\nbisect(%d) ((%f,%f) and (%f,%f)",nedges,s1->coord.x,s1->coord.y,s2->coord.x,s2->coord.y);
+	//printf("\nbisect(%d) (%d(%f,%f) and %d(%f,%f)",nedges,s1->sitenbr,s1->coord.x,s1->coord.y,s2->sitenbr,s2->coord.x,s2->coord.y);
 	
 	nedges += 1;
 	return(newedge);
@@ -655,7 +657,7 @@ void VoronoiDiagramGenerator::cleanupEdges()
 
 }
 
-void VoronoiDiagramGenerator::pushGraphEdge(float x1, float y1, float x2, float y2)
+void VoronoiDiagramGenerator::pushGraphEdge(float x1, float y1, float x2, float y2, int s[2])
 {
 	GraphEdge* newEdge = new GraphEdge;
 	newEdge->next = allEdges;
@@ -664,6 +666,7 @@ void VoronoiDiagramGenerator::pushGraphEdge(float x1, float y1, float x2, float 
 	newEdge->y1 = y1;
 	newEdge->x2 = x2;
 	newEdge->y2 = y2;
+	std::copy(s, s+2, newEdge->sites);
 }
 
 
@@ -679,9 +682,9 @@ char * VoronoiDiagramGenerator::myalloc(unsigned n)
 /* for those who don't have Cherry's plot */
 /* #include <plot.h> */
 void VoronoiDiagramGenerator::openpl(){}
-void VoronoiDiagramGenerator::line(float x1, float y1, float x2, float y2)
+void VoronoiDiagramGenerator::line(float x1, float y1, float x2, float y2, int s[2])
 {	
-	pushGraphEdge(x1,y1,x2,y2);
+	pushGraphEdge(x1,y1,x2,y2,s);
 
 }
 void VoronoiDiagramGenerator::circle(float x, float y, float radius){}
@@ -740,6 +743,59 @@ void VoronoiDiagramGenerator::plotinit()
 }
 
 
+// Given three colinear points p, q, r, the function checks if 
+// point q lies on line segment 'pr' 
+bool VoronoiDiagramGenerator::onSegment(Point p, Point q, Point r) 
+{ 
+    if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) && 
+            q.y <= std::max(p.y, r.y) && q.y >= std::min(p.y, r.y)) 
+        return true; 
+    return false; 
+}
+// To find orientation of ordered triplet (p, q, r). 
+// The function returns following values 
+// 0 --> p, q and r are colinear 
+// 1 --> Clockwise 
+// 2 --> Counterclockwise 
+int VoronoiDiagramGenerator::orientation(Point p, Point q, Point r) 
+{ 
+    int val = (q.y - p.y) * (r.x - q.x) - 
+              (q.x - p.x) * (r.y - q.y); 
+  
+    if (val == 0) return 0;  // colinear 
+    return (val > 0)? 1: 2; // clock or counterclock wise 
+}
+// The function that returns true if line segment 'p1q1' 
+// and 'p2q2' intersect. 
+bool VoronoiDiagramGenerator::doIntersect(Point p1, Point q1, Point p2, Point q2) 
+{ 
+    // Find the four orientations needed for general and 
+    // special cases 
+    int o1 = orientation(p1, q1, p2); 
+    int o2 = orientation(p1, q1, q2); 
+    int o3 = orientation(p2, q2, p1); 
+    int o4 = orientation(p2, q2, q1); 
+  
+    // General case 
+    if (o1 != o2 && o3 != o4) 
+        return true; 
+  
+    // Special Cases 
+    // p1, q1 and p2 are colinear and p2 lies on segment p1q1 
+    if (o1 == 0 && onSegment(p1, p2, q1)) return true; 
+  
+    // p1, q1 and p2 are colinear and q2 lies on segment p1q1 
+    if (o2 == 0 && onSegment(p1, q2, q1)) return true; 
+  
+    // p2, q2 and p1 are colinear and p1 lies on segment p2q2 
+    if (o3 == 0 && onSegment(p2, p1, q2)) return true; 
+  
+     // p2, q2 and q1 are colinear and q1 lies on segment p2q2 
+    if (o4 == 0 && onSegment(p2, q1, q2)) return true; 
+  
+    return false; // Doesn't fall in any of the above cases 
+}
+
 void VoronoiDiagramGenerator::clip_line(struct Edge *e)
 {
 	struct Site *s1, *s2;
@@ -749,6 +805,7 @@ void VoronoiDiagramGenerator::clip_line(struct Edge *e)
 	x2 = e->reg[1]->coord.x;
 	y1 = e->reg[0]->coord.y;
 	y2 = e->reg[1]->coord.y;
+	//printf("Clip line for edges: %d", e->edgenbr);
 
 	//if the distance between the two points this line was created from is less than 
 	//the square root of 2, then ignore it
@@ -849,7 +906,7 @@ void VoronoiDiagramGenerator::clip_line(struct Edge *e)
 	};
 	
 	//printf("\nPushing line (%f,%f,%f,%f)",x1,y1,x2,y2);
-	line(x1,y1,x2,y2);
+	line(x1,y1,x2,y2,e->sites);
 }
 
 
@@ -895,6 +952,7 @@ bool VoronoiDiagramGenerator::voronoi(int triangulate)
 			e = bisect(bot, newsite);					//create a new edge that bisects 
 			bisector = HEcreate(e, le);					//create a new HalfEdge, setting its ELpm field to 0			
 			ELinsert(lbnd, bisector);					//insert this new bisector edge between the left and right vectors in a linked list	
+			//printf("Newsite %d: %f,%f\n",newsite->sitenbr,newsite->coord.x,newsite->coord.y);
 
 			if ((p = intersect(lbnd, bisector)) != (struct Site *) NULL) 	//if the new bisector intersects with the left edge, remove the left edge's vertex, and put in the new one
 			{	

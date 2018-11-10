@@ -33,6 +33,8 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+#include <algorithm>
 
 
 #ifndef NULL
@@ -84,12 +86,14 @@ struct Edge
 	struct	Site 	*ep[2];
 	struct	Site	*reg[2];
 	int		edgenbr;
+	int		sites[2];
 
 };
 
 struct GraphEdge
 {
 	float x1,y1,x2,y2;
+	int sites[2];
 	struct GraphEdge* next;
 };
 
@@ -123,7 +127,7 @@ public:
 		iteratorEdges = allEdges;
 	}
 
-	bool getNext(float& x1, float& y1, float& x2, float& y2)
+	bool getNext(float& x1, float& y1, float& x2, float& y2, int *s)
 	{
 		if(iteratorEdges == 0)
 			return false;
@@ -132,6 +136,7 @@ public:
 		x2 = iteratorEdges->x2;
 		y1 = iteratorEdges->y1;
 		y2 = iteratorEdges->y2;
+		std::copy(iteratorEdges->sites, iteratorEdges->sites+2, s);
 
 		iteratorEdges = iteratorEdges->next;
 
@@ -194,12 +199,17 @@ private:
 	void out_vertex(struct Site *v);
 	struct Site *nextone();
 
-	void pushGraphEdge(float x1, float y1, float x2, float y2);
+	void pushGraphEdge(float x1, float y1, float x2, float y2, int s[2]);
 
 	void openpl();
-	void line(float x1, float y1, float x2, float y2);
+	void line(float x1, float y1, float x2, float y2, int s[2]);
 	void circle(float x, float y, float radius);
 	void range(float minX, float minY, float maxX, float maxY);
+
+
+	bool onSegment(Point p, Point q, Point r);
+	int orientation(Point p, Point q, Point r);
+	bool doIntersect(Point p1, Point q1, Point p2, Point q2);
 
 
 	struct  Freelist	hfl;
