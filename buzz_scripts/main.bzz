@@ -3,21 +3,16 @@ include "update.bzz"
 # it requires an 'action' function to be defined here.
 include "act/states.bzz"
 include "utils/table.bzz"
-include "plan/rrtstar.bzz"
+#include "plan/rrtstar.bzz"
 include "taskallocate/graphformGPS.bzz"
-include "taskallocate/bidding.bzz"
+#include "taskallocate/bidding.bzz"
 include "vstigenv.bzz"
 #include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
 
-AUTO_LAUNCH_STATE = "DEPLOY"
-TARGET     = 9.0
-EPSILON    = 30.0
-ROOT_ID = 3
-graph_id = 3
-graph_loop = 0
+AUTO_LAUNCH_STATE = "IDLE"
 LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barrier expire; if set to be 0, the robots will carry on to AUTO_LAUNCH_STATE.
 
 #####
@@ -36,7 +31,7 @@ else
 function init() {
   	init_stig()
 	init_swarm()
-	init_bidding()
+	#init_bidding()
 	
 	TARGET_ALTITUDE = takeoff_heights[id]
 	
@@ -44,7 +39,7 @@ function init() {
 	nei_cmd_listen()
 
     # Starting state: TURNEDOFF to wait for user input.
-	BVMSTATE = "LAUNCH"
+	BVMSTATE = "TURNEDOFF"
 }
 
 # Executed at each time step.

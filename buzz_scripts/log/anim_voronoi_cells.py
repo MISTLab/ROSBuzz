@@ -7,10 +7,11 @@ import csv
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)
+fig.set_tight_layout(True)
 axes = plt.gca()
 axes.set_xlim([-70,70])
 axes.set_ylim([-70,70])
-datafile = open('src/rosbuzz/buzz_scripts/log/voronoi_4.csv', 'r')
+datafile = open('src/rosbuzz/buzz_scripts/log/voronoi_3.csv', 'r')
 Vorreader = csv.reader(datafile, delimiter=',')
 
 def animate(i):
@@ -25,4 +26,5 @@ def animate(i):
         return
 
 ani = animation.FuncAnimation(fig, animate, interval=250)
+ani.save('Voronoi.gif', dpi=80, writer='imagemagick')
 plt.show()

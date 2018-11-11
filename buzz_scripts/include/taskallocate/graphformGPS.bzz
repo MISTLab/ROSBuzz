@@ -110,7 +110,7 @@ function r2i(value){
 #
 function find(table,value){
 	var ind=nil
-	var i=0
+	i=0
 	while(i<size(table)){
 		if(table[i]==value)
 			ind=i
@@ -187,7 +187,7 @@ function unpack_guide_msg(recv_value){
 #
 function target4label(nei_id){
     var return_val="miss"
-    var i=0
+    i=0
     while(i<size(lock_neighbor_id)){
 		if(lock_neighbor_id[i]==nei_id){
 			return_val=lock_neighbor_dis[i]
@@ -216,7 +216,7 @@ function LJ_vec(i){
 #calculate the motion vector
 #
 function motion_vector(){
-    var i=0
+    i=0
     var m_vector={.x=0.0,.y=0.0}
     while(i<m_neighbourCount){
 		#calculate and add the motion vector
@@ -272,7 +272,7 @@ function Get_DisAndAzi(t_id){
 function UpdateNodeInfo(){
 	#Collect informaiton
 	#Update information
-	var i=0
+	i=0
 
 	while(i<m_neighbourCount){
 		if(m_MessageState[i]=="GRAPH_JOINED"){
@@ -316,8 +316,8 @@ function DoFree() {
 	#find a set of joined robots
 	var setJoinedLabels={}
 	var setJoinedIndexes={}
-	var i=0
-	var j=0
+	i=0
+	j=0
 	while(i<m_neighbourCount){
 		if(m_MessageState[i]=="GRAPH_JOINED"){
 		setJoinedLabels[j]=m_MessageLabel[i]
@@ -367,7 +367,7 @@ function DoAsking(){
 	}else {
 		UpdateGraph()
 		#look for response from predecessor
-		var i=0
+		i=0
 		var psResponse=-1
 		while(i<m_neighbourCount and psResponse==-1){
 			#the respond robot in joined state
@@ -448,7 +448,7 @@ function DoJoining(){
 
 function set_rc_goto() {
   #get information of pred
-	var i=0
+	i=0
 	var IDofPred=-1
 	while(i<m_neighbourCount and IDofPred==-1){
 		if(m_MessageLabel[i]==m_vecNodes[m_nLabel].Pred and m_MessageState[i]=="GRAPH_JOINED")
@@ -497,8 +497,8 @@ function DoJoined(){
 
 		#collect all requests
 		var mapRequests={}
-		var i=0
-		var j=0
+		i=0
+		j=0
 		var ReqLabel
 		var JoiningLabel
 		var seenPred=0
@@ -588,7 +588,7 @@ function DoLock() {
 	#record neighbor distance
 	lock_neighbor_id={}
 	lock_neighbor_dis={}
-	var i=0
+	i=0
 	while(i<m_neighbourCount){
 		lock_neighbor_id[i]=m_messageID[i]
 		lock_neighbor_dis[i]=m_MessageRange[i]

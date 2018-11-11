@@ -6,6 +6,7 @@
 include "utils/vec2.bzz"
 include "act/barrier.bzz"
 include "utils/conversions.bzz"
+include "utils/quickhull.bzz"
 include "act/naviguation.bzz"
 include "act/CA.bzz"
 include "act/neighborcomm.bzz"
@@ -32,6 +33,7 @@ function idle() {
 # Core state function to launch the robot: takeoff and wait for others, or stop (land)
 function launch() {
 	BVMSTATE = "LAUNCH"
+	log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
 		homegps = {.lat=pose.position.latitude, .long=pose.position.longitude}
 		if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
@@ -71,11 +73,13 @@ gohomeT=100
 # State function to go back to ROSBuzz recorded home GPS position (at takeoff)
 function goinghome() {
   BVMSTATE = "GOHOME"
-	if(gohomeT > 0) {	# TODO: Make a real check if home is reached
-		gohome()
-		gohomeT = gohomeT - 1
-	} else
-  	BVMSTATE = AUTO_LAUNCH_STATE
+	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
+		if(gohomeT > 0) {	# TODO: Make a real check if home is reached
+			gohome()
+			gohomeT = gohomeT - 1
+		} else
+			BVMSTATE = AUTO_LAUNCH_STATE
+	}
 }
 
 # Core state function to stop and land.
@@ -85,14 +89,14 @@ function stop() {
 		neighbors.broadcast("cmd", 21)
 		uav_land()
 		if(pose.position.altitude <= 0.2) {
-			BVMSTATE = "TURNEDOFF"
-			#barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
-			#barrier_ready(21)
+			BVMSTATE = "STOP"
+			barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
+			barrier_ready(21)
 		}
 	} else {
-			BVMSTATE = "TURNEDOFF"
-			#barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
-			#barrier_ready(21)
+			BVMSTATE = "STOP"
+			barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
+			barrier_ready(21)
 	}
 }
 
@@ -214,6 +218,8 @@ function lj_sum(rid, data, accum) {
 function lennardjones() {
   BVMSTATE="POTENTIAL"
 	check_rc_wp()
+	if(V_TYPE == 2)		# NOT MOVING!
+		return
   # Calculate accumulator
   accum_lj = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
@@ -243,22 +249,54 @@ function lennardjones() {
 counter = 0
 function voronoicentroid() {
   BVMSTATE="DEPLOY"
-	if(counter==0 and id!=0) {
-		pts = getbounds()
-		pts[0] = {.x=0, .y=0}	#add itself
-		it_pts = 1
-		#table_print(pts)
+	check_rc_wp()
+	log("V_wp size:",v_wp.size())
+	if(V_TYPE == 2)		# NOT MOVING!
+		return
+	if(not(v_wp.size() > 0))
+		return
+	it_pts = 0
+	att = {}
+	v_wp.foreach(
+    function(key, value, robot){
+			wp = unpackWP2i(value)
+			if(key > 99)
+				log("Nothing planed for the repulsors yet....")
+			else if(key > 49)
+				att[it_pts]=vec_from_gps(wp.lat, wp.lon, 0)
+			it_pts = it_pts + 1
+	})
+	# Boundaries from Geofence
+	#it_pts = 0
+	#foreach(GPSlimit, function(key, value) {
+	#		bounds[it_pts]=vec_from_gps(value.lat, value.lng, 0)
+	#		it_pts = it_pts + 1
+	#})
+	# Boundaries from user attractors
+	#att = {.0=vec_from_gps(45.510283, -73.609633, 0), .1=vec_from_gps(45.510398, -73.609281, 0)}
+	bounds = QuickHull(att)
+	if(size(bounds)<3 )
+		return
+	if(counter==0) {
+		pts = {.np=size(bounds)}
+		it_pts = 0
+		foreach(bounds, function(key, value) {
+			pts[it_pts]=value
+			it_pts = it_pts + 1
+		})
+		pts[it_pts] = {.x=0, .y=0}	#add itself
+		it_pts = it_pts + 1
 		if(neighbors.count() > 0) {
 			neighbors.foreach(function(rid, data) {
 				if(rid!=0){	#remove GS (?)
-					pts[it_pts]=math.vec2.newp(data.distance,data.azimuth+pts.oa)
+					pts[it_pts]=math.vec2.newp(data.distance,data.azimuth)
 					it_pts = it_pts + 1
 				}
 			})
 			#table_print(pts)
 			voronoi(pts)
 		}
-		counter=10
+		counter=4
 	}
 	counter=counter-1
 
@@ -267,28 +305,6 @@ function voronoicentroid() {
 
 function voronoicentroid_done() {
   BVMSTATE="DEPLOY"
-}
-
-function getbounds(){
-	var RBlimit = {}
-	foreach(GPSlimit, function(key, value) {
-		RBlimit[key] = vec_from_gps(value.lat, value.lng, 0)
-	})
-	minY = RBlimit[1].y
-	maxY = RBlimit[1].y
-	minX = RBlimit[1].x
-	maxX = RBlimit[1].x
-	foreach(RBlimit, function(key, value) {
-		if(value.y<minY)
-			minY = value.y
-		if(value.y>maxY)
-			maxY = value.y
-		if(value.x>maxX)
-			maxX = value.x
-		if(value.x<minX)
-			minX = value.x
-	})
-	return {.miny=minY, .minx=minX, .maxy=maxY, .maxx=maxX, .oa=0.0}
 }
 
 # Custom state function for the developer to play with

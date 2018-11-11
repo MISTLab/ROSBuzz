@@ -9,7 +9,7 @@
 #
 BARRIER_TIMEOUT = 200 # in steps
 BARRIER_VSTIG = 80
-timeW = 0
+timeW = 1
 barrier = nil
 hvs = 0;
 
@@ -19,7 +19,7 @@ hvs = 0;
 #
 function barrier_create() {
   # reset
-  timeW = 0
+  timeW = 1
   # create barrier vstig
   #log("---> Prev. br. ", barrier, " ", BARRIER_VSTIG)
   if(barrier!=nil) {
@@ -61,7 +61,6 @@ function barrier_wait(threshold, transf, resumef, bc) {
     barrier_create()
   
   barrier.put(id, bc)
-  barrier.get(id)
   log("--->BS: ", barrier.size(), " / ", threshold, " (", BARRIER_VSTIG, " - ", barrier.get("d"), ") t= ", timeW)
   #if(barrier.size()-1 >= threshold or barrier.get("d") == 1) {
     if(barrier_allgood(barrier,bc)) {

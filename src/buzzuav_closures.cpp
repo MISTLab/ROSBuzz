@@ -41,17 +41,12 @@ static bool logVoronoi = false;
 
 std::ofstream voronoicsv;
 
-struct Point 
-{ 
-    int x; 
-    int y; 
-};
-struct Pointf 
+struct Point
 { 
     float x; 
     float y;
-    Pointf(): x( 0.0 ), y( 0.0 ) { }
-    Pointf( float x, float y ): x( x ), y( y ) { }
+    Point(): x( 0.0 ), y( 0.0 ) { }
+    Point( float x, float y ): x( x ), y( y ) { }
 };
 string WPlistname = "";
 
@@ -224,6 +219,7 @@ void check_targets_sim(double lat, double lon, double *res)
 / check if a listed target is close
 ----------------------------------------------------------- */
 {
+  float visibility_radius = 5.0;
   map<int, buzz_utility::RB_struct>::iterator it;
   for (it = wplist_map.begin(); it != wplist_map.end(); ++it)
   {
@@ -231,7 +227,7 @@ void check_targets_sim(double lat, double lon, double *res)
     double ref[2]={lat, lon};
     double tar[2]={it->second.latitude, it->second.longitude};
     rb_from_gps(tar, rb, ref);
-    if(rb[0]<3.0){
+    if(rb[0] < visibility_radius){
       ROS_WARN("FOUND A TARGET!!! [%i]", it->first);
       res[0] = it->first;
       res[1] = it->second.latitude;
@@ -269,164 +265,6 @@ int buzz_exportmap(buzzvm_t vm)
   }
   // DEBUG
   // ROS_INFO("----- Recorded a grid of %i(%i)", grid.size(), buzzdict_size(t->t.value));
-  return buzzvm_ret0(vm);
-}
-
-float pol_area(vector <Pointf> vert) {
-  float a = 0.0;
-  vector <Pointf>::iterator it;
-  vector <Pointf>::iterator next;
-  for (it = vert.begin(); it != vert.end()-1; ++it){
-    next = it+1;
-    a += it->x * next->y - next->x * it->y;
-  }
-  a *= 0.5;
-  //ROS_INFO("Polygon area: %f",a);
-  return a;
-}
-
-double* polygone_center(vector <Pointf> vert, double *c) {
-  float A = pol_area(vert);
-  int i1 = 1;
-  vector <Pointf>::iterator it;
-  vector <Pointf>::iterator next;
-  for (it = vert.begin(); it != vert.end()-1; ++it){
-    next = it+1;
-    float t = it->x*next->y - next->x*it->y;
-    c[0] += (it->x+next->x) * t;
-    c[1] += (it->y+next->y) * t;
-  }
-  c[0] = c[0] / (6.0 * A);
-  c[1] = c[1] / (6.0 * A);
-  return c;
-}
-
-float clockwise_angle_of( const Pointf& p )
-{
-  return atan2(p.y,p.x);
-}
-
-bool clockwise_compare_points( const Pointf& a, const Pointf& b )
-{
-  return clockwise_angle_of( a ) < clockwise_angle_of( b );
-}
-
-int voronoi_center(buzzvm_t vm) {
-  float *xValues;//[4] = {-22, -17, 4,22};
-	float *yValues;//[4] = {-9, 31,13,-5};
-  float minx, miny, maxx, maxy;
-	buzzvm_lnum_assert(vm, 1);
-  // Get the parameter
-  buzzvm_lload(vm, 1);
-  buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);    // dictionary
-  buzzobj_t t = buzzvm_stack_at(vm, 1);
-   
-  buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "maxx", 1));
-  buzzvm_tget(vm);
-  maxx = buzzvm_stack_at(vm, 1)->f.value;
-  buzzvm_pop(vm);
-  buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "maxy", 1));
-  buzzvm_tget(vm);
-  maxy = buzzvm_stack_at(vm, 1)->f.value;
-  buzzvm_pop(vm);
-  buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "minx", 1));
-  buzzvm_tget(vm);
-  minx = buzzvm_stack_at(vm, 1)->f.value;
-  buzzvm_pop(vm);
-  buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "miny", 1));
-  buzzvm_tget(vm);
-  miny = buzzvm_stack_at(vm, 1)->f.value;
-  buzzvm_pop(vm);
-  buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "oa", 1));
-  buzzvm_tget(vm);
-  float offset_angle = buzzvm_stack_at(vm, 1)->f.value;
-  buzzvm_pop(vm);
-
-  long count = buzzdict_size(t->t.value)-5;
-  xValues = new float[count];
-  yValues = new float[count];
-  for(int32_t i = 0; i < count; ++i) {
-    buzzvm_dup(vm);
-    buzzvm_pushi(vm, i);
-    buzzvm_tget(vm);
-   
-    buzzvm_dup(vm);
-    buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 1));
-    buzzvm_tget(vm);
-    //ROS_INFO("---x-->%f",buzzvm_stack_at(vm, 1)->f.value);
-    xValues[i] = buzzvm_stack_at(vm, 1)->f.value;
-    buzzvm_pop(vm);
-    buzzvm_dup(vm);
-    buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 1));
-    buzzvm_tget(vm);
-    //ROS_INFO("---y-->%f",buzzvm_stack_at(vm, 1)->f.value);
-    yValues[i] = buzzvm_stack_at(vm, 1)->f.value;
-    buzzvm_pop(vm);
-
-    buzzvm_pop(vm);
-  }
-
-	VoronoiDiagramGenerator vdg;
-	vdg.generateVoronoi(xValues,yValues,count, minx, maxx, miny, maxy,3);
-  if(logVoronoi)  voronoicsv << ros::Time::now().toNSec() << ",";
-	vdg.resetIterator();
-
-	float x1,y1,x2,y2;
-  int s[2];
-  vector <Pointf> cell_vert;
-  int i=0;
-	while(vdg.getNext(x1,y1,x2,y2,s))
-	{
-		//ROS_INFO("GOT Line (%f,%f)->(%f,%f) between sites %d,%d\n",x1,y1,x2,y2,s[0],s[1]);
-    if(logVoronoi)  voronoicsv << x1 << "," << y1 << "," << x2 << "," << y2 << "," << s[0] << "," << s[1] << ",";
-    i++;
-    if((s[0]==0 || s[1]==0) && sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))>0.1) {
-      if(cell_vert.empty()){
-        cell_vert.push_back(Pointf(x1,y1));
-        cell_vert.push_back(Pointf(x2,y2));
-      } else {
-        bool alreadyin = false;
-        vector <Pointf>::iterator itc;
-        for (itc = cell_vert.begin(); itc != cell_vert.end(); ++itc) {
-          double dist = sqrt((itc->x - x1) * (itc->x - x1) + (itc->y - y1) * (itc->y - y1));
-          if(dist < 0.1) {
-            alreadyin = true;
-            break;
-          }
-        }
-        if(!alreadyin)
-          cell_vert.push_back(Pointf(x1, y1));
-        alreadyin = false;
-        for (itc = cell_vert.begin(); itc != cell_vert.end(); ++itc) {
-          double dist = sqrt((itc->x - x2) * (itc->x - x2) + (itc->y - y2) * (itc->y - y2));
-          if(dist < 0.1) {
-            alreadyin = true;
-            break;
-          }
-        }
-        if(!alreadyin)
-          cell_vert.push_back(Pointf(x2, y2));
-      }
-    }
-	}
-  std::sort( cell_vert.begin(), cell_vert.end(), clockwise_compare_points );
-  cell_vert.push_back(cell_vert[0]);
-  
-  double center_dist[2] = {0.0, 0.0};
-  polygone_center(cell_vert, center_dist);
-  if(logVoronoi)  voronoicsv << center_dist[0] << "," << center_dist[1] << std::endl;
-  center_dist[0]/=2;
-  center_dist[1]/=2;
-  double gps[3];
-  gps_from_vec(center_dist, gps);
-  //ROS_INFO("[%i] Voronoi cell center: %f, %f, %f, %f", buzz_utility::get_robotid(), center_dist[0], center_dist[1], gps[0], gps[1]);
-  set_gpsgoal(gps);
-
   return buzzvm_ret0(vm);
 }
 
@@ -488,6 +326,21 @@ bool doIntersect(Point p1, Point q1, Point p2, Point q2)
     return false; // Doesn't fall in any of the above cases 
 }
 
+float clockwise_angle_of( const Point& p )
+{
+  return atan2(p.y,p.x);
+}
+
+bool clockwise_compare_points( const Point& a, const Point& b )
+{
+  return clockwise_angle_of( a ) < clockwise_angle_of( b );
+}
+
+void sortclose_polygon(vector <Point> *P){
+  std::sort( P->begin(), P->end(), clockwise_compare_points );
+  P->push_back((*P)[0]);
+}
+
 int buzzuav_geofence(buzzvm_t vm)
 {
     bool onedge = false;
@@ -512,7 +365,7 @@ int buzzuav_geofence(buzzvm_t vm)
       buzzvm_dup(vm);
       buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 1));
       buzzvm_tget(vm);
-      tmp = round(buzzvm_stack_at(vm, 1)->f.value*10);
+      tmp = buzzvm_stack_at(vm, 1)->f.value;
       //ROS_INFO("[%i]---x-->%i",buzz_utility::get_robotid(), tmp);
       if(i==0)
         P.x = tmp;
@@ -522,7 +375,7 @@ int buzzuav_geofence(buzzvm_t vm)
       buzzvm_dup(vm);
       buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 1));
       buzzvm_tget(vm);
-      tmp = round(buzzvm_stack_at(vm, 1)->f.value*10);
+      tmp = buzzvm_stack_at(vm, 1)->f.value;
       //ROS_INFO("[%i]---y-->%i",buzz_utility::get_robotid(), tmp);
       if(i==0)
         P.y = tmp;
@@ -532,6 +385,8 @@ int buzzuav_geofence(buzzvm_t vm)
 
       buzzvm_pop(vm);
     }
+    // TODO: use vector
+    //sortclose_polygon(&V);
 
     // simple polygon: rectangle, 4 points
     int n = 4;
@@ -569,6 +424,276 @@ int buzzuav_geofence(buzzvm_t vm)
     goto_gpsgoal[1] = cur_pos[1];
     ROS_WARN("Geofencing trigered, not going any further!");
   }
+
+  return buzzvm_ret0(vm);
+}
+
+float pol_area(vector <Point> vert) {
+  float a = 0.0;
+  //ROS_INFO("Polygone %d edges area.",vert.size());
+  vector <Point>::iterator it;
+  vector <Point>::iterator next;
+  for (it = vert.begin(); it != vert.end()-1; ++it){
+    next = it+1;
+    a += it->x * next->y - next->x * it->y;
+  }
+  a *= 0.5;
+  //ROS_INFO("Polygon area: %f",a);
+  return a;
+}
+
+double* polygone_center(vector <Point> vert, double *c) {
+  float A = pol_area(vert);
+  int i1 = 1;
+  vector <Point>::iterator it;
+  vector <Point>::iterator next;
+  for (it = vert.begin(); it != vert.end()-1; ++it){
+    next = it+1;
+    float t = it->x*next->y - next->x*it->y;
+    c[0] += (it->x+next->x) * t;
+    c[1] += (it->y+next->y) * t;
+  }
+  c[0] = c[0] / (6.0 * A);
+  c[1] = c[1] / (6.0 * A);
+  return c;
+}
+
+double numerator  ( Point A, Point C, Point E, Point F ) { return (A.y - C.y) * (F.x - E.x) - (A.x - C.x) * (F.y - E.y); }
+double denominator( Point A, Point B, Point C, Point D ) { return (B.x - A.x) * (D.y - C.y) - (B.y - A.y) * (D.x - C.x); }
+
+void getintersection(Point S, Point D, std::vector <Point> Poly, Point *I) {
+	//printf("Points for intersection 1(%f,%f->%f,%f) and 2(%f,%f->%f,%f)\n",q1.x,q1.y,p1.x,p1.y,q2.x,q2.y,p2.x,p2.y);
+  bool parallel = false;
+  bool collinear = false;
+	std::vector <Point>::iterator itc;
+	std::vector <Point>::iterator next;
+  for (itc = Poly.begin(); itc != Poly.end()-1; ++itc) {
+    next = itc+1;
+    if (doIntersect((*itc), (*next), S, D)) 
+    {
+      // Uses the determinant of the two lines. For more information, refer to one of the following:
+      // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
+      // http://www.faqs.org/faqs/graphics/algorithms-faq/ (Subject 1.03)
+      
+      double d = denominator( S, D, (*itc), (*next) );
+      
+      if (std::abs( d ) < 0.000000001)
+      {
+        parallel  = true;
+        collinear = abs(numerator( S, D, (*itc), (*next) )) < 0.000000001;
+        return;
+      }
+      
+      double r = numerator( S, (*itc), (*itc), (*next) ) / d;
+      double s = numerator( S, (*itc), S, D ) / d;
+
+      (*I)=Point(S.x + r * (D.x - S.x), S.y + r * (D.y - S.y));
+    }
+  }
+}
+
+bool isSiteout(Point S, std::vector <Point> Poly) {
+  bool onedge = false;
+
+	// Create a point for line segment from p to infinite 
+  Point extreme = {10000, S.y};
+
+  // Count intersections of the above line with sides of polygon 
+  int count = 0; 
+	std::vector <Point>::iterator itc;
+	std::vector <Point>::iterator next;
+	for (itc = Poly.begin(); itc != Poly.end()-1; ++itc) {
+    next = itc+1;
+
+    // Check if the line segment from 'p' to 'extreme' intersects 
+    // with the line segment from 'polygon[i]' to 'polygon[next]' 
+    if (doIntersect((*itc), (*next), S, extreme)) 
+    { 
+        // If the point 'p' is colinear with line segment 'i-next', 
+        // then check if it lies on segment. If it lies, return true, 
+        // otherwise false 
+        if (orientation((*itc), S, (*next)) == 0) {
+          onedge = onSegment((*itc), S, (*next));
+          if(onedge)
+            break;
+        }
+        count++; 
+    }
+  }
+
+  return ((count%2 == 0) && !onedge);
+}
+
+int voronoi_center(buzzvm_t vm) {
+
+  float dist_max = 300;
+
+	buzzvm_lnum_assert(vm, 1);
+  // Get the parameter
+  buzzvm_lload(vm, 1);
+  buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);    // dictionary
+  buzzobj_t t = buzzvm_stack_at(vm, 1);
+
+  buzzvm_dup(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "np", 1));
+  buzzvm_tget(vm);
+  int Poly_vert = buzzvm_stack_at(vm, 1)->i.value;
+  buzzvm_pop(vm);
+
+	std::vector <Point> polygon_bound;
+  for(int32_t i = 0; i < Poly_vert; ++i) {
+    buzzvm_dup(vm);
+    buzzvm_pushi(vm, i);
+    buzzvm_tget(vm);
+   
+    buzzvm_dup(vm);
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 1));
+    buzzvm_tget(vm);
+    //ROS_INFO("---x-->%f",buzzvm_stack_at(vm, 1)->f.value);
+    float tmpx = buzzvm_stack_at(vm, 1)->f.value;
+    buzzvm_pop(vm);
+    buzzvm_dup(vm);
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 1));
+    buzzvm_tget(vm);
+    //ROS_INFO("---y-->%f",buzzvm_stack_at(vm, 1)->f.value);
+    float tmpy = buzzvm_stack_at(vm, 1)->f.value;
+    buzzvm_pop(vm);
+
+    polygon_bound.push_back(Point(tmpx, tmpy));
+    //ROS_INFO("[%i] Polygon vertex: %f, %f", buzz_utility::get_robotid(),tmpx,tmpy);
+
+    buzzvm_pop(vm);
+  }
+  sortclose_polygon(&polygon_bound);
+  // Check if we are in the zone
+  if(isSiteout(Point(0,0), polygon_bound)){
+    //ROS_WARN("Not in the Zone!!!");
+    double goal_tmp[2];
+    do{
+      goal_tmp[0] = polygon_bound[0].x + (rand()%100)/100.0*(polygon_bound[2].x- polygon_bound[0].x);
+      goal_tmp[1] = polygon_bound[0].y + (rand()%100)/100.0*(polygon_bound[2].y- polygon_bound[0].y);
+      //ROS_WARN(" in the Zone (%f,%f)!",goal_tmp[0],goal_tmp[1]);
+    } while(isSiteout(Point(goal_tmp[0],goal_tmp[1]), polygon_bound));
+    ROS_WARN("Sending at a random location in the Zone (%f,%f)!",goal_tmp[0],goal_tmp[1]);
+    double gps[3];
+    gps_from_vec(goal_tmp, gps);
+    set_gpsgoal(gps);
+    return buzzvm_ret0(vm);
+  }
+  
+
+  int count = buzzdict_size(t->t.value)-(Poly_vert+1);
+  ROS_WARN("NP: %d, Sites: %d", Poly_vert, count);
+  float *xValues = new float[count];
+  float *yValues = new float[count];
+  for(int32_t i = 0; i < count; ++i) {
+    int index = i + Poly_vert;
+    buzzvm_dup(vm);
+    buzzvm_pushi(vm, index);
+    buzzvm_tget(vm);
+   
+    buzzvm_dup(vm);
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 1));
+    buzzvm_tget(vm);
+    //ROS_INFO("---x-->%f",buzzvm_stack_at(vm, 1)->f.value);
+    xValues[i] = buzzvm_stack_at(vm, 1)->f.value;
+    buzzvm_pop(vm);
+    buzzvm_dup(vm);
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 1));
+    buzzvm_tget(vm);
+    //ROS_INFO("---y-->%f",buzzvm_stack_at(vm, 1)->f.value);
+    yValues[i] = buzzvm_stack_at(vm, 1)->f.value;
+    buzzvm_pop(vm);
+
+    buzzvm_pop(vm);
+  }
+
+	VoronoiDiagramGenerator vdg;
+  ROS_WARN("[%i] Voronoi Bounded tessellation starting with %i sites...", buzz_utility::get_robotid(),count);
+	vdg.generateVoronoi(xValues, yValues, count, -dist_max, dist_max, -dist_max, dist_max, 3.0);
+  if(logVoronoi)  voronoicsv << ros::Time::now().toNSec() << ",";
+	vdg.resetIterator();
+  //ROS_WARN("[%i] Voronoi Bounded tessellation done!", buzz_utility::get_robotid());
+
+  std::vector <Point>::iterator itc, next;
+	for (itc = polygon_bound.begin(); itc != polygon_bound.end()-1; ++itc) {
+    next = itc+1;
+    if(logVoronoi)  voronoicsv << itc->x << "," << itc->y << "," << next->x << "," << next->y << "," << 0 << "," << 0 << ",";
+  }
+
+	float x1,y1,x2,y2;
+  int s[2];
+  vector <Point> cell_vert;
+  Point Intersection;
+  int i=0;
+	while(vdg.getNext(x1,y1,x2,y2,s))
+	{
+		//ROS_INFO("GOT Line (%f,%f)->(%f,%f) between sites %d,%d",x1,y1,x2,y2,s[0],s[1]);
+    if(sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))<0.1)
+      continue;
+    bool isout1 = isSiteout(Point(x1,y1), polygon_bound);
+    bool isout2 = isSiteout(Point(x2,y2), polygon_bound);
+    if(isout1 && isout2){
+      //ROS_INFO("Line out of area!");
+      continue;
+    }else if(isout1) {
+      getintersection(Point(x2,y2), Point(x1,y1), polygon_bound, &Intersection);
+      x1 = Intersection.x;
+      y1 = Intersection.y;
+      //ROS_INFO("Site out 1 -> (%f,%f)", x1, y1);
+	  }else if(isout2) {
+      getintersection(Point(x1,y1), Point(x2,y2), polygon_bound, &Intersection);
+      x2 = Intersection.x;
+      y2 = Intersection.y;
+      //ROS_INFO("Site out 2 -> (%f,%f)", x2, y2);
+    }
+    if(logVoronoi)  voronoicsv << x1 << "," << y1 << "," << x2 << "," << y2 << "," << s[0] << "," << s[1] << ",";
+    i++;
+    if((s[0]==0 || s[1]==0)) {
+      if(cell_vert.empty()){
+        cell_vert.push_back(Point(x1,y1));
+        cell_vert.push_back(Point(x2,y2));
+      } else {
+        bool alreadyin = false;
+        vector <Point>::iterator itc;
+        for (itc = cell_vert.begin(); itc != cell_vert.end(); ++itc) {
+          double dist = sqrt((itc->x - x1) * (itc->x - x1) + (itc->y - y1) * (itc->y - y1));
+          if(dist < 0.1) {
+            alreadyin = true;
+            break;
+          }
+        }
+        if(!alreadyin)
+          cell_vert.push_back(Point(x1, y1));
+        alreadyin = false;
+        for (itc = cell_vert.begin(); itc != cell_vert.end(); ++itc) {
+          double dist = sqrt((itc->x - x2) * (itc->x - x2) + (itc->y - y2) * (itc->y - y2));
+          if(dist < 0.1) {
+            alreadyin = true;
+            break;
+          }
+        }
+        if(!alreadyin)
+          cell_vert.push_back(Point(x2, y2));
+      }
+    }
+	}
+  if(cell_vert.size()<3){
+    ROS_WARN("[%i] Voronoi Bounded tessellation failed (%d)!", buzz_utility::get_robotid(),cell_vert.size());
+    return buzzvm_ret0(vm);
+  }
+  std::sort( cell_vert.begin(), cell_vert.end(), clockwise_compare_points );
+  cell_vert.push_back(cell_vert[0]);
+  
+  double center_dist[2] = {0.0, 0.0};
+  polygone_center(cell_vert, center_dist);
+  if(logVoronoi)  voronoicsv << center_dist[0] << "," << center_dist[1] << std::endl;
+  center_dist[0]/=2;
+  center_dist[1]/=2;
+  double gps[3];
+  gps_from_vec(center_dist, gps);
+  //ROS_INFO("[%i] Voronoi cell center: %f, %f, %f, %f", buzz_utility::get_robotid(), center_dist[0], center_dist[1], gps[0], gps[1]);
+  set_gpsgoal(gps);
 
   return buzzvm_ret0(vm);
 }

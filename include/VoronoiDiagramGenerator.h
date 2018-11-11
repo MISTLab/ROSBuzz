@@ -68,6 +68,8 @@ struct	Freelist
 struct Point	
 {
 	float x,y;
+    Point(): x( 0.0 ), y( 0.0 ) { }
+    Point( float x, float y ): x( x ), y( y ) { }
 };
 
 // structure used both for sites and for vertices 
@@ -205,12 +207,6 @@ private:
 	void line(float x1, float y1, float x2, float y2, int s[2]);
 	void circle(float x, float y, float radius);
 	void range(float minX, float minY, float maxX, float maxY);
-
-
-	bool onSegment(Point p, Point q, Point r);
-	int orientation(Point p, Point q, Point r);
-	bool doIntersect(Point p1, Point q1, Point p2, Point q2);
-
 
 	struct  Freelist	hfl;
 	struct	Halfedge *ELleftend, *ELrightend;

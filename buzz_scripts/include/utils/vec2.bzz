@@ -105,3 +105,7 @@ math.vec2.scale = function(v, s) {
 math.vec2.dot = function(v1, v2) {
   return v1.x * v2.x + v1.y * v2.y
 }
+
+math.vec2.equal = function(v1, v2) {
+  return (v1.x == v2.x) and (v1.y == v2.y)
+}
