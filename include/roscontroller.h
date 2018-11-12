@@ -118,7 +118,6 @@ private:
   std::map<int, buzz_utility::Pos_struct> targets_found;
   std::map<int, buzz_utility::Pos_struct> raw_neighbours_pos_map;
   std::map<int, buzz_utility::neighbor_time> neighbours_time_map;
-  int timer_step = 0;
   int robot_id = 0;
   ros::Time logical_clock;
   ros::Time previous_step_time;
@@ -222,7 +221,7 @@ private:
   void prepare_msg_and_publish();
 
   /*Refresh neighbours Position for every ten step*/
-  void maintain_pos(int tim_step);
+  void clear_pos();
 
   /*Puts neighbours position inside neigbours_pos_map*/
   void neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr);
