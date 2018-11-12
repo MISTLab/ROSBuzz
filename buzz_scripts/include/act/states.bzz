@@ -19,6 +19,7 @@ WP_STIG = 8
 path_it = 0
 pic_time = 0
 g_it = 0
+homegps = {}
 
 # Core state function when on the ground
 function turnedoff() {
@@ -35,7 +36,8 @@ function launch() {
 	BVMSTATE = "LAUNCH"
 	log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
-		homegps = {.lat=pose.position.latitude, .long=pose.position.longitude}
+		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
+		log("Recorded home point: ",homegps.lat, homegps.lng)
 		if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
 			barrier_ready(22)
