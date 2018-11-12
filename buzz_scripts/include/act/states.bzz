@@ -74,13 +74,15 @@ gohomeT=100
 function goinghome() {
   BVMSTATE = "GOHOME"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
-		storegoal(homegps.lat, homegps.lng, pose.position.altitude)
-		goto_gps(AUTO_LAUNCH_STATE)
-		#if(gohomeT > 0) {	# TODO: Make a real check if home is reached
-		#	gohome()
-		#	gohomeT = gohomeT - 1
-		#} else
-		#	BVMSTATE = AUTO_LAUNCH_STATE
+		m_navigation = vec_from_gps(homegps.latitude, homegps.longitude, 0)
+		#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
+		if(math.vec2.length(m_navigation) < GOTODIST_TOL){ # reached destination
+				BVMSTATE = AUTO_LAUNCH_STATE
+		} else {
+			m_navigation = LimitSpeed(m_navigation, 3.0)
+			#m_navigation = LCA(m_navigation)
+			goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
+		}
 	}
 }
 
