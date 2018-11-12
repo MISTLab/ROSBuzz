@@ -111,6 +111,7 @@ void roscontroller::RosControllerRun()
 /rosbuzz_node main loop method
 /--------------------------------------------------*/
 {
+  int timer_step = 0;
   //  Set the Buzz bytecode
   if (buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(), robot_id))
   {
@@ -161,6 +162,12 @@ void roscontroller::RosControllerRun()
       
       //  Call Step from buzz script
       buzz_utility::buzz_script_step();
+      //  Force a refresh on neighbors array once in a while
+      if (timer_step >= 20*BUZZRATE){
+        clear_pos();
+        timer_step = 0;
+      } else
+        timer_step++;
       //  Prepare messages and publish them
       prepare_msg_and_publish();
       // Call the flight controler service
@@ -185,9 +192,6 @@ void roscontroller::RosControllerRun()
         buzzuav_closures::rc_call(NAV_LAND);
       else
         fcu_timeout -= 1 / BUZZRATE;
-      timer_step += 1;
-      //  Force a refresh on neighbors array once in a while
-      maintain_pos(timer_step);
       //  DEBUG
       // std::cout<< "HOME: " << home.latitude << ", " << home.longitude;
     }
@@ -941,19 +945,17 @@ script
   }
 }
 
-void roscontroller::maintain_pos(int tim_step)
+void roscontroller::clear_pos()
 /*
 /Refresh neighbours Position for every ten step
 /---------------------------------------------*/
 {
-  if (timer_step >= BUZZRATE)
-  {
+  
     neighbours_pos_map.clear();
+    raw_neighbours_pos_map.clear();
     buzzuav_closures::clear_neighbours_pos();
     // raw_neighbours_pos_map.clear(); // TODO: currently not a problem, but
     // have to clear !
-    timer_step = 0;
-  }
 }
 
 void roscontroller::neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr)

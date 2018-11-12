@@ -54,7 +54,7 @@ function launch() {
 function launch_switch() {
 	BVMSTATE = "LAUNCH_SWITCH"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
-		homegps = {.lat=pose.position.latitude, .long=pose.position.longitude}
+		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
 		if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, AUTO_LAUNCH_STATE, 22)
 			barrier_ready(22)
@@ -74,11 +74,13 @@ gohomeT=100
 function goinghome() {
   BVMSTATE = "GOHOME"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
-		if(gohomeT > 0) {	# TODO: Make a real check if home is reached
-			gohome()
-			gohomeT = gohomeT - 1
-		} else
-			BVMSTATE = AUTO_LAUNCH_STATE
+		storegoal(homegps.lat, homegps.lng, pose.position.altitude)
+		goto_gps(AUTO_LAUNCH_STATE)
+		#if(gohomeT > 0) {	# TODO: Make a real check if home is reached
+		#	gohome()
+		#	gohomeT = gohomeT - 1
+		#} else
+		#	BVMSTATE = AUTO_LAUNCH_STATE
 	}
 }
 
