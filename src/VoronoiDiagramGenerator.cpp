@@ -295,7 +295,7 @@ void VoronoiDiagramGenerator::geominit()
 }
 
 
-struct Edge * VoronoiDiagramGenerator::bisect(struct Site *s1,struct	Site *s2)
+struct Edge * VoronoiDiagramGenerator::bisect(struct Site *s1,struct Site *s2)
 {
 	float dx,dy,adx,ady;
 	struct Edge *newedge;	
@@ -325,8 +325,10 @@ struct Edge * VoronoiDiagramGenerator::bisect(struct Site *s1,struct	Site *s2)
 	};
 	
 	newedge -> edgenbr = nedges;
+	newedge -> sites[0] = s1->sitenbr;
+	newedge -> sites[1] = s2->sitenbr;
 
-	//printf("\nbisect(%d) ((%f,%f) and (%f,%f)",nedges,s1->coord.x,s1->coord.y,s2->coord.x,s2->coord.y);
+	//printf("\nbisect(%d) (%d(%f,%f) and %d(%f,%f)",nedges,s1->sitenbr,s1->coord.x,s1->coord.y,s2->sitenbr,s2->coord.x,s2->coord.y);
 	
 	nedges += 1;
 	return(newedge);
@@ -655,7 +657,7 @@ void VoronoiDiagramGenerator::cleanupEdges()
 
 }
 
-void VoronoiDiagramGenerator::pushGraphEdge(float x1, float y1, float x2, float y2)
+void VoronoiDiagramGenerator::pushGraphEdge(float x1, float y1, float x2, float y2, int s[2])
 {
 	GraphEdge* newEdge = new GraphEdge;
 	newEdge->next = allEdges;
@@ -664,6 +666,7 @@ void VoronoiDiagramGenerator::pushGraphEdge(float x1, float y1, float x2, float 
 	newEdge->y1 = y1;
 	newEdge->x2 = x2;
 	newEdge->y2 = y2;
+	std::copy(s, s+2, newEdge->sites);
 }
 
 
@@ -679,9 +682,9 @@ char * VoronoiDiagramGenerator::myalloc(unsigned n)
 /* for those who don't have Cherry's plot */
 /* #include <plot.h> */
 void VoronoiDiagramGenerator::openpl(){}
-void VoronoiDiagramGenerator::line(float x1, float y1, float x2, float y2)
+void VoronoiDiagramGenerator::line(float x1, float y1, float x2, float y2, int s[2])
 {	
-	pushGraphEdge(x1,y1,x2,y2);
+	pushGraphEdge(x1,y1,x2,y2,s);
 
 }
 void VoronoiDiagramGenerator::circle(float x, float y, float radius){}
@@ -739,7 +742,6 @@ void VoronoiDiagramGenerator::plotinit()
 	range(pxmin, pymin, pxmax, pymax);
 }
 
-
 void VoronoiDiagramGenerator::clip_line(struct Edge *e)
 {
 	struct Site *s1, *s2;
@@ -771,7 +773,7 @@ void VoronoiDiagramGenerator::clip_line(struct Edge *e)
 		s1 = e -> ep[0];
 		s2 = e -> ep[1];
 	};
-	
+
 	if(e -> a == 1.0)
 	{
 		y1 = pymin;
@@ -848,8 +850,8 @@ void VoronoiDiagramGenerator::clip_line(struct Edge *e)
 		{	y2 = pymin; x2 = (e -> c - y2)/e -> a;};
 	};
 	
-	//printf("\nPushing line (%f,%f,%f,%f)",x1,y1,x2,y2);
-	line(x1,y1,x2,y2);
+	//printf("Pushing line (%f,%f,%f,%f)\n",x1,y1,x2,y2);
+	line(x1,y1,x2,y2,e->sites);
 }
 
 
@@ -895,6 +897,7 @@ bool VoronoiDiagramGenerator::voronoi(int triangulate)
 			e = bisect(bot, newsite);					//create a new edge that bisects 
 			bisector = HEcreate(e, le);					//create a new HalfEdge, setting its ELpm field to 0			
 			ELinsert(lbnd, bisector);					//insert this new bisector edge between the left and right vectors in a linked list	
+			//printf("Newsite %d: %f,%f\n",newsite->sitenbr,newsite->coord.x,newsite->coord.y);
 
 			if ((p = intersect(lbnd, bisector)) != (struct Site *) NULL) 	//if the new bisector intersects with the left edge, remove the left edge's vertex, and put in the new one
 			{	

@@ -36,7 +36,6 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   bcfname = fname + ".bo";
   dbgfname = fname + ".bdb";
   buzz_update::set_bzz_file(bzzfile_name.c_str(),debug);
-  buzzuav_closures::setWPlist(WPfile);
   //  Initialize variables
   if(setmode)
     SetMode("LOITER", 0);
@@ -71,6 +70,7 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   out_msg_time=0;
   // Create log dir and open log file
   initcsvlog();
+  buzzuav_closures::setWPlist(WPfile);
 }
 
 roscontroller::~roscontroller()
@@ -114,6 +114,7 @@ void roscontroller::RosControllerRun()
   //  Set the Buzz bytecode
   if (buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(), robot_id))
   {
+    buzzuav_closures::setVorlog(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")));
     ROS_INFO("[%i] INIT DONE!!!", robot_id);
     int packet_loss_tmp, time_step = 0;
     double cur_packet_loss = 0;

@@ -1,0 +1,122 @@
+hullPts = {}
+hullC = 0
+
+# When called returns a list of points that forms a convex hull around 
+#   the listPts Given (http://adultstudylife.blogspot.com/2016/06/quick-hull-in-python.html)
+function QuickHull(focalpts) {
+    listPts = {}
+    hullPts = {}
+    jp = 0
+    foreach(focalpts, function(key, pt) {
+        ip = 0
+        while(ip<6){
+            listPts[jp*6+ip]=math.vec2.add(pt,math.vec2.newp(20, ip*math.pi/3))
+            #log("Created new pt: ", listPts[j*6+i].x, listPts[j*6+i].y, "(", pt.x, pt.y, ")")
+            ip=ip+1
+        }
+        jp=jp+1
+    })
+
+    # get the min, and max from the list of points
+    min_max = get_min_max_x(listPts)
+
+    hullPts = quickhull_rec(listPts, min_max.min, min_max.max)
+
+    hullPts = quickhull_rec(listPts, min_max.max, min_max.min)
+
+    return hullPts
+} 
+
+# Does the sorting for the quick hull sorting algorithm
+function quickhull_rec(listPts, minp, maxp) {
+    left_of_line_pts = get_points_left_of_line(minp, maxp, listPts)
+
+    ptC = point_max_from_line(minp, maxp, left_of_line_pts)
+
+    if(size(ptC) < 1){
+        hullPts[hullC] = maxp    # max
+        hullC = hullC +1
+        return hullPts
+        #log("Add pt:", maxp.x, maxp.y)
+    }
+
+    hullPts = quickhull_rec(left_of_line_pts, minp, ptC)
+
+    hullPts = quickhull_rec(left_of_line_pts, ptC, maxp)
+
+    return hullPts
+}
+
+# Returns all points that are LEFT of a line start->end
+function get_points_left_of_line(minp, maxp, listPts) {
+    pts = {}
+    ih = 0
+
+    foreach(listPts, function(key, pt) {
+        if(isCCW(minp, maxp, pt)){
+            pts[ih]=pt
+            ih=ih+1
+        }   
+    })
+
+    return pts
+}
+
+# Returns the maximum point from a line start->end
+function point_max_from_line(minp, maxp, points) {
+    max_dist = 0
+    max_point = {}
+
+    foreach(points, function(key, point) {
+        if((not(math.vec2.equal(point, minp))) and (not(math.vec2.equal(point, maxp)))) {
+            #log("Get distance of pt: ", point.x, point.y)
+            dist = distance_toline(minp, maxp, point)
+            if(dist > max_dist) {
+                max_dist = dist
+                max_point = point
+            }
+        }
+    })
+
+    return max_point
+}
+
+function get_min_max_x(list_pts) {
+    min_x = 100000
+    max_x = 0
+    min_y = 0
+    max_y = 0
+
+    foreach(list_pts, function(key, point) {
+        if(point.x < min_x){
+            min_x = point.x
+            min_y = point.y
+        }
+        if(point.x > max_x){
+            max_x = point.x
+            max_y = point.y
+        }
+    })
+
+    return {.min=math.vec2.new(min_x, min_y), .max=math.vec2.new(max_x, max_y)}
+}
+
+# Given a line of start->end, will return the distance that
+#    point, pt, is from the line.
+function distance_toline(start, end, pt) { # pt is the point
+    x1 = start.x
+    y1 = start.y
+    x2 = end.x
+    y2 = end.y
+    x0 = pt.x
+    y0 = pt.y
+    nom = math.abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1)
+    denom = math.vec2.length(math.vec2.sub(end,start))
+    result = nom / denom
+    return result
+}
+
+# Tests whether the turn formed by A, B, and C is ccw
+function isCCW(A, B, C){
+    return (B.x - A.x) * (C.y - A.y) > (B.y - A.y) * (C.x - A.x)
+}

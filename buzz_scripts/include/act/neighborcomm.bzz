@@ -1,71 +1,74 @@
 # listens to commands from the remote control (web, commandline, rcclient node, etc)
 function rc_cmd_listen() {
-  if(flight.rc_cmd==22) {
-		log("cmd 22")
-		flight.rc_cmd=0
-		BVMSTATE = "LAUNCH"
-		neighbors.broadcast("cmd", 22)
-	} else if(flight.rc_cmd==21) {
-		flight.rc_cmd=0
-		AUTO_LAUNCH_STATE = "TURNEDOFF"
-		#barrier_set(ROBOTS, "GOHOME", BVMSTATE, 21)
-		#barrier_ready(21)
-		BVMSTATE = "STOP"
-		neighbors.broadcast("cmd", 21)
-	} else if(flight.rc_cmd==20) {
-		flight.rc_cmd=0
-		AUTO_LAUNCH_STATE = "IDLE"
-		barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
-		barrier_ready(20)
-		neighbors.broadcast("cmd", 20)
-#	} else if(flight.rc_cmd==16) {
-#		flight.rc_cmd=0
-#		BVMSTATE = "PATHPLAN"
-	} else if(flight.rc_cmd==400) {
-		flight.rc_cmd=0
-		arm()
-		neighbors.broadcast("cmd", 400)
-	} else if (flight.rc_cmd==401){
-		flight.rc_cmd=0
-		disarm()
-		neighbors.broadcast("cmd", 401)
-	} else if (flight.rc_cmd==666){
-		flight.rc_cmd=0
-		stattab_send()
-	} else if (flight.rc_cmd==777){
-		flight.rc_cmd=0
-		reinit_time_sync()
-		neighbors.broadcast("cmd", 777)
-	}else if (flight.rc_cmd==900){
-		flight.rc_cmd=0
-		barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
-		barrier_ready(900)
-		neighbors.broadcast("cmd", 900)
-	} else if (flight.rc_cmd==901){
-		flight.rc_cmd=0
-		destroyGraph()
-		barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 901)
-		barrier_ready(901)
-		neighbors.broadcast("cmd", 901)
-	} else if (flight.rc_cmd==902){
-		flight.rc_cmd=0
-		destroyGraph()
-		barrier_set(ROBOTS, "WAYPOINT", BVMSTATE, 902)
-		barrier_ready(902)
-		neighbors.broadcast("cmd", 902)
-	} else if (flight.rc_cmd==903){
-		flight.rc_cmd=0
-		destroyGraph()
-		resetWP()
-		barrier_set(ROBOTS, "POTENTIAL", BVMSTATE, 903)
-		barrier_ready(903)
-		neighbors.broadcast("cmd", 903)
-	} else if (flight.rc_cmd==904){
-		flight.rc_cmd=0
-		destroyGraph()
-		barrier_set(ROBOTS, "IDLE", BVMSTATE, 904)
-		barrier_ready(904)
-		neighbors.broadcast("cmd", 904)
+	if(BVMSTATE=="TURNEDOFF") {
+		if(flight.rc_cmd==400) {	#ARM
+			flight.rc_cmd=0
+			arm()
+			neighbors.broadcast("cmd", 400)
+		} else if (flight.rc_cmd==401){	#DISARM
+			flight.rc_cmd=0
+			disarm()
+			neighbors.broadcast("cmd", 401)
+		} else if(flight.rc_cmd==22) {	#TAKEOFF\LAUNCH
+			flight.rc_cmd=0
+			BVMSTATE = "LAUNCH"
+			neighbors.broadcast("cmd", 22)
+		} else if (flight.rc_cmd==777){	#SYNC
+			flight.rc_cmd=0
+			reinit_time_sync()
+			neighbors.broadcast("cmd", 777)
+		}
+	} else {
+		if(flight.rc_cmd==21) {
+			flight.rc_cmd=0
+			#barrier_set(ROBOTS, "GOHOME", BVMSTATE, 21)
+			#barrier_ready(21)
+			BVMSTATE = "STOP"
+			neighbors.broadcast("cmd", 21)
+		} else if(flight.rc_cmd==20) {
+			flight.rc_cmd=0
+			AUTO_LAUNCH_STATE = "IDLE"
+			barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
+			barrier_ready(20)
+			neighbors.broadcast("cmd", 20)
+		} else if(BVMSTATE!="BARRIERWAIT" and BVMSTATE!="LAUNCH") {
+			if (flight.rc_cmd==666){
+				flight.rc_cmd=0
+				stattab_send()
+			} else if (flight.rc_cmd==900){
+				flight.rc_cmd=0
+				barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
+				barrier_ready(900)
+				neighbors.broadcast("cmd", 900)
+			} else if (flight.rc_cmd==901){
+				flight.rc_cmd=0
+				destroyGraph()
+				resetWP()
+				barrier_set(ROBOTS, "DEPLOY", BVMSTATE, 901)
+				barrier_ready(901)
+				neighbors.broadcast("cmd", 901)
+			} else if (flight.rc_cmd==902){
+				flight.rc_cmd=0
+				destroyGraph()
+				resetWP()
+				barrier_set(ROBOTS, "WAYPOINT", BVMSTATE, 902)
+				barrier_ready(902)
+				neighbors.broadcast("cmd", 902)
+			} else if (flight.rc_cmd==903){
+				flight.rc_cmd=0
+				destroyGraph()
+				resetWP()
+				barrier_set(ROBOTS, "POTENTIAL", BVMSTATE, 903)
+				barrier_ready(903)
+				neighbors.broadcast("cmd", 903)
+			} else if (flight.rc_cmd==904){
+				flight.rc_cmd=0
+				destroyGraph()
+				barrier_set(ROBOTS, "IDLE", BVMSTATE, 904)
+				barrier_ready(904)
+				neighbors.broadcast("cmd", 904)
+			}
+		}
 	}
 }
 
@@ -74,53 +77,52 @@ function nei_cmd_listen() {
     neighbors.listen("cmd",
 			function(vid, value, rid) {
 				print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
-				#if(BVMSTATE!="BARRIERWAIT") {
-					if(value==22 and BVMSTATE=="TURNEDOFF") {
+				if(BVMSTATE=="TURNEDOFF") {
+					if(value==22) {
 						BVMSTATE = "LAUNCH"
-					}else if(value==20) {
+					} else if(value==400) {
+						arm()
+					} else if(value==401){
+						disarm()
+					} else if(value==777){
+						reinit_time_sync()
+					}
+				} else {
+					if(value==20) {
 						AUTO_LAUNCH_STATE = "IDLE"
 						BVMSTATE = "GOHOME"
-					} else if(value==21 and BVMSTATE!="TURNEDOFF") {
+					} else if(value==21 ) {
 						BVMSTATE = "STOP"
-					} else if(value==400 and BVMSTATE=="TURNEDOFF") {
-						arm()
-					} else if(value==401 and BVMSTATE=="TURNEDOFF"){
-						disarm()
-					} else if(value==777 and BVMSTATE=="TURNEDOFF"){
-						reinit_time_sync()
 						#neighbors.broadcast("cmd", 777)
-					}else if(value==900){	# Shapes
-						barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
-						#barrier_ready(900)
-						#neighbors.broadcast("cmd", 900)
-					} else if(value==901 and BVMSTATE!="BARRIERWAIT"){	# Pursuit
-						destroyGraph()
-						barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 901)
-						#barrier_ready(901)
-						#neighbors.broadcast("cmd", 901)
-					} else if(value==902 and BVMSTATE!="BARRIERWAIT" and BVMSTATE!="WAYPOINT"){	# Waypoint
-						destroyGraph()
-						barrier_set(ROBOTS, "WAYPOINT", BVMSTATE, 902)
-						#barrier_ready(902)
-						#neighbors.broadcast("cmd", 902)
-					} else if(value==903 and BVMSTATE!="BARRIERWAIT" and BVMSTATE!="POTENTIAL"){	# Formation
-						destroyGraph()
-						resetWP()
-						barrier_set(ROBOTS, "POTENTIAL", BVMSTATE, 903)
-						#barrier_ready(903)
-						#neighbors.broadcast("cmd", 903)
-					} else if(value==904 and BVMSTATE!="BARRIERWAIT" and BVMSTATE!="IDLE"){	# idle
-						destroyGraph()
-						barrier_set(ROBOTS, "IDLE", BVMSTATE, 904)
-						#barrier_ready(904)
-						#neighbors.broadcast("cmd", 904)
-					} else if(value==16 and BVMSTATE=="IDLE"){
-					#  neighbors.listen("gt",function(vid, value, rid) {
-					#    print("Got (", vid, ",", value, ") from robot #", rid)
-					#    # if(gt.id == id) statef=goto
-					#  })
+					}else if(BVMSTATE!="BARRIERWAIT" and BVMSTATE!="LAUNCH") {
+						if(value==900){	# Shapes
+							barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
+							#barrier_ready(900)
+							#neighbors.broadcast("cmd", 900)
+						} else if(value==901 and BVMSTATE!="DEPLOY" ){	# Pursuit
+							destroyGraph()
+							barrier_set(ROBOTS, "DEPLOY", BVMSTATE, 901)
+							#barrier_ready(901)
+							#neighbors.broadcast("cmd", 901)
+						} else if(value==902 and BVMSTATE!="WAYPOINT" and BVMSTATE!="TURNEDOFF"){	# Waypoint
+							destroyGraph()
+							barrier_set(ROBOTS, "WAYPOINT", BVMSTATE, 902)
+							#barrier_ready(902)
+							#neighbors.broadcast("cmd", 902)
+						} else if(value==903 and BVMSTATE!="POTENTIAL" and BVMSTATE!="TURNEDOFF"){	# Formation
+							destroyGraph()
+							barrier_set(ROBOTS, "POTENTIAL", BVMSTATE, 903)
+							#barrier_ready(903)
+							#neighbors.broadcast("cmd", 903)
+						} else if(value==904 and BVMSTATE!="IDLE" and BVMSTATE!="TURNEDOFF"){	# idle
+							destroyGraph()
+							resetWP()
+							barrier_set(ROBOTS, "IDLE", BVMSTATE, 904)
+							#barrier_ready(904)
+							#neighbors.broadcast("cmd", 904)
+						}
 					}
-				#}
+				}
     })
 }
 
@@ -141,7 +143,8 @@ function check_rc_wp() {
 			v_wp.put(rc_goto.id,ls)
 			reset_rc()
 		}
-	}
+	} else
+		v_wp.get(0)
 }
 
 function resetWP() {

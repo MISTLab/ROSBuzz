@@ -21,6 +21,7 @@ namespace buzzuav_closures
  */
 int buzzros_print(buzzvm_t vm);
 void setWPlist(std::string file);
+void setVorlog(std::string path);
 void check_targets_sim(double lat, double lon, double *res);
 
 /*
@@ -154,6 +155,7 @@ int buzzuav_land(buzzvm_t vm);
  * Command the UAV to go to home location
  */
 int buzzuav_gohome(buzzvm_t vm);
+int buzzuav_geofence(buzzvm_t vm);
 
 /*
  * Updates battery information in Buzz
