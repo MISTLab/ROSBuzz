@@ -256,15 +256,15 @@ counter = 0
 function voronoicentroid() {
   BVMSTATE="DEPLOY"
 	check_rc_wp()
-	log("V_wp size:",v_wp.size())
-	if(V_TYPE == 2)		# NOT MOVING!
+	wptab = v_wp.get(WPtab_id)
+	if(wptab==nil or V_TYPE == 2)
 		return
-	if(not(v_wp.size() > 0))
+	else if(not(size(wptab) > 0))
 		return
+	log("WP table size:", size(wptab))
 	it_pts = 0
 	att = {}
-	v_wp.foreach(
-    function(key, value, robot){
+	foreach(wptab, function(key, value){
 			wp = unpackWP2i(value)
 			if(key > 99)
 				log("Nothing planed for the repulsors yet....")

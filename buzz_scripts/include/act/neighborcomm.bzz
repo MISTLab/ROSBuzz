@@ -127,6 +127,7 @@ function nei_cmd_listen() {
 }
 
 firsttimeinwp = 1
+WPtab_id = 10
 function check_rc_wp() {
 	if(firsttimeinwp) {
 		v_wp = stigmergy.create(WP_STIG)
@@ -140,7 +141,17 @@ function check_rc_wp() {
 			return
 		} else {
 			var ls = packWP2i(rc_goto.latitude, rc_goto.longitude, 0)
-			v_wp.put(rc_goto.id,ls)
+			if(rc_goto.id>49) {	# Attractor/repulsor table
+				WPtab = v_wp.get(WPtab_id)
+				if(WPtab!=nil)
+					WPtab[rc_goto.id]=ls
+				else {
+					WPtab={}
+					WPtab[rc_goto.id]=ls
+				}
+				v_wp.put(WPtab_id,WPtab)
+			} else
+				v_wp.put(rc_goto.id,ls)
 			reset_rc()
 		}
 	} else
