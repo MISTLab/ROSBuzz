@@ -34,6 +34,7 @@ function idle() {
 # Core state function to launch the robot: takeoff and wait for others, or stop (land)
 function launch() {
 	BVMSTATE = "LAUNCH"
+	neighbors.broadcast("cmd", 22)
 	log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
 		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
@@ -43,7 +44,6 @@ function launch() {
 			barrier_ready(22)
 		} else {
 			log("Altitude: ", pose.position.altitude)
-			neighbors.broadcast("cmd", 22)
 			uav_takeoff(TARGET_ALTITUDE)
 		}
 	} else {
@@ -85,14 +85,15 @@ function goinghome() {
 			#m_navigation = LCA(m_navigation)
 			goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
 		}
-	}
+	} else
+		BVMSTATE = AUTO_LAUNCH_STATE
 }
 
 # Core state function to stop and land.
 function stop() {
   BVMSTATE = "STOP"
+  neighbors.broadcast("cmd", 21)
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
-		neighbors.broadcast("cmd", 21)
 		uav_land()
 		if(pose.position.altitude <= 0.2) {
 			BVMSTATE = "STOP"
@@ -118,8 +119,8 @@ function indiWP() {
 		wp = unpackWP2i(wpi)
 		if(wp.pro == 0) {
 				wpreached = 0
-				storegoal(wp.lat, wp.lon, pose.position.altitude)
-				var ls = packWP2i(wp.lat, wp.lon, 1)
+				storegoal(wp.lat, wp.lng, pose.position.altitude)
+				var ls = packWP2i(wp.lat, wp.lng, 1)
 				v_wp.put(id,ls)
 				return
 			}      
@@ -257,11 +258,13 @@ function voronoicentroid() {
   BVMSTATE="DEPLOY"
 	check_rc_wp()
 	wptab = v_wp.get(WPtab_id)
-	if(wptab==nil or V_TYPE == 2)
+	if(wptab==nil)
 		return
 	else if(not(size(wptab) > 0))
 		return
 	log("WP table size:", size(wptab))
+	if(V_TYPE == 2)
+		return
 	it_pts = 0
 	att = {}
 	foreach(wptab, function(key, value){
@@ -269,7 +272,7 @@ function voronoicentroid() {
 			if(key > 99)
 				log("Nothing planed for the repulsors yet....")
 			else if(key > 49)
-				att[it_pts]=vec_from_gps(wp.lat, wp.lon, 0)
+				att[it_pts]=vec_from_gps(wp.lat, wp.lng, 0)
 			it_pts = it_pts + 1
 	})
 	# Boundaries from Geofence
