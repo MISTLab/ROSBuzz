@@ -352,7 +352,7 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "sensor_msgs/LaserScan"));
 
   node_handle.getParam("topics/battery", topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs/BatteryStatus"));
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "sensor_msgs/BatteryState"));
 
   node_handle.getParam("topics/status", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs/State"));
@@ -504,7 +504,7 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     {
       flight_status_sub = n_c.subscribe(it->first, 5, &roscontroller::flight_status_update, this);
     }
-    else if (it->second == "mavros_msgs/BatteryStatus")
+    else if (it->second == "sensor_msgs/BatteryState")
     {
       battery_sub = n_c.subscribe(it->first, 5, &roscontroller::battery, this);
     }
@@ -1035,13 +1035,12 @@ void roscontroller::gps_convert_ned(float& ned_x, float& ned_y, double gps_t_lon
   ned_y = DEG2RAD(d_lon) * EARTH_RADIUS * cos(DEG2RAD(gps_t_lat));
 };
 
-void roscontroller::battery(const mavros_msgs::BatteryStatus::ConstPtr& msg)
+void roscontroller::battery(const sensor_msgs::BatteryState::ConstPtr& msg)
 /*
 / Update battery status into BVM from subscriber
 /------------------------------------------------------*/
 {
-  // buzzuav_closures::set_battery(msg->voltage, msg->current, msg->percentage);
-  buzzuav_closures::set_battery(msg->voltage, msg->current, msg->remaining*!00.0);
+  buzzuav_closures::set_battery(msg->voltage, msg->current, msg->percentage * 100.0);
   //  DEBUG
   // ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage,
   // msg->current, msg ->remaining);

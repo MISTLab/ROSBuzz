@@ -11,8 +11,8 @@
 #include "mavros_msgs/ExtendedState.h"
 #include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/State.h"
-#include "mavros_msgs/BatteryStatus.h"
-//#include "sensor_msgs/BatteryState.h"
+//#include "mavros_msgs/BatteryStatus.h"
+#include "sensor_msgs/BatteryState.h"
 #include "mavros_msgs/Mavlink.h"
 #include "mavros_msgs/PositionTarget.h"
 #include "sensor_msgs/NavSatStatus.h"
@@ -240,7 +240,7 @@ private:
                        double gps_r_lat);
 
   /*battery status callback */
-  void battery(const mavros_msgs::BatteryStatus::ConstPtr& msg);
+  void battery(const sensor_msgs::BatteryState::ConstPtr& msg);
 
   /*flight extended status callback*/
   void flight_extended_status_update(const mavros_msgs::ExtendedState::ConstPtr& msg);
