@@ -195,12 +195,13 @@ void parse_gpslist()
     double lon = atof(strtok(NULL, DELIMS));
     double lat = atof(strtok(NULL, DELIMS));
     int alt = atoi(strtok(NULL, DELIMS));
-    // int tilt = atoi(strtok(NULL, DELIMS));
+    int tilt = atoi(strtok(NULL, DELIMS));
     //  DEBUG
     // ROS_INFO("%.6f, %.6f, %i %i %i",lat, lon, alt, tilt, tid);
     RB_arr.latitude = lat;
     RB_arr.longitude = lon;
     RB_arr.altitude = alt;
+    RB_arr.r = tilt;
     // Insert elements.
     map<int, buzz_utility::RB_struct>::iterator it = wplist_map.find(tid);
     if (it != wplist_map.end())
@@ -227,8 +228,14 @@ void check_targets_sim(double lat, double lon, double *res)
     double ref[2]={lat, lon};
     double tar[2]={it->second.latitude, it->second.longitude};
     rb_from_gps(tar, rb, ref);
-    if(rb[0] < visibility_radius){
-      ROS_WARN("FOUND A TARGET!!! [%i]", it->first);
+    if(rb[0] < visibility_radius && (buzz_utility::get_bvmstate()=="WAYPOINT" && it->second.r==0)){
+      ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", it->first);
+      res[0] = it->first;
+      res[1] = it->second.latitude;
+      res[2] = it->second.longitude;
+      res[3] = it->second.altitude;
+    } else if(rb[0] < visibility_radius && (buzz_utility::get_bvmstate()=="DEPLOY" && it->second.r==1)){
+      ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", it->first);
       res[0] = it->first;
       res[1] = it->second.latitude;
       res[2] = it->second.longitude;
