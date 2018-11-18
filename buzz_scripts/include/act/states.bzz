@@ -19,6 +19,7 @@ WP_STIG = 8
 path_it = 0
 pic_time = 0
 g_it = 0
+homegps = {}
 
 # Core state function when on the ground
 function turnedoff() {
@@ -33,15 +34,16 @@ function idle() {
 # Core state function to launch the robot: takeoff and wait for others, or stop (land)
 function launch() {
 	BVMSTATE = "LAUNCH"
+	neighbors.broadcast("cmd", 22)
 	log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
-		homegps = {.lat=pose.position.latitude, .long=pose.position.longitude}
+		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
+		log("Recorded home point: ",homegps.lat, homegps.lng)
 		if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
 			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
 			barrier_ready(22)
 		} else {
 			log("Altitude: ", pose.position.altitude)
-			neighbors.broadcast("cmd", 22)
 			uav_takeoff(TARGET_ALTITUDE)
 		}
 	} else {
@@ -74,7 +76,7 @@ gohomeT=100
 function goinghome() {
   BVMSTATE = "GOHOME"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
-		m_navigation = vec_from_gps(homegps.latitude, homegps.longitude, 0)
+		m_navigation = vec_from_gps(homegps.lat, homegps.lng, 0)
 		#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
 		if(math.vec2.length(m_navigation) < GOTODIST_TOL){ # reached destination
 				BVMSTATE = AUTO_LAUNCH_STATE
@@ -83,14 +85,15 @@ function goinghome() {
 			#m_navigation = LCA(m_navigation)
 			goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
 		}
-	}
+	} else
+		BVMSTATE = AUTO_LAUNCH_STATE
 }
 
 # Core state function to stop and land.
 function stop() {
   BVMSTATE = "STOP"
+  neighbors.broadcast("cmd", 21)
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
-		neighbors.broadcast("cmd", 21)
 		uav_land()
 		if(pose.position.altitude <= 0.2) {
 			BVMSTATE = "STOP"
@@ -116,8 +119,8 @@ function indiWP() {
 		wp = unpackWP2i(wpi)
 		if(wp.pro == 0) {
 				wpreached = 0
-				storegoal(wp.lat, wp.lon, pose.position.altitude)
-				var ls = packWP2i(wp.lat, wp.lon, 1)
+				storegoal(wp.lat, wp.lng, pose.position.altitude)
+				var ls = packWP2i(wp.lat, wp.lng, 1)
 				v_wp.put(id,ls)
 				return
 			}      
@@ -254,20 +257,22 @@ counter = 0
 function voronoicentroid() {
   BVMSTATE="DEPLOY"
 	check_rc_wp()
-	log("V_wp size:",v_wp.size())
-	if(V_TYPE == 2)		# NOT MOVING!
+	wptab = v_wp.get(WPtab_id)
+	if(wptab==nil)
 		return
-	if(not(v_wp.size() > 0))
+	else if(not(size(wptab) > 0))
+		return
+	log("WP table size:", size(wptab))
+	if(V_TYPE == 2)
 		return
 	it_pts = 0
 	att = {}
-	v_wp.foreach(
-    function(key, value, robot){
+	foreach(wptab, function(key, value){
 			wp = unpackWP2i(value)
 			if(key > 99)
 				log("Nothing planed for the repulsors yet....")
 			else if(key > 49)
-				att[it_pts]=vec_from_gps(wp.lat, wp.lon, 0)
+				att[it_pts]=vec_from_gps(wp.lat, wp.lng, 0)
 			it_pts = it_pts + 1
 	})
 	# Boundaries from Geofence

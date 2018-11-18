@@ -195,12 +195,13 @@ void parse_gpslist()
     double lon = atof(strtok(NULL, DELIMS));
     double lat = atof(strtok(NULL, DELIMS));
     int alt = atoi(strtok(NULL, DELIMS));
-    // int tilt = atoi(strtok(NULL, DELIMS));
+    int tilt = atoi(strtok(NULL, DELIMS));
     //  DEBUG
     // ROS_INFO("%.6f, %.6f, %i %i %i",lat, lon, alt, tilt, tid);
     RB_arr.latitude = lat;
     RB_arr.longitude = lon;
     RB_arr.altitude = alt;
+    RB_arr.r = tilt;
     // Insert elements.
     map<int, buzz_utility::RB_struct>::iterator it = wplist_map.find(tid);
     if (it != wplist_map.end())
@@ -227,8 +228,14 @@ void check_targets_sim(double lat, double lon, double *res)
     double ref[2]={lat, lon};
     double tar[2]={it->second.latitude, it->second.longitude};
     rb_from_gps(tar, rb, ref);
-    if(rb[0] < visibility_radius){
-      ROS_WARN("FOUND A TARGET!!! [%i]", it->first);
+    if(rb[0] < visibility_radius && (buzz_utility::get_bvmstate()=="WAYPOINT" && it->second.r==0)){
+      ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", it->first);
+      res[0] = it->first;
+      res[1] = it->second.latitude;
+      res[2] = it->second.longitude;
+      res[3] = it->second.altitude;
+    } else if(rb[0] < visibility_radius && (buzz_utility::get_bvmstate()=="DEPLOY" && it->second.r==1)){
+      ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", it->first);
       res[0] = it->first;
       res[1] = it->second.latitude;
       res[2] = it->second.longitude;
@@ -289,8 +296,8 @@ bool onSegment(Point p, Point q, Point r)
 // 2 --> Counterclockwise 
 int orientation(Point p, Point q, Point r) 
 { 
-    int val = (q.y - p.y) * (r.x - q.x) - 
-              (q.x - p.x) * (r.y - q.y); 
+    int val =round((q.y - p.y) * (r.x - q.x)*100 - 
+              (q.x - p.x) * (r.y - q.y)*100); 
   
     if (val == 0) return 0;  // colinear 
     return (val > 0)? 1: 2; // clock or counterclock wise 
@@ -305,8 +312,10 @@ bool doIntersect(Point p1, Point q1, Point p2, Point q2)
     int o2 = orientation(p1, q1, q2); 
     int o3 = orientation(p2, q2, p1); 
     int o4 = orientation(p2, q2, q1); 
+
+    //ROS_WARN("(%f,%f)->(%f,%f), 1:%d,2:%d,3:%d,4:%d",p1.x,p1.y,q1.x,q1.y,o1,o2,o3,o4);
   
-    // General case 
+    // General case   
     if (o1 != o2 && o3 != o4) 
         return true; 
   
@@ -341,92 +350,6 @@ void sortclose_polygon(vector <Point> *P){
   P->push_back((*P)[0]);
 }
 
-int buzzuav_geofence(buzzvm_t vm)
-{
-    bool onedge = false;
-    Point P;
-    Point V[4];
-    int tmp;
-    buzzvm_lnum_assert(vm, 1);
-    // Get the parameter
-    buzzvm_lload(vm, 1);
-    buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);    // dictionary
-    buzzobj_t t = buzzvm_stack_at(vm, 1);
-
-    if(buzzdict_size(t->t.value) != 5) {
-      ROS_ERROR("Wrong Geofence input size (%i).", buzzdict_size(t->t.value));
-      return buzzvm_ret0(vm);
-    }
-    for(int32_t i = 0; i < buzzdict_size(t->t.value); ++i) {
-      buzzvm_dup(vm);
-      buzzvm_pushi(vm, i);
-      buzzvm_tget(vm);
-    
-      buzzvm_dup(vm);
-      buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 1));
-      buzzvm_tget(vm);
-      tmp = buzzvm_stack_at(vm, 1)->f.value;
-      //ROS_INFO("[%i]---x-->%i",buzz_utility::get_robotid(), tmp);
-      if(i==0)
-        P.x = tmp;
-      else
-        V[i-1].x = tmp;
-      buzzvm_pop(vm);
-      buzzvm_dup(vm);
-      buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 1));
-      buzzvm_tget(vm);
-      tmp = buzzvm_stack_at(vm, 1)->f.value;
-      //ROS_INFO("[%i]---y-->%i",buzz_utility::get_robotid(), tmp);
-      if(i==0)
-        P.y = tmp;
-      else
-        V[i-1].y = tmp;
-      buzzvm_pop(vm);
-
-      buzzvm_pop(vm);
-    }
-    // TODO: use vector
-    //sortclose_polygon(&V);
-
-    // simple polygon: rectangle, 4 points
-    int n = 4;
-    // Create a point for line segment from p to infinite 
-    Point extreme = {10000, P.y}; 
-  
-    // Count intersections of the above line with sides of polygon 
-    int count = 0, i = 0; 
-    do
-    {
-        int next = (i+1)%n;
-  
-        // Check if the line segment from 'p' to 'extreme' intersects 
-        // with the line segment from 'polygon[i]' to 'polygon[next]' 
-        if (doIntersect(V[i], V[next], P, extreme)) 
-        { 
-            // If the point 'p' is colinear with line segment 'i-next', 
-            // then check if it lies on segment. If it lies, return true, 
-            // otherwise false 
-            if (orientation(V[i], P, V[next]) == 0) {
-              onedge = onSegment(V[i], P, V[next]);
-              if(onedge)
-                break;
-            }
-  
-            count++; 
-        }
-      i = next; 
-    } while (i != 0); 
-  
-  //ROS_INFO("[%i] Geofence: %i, %i",buzz_utility::get_robotid(),count, onedge);
-
-  if((count%2 == 0) || onedge) {
-    goto_gpsgoal[0] = cur_pos[0];
-    goto_gpsgoal[1] = cur_pos[1];
-    ROS_WARN("Geofencing trigered, not going any further!");
-  }
-
-  return buzzvm_ret0(vm);
-}
 
 float pol_area(vector <Point> vert) {
   float a = 0.0;
@@ -487,9 +410,12 @@ void getintersection(Point S, Point D, std::vector <Point> Poly, Point *I) {
       double r = numerator( S, (*itc), (*itc), (*next) ) / d;
       double s = numerator( S, (*itc), S, D ) / d;
 
+      //ROS_INFO("-- (%f,%f)",S.x + r * (D.x - S.x), S.y + r * (D.y - S.y));
       (*I)=Point(S.x + r * (D.x - S.x), S.y + r * (D.y - S.y));
     }
   }
+  if(parallel || collinear)
+    ROS_WARN("Lines are Collinear (%d) or Parallels (%d)",collinear,parallel);
 }
 
 bool isSiteout(Point S, std::vector <Point> Poly) {
@@ -522,6 +448,71 @@ bool isSiteout(Point S, std::vector <Point> Poly) {
   }
 
   return ((count%2 == 0) && !onedge);
+}
+
+int buzzuav_geofence(buzzvm_t vm)
+{
+    Point P;
+    buzzvm_lnum_assert(vm, 1);
+    // Get the parameter
+    buzzvm_lload(vm, 1);
+    buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);    // dictionary
+    buzzobj_t t = buzzvm_stack_at(vm, 1);
+
+    if(buzzdict_size(t->t.value) < 5) {
+      ROS_ERROR("Wrong Geofence input size (%i).", buzzdict_size(t->t.value));
+      return buzzvm_ret0(vm);
+    }
+	  std::vector <Point> polygon_bound;
+    for(int32_t i = 0; i < buzzdict_size(t->t.value); ++i) {
+      Point tmp;
+      buzzvm_dup(vm);
+      buzzvm_pushi(vm, i);
+      buzzvm_tget(vm);
+    
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "x", 1));
+      buzzvm_tget(vm);
+      if(i==0){
+        P.x = buzzvm_stack_at(vm, 1)->f.value;
+        //printf("px=%f\n",P.x);
+      }else{
+        tmp.x = buzzvm_stack_at(vm, 1)->f.value;
+        //printf("c%dx=%f\n",i,tmp.x);
+      }
+      buzzvm_pop(vm);
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 1));
+      buzzvm_tget(vm);
+      //ROS_INFO("[%i]---y-->%i",buzz_utility::get_robotid(), tmp);
+      if(i==0){
+        P.y = buzzvm_stack_at(vm, 1)->f.value;
+        //printf("py=%f\n",P.y);
+      }else{
+        tmp.y = buzzvm_stack_at(vm, 1)->f.value;
+        //printf("c%dy=%f\n",i,tmp.y);
+      }
+      buzzvm_pop(vm);
+
+      if(i!=0)
+        polygon_bound.push_back(tmp);
+
+      buzzvm_pop(vm);
+    }
+    sortclose_polygon(&polygon_bound);
+
+    // Check if we are in the zone
+    if(isSiteout(P, polygon_bound)){
+      Point Intersection;
+      getintersection(Point(0.0, 0.0) , P, polygon_bound, &Intersection);
+      double gps[3];
+      double d[2]={Intersection.x,Intersection.y};
+      gps_from_vec(d, gps);
+      set_gpsgoal(gps);
+      ROS_WARN("Geofencing trigered, not going any further (%f,%f)!",d[0],d[1]);
+    }
+
+  return buzzvm_ret0(vm);
 }
 
 int voronoi_center(buzzvm_t vm) {
@@ -565,23 +556,7 @@ int voronoi_center(buzzvm_t vm) {
     buzzvm_pop(vm);
   }
   sortclose_polygon(&polygon_bound);
-  // Check if we are in the zone
-  if(isSiteout(Point(0,0), polygon_bound)){
-    //ROS_WARN("Not in the Zone!!!");
-    double goal_tmp[2];
-    do{
-      goal_tmp[0] = polygon_bound[0].x + (rand()%100)/100.0*(polygon_bound[2].x- polygon_bound[0].x);
-      goal_tmp[1] = polygon_bound[0].y + (rand()%100)/100.0*(polygon_bound[2].y- polygon_bound[0].y);
-      //ROS_WARN(" in the Zone (%f,%f)!",goal_tmp[0],goal_tmp[1]);
-    } while(isSiteout(Point(goal_tmp[0],goal_tmp[1]), polygon_bound));
-    ROS_WARN("Sending at a random location in the Zone (%f,%f)!",goal_tmp[0],goal_tmp[1]);
-    double gps[3];
-    gps_from_vec(goal_tmp, gps);
-    set_gpsgoal(gps);
-    return buzzvm_ret0(vm);
-  }
   
-
   int count = buzzdict_size(t->t.value)-(Poly_vert+1);
   ROS_WARN("NP: %d, Sites: %d", Poly_vert, count);
   float *xValues = new float[count];
@@ -606,6 +581,22 @@ int voronoi_center(buzzvm_t vm) {
     buzzvm_pop(vm);
 
     buzzvm_pop(vm);
+  }
+  
+  // Check if we are in the zone
+  if(isSiteout(Point(0,0), polygon_bound) || count < 3) {
+    //ROS_WARN("Not in the Zone!!!");
+    double goal_tmp[2];
+    do{
+      goal_tmp[0] = polygon_bound[0].x + (rand()%100)/100.0*(polygon_bound[2].x- polygon_bound[0].x);
+      goal_tmp[1] = polygon_bound[0].y + (rand()%100)/100.0*(polygon_bound[2].y- polygon_bound[0].y);
+      //ROS_WARN(" in the Zone (%f,%f)!",goal_tmp[0],goal_tmp[1]);
+    } while(isSiteout(Point(goal_tmp[0],goal_tmp[1]), polygon_bound));
+    ROS_WARN("Sending at a random location in the Zone (%f,%f)!",goal_tmp[0],goal_tmp[1]);
+    double gps[3];
+    gps_from_vec(goal_tmp, gps);
+    set_gpsgoal(gps);
+    return buzzvm_ret0(vm);
   }
 
 	VoronoiDiagramGenerator vdg;
@@ -920,7 +911,7 @@ void set_gpsgoal(double goal[3])
 {
   double rb[3];
   rb_from_gps(goal, rb, cur_pos);
-  if (fabs(rb[0]) < 150.0) {
+  if (fabs(rb[0]) < 250.0) {
     goto_gpsgoal[0] = goal[0];goto_gpsgoal[1] = goal[1];goto_gpsgoal[2] = goal[2];
     ROS_INFO("[%i] Set GPS GOAL TO ---- %f %f %f (%f %f, %f %f)", buzz_utility::get_robotid(), goal[0], goal[1], goal[2], cur_pos[0], cur_pos[1], rb[0], rb[1]);
   } else

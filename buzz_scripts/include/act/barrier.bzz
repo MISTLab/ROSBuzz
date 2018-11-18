@@ -22,18 +22,19 @@ function barrier_create() {
   timeW = 1
   # create barrier vstig
   #log("---> Prev. br. ", barrier, " ", BARRIER_VSTIG)
-  if(barrier!=nil) {
-    barrier=nil
-    if(hvs) {
-      BARRIER_VSTIG = BARRIER_VSTIG -1
-      hvs = 0
-    }else{
-      BARRIER_VSTIG = BARRIER_VSTIG +1
-      hvs = 1
-    }
-  }
+  #if(barrier!=nil) {
+  #  barrier=nil
+    #if(hvs) {
+    #  BARRIER_VSTIG = BARRIER_VSTIG -1
+    #  hvs = 0
+    #}else{
+    #  BARRIER_VSTIG = BARRIER_VSTIG +1
+    #  hvs = 1
+    #}
+  #}
   #log("---> New. br. ", barrier, " ", BARRIER_VSTIG)
-  barrier = stigmergy.create(BARRIER_VSTIG)
+  if(barrier==nil)
+    barrier = stigmergy.create(BARRIER_VSTIG)
 }
 
 function barrier_set(threshold, transf, resumef, bc) {
@@ -51,6 +52,7 @@ function barrier_ready(bc) {
   #log("BARRIER READY -------")
   barrier.put(id, bc)
   barrier.put("d", 0)
+  barrier.put("n", 1)
 }
 
 #
@@ -61,22 +63,33 @@ function barrier_wait(threshold, transf, resumef, bc) {
     barrier_create()
   
   barrier.put(id, bc)
-  log("--->BS: ", barrier.size(), " / ", threshold, " (", BARRIER_VSTIG, " - ", barrier.get("d"), ") t= ", timeW)
-  #if(barrier.size()-1 >= threshold or barrier.get("d") == 1) {
+  if(barrier.get("n")<threshold)
+    barrier.put("n", threshold)
+  if(threshold>1) {
+    neighbors.foreach(function (nei,data){
+      barrier.get(nei)
+    })
+  }
+
+  # Not to miss any RC inputs, for waypoints, potential and deploy states
+	check_rc_wp()
+
+  #log("--->BS: ", barrier.size(), " / ", threshold, " (", BARRIER_VSTIG, " - ", barrier.get("d"), ") t= ", timeW)
+  if(barrier.size()-2 >= barrier.get("n")) {
     if(barrier_allgood(barrier,bc)) {
       barrier.put("d", 1)
       timeW = 0
       BVMSTATE = transf
     } else 
       barrier.put("d", 0)
-  #}
+  }
 
   if(timeW >= BARRIER_TIMEOUT) {
     log("------> Barrier Timeout !!!!")
-    barrier = nil
+    #barrier = nil
     timeW = 0
     BVMSTATE = resumef
-  } else if(timeW % 100 == 0 and bc > 0)
+  } else if(timeW % 10 == 0 and bc > 0)
     neighbors.broadcast("cmd", bc)
 
   timeW = timeW+1
@@ -86,11 +99,12 @@ function barrier_wait(threshold, transf, resumef, bc) {
 function barrier_allgood(barrier, bc) {
   barriergood = 1
   barrier.foreach(function(key, value, robot){
+      barrier.get(key)
       #log("VS entry : ", key, " ", value, " ", robot)
       if(key == "d"){
         if(value == 1)
           return 1
-      } else if(value != bc)
+      } else if(key!="n" and value != bc)
         barriergood = 0
     })
   return barriergood

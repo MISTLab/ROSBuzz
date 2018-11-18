@@ -53,7 +53,7 @@ function i2s(value){
 	return "INDIWP"
 	}
   else if(value==7){
-	return "TASK_ALLOCATE"
+	return "GOHOME"
 	}
   else if(value==8){
 	return "LAUNCH"
@@ -87,7 +87,7 @@ function s2i(value){
 	else if(value=="WAYPOINT"){
 	return 6
 	}
-	else if(value=="TASK_ALLOCATE"){
+	else if(value=="GOHOME"){
 	return 7
 	}
 	else if(value=="LAUNCH"){

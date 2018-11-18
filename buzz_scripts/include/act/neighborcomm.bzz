@@ -43,14 +43,14 @@ function rc_cmd_listen() {
 			} else if (flight.rc_cmd==901){
 				flight.rc_cmd=0
 				destroyGraph()
-				resetWP()
+				check_rc_wp()
 				barrier_set(ROBOTS, "DEPLOY", BVMSTATE, 901)
 				barrier_ready(901)
 				neighbors.broadcast("cmd", 901)
 			} else if (flight.rc_cmd==902){
 				flight.rc_cmd=0
 				destroyGraph()
-				resetWP()
+				check_rc_wp()
 				barrier_set(ROBOTS, "WAYPOINT", BVMSTATE, 902)
 				barrier_ready(902)
 				neighbors.broadcast("cmd", 902)
@@ -58,12 +58,14 @@ function rc_cmd_listen() {
 				flight.rc_cmd=0
 				destroyGraph()
 				resetWP()
+				check_rc_wp()
 				barrier_set(ROBOTS, "POTENTIAL", BVMSTATE, 903)
 				barrier_ready(903)
 				neighbors.broadcast("cmd", 903)
 			} else if (flight.rc_cmd==904){
 				flight.rc_cmd=0
 				destroyGraph()
+				resetWP()
 				barrier_set(ROBOTS, "IDLE", BVMSTATE, 904)
 				barrier_ready(904)
 				neighbors.broadcast("cmd", 904)
@@ -90,7 +92,8 @@ function nei_cmd_listen() {
 				} else {
 					if(value==20) {
 						AUTO_LAUNCH_STATE = "IDLE"
-						BVMSTATE = "GOHOME"
+						barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
+						barrier_ready(20)
 					} else if(value==21 ) {
 						BVMSTATE = "STOP"
 						#neighbors.broadcast("cmd", 777)
@@ -127,6 +130,7 @@ function nei_cmd_listen() {
 }
 
 firsttimeinwp = 1
+WPtab_id = 10
 function check_rc_wp() {
 	if(firsttimeinwp) {
 		v_wp = stigmergy.create(WP_STIG)
@@ -140,7 +144,17 @@ function check_rc_wp() {
 			return
 		} else {
 			var ls = packWP2i(rc_goto.latitude, rc_goto.longitude, 0)
-			v_wp.put(rc_goto.id,ls)
+			if(rc_goto.id>49) {	# Attractor/repulsor table
+				WPtab = v_wp.get(WPtab_id)
+				if(WPtab!=nil)
+					WPtab[rc_goto.id]=ls
+				else {
+					WPtab={}
+					WPtab[rc_goto.id]=ls
+				}
+				v_wp.put(WPtab_id,WPtab)
+			} else  # Individual waypoint
+				v_wp.put(rc_goto.id,ls)
 			reset_rc()
 		}
 	} else
