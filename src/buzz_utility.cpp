@@ -17,7 +17,7 @@ static buzzvm_t VM = 0;
 static char* BO_FNAME = 0;
 static uint8_t* BO_BUF = 0;
 static buzzdebug_t DBG_INFO = 0;
-static uint32_t MAX_MSG_SIZE = 210;//250;  // Maximum Msg size for sending update packets
+static uint32_t MAX_MSG_SIZE = 180;//250;  // Maximum Msg size for sending update packets
 static uint8_t Robot_id = 0;
 static std::vector<uint8_t*> IN_MSG;
 std::map<int, Pos_struct> users_map;
