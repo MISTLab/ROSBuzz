@@ -21,18 +21,18 @@ function rc_cmd_listen() {
 	} else {
 		if(flight.rc_cmd==21) {
 			flight.rc_cmd=0
-			#barrier_set(ROBOTS, "GOHOME", BVMSTATE, 21)
-			#barrier_ready(21)
 			BVMSTATE = "STOP"
 			neighbors.broadcast("cmd", 21)
-		} else if(flight.rc_cmd==20) {
-			flight.rc_cmd=0
-			AUTO_LAUNCH_STATE = "IDLE"
-			barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
-			barrier_ready(20)
-			neighbors.broadcast("cmd", 20)
 		} else if(BVMSTATE!="BARRIERWAIT" and BVMSTATE!="LAUNCH") {
-			if (flight.rc_cmd==666){
+			 if(flight.rc_cmd==20) {
+				flight.rc_cmd=0
+				destroyGraph()
+				check_rc_wp()
+				AUTO_LAUNCH_STATE = "IDLE"
+				barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
+				barrier_ready(20)
+				neighbors.broadcast("cmd", 20)
+			} else if (flight.rc_cmd==666){
 				flight.rc_cmd=0
 				stattab_send()
 			} else if (flight.rc_cmd==900){
@@ -90,15 +90,17 @@ function nei_cmd_listen() {
 						reinit_time_sync()
 					}
 				} else {
-					if(value==20) {
-						AUTO_LAUNCH_STATE = "IDLE"
-						barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
-						barrier_ready(20)
-					} else if(value==21 ) {
+					if(value==21 ) {
 						BVMSTATE = "STOP"
 						#neighbors.broadcast("cmd", 777)
 					}else if(BVMSTATE!="BARRIERWAIT" and BVMSTATE!="LAUNCH") {
-						if(value==900){	# Shapes
+						if(value==20 and BVMSTATE!="GOHOME") {
+							AUTO_LAUNCH_STATE = "IDLE"
+							resetWP()
+							if(BVMSTATE!=AUTO_LAUNCH_STATE)
+								barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
+							#barrier_ready(20)
+						} else if(value==900){	# Shapes
 							barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
 							#barrier_ready(900)
 							#neighbors.broadcast("cmd", 900)
