@@ -7,10 +7,10 @@ GPSlimit_CEPSUM = {.1={.lat=45.510400, .lng=-73.610421},
 			.3={.lat=45.510355, .lng=-73.608404},
 			.4={.lat=45.509840, .lng=-73.610072}}
 
-GPSlimit_PANGEAE = {.1={.lat=29.020871, .lng=-13.712477},
-			.2={.lat=29.019850, .lng=-13.712378},
-			.3={.lat=29.019875, .lng=-13.710096},
-			.4={.lat=29.021245, .lng=-13.710184}}
+GPSlimit_PANGEAE = {.1={.lat=29.067746, .lng=-13.663315},
+			.2={.lat=29.068724, .lng=-13.662634},
+			.3={.lat=29.068113, .lng=-13.661427},
+			.4={.lat=29.067014, .lng=-13.661564}}
 
 # Core naviguation function to travel to a GPS target location.
 function goto_gps(transf) {
