@@ -839,7 +839,7 @@ script
 	      BClpose = true;
       }
       if (current_mode != "GUIDED" && setmode)
-        SetMode("GUIDED", 2000);  // added for compatibility with 3DR Solo
+        SetMode("GUIDED", 3000);  // added for compatibility with 3DR Solo
       if(setmode)
       {
         if (mav_client.call(cmd_srv))
@@ -1040,7 +1040,7 @@ void roscontroller::battery(const sensor_msgs::BatteryState::ConstPtr& msg)
 / Update battery status into BVM from subscriber
 /------------------------------------------------------*/
 {
-  buzzuav_closures::set_battery(msg->voltage, msg->current, msg->percentage);
+  buzzuav_closures::set_battery(msg->voltage, msg->current, msg->percentage * 100.0);
   //  DEBUG
   // ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage,
   // msg->current, msg ->remaining);

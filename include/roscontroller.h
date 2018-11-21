@@ -11,7 +11,7 @@
 #include "mavros_msgs/ExtendedState.h"
 #include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/State.h"
-#include "mavros_msgs/BatteryStatus.h"
+//#include "mavros_msgs/BatteryStatus.h"
 #include "sensor_msgs/BatteryState.h"
 #include "mavros_msgs/Mavlink.h"
 #include "mavros_msgs/PositionTarget.h"

@@ -7,7 +7,7 @@
 #
 # Constants
 #
-BARRIER_TIMEOUT = 200 # in steps
+BARRIER_TIMEOUT = 600 # in steps
 BARRIER_VSTIG = 80
 timeW = 1
 barrier = nil
