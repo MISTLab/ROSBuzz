@@ -116,4 +116,5 @@ function reset() {
 # Executed once at the end of experiment.
 function destroy() {
 	close_bidding()
+	discomp_destroy()
 }

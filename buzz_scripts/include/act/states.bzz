@@ -10,6 +10,7 @@ include "utils/quickhull.bzz"
 include "act/naviguation.bzz"
 include "act/CA.bzz"
 include "act/neighborcomm.bzz"
+include "taskallocate/discomp.bzz"
 
 TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
@@ -317,7 +318,12 @@ function voronoicentroid_done() {
 }
 
 # Custom state function for the developer to play with
+firstincus = 1
 function cusfun(){
 	BVMSTATE="CUSFUN"
-	
+	if(firstincus) {
+		discomp_init()
+		firstincus = 0
+	}
+	discomp_step()
 }
