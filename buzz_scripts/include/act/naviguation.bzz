@@ -1,16 +1,23 @@
-GOTO_MAXVEL = 1.5 # m/steps
+GOTO_MAXVEL = 2.5 # m/steps
 GOTO_MAXDIST = 250 # m.
 GOTODIST_TOL = 0.4  # m.
 GOTOANG_TOL = 0.1 # rad.
-GPSlimit_CEPSUM = {.1={.lat=45.510400, .lng=-73.610421},
-			.2={.lat=45.510896, .lng=-73.608731},
-			.3={.lat=45.510355, .lng=-73.608404},
-			.4={.lat=45.509840, .lng=-73.610072}}
-
-GPSlimit_PANGEAE = {.1={.lat=29.067746, .lng=-13.663315},
-			.2={.lat=29.068724, .lng=-13.662634},
-			.3={.lat=29.068113, .lng=-13.661427},
-			.4={.lat=29.067014, .lng=-13.661564}}
+# Geofence polygon
+# CEPSUM field
+#GPSlimit = {.1={.lat=45.510400, .lng=-73.610421},
+#			.2={.lat=45.510896, .lng=-73.608731},
+#			.3={.lat=45.510355, .lng=-73.608404},
+#			.4={.lat=45.509840, .lng=-73.610072}}
+# Pangeae final site
+#GPSlimit = {.1={.lat=29.067746, .lng=-13.663315},
+#			.2={.lat=29.068724, .lng=-13.662634},
+#			.3={.lat=29.068113, .lng=-13.661427},
+#			.4={.lat=29.067014, .lng=-13.661564}}
+# Pangeae first site
+GPSlimit = {.1={.lat=29.021055, .lng=-13.715155},
+		.2={.lat=29.021055, .lng=-13.714132},
+		.3={.lat=29.019470, .lng=-13.714132},
+		.4={.lat=29.019470, .lng=-13.715240}} 
 
 # Core naviguation function to travel to a GPS target location.
 function goto_gps(transf) {
@@ -22,7 +29,7 @@ function goto_gps(transf) {
 			transf()
 	} else {
 		m_navigation = LimitSpeed(m_navigation, 1.0)
-		gf = {.0=m_navigation, .1=vec_from_gps(GPSlimit_PANGEAE[1].lat, GPSlimit_PANGEAE[1].lng, 0), .2=vec_from_gps(GPSlimit_PANGEAE[2].lat, GPSlimit_PANGEAE[2].lng, 0), .3=vec_from_gps(GPSlimit_PANGEAE[3].lat, GPSlimit_PANGEAE[3].lng, 0), .4=vec_from_gps(GPSlimit_PANGEAE[4].lat, GPSlimit_PANGEAE[4].lng, 0)}
+		gf = {.0=m_navigation, .1=vec_from_gps(GPSlimit[1].lat, GPSlimit[1].lng, 0), .2=vec_from_gps(GPSlimit[2].lat, GPSlimit[2].lng, 0), .3=vec_from_gps(GPSlimit[3].lat, GPSlimit[3].lng, 0), .4=vec_from_gps(GPSlimit[4].lat, GPSlimit[4].lng, 0)}
 		geofence(gf)
 		#m_navigation = LCA(m_navigation)
 		goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
