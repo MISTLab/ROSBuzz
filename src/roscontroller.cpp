@@ -12,8 +12,8 @@ namespace rosbuzz_node
 {
 const string roscontroller::CAPTURE_SRV_DEFAULT_NAME = "/image_sender/capture_image";
 
-roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv):
-logical_clock(ros::Time()), previous_step_time(ros::Time())
+roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
+  : logical_clock(ros::Time()), previous_step_time(ros::Time())
 /*
 / roscontroller class Constructor
 ---------------*/
@@ -26,7 +26,7 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   cur_pos.longitude = 0;
   cur_pos.latitude = 0;
   cur_pos.altitude = 0;
-  
+
   //  Obtain parameters from ros parameter server
   Rosparameters_get(n_c_priv);
   //  Initialize publishers, subscribers and client
@@ -35,9 +35,9 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   std::string fname = Compile_bzz(bzzfile_name);
   bcfname = fname + ".bo";
   dbgfname = fname + ".bdb";
-  buzz_update::set_bzz_file(bzzfile_name.c_str(),debug);
+  buzz_update::set_bzz_file(bzzfile_name.c_str(), debug);
   //  Initialize variables
-  if(setmode)
+  if (setmode)
     SetMode("LOITER", 0);
   goto_pos = buzzuav_closures::getgoto();
 
@@ -67,7 +67,7 @@ logical_clock(ros::Time()), previous_step_time(ros::Time())
   logical_clock.fromSec(0);
   logical_time_rate = 0;
   time_sync_jumped = false;
-  out_msg_time=0;
+  out_msg_time = 0;
   // Create log dir and open log file
   initcsvlog();
   buzzuav_closures::setWPlist(WPfile);
@@ -126,7 +126,7 @@ void roscontroller::RosControllerRun()
     //  set ROS loop rate
     ros::Rate loop_rate(BUZZRATE);
     // check for BVMSTATE variable
-    if(buzz_utility::get_bvmstate()=="Not Available")
+    if (buzz_utility::get_bvmstate() == "Not Available")
       ROS_ERROR("BVMSTATE undeclared in .bzz file, please set BVMSTATE.");
     //  DEBUG
     // ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
@@ -138,7 +138,8 @@ void roscontroller::RosControllerRun()
       grid_publisher();
       send_MPpayload();
       //  Check updater state and step code
-      if(update) buzz_update::update_routine();
+      if (update)
+        buzz_update::update_routine();
       if (time_step == BUZZRATE)
       {
         time_step = 0;
@@ -159,26 +160,29 @@ void roscontroller::RosControllerRun()
 
       // log data
       logtocsv();
-      
+
       //  Call Step from buzz script
       buzz_utility::buzz_script_step();
       //  Force a refresh on neighbors array once in a while
-      if (timer_step >= 20*BUZZRATE){
+      if (timer_step >= 20 * BUZZRATE)
+      {
         clear_pos();
         timer_step = 0;
-      } else
+      }
+      else
         timer_step++;
       //  Prepare messages and publish them
       prepare_msg_and_publish();
       // Call the flight controler service
       flight_controller_service_call();
       // Broadcast local position to FCU
-      if(BClpose && !setmode)
-	      SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
+      if (BClpose && !setmode)
+        SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       //  Set ROBOTS variable (swarm size)
       get_number_of_robots();
       buzz_utility::set_robot_var(no_of_robots);
-      if(update) buzz_update::updates_set_robots(no_of_robots);
+      if (update)
+        buzz_update::updates_set_robots(no_of_robots);
       // get_xbee_status();  // commented out because it may slow down the node too much, to be tested
 
       ros::spinOnce();
@@ -203,19 +207,19 @@ void roscontroller::initcsvlog()
 / Create the CSV log file
 /-------------------------------------------------------*/
 {
-  std::string path =
-      bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
-  path = path.substr(0, bzzfile_name.find_last_of("\\/"))+"/log/";
-  std::string folder_check="mkdir -p "+path;
+  std::string path = bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")) + "/";
+  path = path.substr(0, bzzfile_name.find_last_of("\\/")) + "/log/";
+  std::string folder_check = "mkdir -p " + path;
   system(folder_check.c_str());
-  for(int i=5;i>0;i--){
-    rename((path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i-1)+".log").c_str(),
-     (path +"logger_"+ std::to_string((uint8_t)robot_id)+"_"+std::to_string(i)+".log").c_str());
+  for (int i = 5; i > 0; i--)
+  {
+    rename((path + "logger_" + std::to_string((uint8_t)robot_id) + "_" + std::to_string(i - 1) + ".log").c_str(),
+           (path + "logger_" + std::to_string((uint8_t)robot_id) + "_" + std::to_string(i) + ".log").c_str());
   }
-  path += "logger_"+std::to_string(robot_id)+"_0.log";
+  path += "logger_" + std::to_string(robot_id) + "_0.log";
   log.open(path.c_str(), std::ios_base::trunc | std::ios_base::out);
-  // set log data double precision 
-  log <<std::setprecision(15) << std::fixed;
+  // set log data double precision
+  log << std::setprecision(15) << std::fixed;
 }
 
 void roscontroller::logtocsv()
@@ -225,28 +229,25 @@ void roscontroller::logtocsv()
 {
   // hardware time now
   log << ros::Time::now().toNSec() << ",";
-  
-  log << cur_pos.latitude << "," << cur_pos.longitude << ","
-  << cur_pos.altitude << ",";
+
+  log << cur_pos.latitude << "," << cur_pos.longitude << "," << cur_pos.altitude << ",";
   log << (int)no_of_robots << ",";
   log << neighbours_pos_map.size() << ",";
   log << (int)inmsgdata.size() << "," << message_number << ",";
-  log << out_msg_time <<",";
-  log << out_msg_size<<",";
+  log << out_msg_time << ",";
+  log << out_msg_size << ",";
   log << buzz_utility::get_bvmstate();
-  
-  map<int, buzz_utility::Pos_struct>::iterator it =
-  neighbours_pos_map.begin();
+
+  map<int, buzz_utility::Pos_struct>::iterator it = neighbours_pos_map.begin();
   for (; it != neighbours_pos_map.end(); ++it)
   {
-      log << "," << it->first << ",";
-      log << (double)it->second.x << "," << (double)it->second.y
-      << "," << (double)it->second.z;
+    log << "," << it->first << ",";
+    log << (double)it->second.x << "," << (double)it->second.y << "," << (double)it->second.z;
   }
-  for (std::vector<msg_data>::iterator it = inmsgdata.begin() ; it != inmsgdata.end(); ++it)
+  for (std::vector<msg_data>::iterator it = inmsgdata.begin(); it != inmsgdata.end(); ++it)
   {
-      log << "," << (int)it->nid << "," << (int)it->msgid << "," << (int)it->size << "," << 
-      it->sent_time << ","<< it->received_time;
+    log << "," << (int)it->nid << "," << (int)it->msgid << "," << (int)it->size << "," << it->sent_time << ","
+        << it->received_time;
   }
   inmsgdata.clear();
   log << std::endl;
@@ -395,7 +396,7 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
   }
   if (node_handle.getParam("services/modeclient", topic))
   {
-    if(setmode)
+    if (setmode)
       mode_client = n_c.serviceClient<mavros_msgs::SetMode>(topic);
   }
   else
@@ -480,11 +481,10 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c, ros::NodeHandle& n_
   // Publishers and service Clients
 
   PubandServ(n_c, n_c_priv);
-  
+
   ROS_INFO("Ready to receive Mav Commands from RC client");
-  
+
   capture_srv = n_c.serviceClient<mavros_msgs::CommandBool>(capture_srv_name);
-  
 
   multi_msg = true;
 }
@@ -583,11 +583,12 @@ void roscontroller::neighbours_pos_publisher()
     // cout<<"iterator it val: "<< it-> first << " After convertion: "
     // <<(uint8_t) buzz_utility::get_rid_uint8compac(it->first)<<endl;
     // std::cout<<"long obt"<<neigh_tmp.longitude<<endl;
-    
+
     // Check if any simulated target are in range
-    double tf[4] = {-1, 0, 0, 0};
+    double tf[4] = { -1, 0, 0, 0 };
     buzzuav_closures::check_targets_sim((it->second).x, (it->second).y, tf);
-    if(tf[0]!=-1){
+    if (tf[0] != -1)
+    {
       buzz_utility::Pos_struct pos_tmp;
       pos_tmp.x = tf[1];
       pos_tmp.y = tf[2];
@@ -641,24 +642,25 @@ void roscontroller::grid_publisher()
 / Publish current Grid from Buzz script
 /----------------------------------------------------*/
 {
-  std::map<int, std::map<int,int>> grid = buzzuav_closures::getgrid();
-  std::map<int, std::map<int,int>>::iterator itr = grid.begin();
+  std::map<int, std::map<int, int>> grid = buzzuav_closures::getgrid();
+  std::map<int, std::map<int, int>>::iterator itr = grid.begin();
   int g_w = itr->second.size();
   int g_h = grid.size();
 
-  if(g_w!=0 && g_h!=0) {
+  if (g_w != 0 && g_h != 0)
+  {
     // DEBUG
-    //ROS_INFO("------> Publishing a grid of %i x %i", g_h, g_w);
+    // ROS_INFO("------> Publishing a grid of %i x %i", g_h, g_w);
     auto current_time = ros::Time::now();
     nav_msgs::OccupancyGrid grid_msg;
     grid_msg.header.frame_id = "/world";
     grid_msg.header.stamp = current_time;
     grid_msg.info.map_load_time = current_time;  // Same as header stamp as we do not load the map.
-    grid_msg.info.resolution = 0.01;//gridMap.getResolution();
+    grid_msg.info.resolution = 0.01;             // gridMap.getResolution();
     grid_msg.info.width = g_w;
     grid_msg.info.height = g_h;
-    grid_msg.info.origin.position.x = round(g_w/2.0) * grid_msg.info.resolution;
-    grid_msg.info.origin.position.y = round(g_h/2.0) * grid_msg.info.resolution;
+    grid_msg.info.origin.position.x = round(g_w / 2.0) * grid_msg.info.resolution;
+    grid_msg.info.origin.position.y = round(g_h / 2.0) * grid_msg.info.resolution;
     grid_msg.info.origin.position.z = 0.0;
     grid_msg.info.origin.orientation.x = 0.0;
     grid_msg.info.origin.orientation.y = 0.0;
@@ -666,18 +668,20 @@ void roscontroller::grid_publisher()
     grid_msg.info.origin.orientation.w = 1.0;
     grid_msg.data.resize(g_w * g_h);
 
-    for (itr=grid.begin(); itr!=grid.end(); ++itr) {
-      std::map<int,int>::iterator itc = itr->second.begin();
-      for (itc=itr->second.begin(); itc!=itr->second.end(); ++itc) {
-        grid_msg.data[(itr->first-1)*g_w+itc->first] = itc->second;
+    for (itr = grid.begin(); itr != grid.end(); ++itr)
+    {
+      std::map<int, int>::iterator itc = itr->second.begin();
+      for (itc = itr->second.begin(); itc != itr->second.end(); ++itc)
+      {
+        grid_msg.data[(itr->first - 1) * g_w + itc->first] = itc->second;
         // DEBUG
-        //ROS_INFO("--------------> index: %i (%i,%i): %i", (itr->first-1)*g_w+itc->first, itr->first, itc->first, grid_msg.data[(itr->first-1)*g_w+itc->first]);
+        // ROS_INFO("--------------> index: %i (%i,%i): %i", (itr->first-1)*g_w+itc->first, itr->first, itc->first,
+        // grid_msg.data[(itr->first-1)*g_w+itc->first]);
       }
     }
     grid_pub.publish(grid_msg);
   }
 }
-
 
 void roscontroller::Arm()
 /*
@@ -729,13 +733,13 @@ with size.........  |   /
   else
     message_number++;
 
-  //header variables
+  // header variables
   uint16_t tmphead[4];
   tmphead[1] = (uint16_t)message_number;
-  //uint32_t stime = (uint32_t)(ros::Time::now().toSec());   //(uint32_t)(logical_clock.toSec() * 100000);
-  memcpy((void*)(tmphead+2),(void*)&stime,sizeof(uint32_t));
+  // uint32_t stime = (uint32_t)(ros::Time::now().toSec());   //(uint32_t)(logical_clock.toSec() * 100000);
+  memcpy((void*)(tmphead + 2), (void*)&stime, sizeof(uint32_t));
   uint64_t rheader[1];
-  rheader[0]=0;
+  rheader[0] = 0;
   payload_out.sysid = (uint8_t)robot_id;
   payload_out.msgid = (uint32_t)message_number;
 
@@ -755,7 +759,7 @@ with size.........  |   /
   {
     payload_out.payload64.push_back(payload_out_ptr[i]);
   }
-  //Store out msg time
+  // Store out msg time
   out_msg_time = ros::Time::now().toNSec();
   out_msg_size = out[0];
   // publish prepared messages in respective topic
@@ -825,7 +829,8 @@ script
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (!armstate)
       {
-        if(setmode){
+        if (setmode)
+        {
           SetMode("LOITER", 0);
           ros::Duration(0.5).sleep();
         }
@@ -834,13 +839,13 @@ script
         // Registering HOME POINT.
         home = cur_pos;
         // Initialize GPS goal for safety.
-        double gpspgoal[3] = {cur_pos.latitude,cur_pos.longitude,cur_pos.altitude};
+        double gpspgoal[3] = { cur_pos.latitude, cur_pos.longitude, cur_pos.altitude };
         buzzuav_closures::set_gpsgoal(gpspgoal);
-	      BClpose = true;
+        BClpose = true;
       }
       if (current_mode != "GUIDED" && setmode)
         SetMode("GUIDED", 3000);  // added for compatibility with 3DR Solo
-      if(setmode)
+      if (setmode)
       {
         if (mav_client.call(cmd_srv))
         {
@@ -862,7 +867,7 @@ script
         armstate = 0;
         Arm();
       }
-      else if(cur_pos.altitude < 0.4) //disarm only when close to ground
+      else if (cur_pos.altitude < 0.4)  // disarm only when close to ground
       {
         armstate = 0;
         Arm();
@@ -894,17 +899,17 @@ script
     case COMPONENT_ARM_DISARM:
       if (!armstate)
       {
-        if(setmode)
+        if (setmode)
           SetMode("LOITER", 0);
         armstate = 1;
         Arm();
       }
       break;
 
-    case COMPONENT_ARM_DISARM+1:
+    case COMPONENT_ARM_DISARM + 1:
       if (armstate)
       {
-        if(setmode)
+        if (setmode)
           SetMode("LOITER", 0);
         armstate = 0;
         Arm();
@@ -913,7 +918,7 @@ script
 
     case NAV_SPLINE_WAYPOINT:
       goto_pos = buzzuav_closures::getgoto();
-      if(setmode) 
+      if (setmode)
         SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
       break;
 
@@ -950,12 +955,11 @@ void roscontroller::clear_pos()
 /Refresh neighbours Position for every ten step
 /---------------------------------------------*/
 {
-  
-    neighbours_pos_map.clear();
-    raw_neighbours_pos_map.clear();
-    buzzuav_closures::clear_neighbours_pos();
-    // raw_neighbours_pos_map.clear(); // TODO: currently not a problem, but
-    // have to clear !
+  neighbours_pos_map.clear();
+  raw_neighbours_pos_map.clear();
+  buzzuav_closures::clear_neighbours_pos();
+  // raw_neighbours_pos_map.clear(); // TODO: currently not a problem, but
+  // have to clear !
 }
 
 void roscontroller::neighbours_pos_put(int id, buzz_utility::Pos_struct pos_arr)
@@ -1088,21 +1092,17 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
   cur_pos.x = msg->pose.position.x;
   cur_pos.y = msg->pose.position.y;
 
-  if(!BClpose)
+  if (!BClpose)
   {
-  goto_pos[0]=cur_pos.x;
-  goto_pos[1]=cur_pos.y;
-  goto_pos[2]=0.0;
-  BClpose = true;
+    goto_pos[0] = cur_pos.x;
+    goto_pos[1] = cur_pos.y;
+    goto_pos[2] = 0.0;
+    BClpose = true;
   }
 
-  buzzuav_closures::set_currentNEDpos(msg->pose.position.y,msg->pose.position.x);
+  buzzuav_closures::set_currentNEDpos(msg->pose.position.y, msg->pose.position.x);
   //  cur_pos.z = pose->pose.position.z; // Using relative altitude topic instead
-  tf::Quaternion q(
-    msg->pose.orientation.x,
-    msg->pose.orientation.y,
-    msg->pose.orientation.z,
-    msg->pose.orientation.w);
+  tf::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
   tf::Matrix3x3 m(q);
   double roll, pitch, yaw;
   m.getRPY(roll, pitch, yaw);
@@ -1157,8 +1157,8 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw)
   moveMsg.pose.orientation.w = q[3];
 
   // To prevent drifting from stable position, uncomment
-  //if(fabs(x)>0.005 || fabs(y)>0.005) {
-    localsetpoint_nonraw_pub.publish(moveMsg);
+  // if(fabs(x)>0.005 || fabs(y)>0.005) {
+  localsetpoint_nonraw_pub.publish(moveMsg);
   //}
 }
 
@@ -1197,15 +1197,15 @@ void roscontroller::SetStreamRate(int id, int rate, int on_off)
   message.request.stream_id = id;
   message.request.message_rate = rate;
   message.request.on_off = on_off;
-  int timeout = 20; // 2sec at 10Hz
+  int timeout = 20;  // 2sec at 10Hz
 
-  while (!stream_client.call(message) && timeout>0)
+  while (!stream_client.call(message) && timeout > 0)
   {
     ROS_INFO("Set stream rate call failed!, trying again...");
     ros::Duration(0.1).sleep();
     timeout--;
   }
-  if(timeout<1)
+  if (timeout < 1)
     ROS_ERROR("Set stream rate timed out!");
   else
     ROS_WARN("Set stream rate call successful");
@@ -1228,12 +1228,12 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
   // decode msg header
   uint64_t rhead = msg->payload64[0];
   uint16_t r16head[4];
-  memcpy(r16head,&rhead, sizeof(uint64_t));
+  memcpy(r16head, &rhead, sizeof(uint64_t));
   uint16_t mtype = r16head[0];
   uint16_t mid = r16head[1];
-  uint32_t temptime=0;
-  memcpy(&temptime, r16head+2, sizeof(uint32_t));
-  //float stime = (float)temptime/(float)100000;
+  uint32_t temptime = 0;
+  memcpy(&temptime, r16head + 2, sizeof(uint32_t));
+  // float stime = (float)temptime/(float)100000;
   // if(debug) ROS_INFO("Received Msg: sent time %f for id %u",stime, mid);
   // Check for Updater message, if updater message push it into updater FIFO
   if ((uint64_t)msg->payload64[0] == (uint64_t)UPDATER_MESSAGE)
@@ -1284,7 +1284,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     //  Extract robot id of the neighbour
     uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + index));
     // store in msg data for data log
-    msg_data inm(mid,out[1],out[0]*sizeof(uint64_t),stime,ros::Time::now().toNSec());
+    msg_data inm(mid, out[1], out[0] * sizeof(uint64_t), stime, ros::Time::now().toNSec());
     inmsgdata.push_back(inm);
 
     if (debug)

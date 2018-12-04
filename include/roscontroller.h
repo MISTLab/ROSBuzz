@@ -42,14 +42,14 @@
 * ROSBuzz message types
 */
 typedef enum {
-  ROS_BUZZ_MSG_NIL = 0,    // dummy msg
-  UPDATER_MESSAGE,         // Update msg
-  BUZZ_MESSAGE,            // Broadcast message
-  BUZZ_MESSAGE_TIME,       // Broadcast message with time info
+  ROS_BUZZ_MSG_NIL = 0,  // dummy msg
+  UPDATER_MESSAGE,       // Update msg
+  BUZZ_MESSAGE,          // Broadcast message
+  BUZZ_MESSAGE_TIME,     // Broadcast message with time info
 } rosbuzz_msgtype;
 
 // Time sync algo. constants
-#define COM_DELAY 100000000 // in nano seconds i.e 100 ms
+#define COM_DELAY 100000000  // in nano seconds i.e 100 ms
 #define TIME_SYNC_JUMP_THR 500000000
 #define MOVING_AVERAGE_ALPHA 0.1
 #define MAX_NUMBER_OF_ROBOTS 10
@@ -107,8 +107,8 @@ private:
     uint16_t size;
     uint64_t sent_time;
     uint64_t received_time;
-    MsgData(int mi, uint16_t ni, uint16_t s, uint64_t st, uint64_t rt):
-            msgid(mi), nid(ni), size(s),sent_time(st), received_time(rt){};
+    MsgData(int mi, uint16_t ni, uint16_t s, uint64_t st, uint64_t rt)
+      : msgid(mi), nid(ni), size(s), sent_time(st), received_time(rt){};
     MsgData(){};
   };
   typedef struct MsgData msg_data;

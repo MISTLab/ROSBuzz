@@ -17,7 +17,7 @@ static buzzvm_t VM = 0;
 static char* BO_FNAME = 0;
 static uint8_t* BO_BUF = 0;
 static buzzdebug_t DBG_INFO = 0;
-static uint32_t MAX_MSG_SIZE = 190;//250;  // Maximum Msg size for sending update packets
+static uint32_t MAX_MSG_SIZE = 190;  // 250;  // Maximum Msg size for sending update packets
 static uint8_t Robot_id = 0;
 static std::vector<uint8_t*> IN_MSG;
 std::map<int, Pos_struct> users_map;
@@ -572,7 +572,8 @@ int get_inmsg_size()
   return IN_MSG.size();
 }
 
-std::vector<uint8_t*> get_inmsg_vector(){
+std::vector<uint8_t*> get_inmsg_vector()
+{
   return IN_MSG;
 }
 
@@ -590,11 +591,12 @@ string get_bvmstate()
 ---------------------------------------*/
 {
   std::string uav_state = "Unknown";
-  if(VM && VM->strings){
+  if (VM && VM->strings)
+  {
     buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
     buzzvm_gload(VM);
     buzzobj_t obj = buzzvm_stack_at(VM, 1);
-    if(obj->o.type == BUZZTYPE_STRING)
+    if (obj->o.type == BUZZTYPE_STRING)
       uav_state = string(obj->s.value.str);
     else
       uav_state = "Not Available";
@@ -603,8 +605,8 @@ string get_bvmstate()
   return uav_state;
 }
 
-int get_swarmsize() {
+int get_swarmsize()
+{
   return (int)buzzdict_size(VM->swarmmembers) + 1;
 }
-
 }

@@ -22,7 +22,7 @@ namespace buzzuav_closures
 int buzzros_print(buzzvm_t vm);
 void setWPlist(std::string file);
 void setVorlog(std::string path);
-void check_targets_sim(double lat, double lon, double *res);
+void check_targets_sim(double lat, double lon, double* res);
 
 /*
  * closure to move following a vector
@@ -98,7 +98,7 @@ double* getgoto();
 /*
  * returns the current grid
  */
-std::map<int, std::map<int,int>> getgrid();
+std::map<int, std::map<int, int>> getgrid();
 int voronoi_center(buzzvm_t vm);
 
 /*
