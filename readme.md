@@ -1,4 +1,4 @@
-ROSBuzz
+﻿ROSBuzz
 =========================
 
 Description:
@@ -46,6 +46,8 @@ To run the ROSBuzz package using the launch file, execute the following:
     $ roslaunch rosbuzz rosbuzz.launch
     
 Have a look at the launch file to understand what parameters are available to suit your usage. All topics and services names are listed in `launch_config/topics.yaml`. Note : Before launching the ROSBuzz node, verify all the parameters in the launch file. A launch file using gdb is available too (rosbuzzd.launch).
+
+A launch file for a groundstation is also available `launch/groundstation.launch`. It uses the robot ID = 0, which is detected as a groundstation by our Buzz scripts. It also has hardcoded GPS coordinates to avoid the need of a GPS sensor on the groundstation. While a groundstation is never required to deploy a swarm with ROSBuzz, it opens a websocket on ROS, useful to monitor the swarm and it creates a rosbag of the flight.
 
 * Buzz scripts: Several behavioral scripts are included in the "buzz_Scripts" folder, such as "graphformGPS.bzz" uses in [1] and the "testaloneWP.bzz" to control a single drone with a ".csv" list of waypoints. The script "empty.bzz" is a template script.
 
