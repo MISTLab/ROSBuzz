@@ -16,7 +16,7 @@ Requirements
 
 * Buzz:
 
-Follow the required steps in [Buzz](https://github.com/MISTLab/ROSBuzz).
+Follow the required steps in [Buzz](https://github.com/MISTLab/Buzz).
 
 * ROS **base** binary distribution (Indigo or higher):
 
