@@ -38,6 +38,7 @@ static float raw_packet_loss = 0.0;
 static int filtered_packet_loss = 0;
 static float api_rssi = 0.0;
 static bool logVoronoi = false;
+static std::vector<bounding_box> yolo_boxes;
 
 std::ofstream voronoicsv;
 
@@ -1167,6 +1168,59 @@ int buzzuav_update_battery(buzzvm_t vm)
   buzzvm_pushi(vm, (int)batt[2]);
   buzzvm_tput(vm);
   buzzvm_gstore(vm);
+  return vm->state;
+}
+
+void store_bounding_boxes(std::vector<bounding_box> bbox){
+  yolo_boxes.clear();
+  for(int i = 0; i< bbox.size(); i++){
+    yolo_boxes.push_back(bbox[i]);
+  }
+}
+
+int buzzuav_update_yolo_boxes(buzzvm_t vm){
+  if(yolo_boxes.size()>0){  
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "yolo_boxes", 1));
+    buzzvm_pusht(vm);
+    buzzvm_dup(vm);
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "size", 1));
+    buzzvm_pushf(vm, yolo_boxes.size());
+    buzzvm_tput(vm);
+    
+    for(int i=0; i< yolo_boxes.size(); i++){
+      buzzvm_dup(vm);
+      std::string index = std::to_string(i);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, index.c_str(), 1));
+      buzzvm_pusht(vm);
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "class", 1));
+      buzzvm_pushs(vm, buzzvm_string_register(vm, yolo_boxes[i].obj_class.c_str(), 1));
+      buzzvm_tput(vm);
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "probability", 1));
+      buzzvm_pushf(vm, yolo_boxes[i].probability);
+      buzzvm_tput(vm);
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "xmin", 1));
+      buzzvm_pushf(vm, yolo_boxes[i].xmin);
+      buzzvm_tput(vm);
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "xmax", 1));
+      buzzvm_pushf(vm, yolo_boxes[i].xmax);
+      buzzvm_tput(vm);
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "ymin", 1));
+      buzzvm_pushf(vm, yolo_boxes[i].ymin);
+      buzzvm_tput(vm);
+      buzzvm_dup(vm);
+      buzzvm_pushs(vm, buzzvm_string_register(vm, "ymax", 1));
+      buzzvm_pushf(vm, yolo_boxes[i].ymax);
+      buzzvm_tput(vm);
+      buzzvm_tput(vm);
+    }
+    buzzvm_gstore(vm);
+    yolo_boxes.clear();
+  }
   return vm->state;
 }
 

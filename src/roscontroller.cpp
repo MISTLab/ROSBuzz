@@ -365,6 +365,8 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
 
   node_handle.getParam("topics/inpayload", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs::Mavlink"));
+
+  node_handle.getParam("topics/yolobox", yolobox_sub_name);
 }
 
 void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handle)
@@ -433,7 +435,7 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     system("rosnode kill rosbuzz_node");
   }
   if (node_handle.getParam("topics/fstatus", topic))
-    MPpayload_pub = n_c.advertise<mavros_msgs::Mavlink>(topic, 5);
+    MPpayload_pub = n_c.advertise<mavros_msgs::Mavlink>(topic, 1);
   else
   {
     ROS_ERROR("Provide a fleet status out topic name in YAML file");
@@ -447,7 +449,7 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     system("rosnode kill rosbuzz_node");
   }
   if (node_handle.getParam("topics/npose", topic))
-    neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>(topic, 5);
+    neigh_pos_pub = n_c.advertise<rosbuzz::neigh_pos>(topic, 1);
   else
   {
     ROS_ERROR("Provide a Neighbor pose out topic name in YAML file");
@@ -477,7 +479,7 @@ void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c, ros::NodeHandle& n_
   // Subscribers
 
   Subscribe(n_c);
-
+  yolo_sub = n_c.subscribe(yolobox_sub_name, 1, &roscontroller::yolo_box_process, this);
   // Publishers and service Clients
 
   PubandServ(n_c, n_c_priv);
@@ -1217,12 +1219,9 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
 /----------------------------------------------------------------------------------------
 / Message format of payload (Each slot is uint64_t)
 / _________________________________________________________________________________________________
-/|	|     |	    |						     |
- * |
-/|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs
- * with size.........  |
-/|_____|_____|_____|________________________________________________|______________________________|
-
+/|	   |     |	   |						    |        |             |        |                              |
+/|Pos x|Pos y|Pos z|Size in Uint64_t|robot_id|Buzz_msg_size|Buzz_msg|Buzz_msgs with size.........  |
+/|_____|_____|_____|________________|________|_____________|________|______________________________|
 -----------------------------------------------------------------------------------------------------*/
 {
   // decode msg header
@@ -1300,6 +1299,54 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     delete[] out;
     buzz_utility::in_msg_append((message_obt + index));
   }
+}
+
+void roscontroller::yolo_box_process(const mavros_msgs::Mavlink::ConstPtr& msg){
+  uint64_t size = (msg->payload64.size()*sizeof(uint64_t));
+  uint8_t message_obt[size];
+  size=0;
+  //  Go throught the obtained payload
+  for (int i = 0; i < (int)msg->payload64.size(); i++)
+  {
+    uint64_t msg_tmp = msg->payload64[i];
+    memcpy((void*)(message_obt+size), (void*)(&msg_tmp), sizeof(uint64_t));
+    size +=sizeof(uint64_t);
+  }
+
+  std::vector<buzzuav_closures::bounding_box> box;
+  int tot = 0;
+  size = 0; 
+  memcpy((void*)&size, (void*)(message_obt+tot), sizeof(uint64_t));
+  tot += sizeof(uint64_t);
+  for(int i=0; i< size; i++){
+    double probability=0;
+    int64_t xmin=0;
+    int64_t ymin=0;
+    int64_t xmax=0;
+    int64_t ymax=0;
+    memcpy((void*)&probability, (void*)(message_obt+tot), sizeof(uint64_t));
+    tot += sizeof(uint64_t);
+    memcpy((void*)&xmin, (void*)(message_obt+tot), sizeof(uint64_t));
+    tot += sizeof(uint64_t);
+    memcpy((void*)&ymin, (void*)(message_obt+tot), sizeof(uint64_t));
+    tot += sizeof(uint64_t);
+    memcpy((void*)&xmax, (void*)(message_obt+tot), sizeof(uint64_t));
+    tot += sizeof(uint64_t);
+    memcpy((void*)&ymax, (void*)(message_obt+tot), sizeof(uint64_t));
+    tot += sizeof(uint64_t);
+    uint16_t str_size=0;
+    memcpy((void*)&str_size, (void*)(message_obt+tot), sizeof(uint16_t));
+    tot += sizeof(uint16_t);
+    char char_class[str_size * sizeof(char) + 1]; 
+    memcpy((void*)char_class, (void*)(message_obt+tot), str_size);
+    /* Set the termination character */
+    char_class[str_size] = '\0';
+    tot += str_size;
+    string obj_class(char_class);
+    buzzuav_closures::bounding_box cur_box(obj_class,probability,xmin,ymin,xmax,ymax);
+    box.push_back(cur_box);
+  }
+  buzzuav_closures::store_bounding_boxes(box);
 }
 
 bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_msgs::CommandLong::Response& res)

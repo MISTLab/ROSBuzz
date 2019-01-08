@@ -483,6 +483,7 @@ void update_sensors()
   buzzuav_closures::buzzuav_update_currentpos(VM);
   buzzuav_closures::update_neighbors(VM);
   buzzuav_closures::buzzuav_update_flight_status(VM);
+  buzzuav_closures::buzzuav_update_yolo_boxes(VM);
 }
 
 void buzz_script_step()

@@ -14,6 +14,22 @@
 
 namespace buzzuav_closures
 {
+struct bounding_box_struct
+{
+  std::string obj_class;
+  double probability;
+  int64_t xmin;
+  int64_t ymin;
+  int64_t xmax;
+  int64_t ymax;
+  bounding_box_struct(std::string c, double prob, int64_t xmi, int64_t ymi, int64_t xma, int64_t yma)
+    : obj_class(c), probability(prob), xmin(xmi), ymin(ymi), xmax(xma), ymax(yma){};
+  bounding_box_struct()
+  {
+  }
+};
+typedef struct bounding_box_struct bounding_box;
+
 /*
  * prextern int() function in Buzz
  * This function is used to print data from buzz
@@ -76,6 +92,14 @@ void rc_call(int rc_cmd);
  * sets the battery state
  */
 void set_battery(float voltage, float current, float remaining);
+/*
+ * Update yolo boxes into buzz
+ */
+int buzzuav_update_yolo_boxes(buzzvm_t vm);
+/*
+ *Stores the received bounding boxes
+ */
+void store_bounding_boxes(std::vector<bounding_box> bbox);
 /*
  * sets the xbee network status
  */

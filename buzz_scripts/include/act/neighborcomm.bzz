@@ -126,6 +126,11 @@ function nei_cmd_listen() {
 							#barrier_ready(904)
 							#neighbors.broadcast("cmd", 904)
 						}
+						else if(value==555 and BVMSTATE=="YOLO_DEMO"){
+							YOLO_NEI_TARGET = 1
+						} else if(value==556 and BVMSTATE=="YOLO_DEMO"){
+							YOLO_NEI_TARGET = 2
+						}
 					}
 				}
     })

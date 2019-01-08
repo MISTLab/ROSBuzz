@@ -147,6 +147,7 @@ private:
   std::string bcfname, dbgfname;
   std::string stand_by;
   std::string capture_srv_name;
+  std::string yolobox_sub_name;
 
   // ROS service, publishers and subscribers
   ros::ServiceClient mav_client;
@@ -171,6 +172,7 @@ private:
   ros::Subscriber Robot_id_sub;
   ros::Subscriber relative_altitude_sub;
   ros::Subscriber local_pos_sub;
+  ros::Subscriber yolo_sub;
 
   std::map<std::string, std::string> m_smTopic_infos;
 
@@ -256,6 +258,9 @@ private:
 
   /*payload callback callback*/
   void payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg);
+
+  /*yolo bounding box callback function*/
+  void yolo_box_process(const mavros_msgs::Mavlink::ConstPtr& msg);
 
   /* RC commands service */
   bool rc_callback(mavros_msgs::CommandLong::Request& req, mavros_msgs::CommandLong::Response& res);
