@@ -12,7 +12,7 @@ include "utils/takeoff_heights.bzz"
 
 #State launched after takeoff
 
-AUTO_LAUNCH_STATE = "YOLO_DEMO"
+AUTO_LAUNCH_STATE = "IDLE"
 LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barrier expire; if set to be 0, the robots will carry on to AUTO_LAUNCH_STATE.
 
 #####
@@ -39,7 +39,7 @@ function init() {
 	nei_cmd_listen()
 
     # Starting state: TURNEDOFF to wait for user input.
-	BVMSTATE = "LAUNCH"
+	BVMSTATE = "TURNEDOFF"
 }
 
 # Executed at each time step.

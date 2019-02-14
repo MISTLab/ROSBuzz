@@ -175,7 +175,7 @@ function goinghome() {
 		if(math.vec2.length(m_navigation) < GOTODIST_TOL){ # reached destination
 				BVMSTATE = AUTO_LAUNCH_STATE
 		} else {
-			m_navigation = LimitSpeed(m_navigation, 3.0)
+			m_navigation = LimitSpeed(m_navigation, 1.0)
 			#m_navigation = LCA(m_navigation)
 			goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
 		}
