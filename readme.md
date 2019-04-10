@@ -1,4 +1,4 @@
-ROSBuzz
+﻿ROSBuzz
 =========================
 
 Description:
@@ -16,7 +16,7 @@ Requirements
 
 * Buzz:
 
-Follow the required steps in [Buzz](https://github.com/MISTLab/ROSBuzz).
+Follow the required steps in [Buzz](https://github.com/MISTLab/Buzz).
 
 * ROS **base** binary distribution (Indigo or higher):
 
@@ -36,8 +36,16 @@ mkdir -p ROS_WS/src
 cd ROS_WS/src
 git clone https://github.com/MISTLab/ROSBuzz rosbuzz
 cd ..
-catkin_make
+catkin_make -DSIM=1 -DKIN=1
 ```
+Compilation Flags
+=================
+Flags to be passed during compilation.
+
+| Flag  | Rationale                                      |
+|-------|------------------------------------------------|
+| -DSIM | Indicates Compilation for robot or Simulation. |
+| -DKIN | Indicates compilation for ROS Distro Kinetic   |
     
 Run
 ===
@@ -46,6 +54,8 @@ To run the ROSBuzz package using the launch file, execute the following:
     $ roslaunch rosbuzz rosbuzz.launch
     
 Have a look at the launch file to understand what parameters are available to suit your usage. All topics and services names are listed in `launch_config/topics.yaml`. Note : Before launching the ROSBuzz node, verify all the parameters in the launch file. A launch file using gdb is available too (rosbuzzd.launch).
+
+A launch file for a groundstation is also available `launch/groundstation.launch`. It uses the robot ID = 0, which is detected as a groundstation by our Buzz scripts. It also has hardcoded GPS coordinates to avoid the need of a GPS sensor on the groundstation. While a groundstation is never required to deploy a swarm with ROSBuzz, it opens a websocket on ROS, useful to monitor the swarm and it creates a rosbag of the flight.
 
 * Buzz scripts: Several behavioral scripts are included in the "buzz_Scripts" folder, such as "graphformGPS.bzz" uses in [1] and the "testaloneWP.bzz" to control a single drone with a ".csv" list of waypoints. The script "empty.bzz" is a template script.
 
