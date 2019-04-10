@@ -1,8 +1,8 @@
 #pragma once
 #include <stdio.h>
-#include "buzz_utility.h"
-#include "buzzuav_closures.h"
-#include "buzz_update.h"
+#include <rosbuzz/buzz_utility.h>
+#include <rosbuzz/buzzuav_closures.h>
+#include <rosbuzz/buzz_update.h>
 #include <buzz/buzzdebug.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,6 +99,8 @@ int get_swarmsize();
 buzzvm_t get_vm();
 
 void set_robot_var(int ROBOTS);
+
+void set_ca_on_var(int CA_ON);
 
 int get_inmsg_size();
 

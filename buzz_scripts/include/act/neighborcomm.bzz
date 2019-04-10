@@ -59,7 +59,7 @@ function rc_cmd_listen() {
 				destroyGraph()
 				resetWP()
 				check_rc_wp()
-				barrier_set(ROBOTS, "POTENTIAL", BVMSTATE, 903)
+				barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 903)
 				barrier_ready(903)
 				neighbors.broadcast("cmd", 903)
 			} else if (flight.rc_cmd==904){
@@ -100,11 +100,11 @@ function nei_cmd_listen() {
 							if(BVMSTATE!=AUTO_LAUNCH_STATE)
 								barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
 							#barrier_ready(20)
-						} else if(value==900){	# Shapes
+						} else if(value==900 and BVMSTATE!="TASK_ALLOCATE"){	# Shapes
 							barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
 							#barrier_ready(900)
 							#neighbors.broadcast("cmd", 900)
-						} else if(value==901 and BVMSTATE!="DEPLOY" ){	# Pursuit
+						} else if(value==901 and BVMSTATE!="DEPLOY" ){	# Voronoi
 							destroyGraph()
 							barrier_set(ROBOTS, "DEPLOY", BVMSTATE, 901)
 							#barrier_ready(901)
@@ -114,9 +114,9 @@ function nei_cmd_listen() {
 							barrier_set(ROBOTS, "WAYPOINT", BVMSTATE, 902)
 							#barrier_ready(902)
 							#neighbors.broadcast("cmd", 902)
-						} else if(value==903 and BVMSTATE!="POTENTIAL" and BVMSTATE!="TURNEDOFF"){	# Formation
+						} else if(value==903 and BVMSTATE!="PURSUIT" and BVMSTATE!="TURNEDOFF"){	# Pursuit
 							destroyGraph()
-							barrier_set(ROBOTS, "POTENTIAL", BVMSTATE, 903)
+							barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 903)
 							#barrier_ready(903)
 							#neighbors.broadcast("cmd", 903)
 						} else if(value==904 and BVMSTATE!="IDLE" and BVMSTATE!="TURNEDOFF"){	# idle

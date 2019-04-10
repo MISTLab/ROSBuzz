@@ -6,9 +6,9 @@
  *  @copyright 2016 MistLab. All rights reserved.
  */
 
-#include "buzzuav_closures.h"
+#include <rosbuzz/buzzuav_closures.h>
 #include "math.h"
-#include "VoronoiDiagramGenerator.h"
+#include <rosbuzz/VoronoiDiagramGenerator.h>
 
 namespace buzzuav_closures
 {

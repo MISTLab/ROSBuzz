@@ -27,7 +27,7 @@
 * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
 */
 
-#include "VoronoiDiagramGenerator.h"
+#include <rosbuzz/VoronoiDiagramGenerator.h>
 
 VoronoiDiagramGenerator::VoronoiDiagramGenerator()
 {

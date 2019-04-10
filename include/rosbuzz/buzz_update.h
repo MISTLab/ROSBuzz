@@ -12,7 +12,7 @@
 #include <buzz/buzzdict.h>
 #include <buzz/buzzdarray.h>
 #include <buzz/buzzvstig.h>
-#include <buzz_utility.h>
+#include <rosbuzz/buzz_utility.h>
 #include <fstream>
 
 #define delete_p(p)                                                                                                    \

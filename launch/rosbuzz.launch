@@ -12,6 +12,7 @@
   <arg name="setmode" default="false" />
   <arg name="latitude" default="0" />
   <arg name="longitude" default="0" />
+  <arg name="ca_on" default="2" />
 
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >
     <rosparam file="$(find rosbuzz)/launch/launch_config/$(arg launch_config).yaml"/>
@@ -24,5 +25,6 @@
     <param name="latitude" value="$(arg latitude)"/>
     <param name="longitude" value="$(arg longitude)"/>
     <param name="stand_by" value="$(find rosbuzz)/buzz_scripts/stand_by.bzz"/>
+    <param name="ca_on" value="$(arg ca_on)"/>
   </node>
 </launch>

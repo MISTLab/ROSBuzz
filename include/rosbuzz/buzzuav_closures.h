@@ -5,8 +5,8 @@
 #include "mavros_msgs/CommandCode.h"
 #include "mavros_msgs/Mavlink.h"
 #include "ros/ros.h"
-#include "buzz_utility.h"
-#include "rosbuzz/mavrosCC.h"
+#include <rosbuzz/buzz_utility.h>
+#include <rosbuzz/mavrosCC.h>
 
 #define EARTH_RADIUS (double)6371000.0
 #define DEG2RAD(DEG) (double)((DEG) * ((M_PI) / (180.0)))

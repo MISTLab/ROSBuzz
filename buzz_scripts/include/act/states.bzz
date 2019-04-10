@@ -276,7 +276,7 @@ function aggregate() {
 # State fucntion to circle all together around centroid
 function pursuit() {
   BVMSTATE="PURSUIT"
-	rd = 20.0
+	rd = 30.0
 	pc = 3.2
 	vd = 15.0
   r_vec = neighbors.reduce(function(rid, data, r_vec) {

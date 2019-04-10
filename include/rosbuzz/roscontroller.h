@@ -35,8 +35,8 @@
 #include <signal.h>
 #include <ostream>
 #include <map>
-#include "buzzuav_closures.h"
-#include "rosbuzz/mavrosCC.h"
+#include <rosbuzz/buzzuav_closures.h>
+#include <rosbuzz/mavrosCC.h>
 
 /*
 * ROSBuzz message types
@@ -131,6 +131,7 @@ private:
   int rc_cmd;
   float fcu_timeout;
   int armstate;
+  int ca_on;
   int barrier;
   int update;
   int message_number = 0;

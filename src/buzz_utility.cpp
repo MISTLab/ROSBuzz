@@ -6,7 +6,7 @@
  *  @copyright 2016 MistLab. All rights reserved.
  */
 
-#include "buzz_utility.h"
+#include <rosbuzz/buzz_utility.h>
 
 namespace buzz_utility
 {
@@ -562,6 +562,16 @@ void set_robot_var(int ROBOTS)
 {
   buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
   buzzvm_pushi(VM, ROBOTS);
+  buzzvm_gstore(VM);
+}
+
+void set_ca_on_var(int CA_ON)
+/*
+/ set swarm size in the BVM
+-----------------------------*/
+{
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "CA_ON", 1));
+  buzzvm_pushi(VM, CA_ON);
   buzzvm_gstore(VM);
 }
 

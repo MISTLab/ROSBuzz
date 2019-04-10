@@ -80,21 +80,11 @@ function step() {
 	else if(BVMSTATE=="PURSUIT")
 		statef=pursuit
 	else if(BVMSTATE=="TASK_ALLOCATE")	# or bidding ?
-		statef=resetGraph
+		statef=graph_state
 	else if(BVMSTATE=="BIDDING")	# check the absolute path of the waypointlist csv file in bidding.bzz
 		statef=bidding
 	else if(BVMSTATE=="DEPLOY")	# check the absolute path of the waypointlist csv file in bidding.bzz
 		statef=voronoicentroid
-	else if(BVMSTATE=="GRAPH_FREE")
-		statef=DoFree
-	else if(BVMSTATE=="GRAPH_ASKING")
-		statef=DoAsking
-	else if(BVMSTATE=="GRAPH_JOINING")
-		statef=DoJoining
-	else if(BVMSTATE=="GRAPH_JOINED")
-		statef=DoJoined
-	else if(BVMSTATE=="GRAPH_LOCK")	# move all together (TODO: not tested), but auto-loop in graph list
-		statef=DoLock
 	else if(BVMSTATE=="PATHPLAN")	# ends on navigate, defined in rrtstar
 		statef=rrtstar
 	else if(BVMSTATE=="NAVIGATE")	# ends on idle, defined in rrtstar

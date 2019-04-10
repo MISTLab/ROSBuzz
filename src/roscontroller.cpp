@@ -6,7 +6,7 @@
  *  @copyright 2016 MistLab. All rights reserved.
  */
 
-#include "roscontroller.h"
+#include <rosbuzz/roscontroller.h>
 #include <thread>
 namespace rosbuzz_node
 {
@@ -130,6 +130,7 @@ void roscontroller::RosControllerRun()
       ROS_ERROR("BVMSTATE undeclared in .bzz file, please set BVMSTATE.");
     //  DEBUG
     // ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
+    buzz_utility::set_ca_on_var(ca_on);
     while (ros::ok() && !buzz_utility::buzz_script_done())
     {
       //  Publish topics
@@ -299,6 +300,9 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
   }
   //  Obtain standby script to run during update
   n_c.getParam("stand_by", stand_by);
+
+ //  Obtain collision avoidance mode
+  n_c.getParam("ca_on", ca_on);
 
   if (n_c.getParam("xbee_plugged", xbeeplugged))
     ;

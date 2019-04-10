@@ -1,10 +1,10 @@
 # Lightweight collision avoidance
 function LCA( vel_vec ) {
-	var safety_radius = 3.0
+	var safety_radius = 2.0
 	collide = 0
 
-	var k_v = 5   # x axis gain
-	var k_w = 5   # y axis gain
+	var k_v = 4   # x axis gain
+	var k_w = 4   # y axis gain
 
 	cart = neighbors.map(
 		function(rid, data) {
@@ -17,7 +17,7 @@ function LCA( vel_vec ) {
 	})
 	if (collide) {
 		log("")
-		log("------>  AVOIDING NEIGHBOR!  <------")
+		log("------>  AVOIDING NEIGHBOR! (LCA) <------")
 		log("")
 		result = cart.reduce(function(rid, data, accum) {
 			if(data.distance < accum.distance and data.distance > 0.0){
@@ -48,4 +48,187 @@ function LCA( vel_vec ) {
 
 	}	else
 		return vel_vec
+}
+
+robot_radius = 1.0
+safety_radius = 2.0
+combined_radius = 2 * robot_radius + safety_radius
+vel_sample_count = 50
+
+velocities = {}
+
+function in_between(theta_right, theta_dif, theta_left) {
+  if(math.abs(theta_right - theta_left) < (math.pi - 0.000001)) {
+    if((theta_right <= theta_dif) and (theta_dif <= theta_left)) {
+      return 1
+    } else {
+      return 0
+    }    
+  } else if(math.abs(theta_right - theta_left) > (math.pi + 0.000001)) {
+    if((theta_right <= theta_dif) or (theta_dif <= theta_left)) {
+      return 1
+    } else {
+      return 0
+    }
+  } else {
+    # Exactly pi rad between right and left
+    if(theta_right <= 0) {
+      if((theta_right <= theta_dif) and (theta_dif <= theta_left)) {
+        return 1
+      } else {
+        return 0
+      }
+    } else if(theta_left <= 0) { 
+      if((theta_right <= theta_dif) or (theta_dif <= theta_left)) {
+        return 1
+      } else {
+        return 0
+      }
+    }
+  }
+}
+
+# VO  magic happens here
+function RVO(preferedVelocity) {
+
+  #data_string = string.concat(data_string, ",", string.tostring(preferedVelocity.x), ",", string.tostring(preferedVelocity.y), ",", string.tostring(preferedVelocity.z))
+
+  final_V = math.vec2.new(0.0, 0.0)
+  collision = 0
+  suitable_V = {}
+
+  var VO_all = {}
+
+  neighbors.foreach(
+    function(rid, data) {
+
+      var angle = data.azimuth#-(data.azimuth * 0.017454)
+
+      #data_string = string.concat(data_string, ",", string.tostring(data.distance), ",", string.tostring(angle))
+
+      var distance = data.distance
+      if(distance <= combined_radius) distance = combined_radius
+
+      theta_BA_ort = math.asin(combined_radius / distance)
+      theta_BA_left = angle + theta_BA_ort
+      if(theta_BA_left > math.pi) {
+        theta_BA_left = theta_BA_left - 2 * math.pi
+      } else if(theta_BA_left < -math.pi) {
+        theta_BA_left = theta_BA_left + 2 * math.pi
+      }
+      theta_BA_right = angle - theta_BA_ort
+      if(theta_BA_right > math.pi) {
+        theta_BA_right = theta_BA_right - 2 * math.pi
+      } else if(theta_BA_right < -math.pi) {
+        theta_BA_right = theta_BA_right + 2 * math.pi
+      }
+
+      neighbor_velocity = velocities[rid]
+      if(neighbor_velocity == nil) {
+        neighbor_velocity = math.vec2.new(0.0, 0.0)
+      }
+
+      #data_string = string.concat(data_string, ",", string.tostring(neighbor_velocity.x), ",", string.tostring(neighbor_velocity.y), ",", string.tostring(neighbor_velocity.z))
+
+      VO_all[rid] = { 
+        .velocity = math.vec2.new(neighbor_velocity.x, neighbor_velocity.y),
+        .theta_left = theta_BA_left,
+        .theta_right = theta_BA_right
+      }
+
+    }
+  )
+
+  # Detect collision
+  foreach(VO_all, function(rid, vo) {
+    vAB = math.vec2.sub(preferedVelocity, vo.velocity)
+    var vel_angle = math.acos(vAB.x / math.vec2.length(vAB))
+    if(vAB.y < 0) vel_angle = vel_angle * -1
+
+    if(in_between(vo.theta_right, vel_angle, vo.theta_left)) {
+      collision = 1
+    }
+  })
+
+  # Calculate suitable velocities
+  if(collision) {
+
+	log("")
+	log("------>  AVOIDING NEIGHBOR! (RVO) <------")
+	log("")
+
+    var idx = 0
+	var n = 0
+    while (n < vel_sample_count) {
+
+      v_cand = math.vec2.new( 2.0 * math.rng.uniform(GOTO_MAXVEL) - GOTO_MAXVEL, 2.0 * math.rng.uniform(GOTO_MAXVEL) - GOTO_MAXVEL)
+      while(math.vec2.length(v_cand) > GOTO_MAXVEL) {
+        v_cand = math.vec2.new( 2.0 * math.rng.uniform(GOTO_MAXVEL) - GOTO_MAXVEL, 2.0 * math.rng.uniform(GOTO_MAXVEL) - GOTO_MAXVEL)
+      }
+
+      suit = 1
+
+      foreach(VO_all, function(rid, vo) {
+        #vAB = new_V
+        vAB = math.vec2.sub(v_cand, vo.velocity)
+        #vAB = math.vec3.sub(new_V, math.vec3.scale(math.vec3.add(preferedVelocity, vo.velocity), 0.5))
+        var vel_angle = math.acos(vAB.x / math.vec2.length(vAB))
+        if(vAB.y < 0) vel_angle = vel_angle * -1
+
+        if(in_between(vo.theta_right, vel_angle, vo.theta_left)) {
+          suit = 0
+        }
+      })
+
+      if(suit) {
+        suitable_V[idx] = v_cand
+        idx = idx + 1
+      }
+	  n = n + 1
+    }
+
+    # Chose a velocity closer to the desired one
+    if(size(suitable_V) > 0) {
+      min_dist = 99999
+	  sv = 0
+      while(sv < size(suitable_V)) {
+        var RVOdist = math.vec2.length(math.vec2.sub(suitable_V[sv], preferedVelocity))
+        if(RVOdist < min_dist) {
+          min_dist = RVOdist
+          final_V = suitable_V[sv]
+        }
+		sv = sv + 1
+      }
+    }
+
+    #data_string = string.concat(data_string, ",", string.tostring(final_V.x), ",", string.tostring(final_V.y), ",", string.tostring(final_V.z))
+	
+	broadcast_velocity(final_V)
+
+    return final_V
+  } else {
+
+    #data_string = string.concat(data_string, ",", string.tostring(preferedVelocity.x), ",", string.tostring(preferedVelocity.y), ",", string.tostring(preferedVelocity.z))
+
+	broadcast_velocity(preferedVelocity)
+    return preferedVelocity
+  }
+}
+
+function broadcast_velocity(velocity) {
+    neighbors.broadcast(string.concat("v", string.tostring(id)), velocity)
+}
+
+function setup_velocity_callbacks() {
+	r = 1
+    while(r <= ROBOTS) {
+        if(r != id) {
+            neighbors.listen(string.concat("v", string.tostring(r)),
+                function(vid, value, rid) {
+                    velocities[rid] = value
+                }
+            )
+        }
+		r = r + 1
+    }    
 }

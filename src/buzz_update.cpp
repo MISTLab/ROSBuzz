@@ -6,7 +6,7 @@
  *  @copyright 2016 MistLab. All rights reserved.
  */
 
-#include "buzz_update.h"
+#include <rosbuzz/buzz_update.h>
 
 namespace buzz_update
 {
