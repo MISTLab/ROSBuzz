@@ -619,7 +619,6 @@ int voronoi_center(buzzvm_t vm)
     return buzzvm_ret0(vm);
   }
 
-
   ROS_WARN("NP: %d, Sites: %d", Poly_vert, count);
   float* xValues = new float[count];
   float* yValues = new float[count];
@@ -1171,23 +1170,28 @@ int buzzuav_update_battery(buzzvm_t vm)
   return vm->state;
 }
 
-void store_bounding_boxes(std::vector<bounding_box> bbox){
+void store_bounding_boxes(std::vector<bounding_box> bbox)
+{
   yolo_boxes.clear();
-  for(int i = 0; i< bbox.size(); i++){
+  for (int i = 0; i < bbox.size(); i++)
+  {
     yolo_boxes.push_back(bbox[i]);
   }
 }
 
-int buzzuav_update_yolo_boxes(buzzvm_t vm){
-  if(yolo_boxes.size()>0){  
+int buzzuav_update_yolo_boxes(buzzvm_t vm)
+{
+  if (yolo_boxes.size() > 0)
+  {
     buzzvm_pushs(vm, buzzvm_string_register(vm, "yolo_boxes", 1));
     buzzvm_pusht(vm);
     buzzvm_dup(vm);
     buzzvm_pushs(vm, buzzvm_string_register(vm, "size", 1));
     buzzvm_pushf(vm, yolo_boxes.size());
     buzzvm_tput(vm);
-    
-    for(int i=0; i< yolo_boxes.size(); i++){
+
+    for (int i = 0; i < yolo_boxes.size(); i++)
+    {
       buzzvm_dup(vm);
       std::string index = std::to_string(i);
       buzzvm_pushs(vm, buzzvm_string_register(vm, index.c_str(), 1));

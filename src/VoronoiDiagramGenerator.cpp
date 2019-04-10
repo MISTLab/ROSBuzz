@@ -224,7 +224,7 @@ struct Halfedge* VoronoiDiagramGenerator::ELleftbnd(struct Point* p)
       he = he->ELright;
     } while (he != ELrightend && right_of(he, p));  // keep going right on the list until either the end is reached, or
                                                     // you find the 1st edge which the point
-    he = he->ELleft;  // isn't to the right of
+    he = he->ELleft;                                // isn't to the right of
   }
   else  // if the point is to the left of the HalfEdge, then search left for the HE just to the left of the point
     do
@@ -947,7 +947,7 @@ bool VoronoiDiagramGenerator::voronoi(int triangulate)
 
       v = lbnd->vertex;  // get the vertex that caused this event
       makevertex(v);     // set the vertex number - couldn't do this earlier since we didn't know when it would be
-                      // processed
+                         // processed
       endpoint(lbnd->ELedge, lbnd->ELpm, v);  // set the endpoint of the left HalfEdge to be this vector
       endpoint(rbnd->ELedge, rbnd->ELpm, v);  // set the endpoint of the right HalfEdge to be this vector
       ELdelete(lbnd);  // mark the lowest HE for deletion - can't delete yet because there might be pointers to it in
@@ -968,8 +968,8 @@ bool VoronoiDiagramGenerator::voronoi(int triangulate)
       // the formula of the line, and assigns a line number to it
       bisector = HEcreate(e, pm);  // create a HE from the Edge 'e', and make it point to that edge with its ELedge
                                    // field
-      ELinsert(llbnd, bisector);  // insert the new bisector to the right of the left HE
-      endpoint(e, re - pm, v);    // set one endpoint to the new edge to be the vector point 'v'.
+      ELinsert(llbnd, bisector);   // insert the new bisector to the right of the left HE
+      endpoint(e, re - pm, v);     // set one endpoint to the new edge to be the vector point 'v'.
       // If the site to the left of this bisector is higher than the right
       // Site, then this endpoint is put in position 0; otherwise in pos 1
       deref(v);  // delete the vector 'v'

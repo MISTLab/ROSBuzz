@@ -301,7 +301,7 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
   //  Obtain standby script to run during update
   n_c.getParam("stand_by", stand_by);
 
- //  Obtain collision avoidance mode
+  //  Obtain collision avoidance mode
   n_c.getParam("ca_on", ca_on);
 
   if (n_c.getParam("xbee_plugged", xbeeplugged))
@@ -1305,49 +1305,51 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
   }
 }
 
-void roscontroller::yolo_box_process(const mavros_msgs::Mavlink::ConstPtr& msg){
-  uint64_t size = (msg->payload64.size()*sizeof(uint64_t));
+void roscontroller::yolo_box_process(const mavros_msgs::Mavlink::ConstPtr& msg)
+{
+  uint64_t size = (msg->payload64.size() * sizeof(uint64_t));
   uint8_t message_obt[size];
-  size=0;
+  size = 0;
   //  Go throught the obtained payload
   for (int i = 0; i < (int)msg->payload64.size(); i++)
   {
     uint64_t msg_tmp = msg->payload64[i];
-    memcpy((void*)(message_obt+size), (void*)(&msg_tmp), sizeof(uint64_t));
-    size +=sizeof(uint64_t);
+    memcpy((void*)(message_obt + size), (void*)(&msg_tmp), sizeof(uint64_t));
+    size += sizeof(uint64_t);
   }
 
   std::vector<buzzuav_closures::bounding_box> box;
   int tot = 0;
-  size = 0; 
-  memcpy((void*)&size, (void*)(message_obt+tot), sizeof(uint64_t));
+  size = 0;
+  memcpy((void*)&size, (void*)(message_obt + tot), sizeof(uint64_t));
   tot += sizeof(uint64_t);
-  for(int i=0; i< size; i++){
-    double probability=0;
-    int64_t xmin=0;
-    int64_t ymin=0;
-    int64_t xmax=0;
-    int64_t ymax=0;
-    memcpy((void*)&probability, (void*)(message_obt+tot), sizeof(uint64_t));
+  for (int i = 0; i < size; i++)
+  {
+    double probability = 0;
+    int64_t xmin = 0;
+    int64_t ymin = 0;
+    int64_t xmax = 0;
+    int64_t ymax = 0;
+    memcpy((void*)&probability, (void*)(message_obt + tot), sizeof(uint64_t));
     tot += sizeof(uint64_t);
-    memcpy((void*)&xmin, (void*)(message_obt+tot), sizeof(uint64_t));
+    memcpy((void*)&xmin, (void*)(message_obt + tot), sizeof(uint64_t));
     tot += sizeof(uint64_t);
-    memcpy((void*)&ymin, (void*)(message_obt+tot), sizeof(uint64_t));
+    memcpy((void*)&ymin, (void*)(message_obt + tot), sizeof(uint64_t));
     tot += sizeof(uint64_t);
-    memcpy((void*)&xmax, (void*)(message_obt+tot), sizeof(uint64_t));
+    memcpy((void*)&xmax, (void*)(message_obt + tot), sizeof(uint64_t));
     tot += sizeof(uint64_t);
-    memcpy((void*)&ymax, (void*)(message_obt+tot), sizeof(uint64_t));
+    memcpy((void*)&ymax, (void*)(message_obt + tot), sizeof(uint64_t));
     tot += sizeof(uint64_t);
-    uint16_t str_size=0;
-    memcpy((void*)&str_size, (void*)(message_obt+tot), sizeof(uint16_t));
+    uint16_t str_size = 0;
+    memcpy((void*)&str_size, (void*)(message_obt + tot), sizeof(uint16_t));
     tot += sizeof(uint16_t);
-    char char_class[str_size * sizeof(char) + 1]; 
-    memcpy((void*)char_class, (void*)(message_obt+tot), str_size);
+    char char_class[str_size * sizeof(char) + 1];
+    memcpy((void*)char_class, (void*)(message_obt + tot), str_size);
     /* Set the termination character */
     char_class[str_size] = '\0';
     tot += str_size;
     string obj_class(char_class);
-    buzzuav_closures::bounding_box cur_box(obj_class,probability,xmin,ymin,xmax,ymax);
+    buzzuav_closures::bounding_box cur_box(obj_class, probability, xmin, ymin, xmax, ymax);
     box.push_back(cur_box);
   }
   buzzuav_closures::store_bounding_boxes(box);
