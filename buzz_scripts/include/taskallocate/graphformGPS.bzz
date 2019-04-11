@@ -572,7 +572,7 @@ function DoJoined(){
 		}
 		}
 	# using JOINED as the resume state kinds of just reset the barrier timeout, should be IDLE/ALLOCATE...
-	barrier_wait_graph(ROBOTS, "GRAPH_LOCK", "GRAPH_JOINED", -1)
+	barrier_wait_graph(ROBOTS, "GRAPH_LOCK", "GRAPH_JOINED", graph_id)
 	BroadcastGraph()
   }
 }
