@@ -1,6 +1,6 @@
 # Lightweight collision avoidance
 function LCA( vel_vec ) {
-	var safety_radius = 2.0
+	var safety_radius = 1.5
 	collide = 0
 
 	var k_v = 4   # x axis gain
@@ -50,8 +50,8 @@ function LCA( vel_vec ) {
 		return vel_vec
 }
 
-robot_radius = 1.0
-safety_radius = 2.0
+robot_radius = 0.75
+safety_radius = 1.5
 combined_radius = 2 * robot_radius + safety_radius
 vel_sample_count = 50
 

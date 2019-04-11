@@ -30,6 +30,54 @@ function count(table,value){
 	}
 	return number
 }
+
+#
+# State machine
+#
+function str2fct(value){
+	statef=idle
+	if(value=="TURNEDOFF")
+		statef=turnedoff
+	else if(value=="CUSFUN")
+		statef=cusfun
+	else if(value == "YOLO_DEMO")
+    	statef=yolo_demo
+	else if(value=="STOP")	# ends on turnedoff
+		statef=stop
+	else if(value=="LAUNCH") # ends on AUTO_LAUNCH_STATE
+		if(LAND_AFTER_BARRIER_EXPIRE == 1)
+			statef=launch
+		else
+			statef=launch_switch
+	else if(value=="GOHOME") # ends on AUTO_LAUNCH_STATE
+		statef=goinghome
+	else if(value=="WAYPOINT")
+		statef=indiWP
+	else if(value=="IDLE")
+		statef=idle
+	else if(value=="AGGREGATE")
+		statef=aggregate
+	else if(value=="POTENTIAL")
+		statef=lennardjones
+	else if(value=="PURSUIT")
+		statef=pursuit
+	else if(value=="TASK_ALLOCATE")	# or bidding ?
+		statef=graph_state
+	else if(value=="BIDDING")	# check the absolute path of the waypointlist csv file in bidding.bzz
+		statef=bidding
+	else if(value=="DEPLOY")	# check the absolute path of the waypointlist csv file in bidding.bzz
+		statef=voronoicentroid
+	else if(value=="PATHPLAN")	# ends on navigate, defined in rrtstar
+		statef=rrtstar
+	else if(value=="NAVIGATE")	# ends on idle, defined in rrtstar
+		statef=navigate
+	else if(value == "FOLLOW")	#TODO: not tested in new structure
+		statef=follow
+	else if(value == "PICTURE")	#TODO: not tested in new structure
+		statef=take_picture
+
+	return statef
+}
 #
 # map from int to state - vstig serialization limits to 9....
 #

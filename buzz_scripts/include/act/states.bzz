@@ -169,16 +169,9 @@ gohomeT=100
 # State function to go back to ROSBuzz recorded home GPS position (at takeoff)
 function goinghome() {
   BVMSTATE = "GOHOME"
-	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
-		m_navigation = vec_from_gps(homegps.lat, homegps.lng, 0)
-		#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
-		if(math.vec2.length(m_navigation) < GOTODIST_TOL){ # reached destination
-				BVMSTATE = AUTO_LAUNCH_STATE
-		} else {
-			m_navigation = LimitSpeed(m_navigation, 1.0)
-			#m_navigation = LCA(m_navigation)
-			goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
-		}
+	if(V_TYPE == 0 or V_TYPE == 1) {	# vehicle
+		storegoal(homegps.lat, homegps.lng, pose.position.altitude)
+		goto_gps(str2fct(AUTO_LAUNCH_STATE))
 	} else
 		BVMSTATE = AUTO_LAUNCH_STATE
 }
