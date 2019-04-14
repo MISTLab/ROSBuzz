@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="xbee" default="1"/>
+  <arg name="name" default="robot0"/>
+
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" > 
+      <arg name="port" value="9090"/>
+  </include>
+
+<group if="$(arg xbee)">
+  <include file="$(find xbee_ros_node)/launch/xbeemav.launch" />
+</group>
+  
+  <include file="$(find rosbuzz)/launch/rosbuzz.launch" >
+    <arg name="name" value="$(arg name)"/>
+    <arg name="xbee_plugged" value="false"/>
+    <arg name="script" value="main"/>
+    <arg name="setmode" value="false"/> 
+    <arg name="latitude" value="29.067618"/> 
+    <arg name="longitude" value="-13.662966"/> 
+  </include>
+
+   <node pkg="rosbag" type="record" name="rosbag_groundstation"
+       args="record -o $(find rosbuzz)/buzz_scripts/log/GS- -a">    
+       </node>
+
+</launch>
