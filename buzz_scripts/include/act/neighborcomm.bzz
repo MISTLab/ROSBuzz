@@ -90,14 +90,14 @@ function nei_cmd_listen() {
 						reinit_time_sync()
 					}
 				} else {
-					if(value==21 ) {
+					if(value==21 and BVMSTATE != "STOP") {
 						BVMSTATE = "STOP"
-						#neighbors.broadcast("cmd", 777)
+						neighbors.broadcast("cmd", 21)
 					}else if(BVMSTATE!="BARRIERWAIT" and BVMSTATE!="LAUNCH") {
 						if(value==20 and BVMSTATE!="GOHOME") {
 							AUTO_LAUNCH_STATE = "IDLE"
 							resetWP()
-							if(BVMSTATE!=AUTO_LAUNCH_STATE)
+							#if(BVMSTATE!=AUTO_LAUNCH_STATE)
 								barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
 							#barrier_ready(20)
 						} else if(value==900 and BVMSTATE!="TASK_ALLOCATE"){	# Shapes

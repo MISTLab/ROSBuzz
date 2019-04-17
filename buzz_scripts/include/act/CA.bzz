@@ -51,7 +51,7 @@ function LCA( vel_vec ) {
 }
 
 robot_radius = 0.75
-safety_radius = 1.5
+safety_radius = 0.75
 combined_radius = 2 * robot_radius + safety_radius
 vel_sample_count = 50
 
