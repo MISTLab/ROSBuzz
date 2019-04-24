@@ -148,7 +148,7 @@ function check_rc_wp() {
 		if(rc_goto.id == id) {
 			wpreached = 0
 			storegoal(rc_goto.latitude, rc_goto.longitude, pose.position.altitude)
-			return
+			return 0
 		} else {
 			var ls = packWP2i(rc_goto.latitude, rc_goto.longitude, 0)
 			if(rc_goto.id>49) {	# Attractor/repulsor table
@@ -166,10 +166,15 @@ function check_rc_wp() {
 		}
 	} else
 		v_wp.get(0)
+	return 1
 }
 
 function resetWP() {
 	firsttimeinwp = 1
-	if(v_wp!=nil)
-		v_wp.foreach(function(key, value, robot){v_wp[key]=nil})
+	if(v_wp!=nil){
+		#v_wp.foreach(function(key, value, robot){v_wp[key]=nil})
+		v_wp.put(WPtab_id,WPtab)
+		#v_wp = nil
+		#firsttimeinwp = 1
+	}
 }

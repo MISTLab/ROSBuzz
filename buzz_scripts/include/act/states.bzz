@@ -22,16 +22,6 @@ pic_time = 0
 g_it = 0
 homegps = {}
 
-YOLO_TARGET = 1
-YOLO_NEI_TARGET = 0
-yolo_init = 0
-yolo_left_buff = 0
-yolo_right_buff = 0
-YOLO_L_GOAL_1 = math.vec2.new(20,0,0)
-YOLO_L_GOAL_2 = math.vec2.new(-20,0,0)
-YOLO_GPS_1 = {.lat =0, .long=0}
-YOLO_GPS_2 = {.lat =0, .long=0}
-
 # Core state function when on the ground
 function turnedoff() {
     BVMSTATE = "TURNEDOFF"
@@ -40,88 +30,6 @@ function turnedoff() {
 # Core state function when hovering
 function idle() {
     BVMSTATE = "IDLE"
-}
-
-# yolo Demostration
-function yolo_demo(){
-    var left_count = 0
-    var right_count = 0
-    var img_bound_x={.l=0,.r=320} # assumed left image pixel x boundary
-    var img_bound_y={.t=0,.b=480} # assumed left image pixel y boundary
-    if(yolo_init == 0){
-        yolo_init = 1
-        yolo_gps_in =  {.latitude=pose.position.latitude, .longitude=pose.position.longitude, .altitude= pose.position.altitude}
-        yolo_left_buff = 0
-        yolo_right_buff = 0
-         YOLO_GPS_1 = gps_from_vec(YOLO_L_GOAL_1)
-         YOLO_GPS_2 = gps_from_vec(YOLO_L_GOAL_2)
-    }
-    #log("POS lat : ",pose.position.latitude, " long: ", pose.position.longitude )
-    if(yolo_boxes != nil){
-      # log("yolo tab size",size(yolo_boxes))
-      var yol_i = 0
-      while(yol_i < yolo_boxes.size){
-        var table_id = string.tostring(yol_i)
-        if(yolo_boxes[table_id].class == "person"){
-            var diff_x = (yolo_boxes[table_id].xmax - yolo_boxes[table_id].xmin) / 2
-            var mid_x = yolo_boxes[table_id].xmax - diff_x
-            if( (mid_x >=img_bound_x.l and mid_x <=img_bound_x.r)){
-                # person is in the left side of the image
-                left_count = left_count + 1
-            }
-            else{
-                # person is in the right side of the image
-                right_count = right_count + 1
-            }
-        }
-        yol_i = yol_i + 1
-      }
-        # log("left_count: ", left_count, " right_count: ", right_count) 
-        if(left_count > right_count){
-            if(1){
-                YOLO_TARGET = 1
-                neighbors.broadcast("cmd", 555)
-                #storegoal(YOLO_GPS_1.latitude, YOLO_GPS_1.longitude, pose.position.altitude)
-                yolo_gps_in = {.latitude=YOLO_GPS_1.latitude, .longitude=YOLO_GPS_1.longitude, .altitude= pose.position.altitude}
-                # log("left dominating")
-                yolo_left_buff = 0
-                yolo_right_buff = 0
-            }
-            else{
-                yolo_left_buff = yolo_left_buff + 1
-                yolo_right_buff = 0
-            }
-        }
-        else if(left_count < right_count){
-            if(1){
-                YOLO_TARGET = 2
-                neighbors.broadcast("cmd", 556)
-                yolo_gps_in = {.latitude=YOLO_GPS_2.latitude, .longitude=YOLO_GPS_2.longitude, .altitude= pose.position.altitude}
-                # log("right dominating")
-                yolo_right_buff = 0
-                yolo_left_buff = 0
-            }
-            else{
-                yolo_right_buff = yolo_right_buff + 1
-                yolo_left_buff = 0
-            }
-        }
-        goto_gps_in(yolo_demo, yolo_gps_in)
-    }
-    if( YOLO_NEI_TARGET == 1){
-        # YOLO_NEI_TARGET =0
-        YOLO_TARGET = 1
-        yolo_gps_in = {.latitude=YOLO_GPS_1.latitude, .longitude=YOLO_GPS_1.longitude, .altitude= pose.position.altitude}
-        # log("left dominating")
-        goto_gps_in(yolo_demo, yolo_gps_in)
-    }
-    else if(YOLO_NEI_TARGET == 2){
-    	YOLO_TARGET = 2
-        # YOLO_NEI_TARGET = 0
-        yolo_gps_in = {.latitude=YOLO_GPS_2.latitude, .longitude=YOLO_GPS_2.longitude, .altitude= pose.position.altitude}
-        # log("right dominating")
-        goto_gps_in(yolo_demo, yolo_gps_in)
-    }
 }
 
 
@@ -170,8 +78,11 @@ gohomeT=100
 function goinghome() {
   BVMSTATE = "GOHOME"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# vehicle
-		storegoal(homegps.lat, homegps.lng, pose.position.altitude)
-		goto_gps(str2fct(AUTO_LAUNCH_STATE))
+		if(cur_goal.latitude == homegps.lat and cur_goal.longitude == homegps.lng) {
+			#log("Distance to Home :",math.vec2.length(vec_from_gps(cur_goal.latitude, cur_goal.longitude, 0)))
+			goto_gps(str2fct(AUTO_LAUNCH_STATE))
+		} else
+			storegoal(homegps.lat, homegps.lng, pose.position.altitude)
 	} else
 		BVMSTATE = AUTO_LAUNCH_STATE
 }
@@ -192,32 +103,36 @@ function stop() {
 }
 
 # State functions for individual waypoint control
-
 wpreached = 1
 function indiWP() {
 	BVMSTATE = "WAYPOINT"
-	check_rc_wp()
+	if(check_rc_wp()==0)
+		return
 
 	wpi = v_wp.get(id)
 	if(wpi!=nil) {
 		wp = unpackWP2i(wpi)
 		if(wp.pro == 0) {
 				wpreached = 0
-				storegoal(wp.lat, wp.lng, pose.position.altitude)
-				var ls = packWP2i(wp.lat, wp.lng, 1)
-				v_wp.put(id,ls)
-				return
-			}      
+				if(cur_goal.latitude == wp.lat and cur_goal.longitude == wp.lng) {
+					var ls = packWP2i(wp.lat, wp.lng, 1)
+					v_wp.put(id,ls)
+				} else {
+					storegoal(wp.lat, wp.lng, pose.position.altitude)
+					return
+				}
+			}
 	}
 
 	if(wpreached!=1)
 		goto_gps(indiWP_done)
-
 }
 
 function indiWP_done() {
 	BVMSTATE = "WAYPOINT"
+	log("Done with this Waypoint!")
 	wpreached = 1
+	moving = 0
 }
 
 # State function to take a picture from the camera server (developed by HS)

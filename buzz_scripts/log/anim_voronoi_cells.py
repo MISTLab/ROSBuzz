@@ -11,7 +11,7 @@ fig.set_tight_layout(True)
 axes = plt.gca()
 axes.set_xlim([-70,70])
 axes.set_ylim([-70,70])
-datafile = open('src/rosbuzz/buzz_scripts/log/voronoi_3.csv', 'r')
+datafile = open('voronoi_3.csv', 'r')
 Vorreader = csv.reader(datafile, delimiter=',')
 
 def animate(i):
