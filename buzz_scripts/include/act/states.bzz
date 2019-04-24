@@ -180,11 +180,11 @@ function goinghome() {
 function stop() {
   BVMSTATE = "STOP"
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
-		uav_land()
 		if(pose.position.altitude <= 0.2) {
 			barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
 			barrier_ready(21)
-		}
+		} else
+			uav_land()
 	} else {
 			barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
 			barrier_ready(21)

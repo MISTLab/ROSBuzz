@@ -14,10 +14,10 @@ function goto_gps(transf) {
 	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL){ # reached destination
 			transf()
 	} else {
-		m_navigation = LimitSpeed(m_navigation, 1.0)
 		gf = {.0=m_navigation, .1=vec_from_gps(GPSlimit[1].lat, GPSlimit[1].lng, 0), .2=vec_from_gps(GPSlimit[2].lat, GPSlimit[2].lng, 0), .3=vec_from_gps(GPSlimit[3].lat, GPSlimit[3].lng, 0), .4=vec_from_gps(GPSlimit[4].lat, GPSlimit[4].lng, 0)}
-		#TODO: ENSURE THAT IF WE GO OUT WE CAN GET BACK IN!!!
+		#Always Geofence first before limiting speed
 		geofence(gf)
+		m_navigation = LimitSpeed(m_navigation, 1.0)
 		if(CA_ON==1)
 			m_navigation = LCA(m_navigation)
 		if(CA_ON==2)

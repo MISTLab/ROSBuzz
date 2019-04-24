@@ -1,5 +1,6 @@
 hullPts = {}
 hullC = 0
+areaRadius = 5 #20
 
 # When called returns a list of points that forms a convex hull around 
 #   the listPts Given (http://adultstudylife.blogspot.com/2016/06/quick-hull-in-python.html)
@@ -10,7 +11,7 @@ function QuickHull(focalpts) {
     foreach(focalpts, function(key, pt) {
         ip = 0
         while(ip<6){
-            listPts[jp*6+ip]=math.vec2.add(pt,math.vec2.newp(20, ip*math.pi/3))
+            listPts[jp*6+ip]=math.vec2.add(pt,math.vec2.newp(areaRadius, ip*math.pi/3))
             #log("Created new pt: ", listPts[j*6+i].x, listPts[j*6+i].y, "(", pt.x, pt.y, ")")
             ip=ip+1
         }

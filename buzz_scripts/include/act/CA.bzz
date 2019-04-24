@@ -1,6 +1,9 @@
+robot_radius = 1.0
+safety_radius = 1.5
+combined_radius = 2 * robot_radius + safety_radius
+
 # Lightweight collision avoidance
 function LCA( vel_vec ) {
-	var safety_radius = 1.5
 	collide = 0
 
 	var k_v = 4   # x axis gain
@@ -11,7 +14,7 @@ function LCA( vel_vec ) {
 			var c = {}
 			c.distance = data.distance 
 			c.azimuth = data.azimuth
-			if (c.distance < (safety_radius * 2.0) )
+			if (c.distance < combined_radius )
 				collide = 1
 			return c
 	})
@@ -26,7 +29,7 @@ function LCA( vel_vec ) {
 				return accum
 			}
 				return accum
-			}, {.distance= safety_radius * 2.0, .angle= 0.0})
+			}, {.distance= combined_radius * 2.0, .angle= 0.0})
 
 
 		d_i = result.distance
@@ -34,9 +37,9 @@ function LCA( vel_vec ) {
 
 		delta = math.vec2.new( d_i * math.cos(data_alpha_i), d_i * math.sin(data_alpha_i) )
 
-		p = math.exp(-(d_i - safety_radius))
+		p = math.exp(-(d_i - combined_radius))
 		if ( math.cos( math.vec2.angle(vel_vec) - data_alpha_i ) < 0.0 ) {
-			p = math.exp(d_i - safety_radius)
+			p = math.exp(d_i - combined_radius)
 		}
 
 		V = -1 * (p / d_i) * k_v * delta.x
@@ -50,9 +53,7 @@ function LCA( vel_vec ) {
 		return vel_vec
 }
 
-robot_radius = 0.75
-safety_radius = 0.75
-combined_radius = 2 * robot_radius + safety_radius
+# RVO functions
 vel_sample_count = 50
 
 velocities = {}
