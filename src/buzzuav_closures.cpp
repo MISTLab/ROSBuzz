@@ -229,7 +229,7 @@ void check_targets_sim(double lat, double lon, double* res)
 / check if a listed target is close
 ----------------------------------------------------------- */
 {
-  float visibility_radius = 5.0;
+  float visibility_radius = 2.0;
   map<int, buzz_utility::RB_struct>::iterator it;
   for (it = wplist_map.begin(); it != wplist_map.end(); ++it)
   {
