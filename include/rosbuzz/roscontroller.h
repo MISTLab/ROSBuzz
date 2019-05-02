@@ -55,7 +55,7 @@ typedef enum {
 #define MAX_NUMBER_OF_ROBOTS 10
 
 #define TIMEOUT 60
-#define BUZZRATE 30
+#define BUZZRATE 25
 
 using namespace std;
 
