@@ -19,9 +19,9 @@ function LCA( vel_vec ) {
 			return c
 	})
 	if (collide) {
-		log("")
-		log("------>  AVOIDING NEIGHBOR! (LCA) <------")
-		log("")
+		#log("")
+		#log("------>  AVOIDING NEIGHBOR! (LCA) <------")
+		#log("")
 		result = cart.reduce(function(rid, data, accum) {
 			if(data.distance < accum.distance and data.distance > 0.0){
 				accum.distance = data.distance
@@ -154,9 +154,9 @@ function RVO(preferedVelocity) {
   # Calculate suitable velocities
   if(collision) {
 
-	log("")
-	log("------>  AVOIDING NEIGHBOR! (RVO) <------")
-	log("")
+	#log("")
+	#log("------>  AVOIDING NEIGHBOR! (RVO) <------")
+	#log("")
 
     var idx = 0
 	var n = 0

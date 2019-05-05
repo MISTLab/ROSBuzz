@@ -8,6 +8,16 @@ function table_print(t) {
 	}
 }
 
+function tableofvec_print(t) {
+	if(t==nil)
+		log("Table do not exist!")
+	else {
+		foreach(t, function(key, value) {
+      log(key, " -> ", value.x, value.y)
+    })
+	}
+}
+
 function table_copy(t) {
   var t2 = {}
   foreach(t, function(key, value) {

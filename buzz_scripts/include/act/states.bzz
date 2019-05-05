@@ -261,52 +261,52 @@ function voronoicentroid() {
 		return
 	else if(not(size(wptab) > 0))
 		return
-	log("WP table size:", size(wptab))
+	#log("WP table size:", size(wptab))
 	if(V_TYPE == 2)
 		return
-	it_pts = 0
-	att = {}
-	foreach(wptab, function(key, value){
-			wp = unpackWP2i(value)
-			if(key > 99)
-				log("Nothing planed for the repulsors yet....")
-			else if(key > 49)
-				att[it_pts]=vec_from_gps(wp.lat, wp.lng, 0)
-			it_pts = it_pts + 1
-	})
-	# Boundaries from Geofence
-	#it_pts = 0
-	#foreach(GPSlimit, function(key, value) {
-	#		bounds[it_pts]=vec_from_gps(value.lat, value.lng, 0)
-	#		it_pts = it_pts + 1
-	#})
-	# Boundaries from user attractors
-	#att = {.0=vec_from_gps(45.510283, -73.609633, 0), .1=vec_from_gps(45.510398, -73.609281, 0)}
-	bounds = QuickHull(att)
-	if(size(bounds)<3 )
-		return
 	if(counter==0) {
-		pts = {.np=size(bounds)}
-		it_pts = 0
-		foreach(bounds, function(key, value) {
-			pts[it_pts]=value
-			it_pts = it_pts + 1
+		var att = {}
+		foreach(wptab, function(key, value){
+				wp = unpackWP2i(value)
+				if(key > 99)
+					log("Nothing planed for the repulsors yet....")
+				else if(key > 49) {
+					att[size(att)]=vec_from_gps(wp.lat, wp.lng, 0)
+					#log("Attractor: ",key, wp.lat, wp.lng)
+				}
 		})
-		pts[it_pts] = {.x=0, .y=0}	#add itself
-		it_pts = it_pts + 1
+		# Boundaries from Geofence
+		#it_pts = 0
+		#foreach(GPSlimit, function(key, value) {
+		#		bounds[it_pts]=vec_from_gps(value.lat, value.lng, 0)
+		#		it_pts = it_pts + 1
+		#})
+		# Boundaries from user attractors
+		#att = {.0=vec_from_gps(45.510283, -73.609633, 0), .1=vec_from_gps(45.510398, -73.609281, 0)}
+		var bounds = QuickHull(att)
+		#tableofvec_print(bounds)
+		if(size(bounds)<3) {
+			log("Wrong polygon shape!")
+			return
+		}
+		
+		var pts = {.np=size(bounds)}
+		foreach(bounds, function(key, value) {
+			pts[size(pts)-1]=value
+		})
+		pts[size(pts)-1] = {.x=0, .y=0}	#add itself
 		if(neighbors.count() > 0) {
 			neighbors.foreach(function(rid, data) {
 				if(rid!=0){	#remove GS (?)
-					pts[it_pts]=math.vec2.newp(data.distance,data.azimuth)
-					it_pts = it_pts + 1
+					pts[size(pts)-1]=math.vec2.newp(data.distance,data.azimuth)
 				}
 			})
 			#table_print(pts)
 			voronoi(pts)
 		}
-		counter=4
-	}
-	counter=counter-1
+		counter = 10 # To avoid full Voronoi re-computation each step.
+	} else
+		counter=counter-1
 
 	goto_gps(voronoicentroid_done)
 }
