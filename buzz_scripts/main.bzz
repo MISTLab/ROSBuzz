@@ -97,7 +97,7 @@ function step() {
 
 	statef()
 
-	log("Current state: ", BVMSTATE)
+	#log("Current state: ", BVMSTATE)
 
 
 }
