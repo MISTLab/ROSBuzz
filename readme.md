@@ -36,7 +36,7 @@ mkdir -p ROS_WS/src
 cd ROS_WS/src
 git clone https://github.com/MISTLab/ROSBuzz rosbuzz
 cd ..
-catkin_make -DSIM=1 -DKIN=1
+catkin_make -DSIM=0 -DKIN=1
 ```
 Compilation Flags
 =================
@@ -46,6 +46,14 @@ Flags to be passed during compilation.
 |-------|------------------------------------------------|
 | -DSIM | Indicates Compilation for robot or Simulation. |
 | -DKIN | Indicates compilation for ROS Distro Kinetic   |
+
+Source ROS environment
+===========
+
+```
+source /opt/ros/kinetic/setup.bash
+source ~/ROS_WS/devel/setup.bash
+```
     
 Run
 ===
