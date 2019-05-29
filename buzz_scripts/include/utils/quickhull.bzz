@@ -5,21 +5,22 @@ areaRadius = 8 #20
 function QuickHull(focalpts) {
     var listPts = {}
     var hullPts = {}
-    var jp = 0
+    jp = 0
     foreach(focalpts, function(key, pt) {
         var ip = 0
-        while(ip<6){
-            listPts[jp*6+ip]=math.vec2.add(pt,math.vec2.newp(areaRadius, ip*math.pi/3))
+        var totip = 12
+        while(ip<totip){
+            listPts[jp*totip+ip]=math.vec2.add(pt,math.vec2.newp(areaRadius, 2*ip*math.pi/totip))
             #log("Created new pt: ", listPts[jp*6+ip].x, listPts[jp*6+ip].y, "(", pt.x, pt.y, ")")
             ip=ip+1
         }
         jp=jp+1
     })
 
-    #log(size(listPts))
+    #log(size(listPts),jp)
 
     # get the min, and max from the list of points
-    var min_max = get_min_max_x(listPts)
+    min_max = get_min_max_x(listPts)
 
     #tableofvec_print(min_max)
 
