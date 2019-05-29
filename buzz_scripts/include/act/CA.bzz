@@ -90,6 +90,7 @@ function in_between(theta_right, theta_dif, theta_left) {
 }
 
 # VO  magic happens here
+last_vel = math.vec2.new(0.0,0.0)
 function RVO(preferedVelocity) {
 
   #data_string = string.concat(data_string, ",", string.tostring(preferedVelocity.x), ",", string.tostring(preferedVelocity.y), ",", string.tostring(preferedVelocity.z))
@@ -171,8 +172,8 @@ function RVO(preferedVelocity) {
 
       foreach(VO_all, function(rid, vo) {
         #vAB = new_V
-        vAB = math.vec2.sub(v_cand, vo.velocity)
-        #vAB = math.vec3.sub(new_V, math.vec3.scale(math.vec3.add(preferedVelocity, vo.velocity), 0.5))
+        #vAB = math.vec2.sub(v_cand, vo.velocity)
+        vAB = math.vec2.sub(v_cand, math.vec2.scale(math.vec2.add(last_vel, vo.velocity), 0.5))
         var vel_angle = math.acos(vAB.x / math.vec2.length(vAB))
         if(vAB.y < 0) vel_angle = vel_angle * -1
 
@@ -203,7 +204,7 @@ function RVO(preferedVelocity) {
     }
 
     #data_string = string.concat(data_string, ",", string.tostring(final_V.x), ",", string.tostring(final_V.y), ",", string.tostring(final_V.z))
-	
+	last_vel = final_V
 	broadcast_velocity(final_V)
 
     return final_V

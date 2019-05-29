@@ -76,6 +76,9 @@ function rc_cmd_listen() {
 
 # listens to neighbors broadcasting commands
 function nei_cmd_listen() {
+	if(CA_ON==2)
+		setup_velocity_callbacks()
+
     neighbors.listen("cmd",
 			function(vid, value, rid) {
 				print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
