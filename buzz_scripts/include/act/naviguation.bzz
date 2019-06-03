@@ -1,6 +1,6 @@
-GOTO_MAXVEL = 2.5 # m/steps
+GOTO_MAXVEL = 1.5 # m/steps
 GOTO_MAXDIST = 250 # m.
-GOTODIST_TOL = 0.4  # m.
+GOTODIST_TOL = 0.2  # m.
 GOTOANG_TOL = 0.1 # rad.
 
 include "utils/field_config.bzz"
