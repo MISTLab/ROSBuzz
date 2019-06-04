@@ -440,7 +440,7 @@ int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t 
     return 0;
   }
 
-  // Initialize UAVSTATE variable
+  // Initialize state variables
   buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
   buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
   buzzvm_gstore(VM);
@@ -567,13 +567,25 @@ void set_robot_var(int ROBOTS)
 
 void set_ca_on_var(int CA_ON)
 /*
-/ set swarm size in the BVM
+/ set collision avoidance in the BVM
 -----------------------------*/
 {
   buzzvm_pushs(VM, buzzvm_string_register(VM, "CA_ON", 1));
   buzzvm_pushi(VM, CA_ON);
   buzzvm_gstore(VM);
 }
+
+void set_autolaunch_var(const char* as)
+/*
+/ set collision avoidance in the BVM
+-----------------------------*/
+{
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "AUTO_LAUNCH_STATE", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, as, 1));
+  buzzvm_gstore(VM);
+}
+
+
 
 int get_inmsg_size()
 /*

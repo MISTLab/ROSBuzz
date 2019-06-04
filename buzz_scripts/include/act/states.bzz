@@ -261,7 +261,7 @@ function voronoicentroid() {
 		return
 	else if(not(size(wptab) > 0))
 		return
-	log("WP table size:", size(wptab))
+	#log("WP table size:", size(wptab))
 	if(V_TYPE == 2)
 		return
 	if(counter==0) {

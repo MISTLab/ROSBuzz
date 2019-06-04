@@ -1,4 +1,4 @@
-areaRadius = 10 #20
+areaRadius = 8 #20
 
 # When called returns a list of points that forms a convex hull around 
 #   the listPts Given (http://adultstudylife.blogspot.com/2016/06/quick-hull-in-python.html)

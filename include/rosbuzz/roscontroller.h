@@ -55,7 +55,7 @@ typedef enum {
 #define MAX_NUMBER_OF_ROBOTS 10
 
 #define TIMEOUT 60
-#define BUZZRATE 10
+#define BUZZRATE 20
 
 using namespace std;
 
@@ -132,6 +132,7 @@ private:
   float fcu_timeout;
   int armstate;
   int ca_on;
+  std::string autolaunchstate = "";
   int barrier;
   int update;
   int message_number = 0;

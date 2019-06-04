@@ -102,6 +102,8 @@ void set_robot_var(int ROBOTS);
 
 void set_ca_on_var(int CA_ON);
 
+void set_autolaunch_var(const char* auto_launch_state);
+
 int get_inmsg_size();
 
 std::vector<uint8_t*> get_inmsg_vector();

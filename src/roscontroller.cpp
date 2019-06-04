@@ -131,6 +131,7 @@ void roscontroller::RosControllerRun()
     //  DEBUG
     // ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
     buzz_utility::set_ca_on_var(ca_on);
+    buzz_utility::set_autolaunch_var(autolaunchstate.c_str());
     while (ros::ok() && !buzz_utility::buzz_script_done())
     {
       //  Publish topics
@@ -303,6 +304,9 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
 
   //  Obtain collision avoidance mode
   n_c.getParam("ca_on", ca_on);
+
+  //  Obtain default state after takeoff
+  n_c.getParam("auto_state", autolaunchstate);
 
   if (n_c.getParam("xbee_plugged", xbeeplugged))
     ;
