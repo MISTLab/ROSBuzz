@@ -218,7 +218,8 @@ void parse_gpslist()
     wplist_map.insert(make_pair(tid, RB_arr));
   }
 
-  ROS_INFO("----->Saved %i waypoints.", wplist_map.size());
+  //DEBUG
+  //ROS_INFO("----->Saved %i waypoints.", wplist_map.size());
 
   // Close the file:
   fin.close();
@@ -239,7 +240,8 @@ void check_targets_sim(double lat, double lon, double* res)
     rb_from_gps(tar, rb, ref);
     if (rb[0] < visibility_radius && (buzz_utility::get_bvmstate() == "WAYPOINT" && it->second.r == 0))
     {
-      ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", it->first);
+      //DEBUG
+      //ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", it->first);
       res[0] = it->first;
       res[1] = it->second.latitude;
       res[2] = it->second.longitude;
@@ -247,7 +249,8 @@ void check_targets_sim(double lat, double lon, double* res)
     }
     else if (rb[0] < visibility_radius && (buzz_utility::get_bvmstate() == "DEPLOY" && it->second.r == 1))
     {
-      ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", it->first);
+      //DEBUG
+      //ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", it->first);
       res[0] = it->first;
       res[1] = it->second.latitude;
       res[2] = it->second.longitude;
