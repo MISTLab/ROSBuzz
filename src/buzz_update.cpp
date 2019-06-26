@@ -556,7 +556,7 @@ void update_routine()
       *(int*)(updater->mode) = CODE_RUNNING;
       gettimeofday(&t2, NULL);
       // collect_data();
-      buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgf_name, *(size_t*)(updater->bcode_size));
+      buzz_utility::buzz_update_set((updater)->bcode, (char*)dbgf_name, *(size_t*)(updater->bcode_size), 0, "IDLE"); //TODO: change that to old BVM values
       // buzzvm_function_call(m_tBuzzVM, "updated", 0);
       update_try_counter = 0;
       timer_steps = 0;
@@ -566,7 +566,7 @@ void update_routine()
       ROS_ERROR("TIME OUT Reached, rolling back");
       /*Time out hit deceided to roll back*/
       *(int*)(updater->mode) = CODE_RUNNING;
-      buzz_utility::buzz_script_set(old_bcfname, dbgf_name, (int)VM->robot);
+      buzz_utility::buzz_script_set(old_bcfname, dbgf_name, (int)VM->robot, 0, "IDLE"); //TODO: change that to old BVM values
       update_try_counter = 0;
       timer_steps = 0;
     }
@@ -586,7 +586,7 @@ uint8_t* getupdate_out_msg_size()
 
 int test_set_code(uint8_t* BO_BUF, const char* dbgfname, size_t bcode_size)
 {
-  if (buzz_utility::buzz_update_init_test(BO_BUF, dbgfname, bcode_size))
+  if (buzz_utility::buzz_update_init_test(BO_BUF, dbgfname, bcode_size, 0, "IDLE")) //TODO: change that to old BVM values
   {
     if (debug)
       ROS_WARN("Initializtion test passed");
@@ -604,7 +604,7 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname, size_t bcode_size)
       memcpy(updater->bcode, BO_BUF, bcode_size);
       *(size_t*)updater->bcode_size = bcode_size;
       buzz_utility::buzz_update_init_test((updater)->standby_bcode, (char*)dbgfname,
-                                          (size_t) * (size_t*)(updater->standby_bcode_size));
+                                          (size_t) * (size_t*)(updater->standby_bcode_size), 0, "IDLE"); //TODO: change that to old BVM values
       buzzvm_t VM = buzz_utility::get_vm();
       gettimeofday(&t1, NULL);
       buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
@@ -618,14 +618,14 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname, size_t bcode_size)
       if (*(int*)(updater->mode) == CODE_RUNNING)
       {
         ROS_ERROR("Step test failed, resuming old script");
-        buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (size_t) * (size_t*)(updater->bcode_size));
+        buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (size_t) * (size_t*)(updater->bcode_size), 0, "IDLE"); //TODO: change that to old BVM values
       }
       else
       {
         /*You will never reach here*/
         ROS_ERROR("Step test failed, returning to standby");
         buzz_utility::buzz_update_init_test((updater)->standby_bcode, (char*)dbgfname,
-                                            (size_t) * (size_t*)(updater->standby_bcode_size));
+                                            (size_t) * (size_t*)(updater->standby_bcode_size), 0, "IDLE"); //TODO: change that to old BVM values
         buzzvm_t VM = buzz_utility::get_vm();
         buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
         buzzvm_pushi(VM, no_of_robot);
@@ -639,14 +639,14 @@ int test_set_code(uint8_t* BO_BUF, const char* dbgfname, size_t bcode_size)
     if (*(int*)(updater->mode) == CODE_RUNNING)
     {
       ROS_ERROR("Initialization test failed, resuming old script");
-      buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (int)*(size_t*)(updater->bcode_size));
+      buzz_utility::buzz_update_init_test((updater)->bcode, dbgfname, (int)*(size_t*)(updater->bcode_size), 0, "IDLE"); //TODO: change that to old BVM values
     }
     else
     {
       /*You will never reach here*/
       ROS_ERROR("Initialization test failed, returning to standby");
       buzz_utility::buzz_update_init_test((updater)->standby_bcode, (char*)dbgfname,
-                                          (size_t) * (size_t*)(updater->standby_bcode_size));
+                                          (size_t) * (size_t*)(updater->standby_bcode_size), 0, "IDLE"); //TODO: change that to old BVM values
       buzzvm_t VM = buzz_utility::get_vm();
       buzzvm_pushs(VM, buzzvm_string_register(VM, "ROBOTS", 1));
       buzzvm_pushi(VM, no_of_robot);

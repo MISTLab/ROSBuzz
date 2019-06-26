@@ -144,6 +144,7 @@ function RVO(preferedVelocity) {
   # Detect collision
   foreach(VO_all, function(rid, vo) {
     vAB = math.vec2.sub(preferedVelocity, vo.velocity)
+    #log("[",preferedVelocity.x,preferedVelocity.y,"]","[",vo.velocity.x,vo.velocity.y,"]")
     var vel_angle = math.acos(vAB.x / math.vec2.length(vAB))
     if(vAB.y < 0) vel_angle = vel_angle * -1
 
@@ -155,12 +156,12 @@ function RVO(preferedVelocity) {
   # Calculate suitable velocities
   if(collision) {
 
-	#log("")
-	#log("------>  AVOIDING NEIGHBOR! (RVO) <------")
-	#log("")
+    #log("")
+    #log("------>  AVOIDING NEIGHBOR! (RVO) <------")
+    #log("")
 
     var idx = 0
-	var n = 0
+	  var n = 0
     while (n < vel_sample_count) {
 
       v_cand = math.vec2.new( 2.0 * math.rng.uniform(GOTO_MAXVEL) - GOTO_MAXVEL, 2.0 * math.rng.uniform(GOTO_MAXVEL) - GOTO_MAXVEL)
@@ -212,21 +213,23 @@ function RVO(preferedVelocity) {
 
     #data_string = string.concat(data_string, ",", string.tostring(preferedVelocity.x), ",", string.tostring(preferedVelocity.y), ",", string.tostring(preferedVelocity.z))
 
-	broadcast_velocity(preferedVelocity)
+	  broadcast_velocity(preferedVelocity)
     return preferedVelocity
   }
 }
 
-function broadcast_velocity(velocity) {
-    neighbors.broadcast(string.concat("v", string.tostring(id)), velocity)
+function broadcast_velocity(velocity_togo) {
+    neighbors.broadcast(string.concat("v", string.tostring(id)), velocity_togo)
+    #log(string.concat("v", string.tostring(id)))
 }
 
 function setup_velocity_callbacks() {
 	r = 1
-    while(r <= ROBOTS) {
+    while(r <= 6) { #!!!!---hard-coded value is wrong. should be linked to the real ids....
         if(r != id) {
             neighbors.listen(string.concat("v", string.tostring(r)),
                 function(vid, value, rid) {
+                  #log("got value", value, "from", rid)
                     velocities[rid] = value
                 }
             )

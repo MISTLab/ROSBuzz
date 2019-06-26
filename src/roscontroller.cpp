@@ -113,9 +113,8 @@ void roscontroller::RosControllerRun()
 {
   int timer_step = 0;
   //  Set the Buzz bytecode
-  if (buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(), robot_id))
+  if (buzz_utility::buzz_script_set(bcfname.c_str(), dbgfname.c_str(), robot_id, ca_on, autolaunchstate.c_str()))
   {
-    buzzuav_closures::setVorlog(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")));
     ROS_INFO("[%i] INIT DONE!!!", robot_id);
     int packet_loss_tmp, time_step = 0;
     double cur_packet_loss = 0;
@@ -130,8 +129,7 @@ void roscontroller::RosControllerRun()
       ROS_ERROR("BVMSTATE undeclared in .bzz file, please set BVMSTATE.");
     //  DEBUG
     // ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
-    buzz_utility::set_ca_on_var(ca_on);
-    buzz_utility::set_autolaunch_var(autolaunchstate.c_str());
+    buzzuav_closures::setVorlog(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")));
     while (ros::ok() && !buzz_utility::buzz_script_done())
     {
       //  Publish topics

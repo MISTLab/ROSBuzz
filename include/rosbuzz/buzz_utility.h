@@ -78,11 +78,11 @@ uint64_t* obt_out_msg();
 
 void update_sensors();
 
-int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robot_id);
+int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robot_id, int ca, const char* state);
 
-int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size);
+int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size, int ca, const char* state);
 
-int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size);
+int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size, int ca, const char* state);
 
 void buzz_script_step();
 

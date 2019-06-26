@@ -307,7 +307,7 @@ static int testing_buzz_register_hooks()
   return VM->state;
 }
 
-int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robot_id)
+int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robot_id, int ca, const char* state)
 /*
 / Sets the .bzz and .bdbg file
 ---------------------------------*/
@@ -338,10 +338,10 @@ int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robo
   // Save bytecode file name
   BO_FNAME = strdup(bo_filename);
 
-  return buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
+  return buzz_update_set(BO_BUF, bdbg_filename, bcode_size, ca, state);
 }
 
-int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size)
+int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size, int ca, const char* state)
 /*
 / Sets a new update
 -----------------------*/
@@ -384,6 +384,8 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   buzzvm_pushs(VM, buzzvm_string_register(VM, "BMVSTATE", 1));
   buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
   buzzvm_gstore(VM);
+  set_ca_on_var(ca);
+  set_autolaunch_var(state);
 
   // Execute the global part of the script
   if (buzzvm_execute_script(VM) != BUZZVM_STATE_DONE)
@@ -401,7 +403,7 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   return 1;
 }
 
-int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size)
+int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size, int ca, const char* state)
 /*
 / Performs a initialization test
 -----------------------------------*/
@@ -444,6 +446,8 @@ int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t 
   buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
   buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
   buzzvm_gstore(VM);
+  set_ca_on_var(ca);
+  set_autolaunch_var(state);
 
   // Execute the global part of the script
   if (buzzvm_execute_script(VM) != BUZZVM_STATE_DONE)
