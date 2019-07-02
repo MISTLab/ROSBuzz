@@ -238,8 +238,9 @@ void check_targets_sim(double lat, double lon, double* res)
     map<int, buzz_utility::Pos_struct>::iterator itneip = neighbors_map_prev.find(itnei->first);
     if (itneip == neighbors_map_prev.end())
       break;
-    if(buzz_utility::get_robotid()==1)
-      ROS_WARN("TARGETS CHECK FOR %i", itnei->first);
+    //DEBUG
+    //if(buzz_utility::get_robotid()==1)
+    //  ROS_WARN("TARGETS CHECK FOR %i", itnei->first);
     double vel = abs(itnei->second.x - itneip->second.x)*20; //dRANGE * BUZZRATE
     double radtmp = visibility_radius_bounds[1]-vel*(visibility_radius_bounds[1]-visibility_radius_bounds[0]);
     if(radtmp<visibility_radius_bounds[0])
@@ -256,10 +257,10 @@ void check_targets_sim(double lat, double lon, double* res)
       if (rangetotarget < radtmp && (buzz_utility::get_bvmstate() == "WAYPOINT" && itt->second.r == 0))
       {
         //DEBUG
-        if(buzz_utility::get_robotid()==1){
-          ROS_WARN("VARIABLE RADIUS: %f (%f - %f)", radtmp, vel, rangetotarget);
-          ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", itt->first);
-        }
+        //if(buzz_utility::get_robotid()==1){
+        //  ROS_WARN("VARIABLE RADIUS: %f (%f - %f)", radtmp, vel, rangetotarget);
+        //  ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", itt->first);
+        //}
         res[0] = itt->first;
         res[1] = itt->second.latitude;
         res[2] = itt->second.longitude;
