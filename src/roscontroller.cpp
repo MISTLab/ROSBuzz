@@ -1301,7 +1301,7 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     raw_neighbours_pos_put((int)out[1], raw_neigh_pos);
     //  TODO: remove roscontroller local map array for neighbors
     neighbours_pos_put((int)out[1], n_pos);
-    buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, n_pos.z);
+    buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, nei_pos.latitude, nei_pos.longitude, nei_pos.altitude);
     delete[] out;
     buzz_utility::in_msg_append((message_obt + index));
   }

@@ -136,7 +136,7 @@ void flight_status_update(uint8_t state);
 /*
  *Update neighbors table
  */
-void neighbour_pos_callback(int id, float range, float bearing, float elevation);
+void neighbour_pos_callback(int id, float range, float bearing, float latitude, float longitude, float elevation);
 /*
  * update neighbors from in msgs
  */

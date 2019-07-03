@@ -57,8 +57,8 @@ string WPlistname = "";
 
 std::map<int, buzz_utility::RB_struct> targets_map;
 std::map<int, buzz_utility::RB_struct> wplist_map;
-std::map<int, buzz_utility::Pos_struct> neighbors_map;
-std::map<int, buzz_utility::Pos_struct> neighbors_map_prev;
+std::map<int, buzz_utility::RB_struct> neighbors_map;
+std::map<int, buzz_utility::RB_struct> neighbors_map_prev;
 std::map<int, buzz_utility::neighbors_status> neighbors_status_map;
 std::map<int, std::map<int, int>> grid;
 
@@ -231,42 +231,36 @@ void check_targets_sim(double lat, double lon, double* res)
 / check if a listed target is close
 ----------------------------------------------------------- */
 {
-  float visibility_radius_bounds[2] = {0.5, 3.0};
-  map<int, buzz_utility::Pos_struct>::iterator itnei;
+  float visibility_radius_bounds[2] = {0.25, 3.0};
+  map<int, buzz_utility::RB_struct>::iterator itnei;
   for (itnei = neighbors_map.begin(); itnei != neighbors_map.end(); ++itnei)
   {
-    map<int, buzz_utility::Pos_struct>::iterator itneip = neighbors_map_prev.find(itnei->first);
+    map<int, buzz_utility::RB_struct>::iterator itneip = neighbors_map_prev.find(itnei->first);
     if (itneip == neighbors_map_prev.end())
       break;
-    //DEBUG
-    //if(buzz_utility::get_robotid()==1)
-    //  ROS_WARN("TARGETS CHECK FOR %i", itnei->first);
-    double vel = abs(itnei->second.x - itneip->second.x)*20; //dRANGE * BUZZRATE
-    double radtmp = visibility_radius_bounds[1]-vel*(visibility_radius_bounds[1]-visibility_radius_bounds[0]);
+    double vel = abs(itnei->second.r - itneip->second.r)*20; //dRANGE * BUZZRATE
+    double radtmp = visibility_radius_bounds[1]-vel*vel*(visibility_radius_bounds[1]-visibility_radius_bounds[0]);
     if(radtmp<visibility_radius_bounds[0])
       radtmp=visibility_radius_bounds[0];
     map<int, buzz_utility::RB_struct>::iterator itt;
     for (itt = wplist_map.begin(); itt != wplist_map.end(); ++itt)
     {
       double rb[3], ned[2];
-      double ref[2] = { lat, lon };
+      double ref[2] = { itnei->second.latitude, itnei->second.longitude };
       double tar[2] = { itt->second.latitude, itt->second.longitude };
       rb_from_gps(tar, rb, ref, ned);
-      double nei_ned[2] = {-itnei->second.x*cos(itnei->second.y), itnei->second.x*sin(itnei->second.y)};
-      double rangetotarget = sqrt((ned[0]-nei_ned[0])*(ned[0]-nei_ned[0])+(ned[1]-nei_ned[1])*(ned[1]-nei_ned[1]));
-      if (rangetotarget < radtmp && (buzz_utility::get_bvmstate() == "WAYPOINT" && itt->second.r == 0))
+      if (rb[0] < radtmp && (buzz_utility::get_bvmstate() == "WAYPOINT" && itt->second.r == 0))
       {
         //DEBUG
-        //if(buzz_utility::get_robotid()==1){
-        //  ROS_WARN("VARIABLE RADIUS: %f (%f - %f)", radtmp, vel, rangetotarget);
-        //  ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", itt->first);
-        //}
+        if(buzz_utility::get_robotid()==1){
+          ROS_WARN("[%i] TARGET FOUND: %f (%f|%f)", itnei->first, rb[0], radtmp, vel);
+        }
         res[0] = itt->first;
         res[1] = itt->second.latitude;
         res[2] = itt->second.longitude;
         res[3] = itt->second.altitude;
       }
-      else if (rangetotarget < radtmp && (buzz_utility::get_bvmstate() == "DEPLOY" && itt->second.r == 1))
+      else if (rb[0] < radtmp && (buzz_utility::get_bvmstate() == "DEPLOY" && itt->second.r == 1))
       {
         //DEBUG
         //ROS_WARN("FOUND A TARGET IN WAYPOINT!!! [%i]", itt->first);
@@ -1330,16 +1324,14 @@ void set_currentpos(double latitude, double longitude, float altitude, float yaw
   cur_pos[3] = yaw;
 }
 //  adds neighbours position
-void neighbour_pos_callback(int id, float range, float bearing, float elevation)
+void neighbour_pos_callback(int id, float range, float bearing, float latitude, float longitude, float elevation)
 {
-  buzz_utility::Pos_struct pos_arr;
-  pos_arr.x = range;
-  pos_arr.y = bearing;
-  pos_arr.z = elevation;
-  map<int, buzz_utility::Pos_struct>::iterator itp = neighbors_map_prev.find(id);
+  buzz_utility::RB_struct pos_arr(latitude, longitude, elevation, range, bearing);
+;
+  map<int, buzz_utility::RB_struct>::iterator itp = neighbors_map_prev.find(id);
   if (itp != neighbors_map_prev.end())
     neighbors_map_prev.erase(itp);
-  map<int, buzz_utility::Pos_struct>::iterator it = neighbors_map.find(id);
+  map<int, buzz_utility::RB_struct>::iterator it = neighbors_map.find(id);
   if (it != neighbors_map.end()){
     neighbors_map_prev.insert(make_pair(it->first, it->second));
     neighbors_map.erase(it);
@@ -1353,10 +1345,10 @@ void update_neighbors(buzzvm_t vm)
   //   Reset neighbor information
   buzzneighbors_reset(vm);
   //  Get robot id and update neighbor information
-  map<int, buzz_utility::Pos_struct>::iterator it;
+  map<int, buzz_utility::RB_struct>::iterator it;
   for (it = neighbors_map.begin(); it != neighbors_map.end(); ++it)
   {
-    buzzneighbors_add(vm, it->first, (it->second).x, (it->second).y, (it->second).z);
+    buzzneighbors_add(vm, it->first, (it->second).r, (it->second).b, (it->second).altitude);
   }
 }
 
