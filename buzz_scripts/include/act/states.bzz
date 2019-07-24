@@ -106,8 +106,9 @@ function stop() {
 wpreached = 1
 function indiWP() {
 	BVMSTATE = "WAYPOINT"
-	if(check_rc_wp()==0)
+	if(check_rc_wp()==0){
 		return
+	}
 
 	wpi = v_wp.get(id)
 	if(wpi!=nil) {
@@ -224,8 +225,9 @@ function lj_sum(rid, data, accum) {
 function lennardjones() {
   BVMSTATE="POTENTIAL"
 	check_rc_wp()
-	if(V_TYPE == 2)		# NOT MOVING!
+	if(V_TYPE == 2){		# NOT MOVING!
 		return
+	}
   # Calculate accumulator
   accum_lj = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
@@ -257,13 +259,16 @@ function voronoicentroid() {
   BVMSTATE="DEPLOY"
 	check_rc_wp()
 	wptab = v_wp.get(WPtab_id)
-	if(wptab==nil)
+	if(wptab==nil){
 		return
-	else if(not(size(wptab) > 0))
+	}
+	else if(not(size(wptab) > 0)){
 		return
+	}
 	#log("WP table size:", size(wptab))
-	if(V_TYPE == 2)
+	if(V_TYPE == 2){
 		return
+	}
 	if(counter==0) {
 		var att = {}
 		foreach(wptab, function(key, value){
