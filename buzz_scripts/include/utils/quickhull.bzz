@@ -6,11 +6,21 @@ function QuickHull(focalpts) {
     var listPts = {}
     var hullPts = {}
     jp = 0
+    #save current goal
+    save_goal = cur_goal
     foreach(focalpts, function(key, pt) {
         var ip = 0
         var totip = 12
         while(ip<totip){
-            listPts[jp*totip+ip]=math.vec2.add(pt,math.vec2.newp(areaRadius, 2*ip*math.pi/totip))
+            new_pt = math.vec2.add(pt,math.vec2.newp(areaRadius, 2*ip*math.pi/totip))
+            pt_gf = {.0=new_pt, .1=vec_from_gps(GPSlimit[1].lat, GPSlimit[1].lng, 0), .2=vec_from_gps(GPSlimit[2].lat, GPSlimit[2].lng, 0), .3=vec_from_gps(GPSlimit[3].lat, GPSlimit[3].lng, 0), .4=vec_from_gps(GPSlimit[4].lat, GPSlimit[4].lng, 0)}
+		    geofence(pt_gf)
+            # takes the update goal from geofence
+            if(cur_goal.latitude!=save_goal.latitude) {
+                new_pt = vec_from_gps(cur_goal.latitude, cur_goal.longitude, 0)
+                storegoal(save_goal.latitude, save_goal.longitude, pose.position.altitude)
+            }
+            listPts[jp*totip+ip]=new_pt   
             #log("Created new pt: ", listPts[jp*6+ip].x, listPts[jp*6+ip].y, "(", pt.x, pt.y, ")")
             ip=ip+1
         }

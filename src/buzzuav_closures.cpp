@@ -42,6 +42,10 @@ static std::vector<bounding_box> yolo_boxes;
 
 std::ofstream voronoicsv;
 
+template <typename T> int sign(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 struct Point
 {
   float x;
@@ -561,10 +565,11 @@ int buzzuav_geofence(buzzvm_t vm)
   // Check if we are in the zone
   if (isSiteout(P, polygon_bound))
   {
+    // We are! Set a new goal just before the fence.
     Point Intersection;
     getintersection(Point(0.0, 0.0), P, polygon_bound, &Intersection);
     double gps[3];
-    double d[2] = { Intersection.x, Intersection.y };
+    double d[2] = { Intersection.x - sign(Intersection.x)*1.5, Intersection.y - sign(Intersection.y)*1.5 };
     gps_from_vec(d, gps);
     set_gpsgoal(gps);
     ROS_WARN("Geofencing trigered, not going any further (%f,%f)!", d[0], d[1]);
