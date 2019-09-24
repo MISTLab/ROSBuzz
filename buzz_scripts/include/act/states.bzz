@@ -225,8 +225,9 @@ function lj_sum(rid, data, accum) {
 function lennardjones() {
   BVMSTATE="POTENTIAL"
 	check_rc_wp()
-	if(V_TYPE == 2)		# NOT MOVING!
+	if(V_TYPE == 2){		# NOT MOVING!
 		return
+	}
   # Calculate accumulator
   accum_lj = neighbors.map(lj_vector).reduce(lj_sum, math.vec2.new(0.0, 0.0))
   if(neighbors.count() > 0)
@@ -258,13 +259,16 @@ function voronoicentroid() {
   BVMSTATE="DEPLOY"
 	check_rc_wp()
 	wptab = v_wp.get(WPtab_id)
-	if(wptab==nil)
+	if(wptab==nil){
 		return
-	else if(not(size(wptab) > 0))
+	}
+	else if(not(size(wptab) > 0)){
 		return
+	}
 	log("WP table size:", size(wptab))
-	if(V_TYPE == 2)
+	if(V_TYPE == 2){
 		return
+	}
 	it_pts = 0
 	att = {}
 	foreach(wptab, function(key, value){
@@ -284,8 +288,9 @@ function voronoicentroid() {
 	# Boundaries from user attractors
 	#att = {.0=vec_from_gps(45.510283, -73.609633, 0), .1=vec_from_gps(45.510398, -73.609281, 0)}
 	bounds = QuickHull(att)
-	if(size(bounds)<3 )
+	if(size(bounds)<3 ){
 		return
+	}
 	if(counter==0) {
 		pts = {.np=size(bounds)}
 		it_pts = 0
