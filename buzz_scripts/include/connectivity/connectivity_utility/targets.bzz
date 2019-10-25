@@ -1,0 +1,157 @@
+M_TARGETS={}
+
+function Read_Target1(){
+	M_TARGETS[1] = {
+		.worker = -1,
+	    .x = 4.5, 
+	    .y = 4.5,   
+	    .ORI = {.theta = 0}, 
+	    .links = 1,
+	    .con_dist = 1, 
+	    .complete = 0
+	}
+	M_TARGETS[2] = {
+			.worker = -1,
+	    .x = -4.5, 
+	    .y = -4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 1,
+	    .con_dist = 1,
+	    .complete = 0
+	}
+	M_TARGETS[3] = {
+			.worker = -1,
+	    .x = -4.5, 
+	    .y = 4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 1,
+	    .con_dist = 1,   
+	    .complete = 0
+	}
+	M_TARGETS[4] = {
+			.worker = -1,
+	    .x = 4.5, 
+	    .y = -4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 1,
+	    .con_dist = 1, 
+	    .complete = 0  
+	}
+}
+ 
+function Read_Target2(){
+	M_TARGETS[1] = {
+			.worker = -1,
+	    .x = 4.5, 
+	    .y = 4.5,   
+	    .ORI = {.theta = 0}, 
+	    .links = 2,
+	    .con_dist = 1, 
+	    .complete = 0
+	}
+	M_TARGETS[2] = {
+			.worker = -1,
+	    .x = -4.5, 
+	    .y = -4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 2,
+	    .con_dist = 1,
+	    .complete = 0
+	}
+	M_TARGETS[3] = {
+			.worker = -1,
+	    .x = -4.5, 
+	    .y = 4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 2,
+	    .con_dist = 1,   
+	    .complete = 0
+	}
+	M_TARGETS[4] = {
+			.worker = -1,
+	    .x = 4.5, 
+	    .y = -4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 2,
+	    .con_dist = 1, 
+	    .complete = 0  
+	}
+}
+
+function Read_Target3(){
+	M_TARGETS[1] = {
+			.worker = -1,
+	    .x = 4.5, 
+	    .y = 4.5,   
+	    .ORI = {.theta = 0}, 
+	    .links = 3,
+	    .con_dist = 1, 
+	    .complete = 0
+	}
+	M_TARGETS[2] = {
+			.worker = -1,
+	    .x = -4.5, 
+	    .y = -4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 3,
+	    .con_dist = 1,
+	    .complete = 0
+	}
+	M_TARGETS[3] = {
+			.worker = -1,
+	    .x = -4.5, 
+	    .y = 4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 3,
+	    .con_dist = 1,   
+	    .complete = 0
+	}
+	M_TARGETS[4] = {
+			.worker = -1,
+	    .x = 4.5, 
+	    .y = -4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 3,
+	    .con_dist = 1, 
+	    .complete = 0  
+	}
+}
+
+function Read_Target4(){
+	M_TARGETS[1] = {
+			.worker = -1,
+	    .x = 4.5, 
+	    .y = 4.5,   
+	    .ORI = {.theta = 0}, 
+	    .links = 4,
+	    .con_dist = 1, 
+	    .complete = 0
+	}
+	M_TARGETS[2] = {
+			.worker = -1,
+	    .x = -4.5, 
+	    .y = -4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 4,
+	    .con_dist = 1,
+	    .complete = 0
+	}
+	M_TARGETS[3] = {
+			.worker = -1,
+	    .x = -4.5, 
+	    .y = 4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 4,
+	    .con_dist = 1,   
+	    .complete = 0
+	}
+	M_TARGETS[4] = {
+			.worker = -1,
+	    .x = 4.5, 
+	    .y = -4.5,   
+	    .ORI = {.theta = 0},
+	    .links = 4,
+	    .con_dist = 1, 
+	    .complete = 0  
+	}
+}

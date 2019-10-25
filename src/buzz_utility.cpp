@@ -246,7 +246,11 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "geofence", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_geofence));
   buzzvm_gstore(VM);
-
+  #if OMPL_FOUND
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "InitializePathPlanner", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::C_InitializePathPlanner));
+  buzzvm_gstore(VM);
+  #endif
   return VM->state;
 }
 

@@ -12,6 +12,48 @@
 #define DEG2RAD(DEG) (double)((DEG) * ((M_PI) / (180.0)))
 #define RAD2DEG(RAD) (double)((RAD) * ((180.0) / (M_PI)))
 
+static std::string log_path;
+/* Path Planner using ompl libs definition of namespaces and CONSTANST */
+#if OMPL_FOUND
+  #include <ompl/geometric/planners/rrt/RRTstar.h>
+  #include <ompl/tools/benchmark/Benchmark.h>
+  #include <ompl/base/spaces/RealVectorStateSpace.h>
+  #include "../src/path_planner_utils/svg_image.h"
+  #include "../src/path_planner_utils/path_existance_checking.h"
+  
+  namespace ob = ompl::base;
+  namespace og = ompl::geometric;
+  namespace pe = pathexsitance;
+  /*Additional variables declared for the path planner */
+  static const float MAX_ALT = 5;
+  static const float PLANE_RESOLUTION = 0.1;
+   /* Map file name */
+  static std::string strmapFName;
+  static int map_option=2; // IF 1 map is 3d, If 0 map is 2d, and IF 2 load an empty 2d map 
+  static int MIN_X = 0;
+  static int MAX_X;
+  static int MIN_Y = 0;
+  static int MAX_Y;
+  static double half_map_height;
+  static double half_map_length; 
+  static std::vector<std::vector<std::vector<int>>> Grid_map;
+  static int save_solution_svg=1;
+  /* Map constants within the map file */
+  static const char free_space = '.';
+  static const char free_space_l = 'G';
+  static const char outofbound_space = '@';
+  static const char outofbound_space_l = 'O';
+  static const char Tree_space = 'T';
+  static const char Swap_space = 'S';
+  static const char Water_space = 'W';
+  static const char START_space = 'A';
+  static const char TARGET_space = 'X';
+  static const float ROBOT_BUFFER = 0.01; // Consider robot radius
+  static const float OBSTACLE_SIDES1 = 1.0f;
+  static const float OBSTACLE_SIDES2 = 1.0f;
+  
+#endif
+
 namespace buzzuav_closures
 {
 struct bounding_box_struct
@@ -215,4 +257,137 @@ int buzzuav_update_prox(buzzvm_t vm);
 int bzz_cmd();
 
 int dummy_closure(buzzvm_t vm);
+
+void set_log_path(std::string path);
+
+#if OMPL_FOUND
+
+int C_InitializePathPlanner(buzzvm_t vm);
+
+std::vector<std::vector<double>> InitializePathPlanner(buzzvm_t m_tBuzzVM,  float* start_end_time);
+
+    // Collision checker for 2d Path planner.
+    class ValidityChecker : public ob::StateValidityChecker
+    {
+    public:
+        ValidityChecker(const ob::SpaceInformationPtr& si) :
+            ob::StateValidityChecker(si),gridToCheck(3),Empty(0) {}
+        ValidityChecker(const ob::SpaceInformationPtr& si, std::vector<std::vector<int>> Grid_map) :
+        ob::StateValidityChecker(si),gridToCheck(3),Empty(0) {
+          Grid_obst = Grid_map;
+        }
+        ValidityChecker(std::vector<std::vector<int>> Grid_map):ob::StateValidityChecker(nullptr),
+                        gridToCheck(3),Empty(0){
+          Grid_obst = Grid_map;
+        }
+        /* Constructor for empty map */
+        ValidityChecker(const ob::SpaceInformationPtr& si, std::vector<std::vector<int>> Grid_map, int empty) :
+        ob::StateValidityChecker(si),gridToCheck(3),Empty(empty){
+          Grid_obst = Grid_map;
+        }
+        bool isValid(double* state2D) const
+        {
+        
+          if(Grid_obst[state2D[0]][state2D[1]]) return false;
+          return true;
+            // return this->clearance(state) > 0.0;
+        }
+        // Returns whether the given state's position overlaps
+        // any of the obstacles in grid map
+        bool isValid(const ob::State* state) const
+        {
+          if(Empty){
+            return true;
+          }
+          else{
+            const ob::RealVectorStateSpace::StateType* state2D =
+                  state->as<ob::RealVectorStateSpace::StateType>();
+              for(int i=-1; i < gridToCheck; ++i){
+                for(int j=-1; j < gridToCheck;++j){
+                  if(Grid_obst[state2D->values[0]+i][state2D->values[1]+j]) return false;
+                }
+              }
+            return true;
+          }
+        }
+    protected:
+      int gridToCheck, Empty;
+      std::vector<std::vector<int>> Grid_obst;
+    };
+    //collision checker for 3d path planner
+    class ValidityChecker3D : public ob::StateValidityChecker
+    {
+    public:
+        ValidityChecker3D(const ob::SpaceInformationPtr& si, std::vector<std::vector<std::vector<int>>> 
+          Grid_map) :ob::StateValidityChecker(si),gridToCheck(3) {
+          Grid_obst= Grid_map;
+        }
+        // Returns whether the given state's position overlaps the
+        // circular obstacle
+        bool isValid(const ob::State* state) const
+        {
+          const ob::RealVectorStateSpace::StateType* state3D =
+                state->as<ob::RealVectorStateSpace::StateType>();
+          int x =round(state3D->values[0]);
+          int y =round(state3D->values[1]);
+              int comp_planning_plane = (state3D->values[2]/PLANE_RESOLUTION);
+          if(Grid_obst[comp_planning_plane][x][y]) return false;
+            int k=-2, check_z =gridToCheck;
+          if(state3D->values[2] > MAX_ALT-1 || state3D->values[2] < 1 ){ k=0; check_z=1;}
+          for(; k < check_z;++k){
+            comp_planning_plane = (state3D->values[2]/PLANE_RESOLUTION)+k;
+            if(Grid_obst[comp_planning_plane][x][y]) return false;
+            else{
+
+              for(int i=-2; i < gridToCheck; ++i){
+                for(int j=-2; j < gridToCheck;++j){
+                  if(x+i < Grid_obst[comp_planning_plane].size() &&
+                     x+i >= 0 &&
+                     y+j < Grid_obst[comp_planning_plane][x+i].size() &&
+                     y+j >=0 ){
+                    if(Grid_obst[comp_planning_plane][x+i][y+j]){
+                      if(clearance(state,x+i,y+j,comp_planning_plane*PLANE_RESOLUTION)){
+                        // std::cout<<"Clearence not satisfied"<<std::endl;
+                        return false;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+        }
+          return true;
+            // return this->clearance(state) > 0.0;
+        }
+        // Returns the distance from the given state's position to
+        // another state.
+        bool clearance(const ob::State* state1, double x2, double y2, double z2) const
+        {
+            // We know we're working with a RealVectorStateSpace in this
+            // example, so we downcast state into the specific type.
+            const ob::RealVectorStateSpace::StateType* state_1 =
+                state1->as<ob::RealVectorStateSpace::StateType>();
+            // const ob::RealVectorStateSpace::StateType* state_2 =
+            //     state2->as<ob::RealVectorStateSpace::StateType>();
+            // Extract the robot's (x,y) position from its state
+            double x1 = state_1->values[0];
+            double y1 = state_1->values[1];
+            double z1 = state_1->values[2];
+
+            // double x2 = state_1->values[0];
+            // double y2 = state_1->values[1];
+            // double z2 = state_1->values[2];
+
+      
+            // Distance formula between two points, offset by a circle
+            // radius for clearence from obst
+            return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2)) - 1.6 < 0.0;
+        }
+
+    protected:
+      int gridToCheck;
+      std::vector<std::vector<std::vector<int>>> Grid_obst;
+    };
+#endif
 }

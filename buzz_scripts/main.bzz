@@ -9,6 +9,7 @@ include "taskallocate/graphformGPS.bzz"
 include "vstigenv.bzz"
 #include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
+include "connectivity/chain_formation.bzz"
 
 #State launched after takeoff
 
@@ -26,7 +27,7 @@ if(id==0)	# No network ID=0, it's the groundstation/charging station.
 else
 	V_TYPE = 0
 
-
+LAUNCH_CONNECTIVITY = 1
 # Executed once at init time.
 function init() {
   	init_stig()
@@ -38,6 +39,7 @@ function init() {
 	# start the swarm command listener
 	nei_cmd_listen()
 
+	if(LAUNCH_CONNECTIVITY) intialize_chain_formation()
     # Starting state: TURNEDOFF to wait for user input.
 	BVMSTATE = "TURNEDOFF"
 }
@@ -69,6 +71,8 @@ function step() {
 			statef=launch_switch
 	else if(BVMSTATE=="GOHOME") # ends on AUTO_LAUNCH_STATE
 		statef=goinghome
+	else if(BVMSTATE=="CHAIN_FORMATION")
+		statef=chain_formation
 	else if(BVMSTATE=="WAYPOINT")
 		statef=indiWP
 	else if(BVMSTATE=="IDLE")

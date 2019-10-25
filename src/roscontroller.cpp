@@ -211,6 +211,7 @@ void roscontroller::initcsvlog()
   path = path.substr(0, bzzfile_name.find_last_of("\\/")) + "/log/";
   std::string folder_check = "mkdir -p " + path;
   system(folder_check.c_str());
+  buzzuav_closures::set_log_path(path);
   for (int i = 5; i > 0; i--)
   {
     rename((path + "logger_" + std::to_string((uint8_t)robot_id) + "_" + std::to_string(i - 1) + ".log").c_str(),
