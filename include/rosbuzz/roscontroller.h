@@ -35,21 +35,21 @@
 #include <signal.h>
 #include <ostream>
 #include <map>
-#include "buzzuav_closures.h"
-#include "rosbuzz/mavrosCC.h"
+#include <rosbuzz/buzzuav_closures.h>
+#include <rosbuzz/mavrosCC.h>
 
 /*
 * ROSBuzz message types
 */
 typedef enum {
-  ROS_BUZZ_MSG_NIL = 0,    // dummy msg
-  UPDATER_MESSAGE,         // Update msg
-  BUZZ_MESSAGE,            // Broadcast message
-  BUZZ_MESSAGE_TIME,       // Broadcast message with time info
+  ROS_BUZZ_MSG_NIL = 0,  // dummy msg
+  UPDATER_MESSAGE,       // Update msg
+  BUZZ_MESSAGE,          // Broadcast message
+  BUZZ_MESSAGE_TIME,     // Broadcast message with time info
 } rosbuzz_msgtype;
 
 // Time sync algo. constants
-#define COM_DELAY 100000000 // in nano seconds i.e 100 ms
+#define COM_DELAY 100000000  // in nano seconds i.e 100 ms
 #define TIME_SYNC_JUMP_THR 500000000
 #define MOVING_AVERAGE_ALPHA 0.1
 #define MAX_NUMBER_OF_ROBOTS 10
@@ -107,8 +107,8 @@ private:
     uint16_t size;
     uint64_t sent_time;
     uint64_t received_time;
-    MsgData(int mi, uint16_t ni, uint16_t s, uint64_t st, uint64_t rt):
-            msgid(mi), nid(ni), size(s),sent_time(st), received_time(rt){};
+    MsgData(int mi, uint16_t ni, uint16_t s, uint64_t st, uint64_t rt)
+      : msgid(mi), nid(ni), size(s), sent_time(st), received_time(rt){};
     MsgData(){};
   };
   typedef struct MsgData msg_data;
@@ -131,6 +131,8 @@ private:
   int rc_cmd;
   float fcu_timeout;
   int armstate;
+  int ca_on;
+  std::string autolaunchstate = "";
   int barrier;
   int update;
   int message_number = 0;
@@ -147,6 +149,7 @@ private:
   std::string bcfname, dbgfname;
   std::string stand_by;
   std::string capture_srv_name;
+  std::string yolobox_sub_name;
 
   // ROS service, publishers and subscribers
   ros::ServiceClient mav_client;
@@ -171,6 +174,7 @@ private:
   ros::Subscriber Robot_id_sub;
   ros::Subscriber relative_altitude_sub;
   ros::Subscriber local_pos_sub;
+  ros::Subscriber yolo_sub;
 
   std::map<std::string, std::string> m_smTopic_infos;
 
@@ -256,6 +260,9 @@ private:
 
   /*payload callback callback*/
   void payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg);
+
+  /*yolo bounding box callback function*/
+  void yolo_box_process(const mavros_msgs::Mavlink::ConstPtr& msg);
 
   /* RC commands service */
   bool rc_callback(mavros_msgs::CommandLong::Request& req, mavros_msgs::CommandLong::Response& res);

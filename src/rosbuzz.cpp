@@ -6,7 +6,7 @@
  *  @copyright 2016 MistLab. All rights reserved.
  */
 
-#include "roscontroller.h"
+#include <rosbuzz/roscontroller.h>
 
 int main(int argc, char** argv)
 /*

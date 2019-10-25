@@ -1,0 +1,40 @@
+# Lennard-Jones parameters
+LJ_TARGET     = 40.0
+LJ_EPSILON    = 60.0
+ 
+# Lennard-Jones interaction magnitude
+function lj_magnitude(dist, target, epsilon) {
+  return -(epsilon / dist) * ((target / dist)^4 - (target / dist)^2)
+}
+ 
+# Neighbor data to LJ interaction vector
+function lj_vector(rid, data) {
+   return math.vec2.newp(lj_magnitude(data.distance, LJ_TARGET, LJ_EPSILON), data.azimuth)
+}
+ 
+# Accumulator of neighbor LJ interactions
+function lj_sum(rid, data, accum) {
+  return math.vec2.add(data, accum)
+}
+
+# sum the lj magnitude for only given robots
+function lj_sum_restricted2(rid, data, accum) {
+  if(rid == accum.rid[0]){
+  	accum.x = accum.x + data.x
+  	accum.y = accum.y + data.y
+  }
+  else if(rid == accum.rid[1]){
+  	accum.x = accum.x + data.x
+  	accum.y = accum.x + data.y
+  }
+  return accum
+}
+
+# sum the lj magnitude for only robots in set 
+function lj_sum_robots_in_set(rid, data, accum){
+  if(find_robot_is_in_set(rid,accum.set) != -1){
+    accum.x = accum.x + data.x
+    accum.y = accum.y + data.y
+  }
+  return accum
+}

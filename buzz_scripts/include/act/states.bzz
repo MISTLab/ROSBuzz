@@ -10,6 +10,7 @@ include "utils/quickhull.bzz"
 include "act/naviguation.bzz"
 include "act/CA.bzz"
 include "act/neighborcomm.bzz"
+include "taskallocate/discomp.bzz"
 
 TARGET_ALTITUDE = 15.0 # m.
 BVMSTATE = "TURNEDOFF"
@@ -31,24 +32,32 @@ function idle() {
     BVMSTATE = "IDLE"
 }
 
+
 # Core state function to launch the robot: takeoff and wait for others, or stop (land)
 function launch() {
 	BVMSTATE = "LAUNCH"
 	neighbors.broadcast("cmd", 22)
-	log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
-	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
+	if(LAUNCH_CONNECTIVITY){
 		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
-		log("Recorded home point: ",homegps.lat, homegps.lng)
-		if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
-			barrier_ready(22)
-		} else {
-			log("Altitude: ", pose.position.altitude)
-			uav_takeoff(TARGET_ALTITUDE)
-		}
-	} else {
 		barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
 		barrier_ready(22)
+	}
+	else{
+		log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
+		if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
+			homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
+			log("Recorded home point: ",homegps.lat, homegps.lng)
+			if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+				barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
+				barrier_ready(22)
+			} else {
+				log("Altitude: ", pose.position.altitude)
+				uav_takeoff(TARGET_ALTITUDE)
+			}
+		} else {
+			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
+			barrier_ready(22)
+		}
 	}
 }
 
@@ -71,20 +80,19 @@ function launch_switch() {
 	}
 }
 
+# Launch function that launches the connectivity script
+
+
 gohomeT=100
 # State function to go back to ROSBuzz recorded home GPS position (at takeoff)
 function goinghome() {
   BVMSTATE = "GOHOME"
-	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
-		m_navigation = vec_from_gps(homegps.lat, homegps.lng, 0)
-		#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
-		if(math.vec2.length(m_navigation) < GOTODIST_TOL){ # reached destination
-				BVMSTATE = AUTO_LAUNCH_STATE
-		} else {
-			m_navigation = LimitSpeed(m_navigation, 3.0)
-			#m_navigation = LCA(m_navigation)
-			goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
-		}
+	if(V_TYPE == 0 or V_TYPE == 1) {	# vehicle
+		if(cur_goal.latitude == homegps.lat and cur_goal.longitude == homegps.lng) {
+			#log("Distance to Home :",math.vec2.length(vec_from_gps(cur_goal.latitude, cur_goal.longitude, 0)))
+			goto_gps(str2fct(AUTO_LAUNCH_STATE))
+		} else
+			storegoal(homegps.lat, homegps.lng, pose.position.altitude)
 	} else
 		BVMSTATE = AUTO_LAUNCH_STATE
 }
@@ -92,48 +100,50 @@ function goinghome() {
 # Core state function to stop and land.
 function stop() {
   BVMSTATE = "STOP"
-  neighbors.broadcast("cmd", 21)
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so LAND
-		uav_land()
 		if(pose.position.altitude <= 0.2) {
-			BVMSTATE = "STOP"
 			barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
 			barrier_ready(21)
-		}
+		} else
+			uav_land()
 	} else {
-			BVMSTATE = "STOP"
 			barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
 			barrier_ready(21)
 	}
 }
 
 # State functions for individual waypoint control
-
 wpreached = 1
 function indiWP() {
 	BVMSTATE = "WAYPOINT"
-	check_rc_wp()
+	if(check_rc_wp()==0){
+		return
+	}
 
 	wpi = v_wp.get(id)
 	if(wpi!=nil) {
 		wp = unpackWP2i(wpi)
 		if(wp.pro == 0) {
 				wpreached = 0
-				storegoal(wp.lat, wp.lng, pose.position.altitude)
-				var ls = packWP2i(wp.lat, wp.lng, 1)
-				v_wp.put(id,ls)
-				return
-			}      
+				if(cur_goal.latitude == wp.lat and cur_goal.longitude == wp.lng) {
+					var ls = packWP2i(wp.lat, wp.lng, 1)
+					v_wp.put(id,ls)
+				} else {
+					storegoal(wp.lat, wp.lng, pose.position.altitude)
+					return
+				}
+			}
 	}
 
 	if(wpreached!=1)
 		goto_gps(indiWP_done)
-
 }
 
 function indiWP_done() {
 	BVMSTATE = "WAYPOINT"
+	log("Done with this Waypoint!")
 	wpreached = 1
+	moving = 0
 }
 
 # State function to take a picture from the camera server (developed by HS)
@@ -182,7 +192,7 @@ function aggregate() {
 # State fucntion to circle all together around centroid
 function pursuit() {
   BVMSTATE="PURSUIT"
-	rd = 20.0
+	rd = 30.0
 	pc = 3.2
 	vd = 15.0
   r_vec = neighbors.reduce(function(rid, data, r_vec) {
@@ -292,27 +302,48 @@ function voronoicentroid() {
 		return
 	}
 	if(counter==0) {
-		pts = {.np=size(bounds)}
-		it_pts = 0
-		foreach(bounds, function(key, value) {
-			pts[it_pts]=value
-			it_pts = it_pts + 1
+		var att = {}
+		foreach(wptab, function(key, value){
+				wp = unpackWP2i(value)
+				if(key > 99)
+					log("Nothing planed for the repulsors yet....")
+				else if(key > 49) {
+					att[size(att)]=vec_from_gps(wp.lat, wp.lng, 0)
+					#log("Attractor: ",key, wp.lat, wp.lng)
+				}
 		})
-		pts[it_pts] = {.x=0, .y=0}	#add itself
-		it_pts = it_pts + 1
+		# Boundaries from Geofence
+		#it_pts = 0
+		#foreach(GPSlimit, function(key, value) {
+		#		bounds[it_pts]=vec_from_gps(value.lat, value.lng, 0)
+		#		it_pts = it_pts + 1
+		#})
+		# Boundaries from user attractors
+		#att = {.0=vec_from_gps(45.510283, -73.609633, 0), .1=vec_from_gps(45.510398, -73.609281, 0)}
+		var bounds = QuickHull(att)
+		#tableofvec_print(bounds)
+		if(size(bounds)<3) {
+			log("Wrong polygon shape!")
+			return
+		}
+		
+		var pts = {.np=size(bounds)}
+		foreach(bounds, function(key, value) {
+			pts[size(pts)-1]=value
+		})
+		pts[size(pts)-1] = {.x=0, .y=0}	#add itself
 		if(neighbors.count() > 0) {
 			neighbors.foreach(function(rid, data) {
 				if(rid!=0){	#remove GS (?)
-					pts[it_pts]=math.vec2.newp(data.distance,data.azimuth)
-					it_pts = it_pts + 1
+					pts[size(pts)-1]=math.vec2.newp(data.distance,data.azimuth)
 				}
 			})
 			#table_print(pts)
 			voronoi(pts)
 		}
-		counter=4
-	}
-	counter=counter-1
+		counter = 10 # To avoid full Voronoi re-computation each step.
+	} else
+		counter=counter-1
 
 	goto_gps(voronoicentroid_done)
 }
@@ -322,64 +353,11 @@ function voronoicentroid_done() {
 }
 
 # Custom state function for the developer to play with
+firstincus = 1
 function cusfun(){
 	BVMSTATE="CUSFUN"
-	#log("cusfun: yay!!!")
-	#LOCAL_TARGET = math.vec2.new(5 ,0 )
-	#local_set_point = math.vec2.new(LOCAL_TARGET.x - pose.position.x ,LOCAL_TARGET.y - pose.position.y ) # has to move 5 meters in x from the home location
-    #if(math.vec2.length(local_set_point) > GOTODIST_TOL){
-	#	local_set_point = LimitSpeed(local_set_point, 1.0)
-	#	goto_abs(local_set_point.x, local_set_point.y, 0.0, 0.0)
-    #}
-    #else{
-    #	log("TARGET REACHED")
-    #}
-
-	initialPoint = 0
-
-	# Get waypoint list
-	if (id == 1) {
-		waypoints = {
-			.0 = math.vec2.new(-5.0, -5.0),
-			.1 = math.vec2.new(5.0, 5.0)
-		}
-	} else if (id == 2 ) {
-		waypoints = {
-			.0 = math.vec2.new(5.0, 5.0),
-			.1 = math.vec2.new(-5.0, -5.0)
-		}
-	}
-
-	# Current waypoint
-	target_point = waypoints[point]
-
-	# Get drone position and transform to global frame - depends on lauch file
-	offset_x = 0.0
-	offset_y = 0.0
-	if (id == 1) {
-		offset_x = 5.0
-		offset_y = 5.0
-	} else if (id == 2 ) {
-		offset_x = -5.0
-		offset_y = -5.0
-	}
-	pos_x = pose.position.x + offset_x;
-	pos_y = pose.position.y + offset_y;
-
-	# Get a vector pointing to target and target distance
-	vector_to_target = math.vec2.sub(target_point, math.vec2.new(pos_x, pos_y))
-	distance_to_target = math.vec2.length(vector_to_target)
-
-	# Run LCA and increment waypoint
-	if(distance_to_target > 0.2){
-		vector_to_target = LCA(vector_to_target)
-		vector_to_target = LimitSpeed(vector_to_target, 0.5)
-		goto_abs(vector_to_target.x, vector_to_target.y, 0.0, 0.0)
-	} else {
-		if(point < size(waypoints) - 1){
-			point = point + 1
-		} else {
-			point = 0
-		}
+	if(firstincus) {
+		discomp_init()
+		firstincus = 0
 	}
 }

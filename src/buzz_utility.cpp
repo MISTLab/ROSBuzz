@@ -6,7 +6,7 @@
  *  @copyright 2016 MistLab. All rights reserved.
  */
 
-#include "buzz_utility.h"
+#include <rosbuzz/buzz_utility.h>
 
 namespace buzz_utility
 {
@@ -17,7 +17,7 @@ static buzzvm_t VM = 0;
 static char* BO_FNAME = 0;
 static uint8_t* BO_BUF = 0;
 static buzzdebug_t DBG_INFO = 0;
-static uint32_t MAX_MSG_SIZE = 180;//250;  // Maximum Msg size for sending update packets
+static uint32_t MAX_MSG_SIZE = 190;  // 250;  // Maximum Msg size for sending update packets
 static uint8_t Robot_id = 0;
 static std::vector<uint8_t*> IN_MSG;
 std::map<int, Pos_struct> users_map;
@@ -246,7 +246,11 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "geofence", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_geofence));
   buzzvm_gstore(VM);
-
+  #if OMPL_FOUND
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "InitializePathPlanner", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::C_InitializePathPlanner));
+  buzzvm_gstore(VM);
+  #endif
   return VM->state;
 }
 
@@ -307,7 +311,7 @@ static int testing_buzz_register_hooks()
   return VM->state;
 }
 
-int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robot_id)
+int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robot_id, int ca, const char* state)
 /*
 / Sets the .bzz and .bdbg file
 ---------------------------------*/
@@ -338,10 +342,10 @@ int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robo
   // Save bytecode file name
   BO_FNAME = strdup(bo_filename);
 
-  return buzz_update_set(BO_BUF, bdbg_filename, bcode_size);
+  return buzz_update_set(BO_BUF, bdbg_filename, bcode_size, ca, state);
 }
 
-int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size)
+int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size, int ca, const char* state)
 /*
 / Sets a new update
 -----------------------*/
@@ -384,6 +388,8 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   buzzvm_pushs(VM, buzzvm_string_register(VM, "BMVSTATE", 1));
   buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
   buzzvm_gstore(VM);
+  set_ca_on_var(ca);
+  set_autolaunch_var(state);
 
   // Execute the global part of the script
   if (buzzvm_execute_script(VM) != BUZZVM_STATE_DONE)
@@ -401,7 +407,7 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   return 1;
 }
 
-int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size)
+int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size, int ca, const char* state)
 /*
 / Performs a initialization test
 -----------------------------------*/
@@ -440,10 +446,12 @@ int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t 
     return 0;
   }
 
-  // Initialize UAVSTATE variable
+  // Initialize state variables
   buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
   buzzvm_pushs(VM, buzzvm_string_register(VM, "TURNEDOFF", 1));
   buzzvm_gstore(VM);
+  set_ca_on_var(ca);
+  set_autolaunch_var(state);
 
   // Execute the global part of the script
   if (buzzvm_execute_script(VM) != BUZZVM_STATE_DONE)
@@ -483,6 +491,7 @@ void update_sensors()
   buzzuav_closures::buzzuav_update_currentpos(VM);
   buzzuav_closures::update_neighbors(VM);
   buzzuav_closures::buzzuav_update_flight_status(VM);
+  buzzuav_closures::buzzuav_update_yolo_boxes(VM);
 }
 
 void buzz_script_step()
@@ -564,6 +573,28 @@ void set_robot_var(int ROBOTS)
   buzzvm_gstore(VM);
 }
 
+void set_ca_on_var(int CA_ON)
+/*
+/ set collision avoidance in the BVM
+-----------------------------*/
+{
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "CA_ON", 1));
+  buzzvm_pushi(VM, CA_ON);
+  buzzvm_gstore(VM);
+}
+
+void set_autolaunch_var(const char* as)
+/*
+/ set collision avoidance in the BVM
+-----------------------------*/
+{
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "AUTO_LAUNCH_STATE", 1));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, as, 1));
+  buzzvm_gstore(VM);
+}
+
+
+
 int get_inmsg_size()
 /*
 / get the incoming msgs size
@@ -572,7 +603,8 @@ int get_inmsg_size()
   return IN_MSG.size();
 }
 
-std::vector<uint8_t*> get_inmsg_vector(){
+std::vector<uint8_t*> get_inmsg_vector()
+{
   return IN_MSG;
 }
 
@@ -590,11 +622,12 @@ string get_bvmstate()
 ---------------------------------------*/
 {
   std::string uav_state = "Unknown";
-  if(VM && VM->strings){
+  if (VM && VM->strings)
+  {
     buzzvm_pushs(VM, buzzvm_string_register(VM, "BVMSTATE", 1));
     buzzvm_gload(VM);
     buzzobj_t obj = buzzvm_stack_at(VM, 1);
-    if(obj->o.type == BUZZTYPE_STRING)
+    if (obj->o.type == BUZZTYPE_STRING)
       uav_state = string(obj->s.value.str);
     else
       uav_state = "Not Available";
@@ -603,8 +636,8 @@ string get_bvmstate()
   return uav_state;
 }
 
-int get_swarmsize() {
+int get_swarmsize()
+{
   return (int)buzzdict_size(VM->swarmmembers) + 1;
 }
-
 }

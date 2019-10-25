@@ -14,6 +14,7 @@ topics:
   npose: neighbours_pos
   fstatus: fleet_status
   targetf: targets_found
+  yolobox: intermediator_ros/bounding_boxes
 services:
   fcclient:   cmd/command
   armclient:  cmd/arming

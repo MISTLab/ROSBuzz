@@ -1,0 +1,215 @@
+function discomp_init() {
+    LANZAROTE18_LAT = pose.position.latitude
+    LANZAROTE18_LON = pose.position.longitude
+    OUTPUT_NAME_HEADER = string.concat("/home/dave/",string.tostring(LANZAROTE18_LAT),"-",string.tostring(LANZAROTE18_LON))
+    
+    output_file_alg=io.fopen(string.concat(OUTPUT_NAME_HEADER, "-alg-",string.tostring(id), ".csv"), "w")
+    output_file_rob=io.fopen(string.concat(OUTPUT_NAME_HEADER, "-rob-",string.tostring(id), ".csv"), "w")
+    output_file_lej=io.fopen(string.concat(OUTPUT_NAME_HEADER, "-lej-",string.tostring(id), ".csv"), "w")
+    output_file_tel=io.fopen(string.concat(OUTPUT_NAME_HEADER, "-tel-",string.tostring(id), ".csv"), "w")    
+    #######################################################################################
+    # ALG LISTEN ########################################################################## 
+    #######################################################################################
+    float_counter = {}
+    float_counter[24]= 0.0
+    float_counter[25]= 0.0
+    float_counter[26]= 0.0
+    float_counter[27]= 0.0
+    float_counter[28]= 0.0
+    # 24, 25, 26, 27, 28
+    ###############
+    if (id!=24) { ####################################################################################### EDIT
+    neighbors.listen("24floatcounter", ################################################################## EDIT
+       function(vid, value, rid) {
+          var num = 24 ################################################################################## EDIT
+          if ((id != num) and (value > float_counter[num])) {
+                  float_counter[num] = value
+                  neighbors.broadcast(string.concat(string.tostring(num),"floatcounter"), value)
+          }
+          io.fwrite(output_file_alg, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(value)    
+                                                  ))
+       }
+    )
+    }
+    ###############
+    if (id!=25) { ####################################################################################### EDIT
+    neighbors.listen("25floatcounter", ################################################################## EDIT
+       function(vid, value, rid) {
+          var num =25 ################################################################################## EDIT
+          if ((id != num) and (value > float_counter[num])) {
+                  float_counter[num] = value
+                  neighbors.broadcast(string.concat(string.tostring(num),"floatcounter"), value)
+          }
+          io.fwrite(output_file_alg, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(value)    
+                                                  ))
+       }
+    )
+    }
+    ###############
+    if (id!=26) { ####################################################################################### EDIT
+    neighbors.listen("26floatcounter", ################################################################## EDIT
+       function(vid, value, rid) {
+          var num = 26 ################################################################################## EDIT
+          if ((id != num) and (value > float_counter[num])) {
+                  float_counter[num] = value
+                  neighbors.broadcast(string.concat(string.tostring(num),"floatcounter"), value)
+          }
+          io.fwrite(output_file_alg, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(value)    
+                                                  ))
+       }
+    )
+    }
+    ###############
+    if (id!=27) { ####################################################################################### EDIT
+    neighbors.listen("27floatcounter", ################################################################## EDIT
+       function(vid, value, rid) {
+          var num = 27 ################################################################################## EDIT
+          if ((id != num) and (value > float_counter[num])) {
+                  float_counter[num] = value
+                  neighbors.broadcast(string.concat(string.tostring(num),"floatcounter"), value)
+          }
+          io.fwrite(output_file_alg, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(value)    
+                                                  ))
+       }
+    )
+    }
+    ###############
+    if (id!=28) { ####################################################################################### EDIT
+    neighbors.listen("28floatcounter", ################################################################## EDIT
+       function(vid, value, rid) {
+          var num = 28 ################################################################################## EDIT
+          if ((id != num) and (value > float_counter[num])) {
+                  float_counter[num] = value
+                  neighbors.broadcast(string.concat(string.tostring(num),"floatcounter"), value)
+          }
+          io.fwrite(output_file_alg, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(value)    
+                                                  ))
+       }
+    )
+    }
+    ###############
+    
+    #######################################################################################
+    # ROB LISTEN ##########################################################################
+    #######################################################################################
+    # 24, 25, 26, 27, 28
+    if (id!=24) { ####################################################################################### EDIT
+    neighbors.listen("24secondhop", ##################################################################### EDIT
+       function(vid, value, rid) {
+          var num = 24 ################################################################################## EDIT
+          io.fwrite(output_file_rob, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(float_counter[id]), ",", #counter used as a timer
+                                                  value    
+                                                  ))
+       }
+    )
+    }
+    ###############
+    if (id!=25) { ####################################################################################### EDIT
+    neighbors.listen("25secondhop", ##################################################################### EDIT
+       function(vid, value, rid) {
+          var num = 25 ################################################################################## EDIT
+          io.fwrite(output_file_rob, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(float_counter[id]), ",", #counter used as a timer
+                                                  value    
+                                                  ))
+       }
+    )
+    }
+    ###############
+    if (id!=26) { ####################################################################################### EDIT
+    neighbors.listen("26secondhop", ##################################################################### EDIT
+       function(vid, value, rid) {
+          var num = 26 ################################################################################## EDIT
+          io.fwrite(output_file_rob, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(float_counter[id]), ",", #counter used as a timer
+                                                  value    
+                                                  ))
+       }
+    )
+    }
+    ###############
+    if (id!=27) { ####################################################################################### EDIT
+    neighbors.listen("27secondhop", ##################################################################### EDIT
+       function(vid, value, rid) {
+          var num = 27 ################################################################################## EDIT
+          io.fwrite(output_file_rob, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(float_counter[id]), ",", #counter used as a timer
+                                                  value    
+                                                  ))
+       }
+    )
+    }
+    ###############
+    if (id!=28) { ####################################################################################### EDIT
+    neighbors.listen("28secondhop", ##################################################################### EDIT
+       function(vid, value, rid) {
+          var num = 28 ################################################################################## EDIT
+          io.fwrite(output_file_rob, string.concat(   string.tostring(id), ",",
+                                                  string.tostring(num), ",",
+                                                  string.tostring(float_counter[id]), ",", #counter used as a timer
+                                                  value    
+                                                  ))
+       }
+    )
+    }
+    ###############
+}
+ 
+function discomp_step() {    
+    ############### TELEMETRY START
+    var latitude_telemetry = pose.position.latitude  ##################################################################### EDIT
+    var longitude_telemetry = pose.position.longitude ##################################################################### EDIT
+    io.fwrite(output_file_tel,string.concat(string.tostring(id),",",string.tostring(float_counter[id]),",",string.tostring(latitude_telemetry),",",string.tostring(longitude_telemetry)   ) )
+    ############### TELEMETRY END
+    
+    ############### LOG ALG START
+    float_counter[id] = float_counter[id] + (1.0)
+    neighbors.broadcast(string.concat(string.tostring(id),"floatcounter"), float_counter[id])
+    ############### LOG ALG END
+    
+    ############### LOG ROB START
+    secondhop = ","
+    neighbors.foreach(
+      function(rid, data) {
+          secondhop = string.concat(secondhop, ",", 
+                                  string.tostring(rid)
+                                  )
+    })
+    neighbors.broadcast(string.concat(string.tostring(id),"secondhop"), secondhop)
+    ############### LOG ROB END
+    
+    ############### LOG LEJ START
+    neighofline = string.concat("neighof,",string.tostring(id))
+    neighbors.foreach(
+      function(rid, data) {
+          neighofline = string.concat(neighofline, ",", 
+                                  string.tostring(rid), ",", 
+                                  string.tostring(data.distance), ",", 
+                                  string.tostring(data.azimuth)
+                                  )
+    })
+    io.fwrite(output_file_lej,neighofline)
+    ############### LOG LEJ END
+}
+ 
+function discomp_destroy() {
+    io.fclose(output_file_alg)
+    io.fclose(output_file_rob)
+    io.fclose(output_file_lej)
+    io.fclose(output_file_tel)
+}

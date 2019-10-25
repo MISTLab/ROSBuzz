@@ -59,7 +59,7 @@ function rc_cmd_listen() {
 				destroyGraph()
 				resetWP()
 				check_rc_wp()
-				barrier_set(ROBOTS, "POTENTIAL", BVMSTATE, 903)
+				barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 903)
 				barrier_ready(903)
 				neighbors.broadcast("cmd", 903)
 			} else if (flight.rc_cmd==904){
@@ -76,6 +76,10 @@ function rc_cmd_listen() {
 
 # listens to neighbors broadcasting commands
 function nei_cmd_listen() {
+	if(CA_ON==2){
+		setup_velocity_callbacks()
+	}
+
     neighbors.listen("cmd",
 			function(vid, value, rid) {
 				print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
@@ -90,21 +94,21 @@ function nei_cmd_listen() {
 						reinit_time_sync()
 					}
 				} else {
-					if(value==21 ) {
+					if(value==21 and BVMSTATE != "STOP") {
 						BVMSTATE = "STOP"
-						#neighbors.broadcast("cmd", 777)
+						neighbors.broadcast("cmd", 21)
 					}else if(BVMSTATE!="BARRIERWAIT" and BVMSTATE!="LAUNCH") {
 						if(value==20 and BVMSTATE!="GOHOME") {
 							AUTO_LAUNCH_STATE = "IDLE"
 							resetWP()
-							if(BVMSTATE!=AUTO_LAUNCH_STATE)
+							#if(BVMSTATE!=AUTO_LAUNCH_STATE)
 								barrier_set(ROBOTS, "GOHOME", BVMSTATE, 20)
 							#barrier_ready(20)
-						} else if(value==900){	# Shapes
+						} else if(value==900 and BVMSTATE!="TASK_ALLOCATE"){	# Shapes
 							barrier_set(ROBOTS, "TASK_ALLOCATE", BVMSTATE, 900)
 							#barrier_ready(900)
 							#neighbors.broadcast("cmd", 900)
-						} else if(value==901 and BVMSTATE!="DEPLOY" ){	# Pursuit
+						} else if(value==901 and BVMSTATE!="DEPLOY" ){	# Voronoi
 							destroyGraph()
 							barrier_set(ROBOTS, "DEPLOY", BVMSTATE, 901)
 							#barrier_ready(901)
@@ -114,9 +118,9 @@ function nei_cmd_listen() {
 							barrier_set(ROBOTS, "WAYPOINT", BVMSTATE, 902)
 							#barrier_ready(902)
 							#neighbors.broadcast("cmd", 902)
-						} else if(value==903 and BVMSTATE!="POTENTIAL" and BVMSTATE!="TURNEDOFF"){	# Formation
+						} else if(value==903 and BVMSTATE!="PURSUIT" and BVMSTATE!="TURNEDOFF"){	# Pursuit
 							destroyGraph()
-							barrier_set(ROBOTS, "POTENTIAL", BVMSTATE, 903)
+							barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 903)
 							#barrier_ready(903)
 							#neighbors.broadcast("cmd", 903)
 						} else if(value==904 and BVMSTATE!="IDLE" and BVMSTATE!="TURNEDOFF"){	# idle
@@ -125,6 +129,11 @@ function nei_cmd_listen() {
 							barrier_set(ROBOTS, "IDLE", BVMSTATE, 904)
 							#barrier_ready(904)
 							#neighbors.broadcast("cmd", 904)
+						}
+						else if(value==555 and BVMSTATE=="YOLO_DEMO"){
+							YOLO_NEI_TARGET = 1
+						} else if(value==556 and BVMSTATE=="YOLO_DEMO"){
+							YOLO_NEI_TARGET = 2
 						}
 					}
 				}
@@ -143,7 +152,7 @@ function check_rc_wp() {
 		if(rc_goto.id == id) {
 			wpreached = 0
 			storegoal(rc_goto.latitude, rc_goto.longitude, pose.position.altitude)
-			return
+			return 0
 		} else {
 			var ls = packWP2i(rc_goto.latitude, rc_goto.longitude, 0)
 			if(rc_goto.id>49) {	# Attractor/repulsor table
@@ -161,10 +170,15 @@ function check_rc_wp() {
 		}
 	} else
 		v_wp.get(0)
+	return 1
 }
 
 function resetWP() {
 	firsttimeinwp = 1
-	if(v_wp!=nil)
-		v_wp.foreach(function(key, value, robot){v_wp[key]=nil})
+	if(v_wp!=nil){
+		#v_wp.foreach(function(key, value, robot){v_wp[key]=nil})
+		v_wp.put(WPtab_id,WPtab)
+		#v_wp = nil
+		#firsttimeinwp = 1
+	}
 }

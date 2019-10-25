@@ -1,16 +1,9 @@
-GOTO_MAXVEL = 1.5 # m/steps
+GOTO_MAXVEL = 0.5 # m/steps
 GOTO_MAXDIST = 250 # m.
-GOTODIST_TOL = 0.4  # m.
+GOTODIST_TOL = 0.2  # m.
 GOTOANG_TOL = 0.1 # rad.
-GPSlimit_CEPSUM = {.1={.lat=45.510400, .lng=-73.610421},
-			.2={.lat=45.510896, .lng=-73.608731},
-			.3={.lat=45.510355, .lng=-73.608404},
-			.4={.lat=45.509840, .lng=-73.610072}}
 
-GPSlimit_PANGEAE = {.1={.lat=29.067746, .lng=-13.663315},
-			.2={.lat=29.068724, .lng=-13.662634},
-			.3={.lat=29.068113, .lng=-13.661427},
-			.4={.lat=29.067014, .lng=-13.661564}}
+include "utils/field_config.bzz"
 
 # Core naviguation function to travel to a GPS target location.
 function goto_gps(transf) {
@@ -19,13 +12,51 @@ function goto_gps(transf) {
 	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
 		log("Sorry this is too far (", math.vec2.length(m_navigation), " / ", GOTO_MAXDIST, " )")
 	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL){ # reached destination
+			m_navigation = math.vec2.new(0.0, 0.0) # force to stop
+			if(CA_ON==2)
+				broadcast_velocity(m_navigation)
+			goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0) 
 			transf()
 	} else {
-		m_navigation = LimitSpeed(m_navigation, 1.0)
-		gf = {.0=m_navigation, .1=vec_from_gps(GPSlimit_PANGEAE[1].lat, GPSlimit_PANGEAE[1].lng, 0), .2=vec_from_gps(GPSlimit_PANGEAE[2].lat, GPSlimit_PANGEAE[2].lng, 0), .3=vec_from_gps(GPSlimit_PANGEAE[3].lat, GPSlimit_PANGEAE[3].lng, 0), .4=vec_from_gps(GPSlimit_PANGEAE[4].lat, GPSlimit_PANGEAE[4].lng, 0)}
+		gf = {.0=m_navigation, .1=vec_from_gps(GPSlimit[1].lat, GPSlimit[1].lng, 0), .2=vec_from_gps(GPSlimit[2].lat, GPSlimit[2].lng, 0), .3=vec_from_gps(GPSlimit[3].lat, GPSlimit[3].lng, 0), .4=vec_from_gps(GPSlimit[4].lat, GPSlimit[4].lng, 0)}
+		#Always Geofence first before limiting speed
 		geofence(gf)
-		#m_navigation = LCA(m_navigation)
+		# fetch the updated goal from geofence
+		m_navigation = vec_from_gps(cur_goal.latitude, cur_goal.longitude, 0)
+		m_navigation = LimitSpeed(m_navigation, 1.0)
+		if(CA_ON==1)
+			m_navigation = LCA(m_navigation)
+		if(CA_ON==2)
+			m_navigation = RVO(m_navigation)
 		goto_abs(m_navigation.x, m_navigation.y, cur_goal.altitude - pose.position.altitude, 0.0)
+	}
+}
+
+# Core naviguation function to travel to a inputed relative target location in the robots coordinate frame.
+function goto(m_nav_x,m_nav_y, alt) {
+	m_navigation=math.vec2.new(m_nav_x,m_nav_y)
+	# m_navigation = vec_from_gps(cur_goal.latitude, cur_goal.longitude, 0)
+	#print(" has to move ", math.vec2.length(m_navigation), math.vec2.angle(m_navigation))
+	if(math.vec2.length(m_navigation)>GOTO_MAXDIST)
+		log("Sorry this is too far (", math.vec2.length(m_navigation), " / ", GOTO_MAXDIST, " )")
+	else if(math.vec2.length(m_navigation) < GOTODIST_TOL and math.vec2.angle(m_navigation) < GOTOANG_TOL){ # reached destination
+			m_navigation = math.vec2.new(0.0, 0.0) # force to stop
+			if(CA_ON==2)
+				broadcast_velocity(m_navigation)
+			goto_abs(m_navigation.x, m_navigation.y, alt - pose.position.altitude, 0.0) 
+			# transf()
+	} else {
+		gf = {.0=m_navigation, .1=vec_from_gps(GPSlimit[1].lat, GPSlimit[1].lng, 0), .2=vec_from_gps(GPSlimit[2].lat, GPSlimit[2].lng, 0), .3=vec_from_gps(GPSlimit[3].lat, GPSlimit[3].lng, 0), .4=vec_from_gps(GPSlimit[4].lat, GPSlimit[4].lng, 0),.5=1}
+		#Always Geofence first before limiting speed
+		geofence(gf)
+		# fetch the updated goal from geofence
+		# m_navigation = vec_from_gps(cur_goal.latitude, cur_goal.longitude, 0)
+		m_navigation = LimitSpeed(m_navigation, 1.0)
+		if(CA_ON==1)
+			m_navigation = LCA(m_navigation)
+		if(CA_ON==2)
+			m_navigation = RVO(m_navigation)
+		goto_abs(m_navigation.x, m_navigation.y, alt - pose.position.altitude, 0.0)
 	}
 }
 

@@ -1,8 +1,8 @@
 #pragma once
 #include <stdio.h>
-#include "buzz_utility.h"
-#include "buzzuav_closures.h"
-#include "buzz_update.h"
+#include <rosbuzz/buzz_utility.h>
+#include <rosbuzz/buzzuav_closures.h>
+#include <rosbuzz/buzz_update.h>
 #include <buzz/buzzdebug.h>
 #include <stdlib.h>
 #include <string.h>
@@ -53,8 +53,12 @@ struct neitime
   double relative_rate;
   int age;
   neitime(uint64_t nht, uint64_t nlt, uint64_t mht, uint64_t mlt, double nr, double mr)
-    : nei_hardware_time(nht), nei_logical_time(nlt), node_hardware_time(mht), node_logical_time(mlt), 
-      nei_rate(nr), relative_rate(mr) {};
+    : nei_hardware_time(nht)
+    , nei_logical_time(nlt)
+    , node_hardware_time(mht)
+    , node_logical_time(mlt)
+    , nei_rate(nr)
+    , relative_rate(mr){};
   neitime()
   {
   }
@@ -74,11 +78,11 @@ uint64_t* obt_out_msg();
 
 void update_sensors();
 
-int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robot_id);
+int buzz_script_set(const char* bo_filename, const char* bdbg_filename, int robot_id, int ca, const char* state);
 
-int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size);
+int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size, int ca, const char* state);
 
-int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size);
+int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_size, int ca, const char* state);
 
 void buzz_script_step();
 
@@ -96,10 +100,13 @@ buzzvm_t get_vm();
 
 void set_robot_var(int ROBOTS);
 
+void set_ca_on_var(int CA_ON);
+
+void set_autolaunch_var(const char* auto_launch_state);
+
 int get_inmsg_size();
 
 std::vector<uint8_t*> get_inmsg_vector();
 
 std::string get_bvmstate();
-
 }

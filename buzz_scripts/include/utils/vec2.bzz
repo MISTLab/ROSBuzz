@@ -109,3 +109,9 @@ math.vec2.dot = function(v1, v2) {
 math.vec2.equal = function(v1, v2) {
   return (v1.x == v2.x) and (v1.y == v2.y)
 }
+
+math.vec2.dis = function(a, b) {
+  var p1 = b.x - a.x
+  var p2 = b.y - a.y
+  return math.sqrt(p1*p1 + p2*p2)
+}

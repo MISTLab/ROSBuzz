@@ -9,10 +9,11 @@ include "taskallocate/graphformGPS.bzz"
 include "vstigenv.bzz"
 #include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
+include "connectivity/chain_formation.bzz"
 
 #State launched after takeoff
 
-AUTO_LAUNCH_STATE = "IDLE"
+#AUTO_LAUNCH_STATE = "DEPLOY" NOW SET IN LAUNCH FILE!!
 LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barrier expire; if set to be 0, the robots will carry on to AUTO_LAUNCH_STATE.
 
 #####
@@ -26,7 +27,7 @@ if(id==0)	# No network ID=0, it's the groundstation/charging station.
 else
 	V_TYPE = 0
 
-
+LAUNCH_CONNECTIVITY = 1
 # Executed once at init time.
 function init() {
   	init_stig()
@@ -38,6 +39,7 @@ function init() {
 	# start the swarm command listener
 	nei_cmd_listen()
 
+	if(LAUNCH_CONNECTIVITY) intialize_chain_formation()
     # Starting state: TURNEDOFF to wait for user input.
 	BVMSTATE = "TURNEDOFF"
 }
@@ -58,6 +60,8 @@ function step() {
 		statef=turnedoff
 	else if(BVMSTATE=="CUSFUN")
 		statef=cusfun
+	else if(BVMSTATE == "YOLO_DEMO")
+    	statef=yolo_demo
 	else if(BVMSTATE=="STOP")	# ends on turnedoff
 		statef=stop
 	else if(BVMSTATE=="LAUNCH") # ends on AUTO_LAUNCH_STATE
@@ -67,6 +71,8 @@ function step() {
 			statef=launch_switch
 	else if(BVMSTATE=="GOHOME") # ends on AUTO_LAUNCH_STATE
 		statef=goinghome
+	else if(BVMSTATE=="CHAIN_FORMATION")
+		statef=chain_formation
 	else if(BVMSTATE=="WAYPOINT")
 		statef=indiWP
 	else if(BVMSTATE=="IDLE")
@@ -78,21 +84,11 @@ function step() {
 	else if(BVMSTATE=="PURSUIT")
 		statef=pursuit
 	else if(BVMSTATE=="TASK_ALLOCATE")	# or bidding ?
-		statef=resetGraph
+		statef=graph_state
 	else if(BVMSTATE=="BIDDING")	# check the absolute path of the waypointlist csv file in bidding.bzz
 		statef=bidding
 	else if(BVMSTATE=="DEPLOY")	# check the absolute path of the waypointlist csv file in bidding.bzz
 		statef=voronoicentroid
-	else if(BVMSTATE=="GRAPH_FREE")
-		statef=DoFree
-	else if(BVMSTATE=="GRAPH_ASKING")
-		statef=DoAsking
-	else if(BVMSTATE=="GRAPH_JOINING")
-		statef=DoJoining
-	else if(BVMSTATE=="GRAPH_JOINED")
-		statef=DoJoined
-	else if(BVMSTATE=="GRAPH_LOCK")	# move all together (TODO: not tested), but auto-loop in graph list
-		statef=DoLock
 	else if(BVMSTATE=="PATHPLAN")	# ends on navigate, defined in rrtstar
 		statef=rrtstar
 	else if(BVMSTATE=="NAVIGATE")	# ends on idle, defined in rrtstar
@@ -105,7 +101,8 @@ function step() {
 
 	statef()
 
-	log("Current state: ", BVMSTATE)
+	#log("Current state: ", BVMSTATE)
+
 
 }
  
@@ -116,4 +113,5 @@ function reset() {
 # Executed once at the end of experiment.
 function destroy() {
 	close_bidding()
+	discomp_destroy()
 }

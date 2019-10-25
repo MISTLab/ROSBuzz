@@ -11,8 +11,9 @@ include "taskallocate/graphs/shapes_Y.bzz"
 ROBOT_RADIUS = 50
 ROBOT_DIAMETER = 2.0*ROBOT_RADIUS
 ROBOT_SAFETYDIST = 2.0*ROBOT_DIAMETER
-ROOT_ID = 2
-graph_id = 3
+GRAPHSTATE="NONE"
+ROOT_ID = 0
+graph_id = 0
 graph_loop = 1
 
 #
@@ -32,12 +33,12 @@ m_MessageBearing={}#store received neighbour message
 m_neighbourCount=0#used to cunt neighbours
 #Save message from one neighbour
 #the indexes are as State(received state),Label(received Label),ReqLabel,ReqID,Response,Range,Bearing
-m_receivedMessage={.State=s2i("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE"),.Range=0,.Bearing=0}
+m_receivedMessage={.State=s2i_graph("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE"),.Range=0,.Bearing=0}
 
 #
 #Save the message to send
 #The keys of the talbe is State(current state),Label(current Label),ReqLabel(requested Label),ReqID(request id),Response(reply message{REQ_NONE,REQ_GRANTED,REQ_RESEND})
-m_selfMessage={.State=s2i("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
+m_selfMessage={.State=s2i_graph("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
 
 #navigation vector
 m_navigation={.x=0,.y=0}
@@ -240,7 +241,7 @@ neighbors.listen("m",
     Get_DisAndAzi(temp_id)
     #add the received message
     #
-    m_MessageState[m_neighbourCount]=i2s(recv_val.State)
+    m_MessageState[m_neighbourCount]=i2s_graph(recv_val.State)
     m_MessageLabel[m_neighbourCount]=recv_val.Label
     m_MessageReqLabel[m_neighbourCount]=recv_val.ReqLabel
     m_MessageReqID[m_neighbourCount]=recv_val.ReqID
@@ -249,7 +250,7 @@ neighbors.listen("m",
     m_MessageBearing[m_neighbourCount]=m_receivedMessage.Bearing
 	m_messageID[m_neighbourCount]=rid
 
-#log(rid, " is in ",  m_MessageState[m_neighbourCount], " ", m_MessageLabel[m_neighbourCount])
+log(rid, " is in ",  m_MessageState[m_neighbourCount], " ", m_MessageLabel[m_neighbourCount])
 
     m_neighbourCount=m_neighbourCount+1
 })
@@ -270,7 +271,7 @@ function Get_DisAndAzi(t_id){
 #Update node info according to neighbour robots
 #
 function UpdateNodeInfo(){
-	#Collect informaiton
+	#Collect information
 	#Update information
 	i=0
 
@@ -301,13 +302,13 @@ function UpdateNodeInfo(){
 # Do free
 #
 function DoFree() {
-  if(BVMSTATE!="GRAPH_FREE"){
-	BVMSTATE="GRAPH_FREE"
+  if(GRAPHSTATE!="GRAPH_FREE"){
+	GRAPHSTATE="GRAPH_FREE"
 	m_unWaitCount=m_unLabelSearchWaitTime
-	m_selfMessage.State=s2i(BVMSTATE)
+	m_selfMessage.State=s2i_graph(GRAPHSTATE)
   }else{
 	UpdateGraph()
-	m_selfMessage.State=s2i(BVMSTATE)
+	m_selfMessage.State=s2i_graph(GRAPHSTATE)
 
 	#wait for a while before looking for a Label
 	if(m_unWaitCount>0)
@@ -316,28 +317,28 @@ function DoFree() {
 	#find a set of joined robots
 	var setJoinedLabels={}
 	var setJoinedIndexes={}
-	i=0
-	j=0
-	while(i<m_neighbourCount){
-		if(m_MessageState[i]=="GRAPH_JOINED"){
-		setJoinedLabels[j]=m_MessageLabel[i]
-		setJoinedIndexes[j]=i
-		j=j+1
+	neighbor_it=0
+	joined_it=0
+	while(neighbor_it<m_neighbourCount){
+		if(m_MessageState[neighbor_it]=="GRAPH_JOINED"){
+		setJoinedLabels[joined_it]=m_MessageLabel[neighbor_it]
+		setJoinedIndexes[joined_it]=neighbor_it
+		joined_it=joined_it+1
 		}
-		i=i+1
+		neighbor_it=neighbor_it+1
 	}
 
 	#go through the graph to look for a proper Label
 	var unFoundLabel=0
 #	var IDofPred=0
-	i=1
-	while(i<size(m_vecNodes) and (unFoundLabel==0)){
+	vecNode_it=1
+	while(vecNode_it<size(m_vecNodes) and (unFoundLabel==0)){
 		#if the node is unassigned and the predecessor is insight
-		if(m_vecNodes[i].State=="UNASSIGNED" and count(setJoinedLabels,m_vecNodes[i].Pred)==1){
-			unFoundLabel=m_vecNodes[i].Label
+		if(m_vecNodes[vecNode_it].State=="UNASSIGNED" and count(setJoinedLabels,m_vecNodes[vecNode_it].Pred)==1){
+			unFoundLabel=m_vecNodes[vecNode_it].Label
 #			IDofPred=find(m_MessageLabel,m_vecNodes[unFoundLabel].Pred)
 		}
-		i=i+1
+		vecNode_it=vecNode_it+1
 	}
 
 	if(unFoundLabel>0){
@@ -347,7 +348,7 @@ function DoFree() {
 	}
 
 	#set message
-	m_selfMessage.State=s2i(BVMSTATE)
+	m_selfMessage.State=s2i_graph(GRAPHSTATE)
 
 	BroadcastGraph()
   }
@@ -356,11 +357,11 @@ function DoFree() {
 #Do asking
 #
 function DoAsking(){
-	if(BVMSTATE!="GRAPH_ASKING"){
-	  BVMSTATE="GRAPH_ASKING"
+	if(GRAPHSTATE!="GRAPH_ASKING"){
+	  GRAPHSTATE="GRAPH_ASKING"
 	  #math.rng.setseed(id)
 	  m_unRequestId=id#math.rng.uniform(0,10)	#don't know why the random numbers are the same, add id to make the ReqID different
-	  m_selfMessage.State=s2i(BVMSTATE)
+	  m_selfMessage.State=s2i_graph(GRAPHSTATE)
 	  m_selfMessage.ReqLabel=m_nLabel
 	  m_selfMessage.ReqID=m_unRequestId
 	  m_unWaitCount=m_unResponseTimeThreshold
@@ -390,7 +391,7 @@ function DoAsking(){
 			#no response, wait
 
 			m_unWaitCount=m_unWaitCount-1
-			m_selfMessage.State=s2i(BVMSTATE)
+			m_selfMessage.State=s2i_graph(GRAPHSTATE)
 			m_selfMessage.ReqLabel=m_nLabel
 			m_selfMessage.ReqID=m_unRequestId
 			#if(m_unWaitCount==0){
@@ -428,9 +429,9 @@ function DoAsking(){
 #Do joining
 #
 function DoJoining(){
-  if(BVMSTATE!="GRAPH_JOINING") {
-	BVMSTATE="GRAPH_JOINING"
-    m_selfMessage.State=s2i(BVMSTATE)
+  if(GRAPHSTATE!="GRAPH_JOINING") {
+	GRAPHSTATE="GRAPH_JOINING"
+    m_selfMessage.State=s2i_graph(GRAPHSTATE)
     m_selfMessage.Label=m_nLabel
 	m_unWaitCount=m_unJoiningLostPeriod
   } else {
@@ -440,7 +441,7 @@ function DoJoining(){
 	else
 		goto_gps(DoJoined)
 		#pack the communication package
-		m_selfMessage.State=s2i(BVMSTATE)
+		m_selfMessage.State=s2i_graph(GRAPHSTATE)
 		m_selfMessage.Label=m_nLabel
 		BroadcastGraph()
   }
@@ -477,9 +478,9 @@ function set_rc_goto() {
 #Do joined
 #
 function DoJoined(){
-	if(BVMSTATE!="GRAPH_JOINED"){
-	  BVMSTATE="GRAPH_JOINED"
-	  m_selfMessage.State=s2i(BVMSTATE)
+	if(GRAPHSTATE!="GRAPH_JOINED"){
+	  GRAPHSTATE="GRAPH_JOINED"
+	  m_selfMessage.State=s2i_graph(GRAPHSTATE)
 	  m_selfMessage.Label=m_nLabel
 	  m_vecNodes[m_nLabel].State="ASSIGNED"
 
@@ -492,7 +493,7 @@ function DoJoined(){
 	  goto_abs(m_navigation.x/100.0, m_navigation.y/100.0, 0.0, 0.0)
 	} else {
 		UpdateGraph()
-		m_selfMessage.State=s2i(BVMSTATE)
+		m_selfMessage.State=s2i_graph(GRAPHSTATE)
 		m_selfMessage.Label=m_nLabel
 
 		#collect all requests
@@ -571,7 +572,7 @@ function DoJoined(){
 		}
 		}
 	# using JOINED as the resume state kinds of just reset the barrier timeout, should be IDLE/ALLOCATE...
-	barrier_wait(ROBOTS, "GRAPH_LOCK", "GRAPH_JOINED", -1)
+	barrier_wait_graph(ROBOTS, "GRAPH_LOCK", "GRAPH_JOINED", graph_id)
 	BroadcastGraph()
   }
 }
@@ -581,8 +582,8 @@ function DoJoined(){
 timeout_graph = 40
 function DoLock() {
   #[transition to lock...
-	BVMSTATE="GRAPH_LOCK"
-	m_selfMessage.State=s2i(BVMSTATE)
+	GRAPHSTATE="GRAPH_LOCK"
+	m_selfMessage.State=s2i_graph(GRAPHSTATE)
 	m_selfMessage.Label=m_nLabel
 	m_vecNodes[m_nLabel].State="ASSIGNED"
 	#record neighbor distance
@@ -602,7 +603,7 @@ function DoLock() {
 	neighbors.ignore("m")
   #..]
 	UpdateGraph()
-	m_selfMessage.State=s2i(BVMSTATE)
+	m_selfMessage.State=s2i_graph(GRAPHSTATE)
 	m_selfMessage.Label=m_nLabel
 	m_navigation.x=0.0
 	m_navigation.y=0.0
@@ -621,12 +622,12 @@ function DoLock() {
 
 	if(graph_loop) {
 	  if(timeout_graph==0) {
-		if(graph_id < 3)
+		if(graph_id < 1)
 			graph_id = graph_id + 1
 		else
 			graph_id = 0
 		timeout_graph = 40
-		BVMSTATE="TASK_ALLOCATE"
+		GRAPHSTATE="NONE"
 	  }
 	 	timeout_graph = timeout_graph - 1
 	}
@@ -652,7 +653,7 @@ function UpdateGraph() {
 	#update the graph
 	UpdateNodeInfo()
 	#reset message package to be sent
-	m_selfMessage={.State=s2i("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
+	m_selfMessage={.State=s2i_graph("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
 }
 
 function BroadcastGraph() {
@@ -676,8 +677,8 @@ function BroadcastGraph() {
 # Executed when reset
 #
 function resetGraph(){
-	m_receivedMessage={.State=s2i("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE"),.Range=0,.Bearing=0}
-	m_selfMessage={.State=s2i("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
+	m_receivedMessage={.State=s2i_graph("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE"),.Range=0,.Bearing=0}
+	m_selfMessage={.State=s2i_graph("GRAPH_FREE"),.Label=0,.ReqLabel=0,.ReqID=0,.Response=r2i("REQ_NONE")}
 	m_navigation={.x=0,.y=0}
 	m_nLabel=-1
 	m_messageID={}
@@ -695,15 +696,15 @@ function resetGraph(){
 	if(graph_id==0){
 		log("Loading P graph")
 		Read_GraphP()
+#	} else if(graph_id==1) {
+#		log("Loading O graph")
+#		Read_GraphO()
 	} else if(graph_id==1) {
-		log("Loading O graph")
-		Read_GraphO()
-	} else if(graph_id==2) {
 		log("Loading L graph")
 		Read_GraphL()
-	} else if(graph_id==3) {
-		log("Loading Y graph")
-		Read_GraphY()
+#	} else if(graph_id==3) {
+#		log("Loading Y graph")
+#		Read_GraphY()
 	}
 
 	#start listening
@@ -718,6 +719,25 @@ function resetGraph(){
 	}else{	#[B]Other robots are defined as free.
 		DoFree()
 	}
+}
+
+function graph_state(){
+	if(GRAPHSTATE=="GRAPH_FREE")
+		stateG=DoFree
+	else if(GRAPHSTATE=="GRAPH_ASKING")
+		stateG=DoAsking
+	else if(GRAPHSTATE=="GRAPH_JOINING")
+		stateG=DoJoining
+	else if(GRAPHSTATE=="GRAPH_JOINED")
+		stateG=DoJoined
+	else if(GRAPHSTATE=="GRAPH_LOCK")	# move all together (TODO: not tested), but auto-loop in graph list
+		stateG=DoLock
+	else
+		stateG=resetGraph
+	
+	stateG()
+
+	log("Current graph state: ", GRAPHSTATE)
 }
 #
 # Executed upon destroy
