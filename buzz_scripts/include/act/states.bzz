@@ -37,20 +37,27 @@ function idle() {
 function launch() {
 	BVMSTATE = "LAUNCH"
 	neighbors.broadcast("cmd", 22)
-	log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
-	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
+	if(LAUNCH_CONNECTIVITY){
 		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
-		log("Recorded home point: ",homegps.lat, homegps.lng)
-		if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
-			barrier_ready(22)
-		} else {
-			log("Altitude: ", pose.position.altitude)
-			uav_takeoff(TARGET_ALTITUDE)
-		}
-	} else {
 		barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
 		barrier_ready(22)
+	}
+	else{
+		log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
+		if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
+			homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
+			log("Recorded home point: ",homegps.lat, homegps.lng)
+			if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+				barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
+				barrier_ready(22)
+			} else {
+				log("Altitude: ", pose.position.altitude)
+				uav_takeoff(TARGET_ALTITUDE)
+			}
+		} else {
+			barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
+			barrier_ready(22)
+		}
 	}
 }
 
@@ -331,4 +338,5 @@ function cusfun(){
 		discomp_init()
 		firstincus = 0
 	}
+	discomp_step()
 }
