@@ -6,10 +6,13 @@ ROLE = 0
 OLD_ROLE = {.role = 0, .time =0, .strand = 0} 
 # Variables that need to be set 
 ##########################
-ROOT_ID = 6
-WORKER_ID = 1 
+ROOT_ID = 13
+WORKER_ID = 3 
 TARGET = 1
-GOAL_GPS_STATE = {.lat=29.021005, .lng=-13.715214}
+# SIM
+#GOAL_GPS_STATE = {.lat=29.021005, .lng=-13.715214}
+# REAL CEPSUM
+GOAL_GPS_STATE = {.lat=45.510195, .lng=-73.609663}
 LINKS = 1
 ##########################
 
