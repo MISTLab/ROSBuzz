@@ -580,20 +580,20 @@ function backbone(){
                 # to cms
 
                 # log("Altitude: ", pose.position.altitude)
-                if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-                  ROBOT_IN_AIR = 1 
-                } else if(ROBOT_IN_AIR != 1) {
-                  # log("Altitude: ", pose.position.altitude)
-                  uav_takeoff(TARGET_ALTITUDE)
-                  # var path_cnt=0
-                  # while(path_cnt < size(path_controls)){
-                  #   log("Path Wp : ",path_cnt, " X: ", path_controls[path_cnt].x," y ", path_controls[path_cnt].y)
-                  #   path_cnt = path_cnt + 1
-                  # }
-                }
-                if(ROBOT_IN_AIR == 1){
+                # if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+                #   ROBOT_IN_AIR = 1 
+                # } else if(ROBOT_IN_AIR != 1) {
+                #   # log("Altitude: ", pose.position.altitude)
+                #   uav_takeoff(TARGET_ALTITUDE)
+                #   # var path_cnt=0
+                #   # while(path_cnt < size(path_controls)){
+                #   #   log("Path Wp : ",path_cnt, " X: ", path_controls[path_cnt].x," y ", path_controls[path_cnt].y)
+                #   #   path_cnt = path_cnt + 1
+                #   # }
+                # }
+                # if(ROBOT_IN_AIR == 1){
                   goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
-                }
+                # }
               # if(V_TYPE){
               # 	var m_target_path = path_controls[Current_waypoint]
               	
@@ -1302,20 +1302,20 @@ function backbone(){
                 # }
               }
               else if(parent_distance >= CRITICAL_COM_DISTANCE){
-                if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-                  ROBOT_IN_AIR = 1 
-                } else if(ROBOT_IN_AIR != 1) {
-                  # log("Altitude: ", pose.position.altitude)
-                  uav_takeoff(TARGET_ALTITUDE)
-                  # var path_cnt=0
-                  # while(path_cnt < size(path_controls)){
-                  #   log("Path Wp : ",path_cnt, " X: ", path_controls[path_cnt].x," y ", path_controls[path_cnt].y)
-                  #   path_cnt = path_cnt + 1
-                  # }
-                }
-                if(ROBOT_IN_AIR == 1){
-                  goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
-                }
+                # if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+                #   ROBOT_IN_AIR = 1 
+                # } else if(ROBOT_IN_AIR != 1) {
+                #   # log("Altitude: ", pose.position.altitude)
+                #   uav_takeoff(TARGET_ALTITUDE)
+                #   # var path_cnt=0
+                #   # while(path_cnt < size(path_controls)){
+                #   #   log("Path Wp : ",path_cnt, " X: ", path_controls[path_cnt].x," y ", path_controls[path_cnt].y)
+                #   #   path_cnt = path_cnt + 1
+                #   # }
+                # }
+                # if(ROBOT_IN_AIR == 1){
+                goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
+                # }
                 # log("PArent critical move vec len ",math.vec2.length(move_vec),"p pos: x: ",parent_pos.x," y: ",parent_pos.y, " move x ",move_vec.x," y ", move_vec.y  )
   	          	# convert to cms 
                 # move_vec = parent_pos
@@ -1353,20 +1353,20 @@ function backbone(){
                 
                 move_vec = math.vec2.scale(move_vec, safe_com_check)
                 # log("non critical parent Move to (",move_vec.x,",",move_vec.y,")")
-                if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-                  ROBOT_IN_AIR = 1 
-                } else if(ROBOT_IN_AIR != 1) {
+                # if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+                #   ROBOT_IN_AIR = 1 
+                # } else if(ROBOT_IN_AIR != 1) {
                   # log("Altitude: ", pose.position.altitude)
-                  uav_takeoff(TARGET_ALTITUDE)
+                  # uav_takeoff(TARGET_ALTITUDE)
                   # var path_cnt=0
                   # while(path_cnt < size(path_controls)){
                   #   log("Path Wp : ",path_cnt, " X: ", path_controls[path_cnt].x," y ", path_controls[path_cnt].y)
                   #   path_cnt = path_cnt + 1
                   # }
-                }
-                if(ROBOT_IN_AIR == 1){
+                # }
+                # if(ROBOT_IN_AIR == 1){
                   goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
-                }
+                # }
                 # if(id== 1) log("[",id,"] After com check Move to (",move_vec.x,",",move_vec.y,")")
 
                 # if(safe_com_check == 0.0 or safe_com_check == 0  or math.vec2.length(move_vec) < 0.01){
