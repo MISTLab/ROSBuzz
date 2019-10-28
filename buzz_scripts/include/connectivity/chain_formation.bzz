@@ -14,6 +14,7 @@ TARGET = 1
 # REAL CEPSUM
 GOAL_GPS_STATE = {.lat=45.510195, .lng=-73.609663}
 LINKS = 1
+CENTER_GPS_INDEX = 3
 ##########################
 
 PARENT = {}
@@ -100,7 +101,7 @@ MAX_PATH_WP = 0
 PLAN_HOLD = 0
 TARGET_REACHED = 0
 TARGET_REACHED_COUNTER = 0
-TARGET_REACHED_WORKER = 0
+
 ROBOT_IN_AIR = 0
 
 TIME_FOR_BIDDING = 100
@@ -174,7 +175,7 @@ function intialize_chain_formation(){
 function compute_path(){
   if(pose.position != nil){
     # Compute the path to the GOAL GPS STATE and the path is pushed to path controls
-    var CENTER_GPS_STATE = {.lat=GPSlimit[3].lat , .lng = GPSlimit[3].lng}
+    var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
     var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
     var c_goal = vec_from_gps_using_ref(GOAL_GPS_STATE.lat, GOAL_GPS_STATE.lng, CENTER_GPS_STATE)
     var c_NED_limit ={ .1= vec_from_gps_using_ref(GPSlimit[1].lat, GPSlimit[1].lng, CENTER_GPS_STATE), .2 = vec_from_gps_using_ref(GPSlimit[2].lat, GPSlimit[2].lng, CENTER_GPS_STATE), .3= vec_from_gps_using_ref(GPSlimit[3].lat, GPSlimit[3].lng, CENTER_GPS_STATE), .4=vec_from_gps_using_ref(GPSlimit[4].lat, GPSlimit[4].lng, CENTER_GPS_STATE)}
@@ -187,7 +188,7 @@ function compute_path(){
 function chain_formation(){
   if(STRAND_INFO.lack_robots == 2) EXP_DONE = 1
   # debug.print(STATE,", ROLE: ", ROLE,", P:", PARENT[0],", C:",CHILD[0],"Path stig size: ",path_sigmergy.size())
-  var CENTER_GPS_STATE = {.lat=GPSlimit[3].lat , .lng = GPSlimit[3].lng}
+  var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
   var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
   var parent_distance = 0.0
   var child_distance = 0.0
@@ -196,7 +197,7 @@ function chain_formation(){
   # debug.print("C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,")")
   # debug.print("[",id,"] C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,") Role: ",ROLE, "C dist ", child_distance," MAX_PATH_WP ", MAX_PATH_WP)
 
-  log("[",id,"] C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK[0], " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",c_pos.x,",",c_pos.y,") Role: ",ROLE, "C dist ", child_distance," MAX_PATH_WP ", MAX_PATH_WP, "PARENT_WP", PARENT_WP," TR ",TARGET_REACHED, " WT ", TARGET_REACHED_WORKER)
+  log("[",id,"] Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",c_pos.x,",",c_pos.y,") Role: ",ROLE, "C dist ", child_distance," MAX_PATH_WP ", MAX_PATH_WP, "PARENT_WP", PARENT_WP," TR ",TARGET_REACHED)
   if(id == 1 and exp_itreration == 50){
 
   }
@@ -294,7 +295,7 @@ function gradiant(){
 }
 
 function backbone(){
-  var CENTER_GPS_STATE = {.lat=GPSlimit[3].lat , .lng = GPSlimit[3].lng}
+  var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
   var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
   
   if(forward_growth){
@@ -361,7 +362,7 @@ function backbone(){
       # Worker plan the path 
 		if(PLANNED_TRUE == 0){
 	      # log("Initializing planner ")
-	      PLAN_HOLD = 100
+	      PLAN_HOLD = 50
         # Compute the path to the GOAL GPS STATE and the path is pushed to path controls
           # var CENTER_GPS_STATE = {.lat=GPSlimit[3].lat , .lng = GPSlimit[3].lng}
           # var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
@@ -649,12 +650,7 @@ function backbone(){
               # TARGET REACHED do the task
               if(parent_with_critical == -1){
                 if(path_sigmergy.size() >= (path_sigmergy.get(-2)+1) and Current_waypoint >= (path_sigmergy.size()-2)){
-                  if(TARGET_REACHED_WORKER < 100){
-                    TARGET_REACHED_WORKER = TARGET_REACHED_WORKER + 1
-                  }
-                  else{
                     TARGET_REACHED = 1
-                  }
                   log("[",id,"]","TARGET Reached")
                   # if(CF){
                   #   # move_vec = math.vec3.new(0.0,0.0,0.0)
@@ -1475,8 +1471,8 @@ function backbone(){
   # broadcast_parent_info()
   # broadcast link
   # if(path_sigmergy.get(-2) and path_sigmergy.size() > path_sigmergy.get(-2)){
-  broadcast_child_link_info()
-  broadcast_parent_link_info()
+  # broadcast_child_link_info()
+  # broadcast_parent_link_info()
   # }
 }
 
@@ -1765,7 +1761,7 @@ function update_timeto_forget(){
 
 
   # forget a selected parent after the selection expiry time
-  if(SELECTED_PARENT[0].time > 20){
+  if(SELECTED_PARENT[0].time > 500){
     # if(id == 2) log("[2] removing selected parent becaue the time is ", SELECTED_PARENT[0].time, " robot ", SELECTED_PARENT[0].state)
     SELECTED_PARENT[0].time = 0
     PARENT_REQUEST_DECLINED[SELECTED_PARENT[0].state]={.rid = SELECTED_PARENT[0].state, .time=TIME_TO_FORGET_DECLINES}
@@ -2863,7 +2859,7 @@ function filter_nei_in_set(robots_to_comp) {
 }
 
 function update_path_target(){
-  var CENTER_GPS_STATE = {.lat=GPSlimit[3].lat , .lng = GPSlimit[3].lng}
+  var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
   var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
 
 	if(path_controls != nil and Current_waypoint < size(path_controls)){
@@ -2887,7 +2883,7 @@ function update_path_target(){
 
 function update_path_waypoint(increment_indicator){
   # log(" Waypoint updater ") 
-  var CENTER_GPS_STATE = {.lat=GPSlimit[3].lat , .lng = GPSlimit[3].lng}
+  var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
   var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
 	if(path_sigmergy.size() > 0 and path_sigmergy.get(Current_waypoint) != nil ){
 		if(increment_indicator == 1){
@@ -3024,13 +3020,14 @@ function CF_LAND(){
 }
 
 function find_min_max_bounds(c_NED_limit){
-  var min_max_table= { .minx=c_NED_limit[1].x, .miny=c_NED_limit[1].y, .maxx=c_NED_limit[1].x, .maxy=c_NED_limit[1].y}
+  var min_max_table= { .minx=c_NED_limit[1].x, .miny=c_NED_limit[1].y, .maxx=c_NED_limit[1].x, .maxy=c_NED_limit[1].y, .min_idx=1,.min_idy=1}
   var cnt = 2 
   # log("[cnt 1] X ", c_NED_limit[1].x, " Y ", c_NED_limit[1].y)
   while(cnt < 5){
     # log("[ Cnt ",cnt,"] X ", c_NED_limit[cnt].x, " Y ", c_NED_limit[cnt].y)
     if(c_NED_limit[cnt].x < min_max_table.minx){
       min_max_table.minx = c_NED_limit[cnt].x
+      min_idx = cnt
     }
     if(c_NED_limit[cnt].x > min_max_table.maxx){
       min_max_table.maxx = c_NED_limit[cnt].x
@@ -3040,6 +3037,7 @@ function find_min_max_bounds(c_NED_limit){
     }
     if(c_NED_limit[cnt].y > min_max_table.maxy){
       min_max_table.maxy = c_NED_limit[cnt].y
+      min_idy = cnt
     }
     cnt = cnt+1
   }
