@@ -27,6 +27,7 @@ if(id==0)	# No network ID=0, it's the groundstation/charging station.
 else
 	V_TYPE = 0
 
+
 # Executed once at init time.
 function init() {
   	init_stig()

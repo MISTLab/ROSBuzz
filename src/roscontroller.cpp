@@ -854,7 +854,7 @@ script
       }
       if (current_mode != "GUIDED" && setmode)
         SetMode("GUIDED", 3000);  // added for compatibility with 3DR Solo
-      if (setmode)
+      if(setmode)
       {
         if (mav_client.call(cmd_srv))
         {

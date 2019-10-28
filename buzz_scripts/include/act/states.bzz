@@ -37,7 +37,6 @@ function idle() {
 function launch() {
 	BVMSTATE = "LAUNCH"
 	neighbors.broadcast("cmd", 22)
-
 	log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
 	if(V_TYPE == 0 or V_TYPE == 1) {	# flying vehicle so TAKE_OFF
 		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
@@ -332,5 +331,4 @@ function cusfun(){
 		discomp_init()
 		firstincus = 0
 	}
-	discomp_step()
 }
