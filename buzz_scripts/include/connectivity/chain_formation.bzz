@@ -9,9 +9,9 @@ OLD_ROLE = {.role = 0, .time =0, .strand = 0}
 ROOT_ID = 6
 WORKER_ID = 1 
 TARGET = 1
-GOAL_GPS_STATE = {.lat=29.021005, .lng=-13.715214}
+GOAL_GPS_STATE = {.lat=45.510195, .lng=-73.609663}
 LINKS = 1
-CENTER_GPS_INDEX = 3
+CENTER_GPS_INDEX = 5
 ##########################
 
 PARENT = {}
@@ -206,6 +206,7 @@ function compute_path(){
   }
 }
 function chain_formation(){
+  get_wp_from_stig()
   if(STRAND_INFO.lack_robots == 2) EXP_DONE = 1
   # debug.print(STATE,", ROLE: ", ROLE,", P:", PARENT[0],", C:",CHILD[0],"Path stig size: ",path_sigmergy.size())
   var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
@@ -232,7 +233,7 @@ function chain_formation(){
   # log("P ",PARENT[0]," C ",CHILD[0])
   
   # if(path_sigmergy.get(-1) != nil or ROLE == WORKER){
-     chain_statef()
+     if(id != 0) chain_statef()
   # }
   exp_itreration = exp_itreration + 1
 }
