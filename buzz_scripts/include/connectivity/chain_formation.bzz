@@ -114,6 +114,29 @@ PATH_induced_movement = 0
 ELECTION_STIG_ID = 20
 ELECTION_VS = nil
 
+function get_wp_from_stig(){
+  check_rc_wp()
+  wptab = v_wp.get(WPtab_id)
+	if(wptab==nil){
+		return
+	}
+	else if(not(size(wptab) > 0)){
+		return
+	}
+	if(counter==0) {
+		var att = {}
+		foreach(wptab, function(key, value){
+				wp = unpackWP2i(value)
+				if(key > 99)
+					log("Nothing planed for the repulsors yet....")
+				else if(key > 49) {
+					goal = vec_from_gps(wp.lat, wp.lng, 0)
+					log("Got goal: ",key, wp.lat, wp.lng)
+				}
+		})
+  }
+}
+
 function intialize_chain_formation(){
   # if(CF){ 
   #  MOVEMENT_TOLERENCE = 0.35
