@@ -3,7 +3,8 @@
 GPSlimit = {.1={.lat=45.510400, .lng=-73.610421},
 			.2={.lat=45.510896, .lng=-73.608731},
 			.3={.lat=45.510355, .lng=-73.608404},
-			.4={.lat=45.509840, .lng=-73.610072}}
+			.4={.lat=45.509840, .lng=-73.610072},
+		        .5={.lat=45.509840, .lng=-73.610421}} # 5th limit is the coordinate system Center for path planning
 # Pangeae final site
 #GPSlimit = {.1={.lat=29.067746, .lng=-13.663315},
 #			.2={.lat=29.068724, .lng=-13.662634},

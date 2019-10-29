@@ -14,7 +14,7 @@ TARGET = 1
 # REAL CEPSUM
 GOAL_GPS_STATE = {.lat=45.510195, .lng=-73.609663}
 LINKS = 1
-CENTER_GPS_INDEX = 3
+CENTER_GPS_INDEX = 5
 ##########################
 
 PARENT = {}
