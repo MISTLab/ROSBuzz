@@ -17,6 +17,14 @@ function rc_cmd_listen() {
 			flight.rc_cmd=0
 			reinit_time_sync()
 			neighbors.broadcast("cmd", 777)
+		} else if (flight.rc_cmd==903 and BVMSTATE!="BARRIERWAIT"){
+			flight.rc_cmd=0
+			AUTO_LAUNCH_STATE = "CHAIN_FORMATION"
+			neighbors.broadcast("cmd", 903)
+		} else if (flight.rc_cmd==901 and BVMSTATE!="BARRIERWAIT"){
+			flight.rc_cmd=0
+			AUTO_LAUNCH_STATE = "DEPLOY"
+			neighbors.broadcast("cmd", 901)
 		}
 	} else {
 		if(flight.rc_cmd==21) {
@@ -92,6 +100,14 @@ function nei_cmd_listen() {
 						disarm()
 					} else if(value==777){
 						reinit_time_sync()
+					} else if(value==903){
+						AUTO_LAUNCH_STATE = "CHAIN_FORMATION"
+						barrier_set(ROBOTS, "TURNEDOFF", BVMSTATE, 903)
+						neighbors.broadcast("cmd", 903)
+					} else if(value==901){
+						AUTO_LAUNCH_STATE = "DEPLOY"
+						barrier_set(ROBOTS, "TURNEDOFF", BVMSTATE, 901)
+						neighbors.broadcast("cmd", 901)
 					}
 				} else {
 					if(value==21 and BVMSTATE != "STOP") {
