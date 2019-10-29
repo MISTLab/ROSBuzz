@@ -71,6 +71,8 @@ function str2fct(value){
 		statef=lennardjones
 	else if(value=="PURSUIT")
 		statef=pursuit
+	else if(value=="CHAIN_FORMATION")
+		statef=chain_formation
 	else if(value=="TASK_ALLOCATE")	# or bidding ?
 		statef=graph_state
 	else if(value=="BIDDING")	# check the absolute path of the waypointlist csv file in bidding.bzz
@@ -93,7 +95,7 @@ function str2fct(value){
 #
 function i2s(value){
 	if(value==0){
-	return "PURSUIT"
+	return "CHAIN_FORMATION"
 	}else if(value==1){
 	return "IDLE"
 	}
@@ -149,7 +151,7 @@ function i2s_graph(value){
 # map from state to int - vstig serialization limits to 9....
 #
 function s2i(value){
-	if(value=="PURSUIT"){
+	if(value=="CHAIN_FORMATION"){
 	return 0
 	}else if(value=="IDLE"){
 	return 1
