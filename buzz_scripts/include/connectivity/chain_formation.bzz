@@ -6,7 +6,7 @@ ROLE = 0
 OLD_ROLE = {.role = 0, .time =0, .strand = 0} 
 # Variables that need to be set 
 ##########################
-ROOT_ID = 6
+ROOT_ID = 0
 WORKER_ID = 1 
 TARGET = 1
 GOAL_GPS_STATE = {} # Now obtained from web control #{.lat=45.510195, .lng=-73.609663}
@@ -223,7 +223,8 @@ function chain_formation(){
     # debug.print("C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,")")
     # debug.print("[",id,"] C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,") Role: ",ROLE, "C dist ", child_distance," MAX_PATH_WP ", MAX_PATH_WP)
 
-    log("[",id,"] Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",c_pos.x,",",c_pos.y,") Role: ",ROLE, "C dist ", child_distance," MAX_PATH_WP ", MAX_PATH_WP, "PARENT_WP", PARENT_WP," TR ",TARGET_REACHED)
+    log("[",id,"] Waypoint pursuving: ",Current_waypoint,"par ",PARENT[0]," dis: ",parent_distance," pose (",c_pos.x,",",c_pos.y,") Role: ",ROLE, "C dist ", "child",CHILD[0], "dis", child_distance, "MAX_PATH_WP ", MAX_PATTH_WP, "PARENT_WP", PARENT_WP," TR ",TARGET_REACHED)
+    
     if(id == 1 and exp_itreration == 50){
 
     }
@@ -238,7 +239,7 @@ function chain_formation(){
     # log("P ",PARENT[0]," C ",CHILD[0])
     
     # if(path_sigmergy.get(-1) != nil or ROLE == WORKER){
-       if(id != 0) chain_statef()
+      chain_statef()
     # }
     exp_itreration = exp_itreration + 1
   }
