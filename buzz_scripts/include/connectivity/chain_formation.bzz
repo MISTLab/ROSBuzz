@@ -6,12 +6,12 @@ ROLE = 0
 OLD_ROLE = {.role = 0, .time =0, .strand = 0} 
 # Variables that need to be set 
 ##########################
-ROOT_ID = 6
+ROOT_ID = 0
 WORKER_ID = 1 
 TARGET = 1
-GOAL_GPS_STATE = {.lat=29.021005, .lng=-13.715214}
+GOAL_GPS_STATE = {} # Now obtained from web control #{.lat=45.510195, .lng=-73.609663}
 LINKS = 1
-CENTER_GPS_INDEX = 3
+CENTER_GPS_INDEX = 5
 ##########################
 
 PARENT = {}
@@ -130,7 +130,8 @@ function get_wp_from_stig(){
 				if(key > 99)
 					log("Nothing planed for the repulsors yet....")
 				else if(key > 49) {
-					goal = vec_from_gps(wp.lat, wp.lng, 0)
+          GOAL_GPS_STATE = {.lat=wp.lat,.lng=wp.lng}
+					# goal = vec_from_gps(wp.lat, wp.lng, 0)
 					log("Got goal: ",key, wp.lat, wp.lng)
 				}
 		})
@@ -206,35 +207,42 @@ function compute_path(){
   }
 }
 function chain_formation(){
-  if(STRAND_INFO.lack_robots == 2) EXP_DONE = 1
-  # debug.print(STATE,", ROLE: ", ROLE,", P:", PARENT[0],", C:",CHILD[0],"Path stig size: ",path_sigmergy.size())
-  var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
-  var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
-  var parent_distance = 0.0
-  var child_distance = 0.0
-  if(PARENT[0] != nil) parent_distance= math.vec2.length(get_nei_x_y(PARENT[0])) 
-  if(CHILD[0] != nil ) child_distance =  math.vec2.length(get_nei_x_y(CHILD[0])) 
-  # debug.print("C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,")")
-  # debug.print("[",id,"] C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,") Role: ",ROLE, "C dist ", child_distance," MAX_PATH_WP ", MAX_PATH_WP)
+  get_wp_from_stig()
+  if(ROLE == WORKER and size(GOAL_GPS_STATE) < 2){
+    log("Waiting for GOAL to update ... ")
+  } 
+  else{
+    if(STRAND_INFO.lack_robots == 2) EXP_DONE = 1
+    # debug.print(STATE,", ROLE: ", ROLE,", P:", PARENT[0],", C:",CHILD[0],"Path stig size: ",path_sigmergy.size())
+    var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
+    var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
+    var parent_distance = 0.0
+    var child_distance = 0.0
+    if(PARENT[0] != nil) parent_distance= math.vec2.length(get_nei_x_y(PARENT[0])) 
+    if(CHILD[0] != nil ) child_distance =  math.vec2.length(get_nei_x_y(CHILD[0])) 
+    # debug.print("C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,")")
+    # debug.print("[",id,"] C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,") Role: ",ROLE, "C dist ", child_distance," MAX_PATH_WP ", MAX_PATH_WP)
 
-  log("[",id,"] Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",c_pos.x,",",c_pos.y,") Role: ",ROLE, "C dist ", child_distance," MAX_PATH_WP ", MAX_PATH_WP, "PARENT_WP", PARENT_WP," TR ",TARGET_REACHED)
-  if(id == 1 and exp_itreration == 50){
+    log("[",id,"] Waypoint pursuving: ",Current_waypoint,"par ",PARENT[0]," dis: ",parent_distance," pose (",c_pos.x,",",c_pos.y,") Role: ",ROLE, "C dist ", "child",CHILD[0], "dis", child_distance, "MAX_PATH_WP ", MAX_PATTH_WP, "PARENT_WP", PARENT_WP," TR ",TARGET_REACHED)
+    
+    if(id == 1 and exp_itreration == 50){
 
+    }
+    # var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE)
+
+    # var c_goal = vec_from_gps_using_ref(GOAL_GPS_STATE.lat, GOAL_GPS_STATE.lng, CENTER_GPS_STATE)
+
+    # log("[",id,"] CENTER COORD:  C_POS NED X: ", c_pos.x, " Y: ", c_pos.y," Len ", math.vec2.length(c_pos), " GOAL X", c_goal.x," Y ", c_goal.y, " len ", math.vec2.length(c_goal))
+
+    # debug.print("[",id,"] C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " WP: ",Current_waypoint," Role: ",ROLE," MAX_PATH_WP ", MAX_PATH_WP," TR ",TARGET_REACHED)
+
+    # log("P ",PARENT[0]," C ",CHILD[0])
+    
+    # if(path_sigmergy.get(-1) != nil or ROLE == WORKER){
+      chain_statef()
+    # }
+    exp_itreration = exp_itreration + 1
   }
-  # var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE)
-
-  # var c_goal = vec_from_gps_using_ref(GOAL_GPS_STATE.lat, GOAL_GPS_STATE.lng, CENTER_GPS_STATE)
-
-  # log("[",id,"] CENTER COORD:  C_POS NED X: ", c_pos.x, " Y: ", c_pos.y," Len ", math.vec2.length(c_pos), " GOAL X", c_goal.x," Y ", c_goal.y, " len ", math.vec2.length(c_goal))
-
-  # debug.print("[",id,"] C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " WP: ",Current_waypoint," Role: ",ROLE," MAX_PATH_WP ", MAX_PATH_WP," TR ",TARGET_REACHED)
-
-  # log("P ",PARENT[0]," C ",CHILD[0])
-  
-  # if(path_sigmergy.get(-1) != nil or ROLE == WORKER){
-     chain_statef()
-  # }
-  exp_itreration = exp_itreration + 1
 }
 
 ############################
