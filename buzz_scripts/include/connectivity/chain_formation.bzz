@@ -11,7 +11,7 @@ WORKER_ID = 1
 TARGET = 1
 GOAL_GPS_STATE = {} # Now obtained from web control #{.lat=45.510195, .lng=-73.609663}
 LINKS = 1
-CENTER_GPS_INDEX = 5
+CENTER_GPS_STATE={.lat=45.509840, .lng=-73.610421}
 ##########################
 
 PARENT = {}
@@ -198,7 +198,7 @@ function intialize_chain_formation(){
 function compute_path(){
   if(pose.position != nil){
     # Compute the path to the GOAL GPS STATE and the path is pushed to path controls
-    var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
+
     var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
     var c_goal = vec_from_gps_using_ref(GOAL_GPS_STATE.lat, GOAL_GPS_STATE.lng, CENTER_GPS_STATE)
     var c_NED_limit ={ .1= vec_from_gps_using_ref(GPSlimit[1].lat, GPSlimit[1].lng, CENTER_GPS_STATE), .2 = vec_from_gps_using_ref(GPSlimit[2].lat, GPSlimit[2].lng, CENTER_GPS_STATE), .3= vec_from_gps_using_ref(GPSlimit[3].lat, GPSlimit[3].lng, CENTER_GPS_STATE), .4=vec_from_gps_using_ref(GPSlimit[4].lat, GPSlimit[4].lng, CENTER_GPS_STATE)}
@@ -216,7 +216,7 @@ function chain_formation(){
   else{
     if(STRAND_INFO.lack_robots == 2) EXP_DONE = 1
     # debug.print(STATE,", ROLE: ", ROLE,", P:", PARENT[0],", C:",CHILD[0],"Path stig size: ",path_sigmergy.size())
-    var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
+
     var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
     var parent_distance = 0.0
     var child_distance = 0.0
@@ -325,7 +325,6 @@ function gradiant(){
 }
 
 function backbone(){
-  var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
   var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
   
   if(forward_growth){
@@ -2958,7 +2957,6 @@ function filter_nei_in_set(robots_to_comp) {
 }
 
 function update_path_target(){
-  var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
   var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
 
 	if(path_controls != nil and Current_waypoint < size(path_controls)){
@@ -2982,7 +2980,6 @@ function update_path_target(){
 
 function update_path_waypoint(increment_indicator){
   # log(" Waypoint updater ") 
-  var CENTER_GPS_STATE = {.lat=GPSlimit[CENTER_GPS_INDEX].lat , .lng = GPSlimit[CENTER_GPS_INDEX].lng}
   var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE) 
 	if(path_sigmergy.size() > 0 and path_sigmergy.get(Current_waypoint) != nil ){
 		if(increment_indicator == 1){
