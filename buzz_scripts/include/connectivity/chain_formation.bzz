@@ -368,6 +368,18 @@ function backbone(){
     else if(ROLE == WORKER){
         if(TARGET_REACHED){
           neighbors.broadcast("TR",1)
+
+          if(Move_counter <= 0){
+              var move_vec = math.vec2.new(0.0,0.0)
+              var cur_move_goal = gps_from_vec(move_vec)
+              storegoal(cur_move_goal.latitude, cur_move_goal.longitude, pose.position.altitude)
+              Move_counter = 10
+            }
+            else{
+              Move_counter = Move_counter - 1
+            }
+            goto_gps(chain_reached_goal)
+
           # if(V_TYPE==0){
           # 	uav_land()
           # }
@@ -422,7 +434,10 @@ function backbone(){
           }
         }
 		}
-    if(WORKER_SWITCHING == 1){
+    if(TARGET_REACHED){
+
+    }
+    else if(WORKER_SWITCHING == 1){
       var replacement = find_potential_worker(1)
       if(replacement.rid != -1){
         var request = {.type = BACKBONE_WORKER_REQUEST, .receiver=replacement.rid, .responce = 0, .need = 1, .cus =0}
@@ -934,7 +949,16 @@ function backbone(){
     else if(ROLE == NETWORKER){
       if(TARGET_REACHED){
         neighbors.broadcast("TR",1)
-
+        if(Move_counter <= 0){
+            var move_vec = math.vec2.new(0.0,0.0)
+            var cur_move_goal = gps_from_vec(move_vec)
+            storegoal(cur_move_goal.latitude, cur_move_goal.longitude, pose.position.altitude)
+            Move_counter = 10
+          }
+          else{
+            Move_counter = Move_counter - 1
+          }
+          goto_gps(chain_reached_goal)
         # if(CF){
         #   if(TARGET_REACHED_COUNTER > 20){
         #     CF_LAND()
@@ -952,8 +976,11 @@ function backbone(){
       else{
         if(CF) set_led(id,1)
       }
+      if(TARGET_REACHED){
+
+      }
       # if(not M_TARGETS[TARGET]) Read_Target1()
-      if((path_sigmergy.get(-2) == nil) or (path_sigmergy.size() <= path_sigmergy.get(-2))){
+      else if((path_sigmergy.get(-2) == nil) or (path_sigmergy.size() <= path_sigmergy.get(-2))){
         # NETWORKER_STATE = 0
         log("[",id,"]Waiting for path_sigmergy to update ...")
         if(path_sigmergy.get(-1) != nil and path_sigmergy.get(-2) != nil ){
