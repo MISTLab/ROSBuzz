@@ -1,4 +1,4 @@
-GOTO_MAXVEL = 0.5 # m/steps
+GOTO_MAXVEL = 1.5 # m/steps
 GOTO_MAXDIST = 250 # m.
 GOTODIST_TOL = 0.2  # m.
 GOTOANG_TOL = 0.1 # rad.
