@@ -37,7 +37,7 @@ function idle() {
 function launch() {
 	BVMSTATE = "LAUNCH"
 	neighbors.broadcast("cmd", 22)
-	if(LAUNCH_CONNECTIVITY){
+	if(AUTO_LAUNCH_STATE=="CHAIN_FORMATION"){
 		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
 		barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
 		barrier_ready(22)

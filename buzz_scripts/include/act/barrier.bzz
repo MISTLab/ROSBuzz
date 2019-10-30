@@ -7,7 +7,7 @@
 #
 # Constants
 #
-BARRIER_TIMEOUT = 600 # in steps
+BARRIER_TIMEOUT = 120 # in steps
 BARRIER_VSTIG = 80
 timeW = 1
 barrier = nil
@@ -127,7 +127,7 @@ function barrier_allgood(barrier, bc) {
       if(key == "d"){
         if(value == 1)
           return 1
-      } else if(key!="n" and value != bc)
+      } else if(key!="n" and value != bc and bc != -1)
         barriergood = 0
     })
   return barriergood
