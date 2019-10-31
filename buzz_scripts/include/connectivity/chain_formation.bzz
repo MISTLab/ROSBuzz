@@ -363,7 +363,7 @@ function backbone(){
       # else goto(move_vec_lj.x, move_vec_lj.y)
     }
     else if(ROLE == WORKER){
-        if(TARGET_REACHED){
+        if(TARGET_REACHED == 1){
           neighbors.broadcast("TR",1)
 
           if(Move_counter <= 0){
@@ -392,11 +392,9 @@ function backbone(){
           # else{
           #   goto(0.0,0.0)
           # }
-          return
         }
         else{
-          if(CF) set_led(id,1)
-        }
+          
       # Worker plan the path 
 		if(PLANNED_TRUE == 0){
 	      # log("Initializing planner ")
@@ -431,10 +429,8 @@ function backbone(){
           }
         }
 		}
-    if(TARGET_REACHED){
-
-    }
-    else if(WORKER_SWITCHING == 1){
+    
+    if(WORKER_SWITCHING == 1){
       var replacement = find_potential_worker(1)
       if(replacement.rid != -1){
         var request = {.type = BACKBONE_WORKER_REQUEST, .receiver=replacement.rid, .responce = 0, .need = 1, .cus =0}
@@ -654,9 +650,11 @@ function backbone(){
                     Move_counter = Move_counter - 1
                   }
                   goto_gps(chain_reached_goal)
-                  
+                  log("Move vec ", move_vec.x," y ",move_vec.y," len ", math.vec2.length(move_vec)," Par Responsive ",PARENT_UNRESPONCIVE )
+          
                   # goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
                 }
+
               # if(V_TYPE){
               # 	var m_target_path = path_controls[Current_waypoint]
               	
@@ -787,8 +785,9 @@ function backbone(){
         # if(my_stuck.rid != -1){
         #   # goto(0.0,10.0)
         #   # log("I am stuck with ", my_stuck)
-        # }
+        # }PARENT_UNRESPONCIVE
       }
+     }
     }
     else if(ROLE == ROOT){
     if(TARGET_REACHED){
@@ -944,7 +943,7 @@ function backbone(){
 
     }
     else if(ROLE == NETWORKER){
-      if(TARGET_REACHED){
+      if(TARGET_REACHED == 1){
         neighbors.broadcast("TR",1)
         if(Move_counter <= 0){
             var move_vec = math.vec2.new(0.0,0.0)
@@ -973,11 +972,10 @@ function backbone(){
       else{
         if(CF) set_led(id,1)
       }
-      if(TARGET_REACHED){
 
-      }
+
       # if(not M_TARGETS[TARGET]) Read_Target1()
-      else if((path_sigmergy.get(-2) == nil) or (path_sigmergy.size() <= path_sigmergy.get(-2))){
+      if((path_sigmergy.get(-2) == nil) or (path_sigmergy.size() <= path_sigmergy.get(-2))){
         # NETWORKER_STATE = 0
         log("[",id,"]Waiting for path_sigmergy to update ...")
         if(path_sigmergy.get(-1) != nil and path_sigmergy.get(-2) != nil ){
@@ -3166,5 +3164,6 @@ function find_min_max_bounds(c_NED_limit){
 }
 
 function chain_reached_goal(){
+  log("Move less than thresh")
   BVMSTATE="CHAIN_FORMATION"
 }

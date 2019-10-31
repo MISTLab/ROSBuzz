@@ -926,6 +926,7 @@ script
       break;
 
     case NAV_SPLINE_WAYPOINT:
+      ROS_INFO("GOT moveto command : %f, %f, %f ",goto_pos[0], goto_pos[1], goto_pos[2]);
       goto_pos = buzzuav_closures::getgoto();
       if (setmode)
         SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
