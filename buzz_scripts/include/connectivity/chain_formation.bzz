@@ -12,6 +12,7 @@ TARGET = 1
 GOAL_GPS_STATE = {} # Now obtained from web control #{.lat=45.510195, .lng=-73.609663}
 LINKS = 1
 CENTER_GPS_STATE={.lat=45.509840, .lng=-73.610421}
+wp_resolution = 0.5
 ##########################
 
 PARENT = {}
@@ -225,7 +226,7 @@ function chain_formation(){
     # debug.print("C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,")")
     # debug.print("[",id,"] C link ", STRAND_CHILD_LINK, " P link: ", STRAND_PARENT_LINK, " Waypoint pursuving: ",Current_waypoint,"par dis: ",parent_distance," pose (",pose.position.x,",",pose.position.y,") Role: ",ROLE, "C dist ", child_distance," MAX_PATH_WP ", MAX_PATH_WP)
 
-    log("[",id,"] Waypoint pursuving: ",Current_waypoint,"par ",PARENT[0]," dis: ",parent_distance," pose (",c_pos.x,",",c_pos.y,") Role: ",ROLE, "C dist ", "child",CHILD[0], "dis", child_distance, "MAX_PATH_WP ", MAX_PATTH_WP, "PARENT_WP", PARENT_WP," TR ",TARGET_REACHED)
+    log("[",id,"] Waypoint pursuving: ",Current_waypoint,"par ",PARENT[0]," dis: ",parent_distance," pose (",c_pos.x,",",c_pos.y,") Role: ",ROLE, "C dist ", "child",CHILD[0], "dis", child_distance, "MAX_PATH_WP ", MAX_PATH_WP, "PARENT_WP", PARENT_WP," TR ",TARGET_REACHED)
     
     if(id == 1 and exp_itreration == 50){
 
@@ -411,12 +412,13 @@ function backbone(){
           InitializePathPlanner(c_pos.x, c_pos.y, c_goal.x, c_goal.y,0.05,min_max_table.maxx,min_max_table.maxy) 
           STATE = "BACKBONE"
           chain_statef = backbone
+          path_sigmergy.put(0,path_controls[0])
 			# InitializePathPlanner()
-			foreach(path_controls, function(key, value) {
-          var tmp_control = {.x=path_controls[key].x,.y=path_controls[key].y}
-		      path_sigmergy.put(key,tmp_control)
-          # log("WP:",key,"(", path_controls[key].x,",",path_controls[key].y,",",path_controls[key].z,")")
-		    })  
+			# foreach(path_controls, function(key, value) {
+   #        var tmp_control = {.x=path_controls[key].x,.y=path_controls[key].y}
+		 #      path_sigmergy.put(key,tmp_control)
+   #        # log("WP:",key,"(", path_controls[key].x,",",path_controls[key].y,",",path_controls[key].z,")")
+		 #    })  
 		    path_sigmergy.put(-1,PATH_TYPE)
         path_sigmergy.put(-2,path_sigmergy.size())
         PLANNED_TRUE = 1
@@ -447,61 +449,23 @@ function backbone(){
       PLAN_HOLD = PLAN_HOLD - 1
     }
     else{
-  	  # update_path_target()
-        # # Only at intialiation
-        # if(size(PARENT)<=0){
-        #   PARENT[0]=ROOT_ID
-        # }
-        # log("[",id,"] Parent in need",PARENT_IN_NEED)
-        # log("[",id,"] my pos x: ",pose.position.x," y: ",pose.position.y)
         if(DISMANTLE == 1){
-          # var move_vec = get_nei_x_y(PARENT[0])
-          # var child_vec = {.x=0, .y=0}
-          # if(child_vec != nil){
-          #   child_vec = get_nei_x_y(CHILD[0])
-          # }
-          # if(math.vec2.length(move_vec) < MOVEMENT_TOLERENCE and math.vec2.length(child_vec) >= CRITICAL_COM_DISTANCE ){
-          #   # I am close enough but can't find parent STOP MOVING EVEN CLOSE
-          #   goto(0.0,0.0)
-          # }
-          # else{
-          #   # to cms
-          #   move_vec = math.vec2.scale(move_vec, 10000)
-          #   move_vec = LCA(move_vec)
-          #   goto(move_vec.x,move_vec.y)
-          # }
-          # if(find_robot_is_nei(ROOT_ID)){
-          #   var parent_pos = get_nei_x_y(ROOT_ID)
-          #   if(math.vec2.length(parent_pos) <= CRITICAL_COM_DISTANCE){
-          #     # reset_worker_robot()
-          #     goto(0.0,0.0)
-          #     DISMANTLE = 0
-          #     WORKER_REBUILDING = 1
-          #     # log("[",id,"]","!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WORKER SENT DISMATLE")
-          #     # log("[",id,"]","Worker sent dismantle to ", ROOT_ID )
-          #     # inform the root that dismantle is complete
-          #     var request = {.type = DISMANTLE_COMPLETE, .receiver=ROOT_ID, .responce = 0, .need = 0, .cus = TARGET}
-          #     var packed_request = packenummessage(request)
-          #     neighbors.broadcast("REQUEST_RESPONCE",packed_request)
-          #   }
-          # }
-          # log("[",id,"] !!!!!!!!!!!!!!!!!!!!!! DISMATLING !!!!!!!!!!!!!!!!!!!!")
+
         }
         else{
           # log("[",id,"]"," size of parents ", size(PARENT), " target links", M_TARGETS[TARGET].links)
           # table_print(PARENT)
           # If the number of parents selected equal to required links proceed
           if(size(PARENT) == LINKS){
-            # log("[",id,"]","WORKER has required parents M targets")
-            # log(" all parents in nei parent[0]")#, PARENT[0], " PARENT[1]", PARENT[1])
-            # Keep checking for new parents to add to the backbone
-            # var move_vec = transform_coordinate_system(1,M_TARGETS[TARGET],pose.position,pose.orientation.yaw)
-            
+           log("[",id,"]","WORKER has required parents M targets")
            var safe_com_check = 0.0
            var parent_critical = 0.0
            var parent_pos = get_nei_x_y(PARENT[0])
            var move_vec = {.x=0.0,.y=0.0}
            var actual_movement = {.x=0.0,.y=0.0}
+           var cr_goal = vec_from_gps_using_ref(GOAL_GPS_STATE.lat, GOAL_GPS_STATE.lng, CENTER_GPS_STATE)
+           actual_movement = transform_coordinate_system(1,cr_goal,c_pos,0.0)
+                
            # var parent_distance = math.vec2.length(parent_pos)
            # log("[",id,"]"," Worked nei distance ", nei_distance) 
            #  log("HOLDING STATE : ", HOLDING.state, " TIME : ", HOLDING.time)
@@ -532,22 +496,30 @@ function backbone(){
             # move_vec = parent_pos
             }
             else{ # proceed towards target
-
-            		update_path_waypoint(1)
-                if(path_sigmergy.get(Current_waypoint) != nil ){
-                  # log("GOING to target Wp ", Current_waypoint, " X: ",path_sigmergy.get(Current_waypoint).x," Y: ",path_sigmergy.get(Current_waypoint).y," pos X ", c_pos.x," y: ", c_pos.y, " safe check ", safe_com_check )
-                  actual_movement = transform_coordinate_system(1,path_sigmergy.get(Current_waypoint),c_pos,0.0)	
-                  var move_len = SAFE_COM_DISTANCE-math.vec2.length(parent_pos)
-                  if(move_len < 0.0){
-                    move_len = 0.0
-                  }
-                  move_vec = math.vec2.newp(move_len, math.vec2.angle(actual_movement))  
-        			  }
+              
+              var total_vector =transform_coordinate_system(1,cr_goal,path_sigmergy.get(0),0.0) 
+              Current_waypoint = math.round( (math.vec2.length(total_vector)/wp_resolution)-(math.vec2.length(actual_movement)/wp_resolution))  
+              var move_len = SAFE_COM_DISTANCE-math.vec2.length(parent_pos)
+              if(move_len < 0.0){
+                move_len = 0.0
+              }
+              move_vec = math.vec2.newp(move_len, math.vec2.angle(actual_movement))  
+              
+            	# 	update_path_waypoint(1)
+             #    if(path_sigmergy.get(Current_waypoint) != nil ){
+             #      # log("GOING to target Wp ", Current_waypoint, " X: ",path_sigmergy.get(Current_waypoint).x," Y: ",path_sigmergy.get(Current_waypoint).y," pos X ", c_pos.x," y: ", c_pos.y, " safe check ", safe_com_check )
+             #      actual_movement = transform_coordinate_system(1,path_sigmergy.get(Current_waypoint),c_pos,0.0)	
+             #      var move_len = SAFE_COM_DISTANCE-math.vec2.length(parent_pos)
+             #      if(move_len < 0.0){
+             #        move_len = 0.0
+             #      }
+             #      move_vec = math.vec2.newp(move_len, math.vec2.angle(actual_movement))  
+        			  # }
             }
 
             # log("[",id,"]","WORKER Distance to target X: ",move_vec.x," y:",move_vec.y, " distance ", math.vec2.length(move_vec), " com check ", safe_com_check )
             if(math.vec2.length(actual_movement) > MOVEMENT_TOLERENCE){
-             # log("[",id,"]"," Worker target X: ",move_vec.x," y:",move_vec.y, " DISTANCE :", math.vec2.length(move_vec))
+             log("[",id,"]"," Worker target X: ",move_vec.x," y:",move_vec.y, " DISTANCE :", math.vec2.length(move_vec))
              
               # log("[",id,"]","Workers parent")
               # table_print(PARENT)
@@ -570,65 +542,62 @@ function backbone(){
               # }
 
 
-              if(PARENT_UNRESPONCIVE >= 0){
-                log("[",id,"] My PARENT seems unresponsive PARENT: ", PARENT[PARENT_UNRESPONCIVE])
+              # if(PARENT_UNRESPONCIVE >= 0){
+              #   log("[",id,"] My PARENT seems unresponsive PARENT: ", PARENT[PARENT_UNRESPONCIVE])
 
 
-                # if(id==8)log("[",id,"] strand link ", STRAND_PARENT_LINK)
-                var link_res = unresponsive_robot_check_for_nei(STRAND_PARENT_LINK[PARENT_UNRESPONCIVE])
-                if(link_res != -1){
-                  var parent_of_parent_pos = get_nei_x_y(link_res)
-                  # if(id==8)log("[",id,"] parent in my view parent id:",link_res)
-                  if(math.vec2.length(parent_of_parent_pos) <= SAFE_COM_DISTANCE){
-                    PARENT[PARENT_UNRESPONCIVE]=link_res
-                    WORKER_PARENT_COM_TIME[link_res] = exp_itreration
-                    # move_vec = math.vec2.new(0.0,0.0)
-                    log("[",id,"] Changing parent_of_parent ", link_res)
-                    PARENT_UNRESPONCIVE = -1
-                    # PARENT_COM_TIME = exp_itreration
+              #   # if(id==8)log("[",id,"] strand link ", STRAND_PARENT_LINK)
+              #   var link_res = unresponsive_robot_check_for_nei(STRAND_PARENT_LINK[PARENT_UNRESPONCIVE])
+              #   if(link_res != -1){
+              #     var parent_of_parent_pos = get_nei_x_y(link_res)
+              #     # if(id==8)log("[",id,"] parent in my view parent id:",link_res)
+              #     if(math.vec2.length(parent_of_parent_pos) <= SAFE_COM_DISTANCE){
+              #       PARENT[PARENT_UNRESPONCIVE]=link_res
+              #       WORKER_PARENT_COM_TIME[link_res] = exp_itreration
+              #       # move_vec = math.vec2.new(0.0,0.0)
+              #       log("[",id,"] Changing parent_of_parent ", link_res)
+              #       PARENT_UNRESPONCIVE = -1
+              #       # PARENT_COM_TIME = exp_itreration
+              #     }
+              #     else{
+              #         update_path_waypoint(0)
+              #         if(path_controls[Current_waypoint] != nil ){
+              #           # move_vec = math.vec2.new(0.0,0.0)
+              #            # move_vec = transform_coordinate_system(1,path_sigmergy.get(Current_waypoint-1),pose.position,pose.orientation.yaw) 
+              #         }
+              #     }
+              #   }
+              #   else{
+              #     # log("[",id,"] Child of childs pos x ", move_vec.x," y ",move_vec.y)
+              #     update_path_waypoint(0)
+              #     if(path_controls[Current_waypoint] != nil ){
+              #       # move_vec = math.vec2.new(0.0,0.0)
+              #        # move_vec = transform_coordinate_system(1,path_sigmergy.get(Current_waypoint-1),pose.position,pose.orientation.yaw) 
+              #     }
+              #   }
+              # }
+              
+              if(PARENT[0] == ROOT_ID and safe_com_check == 0.0){
+                var num_of_robots = determine_no_of_robots_req_with_dis(math.vec2.length(actual_movement))
+                if(num_of_robots > 1){
+                  if(SELECTED_PARENT[0].state != -1){
+                    SELECTED_PARENT[0].time = SELECTED_PARENT[0].time + 1
+                    var request = {.type = BACKBONE_CHILD_REQUEST, .receiver=SELECTED_PARENT[0].state, .responce = TARGET, .need = PARENT[0], .cus = 0}
+                    var packed_request = packenummessage(request)
+                    neighbors.broadcast("REQUEST_RESPONCE",packed_request)
                   }
                   else{
-                      update_path_waypoint(0)
-                      if(path_controls[Current_waypoint] != nil ){
-                        # move_vec = math.vec2.new(0.0,0.0)
-                         # move_vec = transform_coordinate_system(1,path_sigmergy.get(Current_waypoint-1),pose.position,pose.orientation.yaw) 
-                      }
+                    scan_for_new_parents(1,0,0)
                   }
                 }
-                else{
-                  # log("[",id,"] Child of childs pos x ", move_vec.x," y ",move_vec.y)
-                  update_path_waypoint(0)
-                  if(path_controls[Current_waypoint] != nil ){
-                    # move_vec = math.vec2.new(0.0,0.0)
-                     # move_vec = transform_coordinate_system(1,path_sigmergy.get(Current_waypoint-1),pose.position,pose.orientation.yaw) 
-                  }
-                }
-              }
-              
-              if(PARENT[0] == ROOT_ID and safe_com_check == 0.0 and STRAND_INFO.lack_robots != 2){
-                if(SELECTED_PARENT[0].state != -1){
-                  SELECTED_PARENT[0].time = SELECTED_PARENT[0].time + 1
-                  var request = {.type = BACKBONE_CHILD_REQUEST, .receiver=SELECTED_PARENT[0].state, .responce = TARGET, .need = PARENT[0], .cus = 0}
-                  var packed_request = packenummessage(request)
-                  neighbors.broadcast("REQUEST_RESPONCE",packed_request)
+                if(safe_com_check == 0.0){ 
+                  PARENT_IN_NEED = 1
                 }
                 else{
-                  # figure out which type of robots you need? flying or rolling	 
-              	var robot_type_required = 0
-              	if(path_sigmergy.get(-1) > 2 and path_sigmergy.size() > path_sigmergy.get(-1)+1 ){
-              		# var number_of_2d_roobts = determine_no_of_robots_req_in_chain(2,path_sigmergy.get(-1)+1)
-              		var num_of_3d_robots = determine_no_of_robots_req_in_chain(path_sigmergy.get(-1)+1,path_sigmergy.size()-2)
-                  if(determine_number_in_chain() < num_of_3d_robots-1) robot_type_required = 1
-              	}
-                scan_for_new_parents(1,0,robot_type_required)
+                  PARENT_IN_NEED = 0
                 }
               }
-              if(safe_com_check == 0.0) PARENT_IN_NEED = 1
-              else PARENT_IN_NEED = 0
-              # if(math.vec2.length(move_vec) > 10){
-                # set the movement vector
-                # move_vec = LCA(move_vec)
-                # to cms
+               
 
                 # log("Altitude: ", pose.position.altitude)
                 if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
@@ -658,98 +627,11 @@ function backbone(){
                   # goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
                 }
 
-              # if(V_TYPE){
-              # 	var m_target_path = path_controls[Current_waypoint]
-              	
-              #   if(CF){
-              #     move_vec = math.vec3.new(move_vec.x,move_vec.y,m_target_path.z)
-              #     CF_GO_TO(move_vec)
-              #   }
-              #   else{
-              #     if(m_target_path.z < Min_alt)
-              #       move_vec = math.vec3.new(move_vec.x,move_vec.y,Min_alt-pose.position.z)
-              #     else 
-              #       move_vec = math.vec3.new(move_vec.x,move_vec.y,m_target_path.z-pose.position.z)
-              #     move_vec = math.vec3.scale(move_vec, 10000)
-              #     goto3d(move_vec.x,move_vec.y,move_vec.z)
-              #     # log("[",id,"]","WORKER move vec x: ", move_vec.x," y: ", move_vec.y)
-              #   }
-              # }
-              # else{
-              #   move_vec = math.vec2.scale(move_vec, 10000)
-
-              #   if(not REAL) move_vec = LCA(move_vec)
-
-              #   goto(move_vec.x,move_vec.y)
-              #   # log("[",id,"]","WORKER move vec x: ", move_vec.x," y: ", move_vec.y)
-              
-              # }
-              # }
-              # else{
-              #   goto(0,0)
-              # }
             }
             else{
-              # check if you reached the critical distance
-              var parent_with_critical = check_all_parents_within_safe_com(0)
-              # log("[",id,"] Movement is less than 0.2 ")
-              if(parent_with_critical != -1){
-                #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Has to be done
-                if(path_sigmergy.get(Current_waypoint-1) != nil ){
-                  move_vec = transform_coordinate_system(1,path_sigmergy.get(Current_waypoint-1),c_pos,0.0) 
-                }
-                # PARENT_IN_NEED = 1
-                # STRAND_INFO.lack_robots = 0
-                # M_TARGETS[TARGET].complete = 0
-              }
-              else{
-                PARENT_IN_NEED = 0
-                STRAND_INFO.lack_robots = 2
-                # M_TARGETS[TARGET].complete = 1
-              }
-              # TARGET REACHED do the task
-              if(parent_with_critical == -1){
-                if(path_sigmergy.size() >= (path_sigmergy.get(-2)+1) and Current_waypoint >= (path_sigmergy.size()-2)){
-                    TARGET_REACHED = 1
-                  log("[",id,"]","TARGET Reached")
-                  # if(CF){
-                  #   # move_vec = math.vec3.new(0.0,0.0,0.0)
-                  #   # CF_GO_TO(move_vec)
-                  #   # CF_LAND()
-                  #   set_led(id,3)
-                    
-                  # }
-                  # else goto(0.0,0.0)
-                }
-                else{
-                  # if(CF){
-                  #   move_vec = math.vec3.new(0.0,0.0,pose.position.z)
-                  #   CF_GO_TO(move_vec)
-                  # }
-                  # else{
-                  #  move_vec = math.vec2.new(0.0,0.0)
-
-                  #  if(not REAL) move_vec = LCA(move_vec)
-
-                  #  goto(move_vec.x,move_vec.y)
-                  # }
-                }
-              }
-              else{
-                # if(CF){
-                #   var m_target_path = path_controls[Current_waypoint-1]
-                #   move_vec=math.vec3.new(move_vec.x,move_vec.y,m_target_path.z)
-                #   CF_GO_TO(move_vec)
-                # }
-                # else{
-                  # move_vec = LCA(move_vec)
-
-                  # goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
-                # }
-              } 
-              
+              TARGET_REACHED = 1
+              log("[",id,"]","TARGET Reached")
             }
-            # check whether your are stuck, if yes try to get out
 
           }
           else{
@@ -768,27 +650,17 @@ function backbone(){
             else{
             	# figure out which type of robots you need? flying or rolling	 
             	var robot_type_required = 0
-            	if( (path_sigmergy.get(-1) > 2) and (path_sigmergy.size() > (path_sigmergy.get(-1)+1) ) ){
-                # var number_of_2d_roobts = determine_no_of_robots_req_in_chain(2,path_sigmergy.get(-1)+1)
-                var num_of_3d_robots = determine_no_of_robots_req_in_chain(path_sigmergy.get(-1)+1,path_sigmergy.size()-2)
-                if(determine_number_in_chain() < num_of_3d_robots-1) robot_type_required = 1
-                # log("[",id,"] num 3d req ", num_of_3d_robots, " number in chain ", determine_number_in_chain()," robot_type_required ", robot_type_required)
-              }
+            	# if( (path_sigmergy.get(-1) > 2) and (path_sigmergy.size() > (path_sigmergy.get(-1)+1) ) ){
+             #    # var number_of_2d_roobts = determine_no_of_robots_req_in_chain(2,path_sigmergy.get(-1)+1)
+             #    var num_of_3d_robots = determine_no_of_robots_req_in_chain(path_sigmergy.get(-1)+1,path_sigmergy.size()-2)
+             #    if(determine_number_in_chain() < num_of_3d_robots-1) robot_type_required = 1
+             #    # log("[",id,"] num 3d req ", num_of_3d_robots, " number in chain ", determine_number_in_chain()," robot_type_required ", robot_type_required)
+             #  }
               scan_for_new_parents(1,0,robot_type_required)
             }
-            # if(CF){
-            #   move_vec = math.vec3.new(0.0,0.0,0.0)
-            #   CF_GO_TO(move_vec)
-            # }
-            # else goto(0.0,0.0)
+
           }
         }
-        # check whether you are stuck, if yes try to get out of it
-        # var my_stuck = check_stuck()
-        # if(my_stuck.rid != -1){
-        #   # goto(0.0,10.0)
-        #   # log("I am stuck with ", my_stuck)
-        # }PARENT_UNRESPONCIVE
       }
      }
     }
@@ -803,146 +675,6 @@ function backbone(){
         # }
         return
     }
-    else{
-      if(CF) set_led(id,1)
-    }
-    #   # var root_move_vec = math.vec2.new(0.0,0.0)
-    #   # Collision_safety_radius = 1.0
-    #   # root_move_vec = LCA(root_move_vec)
-    #   # root_move_vec = math.vec2.scale(root_move_vec,0.01)
-    #   # goto(root_move_vec.x,root_move_vec.y)
-    # }
-    # else if(ROLE == 50){
-      #Only done at intialization
-      # if(size(CHILD) <= 0) CHILD[0] = WORKER_ID
-
-      # var count = 1
-      # var total_count = 0
-      # var lacking_count = 0
-      # var dismatling = 0
-      # var lacking = {.strand = -1, .num = 0, .dismatling = 0}
-      # var strand_keys = {}
-      # foreach(ROOT_STRANDS_INFO, function(key, value) {
-      #   strand_keys[size(strand_keys)] = key
-      # })
-      # # var targets_to_complete = {}
-      # var targets_completed = 0
-      # while(count < size(ROOT_STRANDS_INFO)){
-      #   # log(" !!!!!! ROOT STRAND INFO STRAND : ", strand_keys[count])
-      #   var count2 = 0
-      #   if(ROOT_STRANDS_INFO[strand_keys[count]] != nil){
-      #     while(count2 < size(ROOT_STRANDS_INFO[strand_keys[count]]) ){
-      #       # log(" Link : ", count2)
-      #       if(ROOT_STRANDS_INFO[strand_keys[count]][count2] != nil){
-      #         # find the starnd with most robots and is still under construction
-      #         if(ROOT_STRANDS_INFO[strand_keys[count]][count2].lack_robots != 2){
-      #           if(ROOT_STRANDS_INFO[strand_keys[count]][count2].count > lacking.num or lacking.strand == -1){
-      #             lacking.strand = ROOT_STRANDS_INFO[strand_keys[count]][count2].target
-      #             lacking.num = ROOT_STRANDS_INFO[strand_keys[count]][count2].count
-      #           }
-      #           if(ROOT_STRANDS_INFO[strand_keys[count]][count2].lack_robots == 1)lacking_count = lacking_count + 1
-      #         }
-      #         if(ROOT_STRANDS_INFO[strand_keys[count]][count2].lack_robots == 2){
-      #           targets_completed = targets_completed + 1
-      #         }
-      #         # if you see the strand has no robots and was dismantled then call it dismantled
-      #         if(ROOT_STRANDS_INFO[strand_keys[count]][count2].count == 0){
-      #           ROOT_STRANDS_INFO[strand_keys[count]][count2].dismatling = 0
-      #         }
-      #         # if(ROOT_STRANDS_INFO[count][count2].lack_robots != 2 and count2 == 0){
-      #         #   targets_to_complete[size(targets_to_complete)] = count
-      #         # }
-      #         if(ROOT_STRANDS_INFO[strand_keys[count]][count2].dismatling == 1){
-      #           lacking.dismatling = 1
-      #         }
-      #         # table_print(ROOT_STRANDS_INFO[strand_keys[count]][count2])
-      #         total_count = total_count + 1
-      #       } 
-      #       # else log(" Table : NIL")
-      #       count2 = count2 + 1
-      #     }
-      #   }
-      #   # else log("????????????? STRAND table NIL")
-      #   count = count + 1
-      # }
-      # # if(targets_completed == NUMBER_OF_TARGETS){
-      # #   log("ALL targets reached")
-      # # }
-      # # log("[",id,"] lacking count ",lacking_count," lacking num ", lacking.num, " strand ", lacking.strand, " total_count ",total_count,
-      # #     "lacking.dismatling",lacking.dismatling)
-      # # broadcast the lacking strand to join to all the free robots
-      # var request = {.type = CURRENT_STRAND_TO_JOIN, .receiver=0, .responce = 0, .need = 0, .cus = lacking.strand}
-      # var packed_request = packenummessage(request)
-      # neighbors.broadcast("REQUEST_RESPONCE",packed_request)
-      # if(lacking.strand != -1 and lacking_count == 1 and total_count == 1){
-      #   # We have single strand and the strand is lacking robots to build the back bone
-      #   # first approch : start moving with the root
-      # }
-      # else if(lacking.strand != -1 and lacking_count >= 1 and total_count > 1 and lacking.dismatling != 1){
-      #   # we have multiple strands and some strand is missing robots to build the backbone
-      #   # dismantle a strand with least robots
-      #   # find the strand with least robots
-      #   # log("[",id,"] lacking robots for strand lacking strand", lacking.strand, " total_count", total_count)
-      #   count = 1
-      #   var least_strand = {.strand = -1, .num =0, .robot = -1, .link = 0, .index = 0}
-      #   var found = 0
-      #   while(count < size(ROOT_STRANDS_INFO)){
-      #     var count2 = 0
-      #     if(ROOT_STRANDS_INFO[strand_keys[count]] != nil){
-      #       while(count2 < size(ROOT_STRANDS_INFO[strand_keys[count]]) ){
-      #         # log(" STRAND info value : ",ROOT_STRANDS_INFO[strand_keys[count]][count2])
-      #         if(ROOT_STRANDS_INFO[strand_keys[count]][count2] != nil){
-      #           # log(" Found ", found, " Strand count: ", ROOT_STRANDS_INFO[strand_keys[count]][count2].count)
-      #           if(found == 0 and ROOT_STRANDS_INFO[strand_keys[count]][count2].count != 0){
-      #             if(least_strand.num == 0 and lacking.strand != ROOT_STRANDS_INFO[strand_keys[count]][count2].target){            # lacking.num > ROOT_STRANDS_INFO[strand_keys[count]][count2].count){
-      #               # log("?????????????????? dismantling because the first strand to consider")
-      #               # first strand that can be dismatled
-      #               least_strand.strand = ROOT_STRANDS_INFO[strand_keys[count]][count2].target
-      #               least_strand.link = count2
-      #               least_strand.num = ROOT_STRANDS_INFO[strand_keys[count]][count2].count
-      #               least_strand.robot = ROOT_STRANDS_INFO[strand_keys[count]][count2].robot
-      #               least_strand.index = strand_keys[count]
-      #               # log("least strand : ",least_strand.strand )
-      #             }
-      #             else if( ROOT_STRANDS_INFO[strand_keys[count]][count2].count < least_strand.num and ROOT_STRANDS_INFO[strand_keys[count]][count2].target != lacking.strand){ # and lacking.num > ROOT_STRANDS_INFO[strand_keys[count]][count2].count){
-      #               if(ROOT_STRANDS_INFO[strand_keys[count]][count2].count != 0){
-      #                 # smaller number of robots than previoulsy selected strand and this is not the lacking strand, and 
-      #                 # this strand has less robots 
-      #                 log(" ???????????????????????????????? dismatling select because less than previous")
-      #                 least_strand.strand = ROOT_STRANDS_INFO[strand_keys[count]][count2].target
-      #                 least_strand.link = count2
-      #                 least_strand.num = ROOT_STRANDS_INFO[strand_keys[count]][count2].count
-      #                 least_strand.robot = ROOT_STRANDS_INFO[strand_keys[count]][count2].robot
-      #                 least_strand.index = strand_keys[count]
-      #               }
-      #             }
-      #             if(ROOT_STRANDS_INFO[strand_keys[count]][count2].lack_robots == 2){
-      #               log("??????????????????????? dismantling because targe reached")
-      #               # feel free to dismantle target reached strands
-      #               least_strand.strand = ROOT_STRANDS_INFO[strand_keys[count]][count2].target
-      #               least_strand.link = count2
-      #               least_strand.num = ROOT_STRANDS_INFO[strand_keys[count]][count2].count
-      #               least_strand.robot = ROOT_STRANDS_INFO[strand_keys[count]][count2].robot
-      #               least_strand.index = strand_keys[count]
-      #               found = 1
-      #             }
-      #           } 
-      #         }
-      #         count2 = count2 + 1
-      #       }
-      #     }
-      #     count = count + 1
-      #   }
-      #     # log("????????????????????????????????????????????????????? lacking strand ", least_strand.strand)
-      #   if(least_strand.strand != -1){
-      #     # log("????????????????????????????????????????????????????? lacking strand ", least_strand.strand)
-      #     ROOT_STRANDS_INFO[least_strand.index][least_strand.link].dismatling = 1
-      #     # dismantle the least count strand
-      #     var request1 = {.type = DISMANTLE_STRAND, .receiver = least_strand.robot, .responce = 0, .need = lacking.strand, .cus = least_strand.strand}
-      #     var packed_request1 = packenummessage(request1)
-      #     neighbors.broadcast("REQUEST_RESPONCE",packed_request1)
-      #   }
-      # }
 
     }
     else if(ROLE == NETWORKER){
@@ -958,22 +690,7 @@ function backbone(){
             Move_counter = Move_counter - 1
           }
           goto_gps(chain_reached_goal)
-        # if(CF){
-        #   if(TARGET_REACHED_COUNTER > 20){
-        #     CF_LAND()
-        #   }
-        #   else{
-        #     TARGET_REACHED_COUNTER = TARGET_REACHED_COUNTER +1
-        #   }
-        #   set_led(id,3)
-        # }
-        # else{
-        #   goto(0.0,0.0)
-        # }
         return
-      }
-      else{
-        if(CF) set_led(id,1)
       }
 
 
@@ -981,127 +698,22 @@ function backbone(){
       if((path_sigmergy.get(-2) == nil) or (path_sigmergy.size() <= path_sigmergy.get(-2))){
         # NETWORKER_STATE = 0
         log("[",id,"]Waiting for path_sigmergy to update ...")
-        if(path_sigmergy.get(-1) != nil and path_sigmergy.get(-2) != nil ){
-          var u_cnt = 0
-          while(u_cnt < path_sigmergy.get(-2)-1){
-            var tmp_val = path_sigmergy.get(u_cnt)
-            if(tmp_val == nil )log("Waiting for value : ",u_cnt)
-            u_cnt = u_cnt + 1
-          }
-        }
+        var wp_zero = path_sigmergy[0]
+        # if(path_sigmergy.get(-1) != nil and path_sigmergy.get(-2) != nil ){
+        #   var u_cnt = 0
+        #   while(u_cnt < path_sigmergy.get(-2)-1){
+        #     var tmp_val = path_sigmergy.get(u_cnt)
+        #     if(tmp_val == nil )log("Waiting for value : ",u_cnt)
+        #     u_cnt = u_cnt + 1
+        #   }
+        # }
       }
       else if(NETWORKER_STATE == 0){
-        # Compute the median vector to the parent and child to get there 
-        # median = 1/2(parent + child)
-        # if(find_robot_is_nei(PARENT[0])){  
-        #   var par_pos = get_nei_x_y(PARENT[0])
-        #   var child_pos = get_nei_x_y(CHILD[0])
-        #   var median_vec = math.vec2.add(par_pos,child_pos)
-        #   median_vec = math.vec2.scale(median_vec,0.5)
-        #   # change it to cms
-        #   median_vec = math.vec2.scale(median_vec,10000)
-        #   log("[",id,"]"," net mov x: ",median_vec.x," y:",median_vec.y, " Len : ",math.vec2.length(median_vec))
-        #   #collision_free_moveto(median_vec)
-        #   median_vec = LCA(median_vec)
-        #   goto(median_vec.x,median_vec.y)
-        #   if(math.vec2.length(median_vec)<MOVEMENT_TOLERENCE or DISMANTLE == 1 or PARENT[0]==ROOT_ID) NETWORKER_STATE = 1 
-        # }
-        # else{
-        #   if(DISMANTLE == 1) NETWORKER_STATE = 1
-        #   HOLDING.state = 1
-        #   HOLDING.time = TIME_TO_FORGET
-        #   # move close to child
-        #   var child_pos = get_nei_x_y(CHILD[0])
-        #   var parentpos_responce = 0
-        #   if(math.vec2.length(child_pos) < MOVEMENT_TOLERENCE){
-        #     # I am close enough but can't find parent ask child for the parent pos
-        #     parentpos_responce = 1
-        #   }
-        #   # ASk child to hold until finding my parchild_pos = math.vec2.scale(child_pos,100)ent
-        #   var request = {.type = CHILD_MOVEMENT_HOLD, .receiver=CHILD[0], .responce = parentpos_responce, .need = 0, .cus = PARENT[0]}
-        #   var packed_request = packenummessage(request)
-        #   neighbors.broadcast("REQUEST_RESPONCE",packed_request)
-        #   # log("[",id,"]","Asking child to hold")
-        #   if(parentpos_responce == 1 and PARENT_POS.time != 0  and PARENT_POS.unknown == 0){
-        #     # find median to parent pos and child
-        #     var parent_pos_vec = math.vec2.new(PARENT_POS.x,PARENT_POS.y)
-        #     var median_vec = math.vec2.add(parent_pos_vec,child_pos)
-        #     median_vec = math.vec2.scale(median_vec,0.5)
-        #     # change it to cms
-        #     median_vec = math.vec2.scale(median_vec,10000)
-        #     # log("[",id,"]"," got parent pos Median vec mov x: ",median_vec.x," y:",median_vec.y, " Len : ",math.vec2.length(median_vec))
-        #     #collision_free_moveto(median_vec)
-        #     #goto(100.0,100.0)
-        #     median_vec = LCA(median_vec)
-        #     goto(median_vec.x,median_vec.y)
-        #   }
-        #   else if(parentpos_responce == 1 and PARENT_POS.time != 0  and PARENT_POS.unknown == 1){
-        #     # Tried to locate the parent, now electing new parent 
-        #     # parent is not my nei select another robot to act as parent.
-        #     # log("[",id,"]"," Net tried to locate parent but failed electeing new")
-        #     if(SELECTED_PARENT[0].state != -1){
-        #       SELECTED_PARENT[0].time = SELECTED_PARENT[0].time + 1
-        #       var request1 = {.type = BACKBONE_CHILD_REQUEST, .receiver=SELECTED_PARENT[0].state, .responce = TARGET, .need = PARENT[0], .cus = 0}
-        #       var packed_request1 = packenummessage(request1)
-        #       neighbors.broadcast("REQUEST_RESPONCE",packed_request1)
-        #     }
-        #     else{
-        #         # figure out which type of robots you need? flying or rolling	 
-		      # 	var robot_type_required = 0
-		      # 	if(path_sigmergy.get(-1) > 2 and path_sigmergy.size() > path_sigmergy.get(-1)+1){
-		      # 		# var number_of_2d_roobts = determine_no_of_robots_req_in_chain(2,path_sigmergy.get(-1)+1)
-		      # 		var num_of_3d_robots = determine_no_of_robots_req_in_chain(path_sigmergy.get(-1)+1,path_sigmergy.size())
-		      # 		if(determine_number_in_chain() < num_of_3d_robots-1) robot_type_required = 1
-		      # 	}
-		      #   scan_for_new_parents(0,0,robot_type_required)
-        #     }
-        #     goto(0.0,0.0)
-        #   }
-        #   else{
-        #     if(math.vec2.length(child_pos) < MOVEMENT_TOLERENCE){
-        #       # I am close enough but can't find parent STOP MOVING EVEN CLOSE
-        #       goto(0.0,0.0)
-        #     }
-        #     else{
-        #       # log("[",id,"]","Moving to child dist : ",math.vec2.length(child_pos) )
-        #       # change it to cms
-        #       child_pos = math.vec2.scale(child_pos,10000)
-        #       #collision_free_moveto(child_pos)
-        #       child_pos = LCA(child_pos)
-        #       goto(child_pos.x,child_pos.y)
-        #     }
-        #   }
-        #   #goto(child_pos.x,child_pos.y)
-        # }
+     
       }
       else{
         if(DISMANTLE == 1){
-          # log("[",id,"]","Dismantling Networker ??????????? PARENT ", PARENT[0])
-          # var move_vec = get_nei_x_y(PARENT[0])
-          # var child_vec = {.x=0, .y=0}
-          # if(child_vec != nil){
-          #   child_vec = get_nei_x_y(CHILD[0])
-          # }
-          # if(math.vec2.length(move_vec) < MOVEMENT_TOLERENCE and math.vec2.length(child_vec) >= CRITICAL_COM_DISTANCE ){
-          #   # I am close enough but can't find parent STOP MOVING EVEN CLOSE
-          #   # goto(0.0,0.0)
-          # }
-          # else{
-          #   # to cms
-          #   # move_vec = math.vec2.scale(move_vec, 10000)
-          #   # move_vec = LCA(move_vec)
-          #   goto(move_vec.x,move_vec.y)
-          # }
-          # if(find_robot_is_nei(ROOT_ID) and ((find_robot_is_in_set(PARENT[0], m_free_robots) != -1) or PARENT[0] == ROOT_ID )){
-          #   var request = {.type = DISCONNECT_FROM_CHILD, .receiver=CHILD[0], .responce = 0, .need = 0, .cus = 0}
-          #   var packed_request = packenummessage(request)
-          #   neighbors.broadcast("REQUEST_RESPONCE",packed_request)
-          #   if(DISMANTLE_STATE_SWITCH == 1){
-          #     # log("[",id,"]","Disconnected I am free now ???????????")
-          #     reset_robot_to_free()
-          #     DISMANTLE_STATE_SWITCH = 0
-          #   } 
-          # }
+        
         }
         else{
           # log("[",id,"]","Extending backbone state2 ???????????")
@@ -1117,12 +729,19 @@ function backbone(){
           var PATH_ROBOT_required = 0
           var child_dist = math.vec2.length(child_pos)
           var move_vec = {.x=0,.y=0}
+          var cr_goal = vec_from_gps_using_ref(GOAL_GPS_STATE.lat, GOAL_GPS_STATE.lng, CENTER_GPS_STATE)
+          var actual_movement = transform_coordinate_system(1,cr_goal,c_pos,0.0)
           # log("NET Child dis ",child_dist," Parent dis ", parent_distance)
           # From the information you have determine whether you need more robot
           if(STRAND_CHILD_LINK != nil and STRAND_PARENT_LINK[0] !=nil){
-          	  var num_robots_Required = determine_no_of_robots_req_in_chain(1,path_sigmergy.size()-2)
+              
+              var total_vector =transform_coordinate_system(1,cr_goal,path_sigmergy.get(0),0.0) 
+
+              Current_waypoint = math.round( (math.vec2.length(total_vector)/wp_resolution)-(math.vec2.length(actual_movement)/wp_resolution))
+
+          	  var num_robots_Required = determine_no_of_robots_req_with_dis(math.vec2.length(total_vector))
           	  # var num_robots_in_chain =  determine_number_in_chain()
-              MAX_PATH_WP = determine_max_wp(num_robots_in_chain-1)
+              MAX_PATH_WP = determine_max_wp_with_dis(math.vec2.length(total_vector),num_robots_in_chain-1)
               MAX_PATH_WP = MAX_PATH_WP + MIN_OFFSET_WP
               if(MAX_PATH_WP == 0 ) MAX_PATH_WP = 1
               # log("[",id,"] REq in chain ",num_robots_Required," In chain ", num_robots_in_chain)
@@ -1182,13 +801,13 @@ function backbone(){
             else{
                 # figure out which type of robots you need? flying or rolling	 
 	          	var robot_type_required = 0
-	          	if(path_sigmergy.get(-1) > 2 and path_sigmergy.size() > path_sigmergy.get(-1)+1){
-                # var number_of_2d_roobts = determine_no_of_robots_req_in_chain(2,path_sigmergy.get(-1)+1)
-                var num_of_3d_robots = determine_no_of_robots_req_in_chain(path_sigmergy.get(-1)+1,path_sigmergy.size()-2)
-                if(determine_number_in_chain() < num_of_3d_robots-1) robot_type_required = 1
-                # log("[",id,"] num 3d req ", num_of_3d_robots, " number in chain ", determine_number_in_chain()," robot_type_required ", robot_type_required)
+	          	# if(path_sigmergy.get(-1) > 2 and path_sigmergy.size() > path_sigmergy.get(-1)+1){
+            #     # var number_of_2d_roobts = determine_no_of_robots_req_in_chain(2,path_sigmergy.get(-1)+1)
+            #     var num_of_3d_robots = determine_no_of_robots_req_in_chain(path_sigmergy.get(-1)+1,path_sigmergy.size()-2)
+            #     if(determine_number_in_chain() < num_of_3d_robots-1) robot_type_required = 1
+            #     # log("[",id,"] num 3d req ", num_of_3d_robots, " number in chain ", determine_number_in_chain()," robot_type_required ", robot_type_required)
 
-              }
+            #   }
 	            scan_for_new_parents(0,0,robot_type_required)
 
                # log("[",id,"] NETWORKER New parent needed my parent ",PARENT[0])
@@ -1211,15 +830,25 @@ function backbone(){
       			# }
           }
           else{ # proceed towards target
-      		  update_path_waypoint(1)
-        		if(path_sigmergy.get(Current_waypoint) != nil ){
-              move_vec = transform_coordinate_system(1,path_sigmergy.get(Current_waypoint),c_pos,0.0)
+              # var cr_goal = vec_from_gps_using_ref(GOAL_GPS_STATE.lat, GOAL_GPS_STATE.lng, CENTER_GPS_STATE)
+              # log("GOING to target Wp ", Current_waypoint, " X: ",path_sigmergy.get(Current_waypoint).x," Y: ",path_sigmergy.get(Current_waypoint).y," pos X ", c_pos.x," y: ", c_pos.y, " safe check ", safe_com_check )
+              actual_movement = transform_coordinate_system(1,cr_goal,c_pos,0.0)
+              # Current_waypoint = math.round(actual_movement/0.5)  
               var move_len = SAFE_COM_DISTANCE-math.vec2.length(parent_pos)
               if(move_len < 0.0){
                 move_len = 0.0
               }
-              move_vec = math.vec2.newp(move_len, math.vec2.angle(move_vec))	
-  			    }
+              move_vec = math.vec2.newp(move_len, math.vec2.angle(actual_movement))  
+            
+           #  update_path_waypoint(1)
+        	# 	if(path_sigmergy.get(Current_waypoint) != nil ){
+         #      move_vec = transform_coordinate_system(1,path_sigmergy.get(Current_waypoint),c_pos,0.0)
+         #      var move_len = SAFE_COM_DISTANCE-math.vec2.length(parent_pos)
+         #      if(move_len < 0.0){
+         #        move_len = 0.0
+         #      }
+         #      move_vec = math.vec2.newp(move_len, math.vec2.angle(move_vec))	
+  			    # }
           }
           
           
@@ -1361,7 +990,7 @@ function backbone(){
               #if(math.vec2.length(child_pos) >= CRITICAL_COM_DISTANCE
                #or 
               if(child_dist == 0.0 or parent_distance == 0.0){
-                # if(id == 50) log("[",id,"] par or child dis 0  move to (",move_vec.x,",",move_vec.y,")")
+                log("[",id,"] par or child dis 0  move to (",move_vec.x,",",move_vec.y,")")
                 # move_vec = math.vec3.new(0.0,0.0,0.0)
                 # if(V_TYPE){
                 #   if(CF){
@@ -1382,29 +1011,7 @@ function backbone(){
                 # }
               }
               else if(parent_distance >= CRITICAL_COM_DISTANCE){
-                if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-                  ROBOT_IN_AIR = 1 
-                } else if(ROBOT_IN_AIR != 1) {
-                  # log("Altitude: ", pose.position.altitude)
-                  uav_takeoff(TARGET_ALTITUDE)
-                  # var path_cnt=0
-                  # while(path_cnt < size(path_controls)){
-                  #   log("Path Wp : ",path_cnt, " X: ", path_controls[path_cnt].x," y ", path_controls[path_cnt].y)
-                  #   path_cnt = path_cnt + 1
-                  # }
-                }
-                if(ROBOT_IN_AIR == 1){
-                  if(Move_counter <= 0){
-                    var cur_move_goal = gps_from_vec(move_vec)
-                    storegoal(cur_move_goal.latitude, cur_move_goal.longitude, pose.position.altitude)
-                    Move_counter = 10
-                  }
-                  else{
-                    Move_counter = Move_counter - 1
-                  }
-                  goto_gps(chain_reached_goal)
-                  # goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
-                }
+               
                 # log("PArent critical move vec len ",math.vec2.length(move_vec),"p pos: x: ",parent_pos.x," y: ",parent_pos.y, " move x ",move_vec.x," y ", move_vec.y  )
   	          	# convert to cms 
                 # move_vec = parent_pos
@@ -1441,89 +1048,32 @@ function backbone(){
               else{
                 
                 move_vec = math.vec2.scale(move_vec, safe_com_check)
-                # log("non critical parent Move to (",move_vec.x,",",move_vec.y,")")
-                if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
-                  ROBOT_IN_AIR = 1 
-                } else if(ROBOT_IN_AIR != 1) {
-                  # log("Altitude: ", pose.position.altitude)
-                  uav_takeoff(TARGET_ALTITUDE)
-                  # var path_cnt=0
-                  # while(path_cnt < size(path_controls)){
-                  #   log("Path Wp : ",path_cnt, " X: ", path_controls[path_cnt].x," y ", path_controls[path_cnt].y)
-                  #   path_cnt = path_cnt + 1
-                  # }
-                }
-                if(ROBOT_IN_AIR == 1){
-                  if(Move_counter <= 0){
-                    var cur_move_goal = gps_from_vec(move_vec)
-                    storegoal(cur_move_goal.latitude, cur_move_goal.longitude, pose.position.altitude)
-                    Move_counter = 10
-                  }
-                  else{
-                    Move_counter = Move_counter - 1
-                  }
-                  goto_gps(chain_reached_goal)
-                  # goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
-                }
-                # if(id== 1) log("[",id,"] After com check Move to (",move_vec.x,",",move_vec.y,")")
-
-                # if(safe_com_check == 0.0 or safe_com_check == 0  or math.vec2.length(move_vec) < 0.01){
-                #   move_vec =math.vec2.new(-10.0,0.0)
-                #   # if(id== 1) log("[",id,"] performing rotation : safe_com_check ",safe_com_check)
-
+                
+               
+              }
+              log("non critical parent Move to (",move_vec.x,",",move_vec.y,")")
+              if(pose.position.altitude >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
+                ROBOT_IN_AIR = 1 
+              } else if(ROBOT_IN_AIR != 1) {
+                # log("Altitude: ", pose.position.altitude)
+                uav_takeoff(TARGET_ALTITUDE)
+                # var path_cnt=0
+                # while(path_cnt < size(path_controls)){
+                #   log("Path Wp : ",path_cnt, " X: ", path_controls[path_cnt].x," y ", path_controls[path_cnt].y)
+                #   path_cnt = path_cnt + 1
                 # }
-                # log("[",id,"] after rotate (",move_vec.x,",",move_vec.y,") safe_com_check ",safe_com_check)
-
-                # if(path_sigmergy.get(Current_waypoint) != nil){
-                #   # log("GOING TO WP",Current_waypoint,": (",path_sigmergy.get(Current_waypoint).x,",",path_sigmergy.get(Current_waypoint).y,")")
-                #   # log("Pos(",pose.position.x,",",pose.position.y,") yaw: ",pose.orientation.yaw)
-                # }
-    	          # if(parent_distance > SAFE_COM_DISTANCE and V_TYPE == 0){
-    	          # 	# Looks like you are halting orient yourself to face parent to react to incoming robots for LCA
-    	          # 	var orienting_move =math.vec2.new(0.0,0.0)
-    	          # 	var parent_bearing = math.vec2.angle(parent_pos)
-
-    	          # 	# log("[",id,"] Parent Bearing: ", parent_bearing)
-    	          # 	# if(parent_bearing > BEARING_TOLERNECE or parent_bearing < -1*BEARING_TOLERNECE)
-    	          # 	# 	orienting_move = math.vec2.newp(0.0,math.PI)
-    	          # 	move_vec = orienting_move
-    	          # 	# debug.print("Par Bearing: ", parent_bearing,"Move vec X ",move_vec.x," Y ",move_vec.y," Parent dis: ",parent_distance)
-    	          # }
-                # log("[",id,"]","NET child dis X: ", math.vec2.length(child_pos),"stored dis",child_dist," com check ", safe_com_check," Move (",move_vec.x," , ",move_vec.y,")")
-
-    	         #  if(V_TYPE){
-    		        # 	var m_target_wp = path_sigmergy.get(Current_waypoint)
-    		        # 	# log("[",id,"] 3D Distance to target ",math.vec3.dis(m_target_path,pose.position))
-              #  #    log("[",id,"] 2D Distance to target ",math.vec2.dis(m_target_path,pose.position))
-                  
-    		        	
-              #     if(CF){
-              #       move_vec = math.vec3.new(move_vec.x,move_vec.y,m_target_wp.z)
-              #       # move_vec = LCA(move_vec)
-              #       if(safe_com_check) CF_GO_TO(move_vec)
-              #     }
-              #     else{
-              #       if(m_target_wp.z < Min_alt)
-              #         move_vec = math.vec3.new(move_vec.x,move_vec.y,Min_alt-pose.position.z)
-              #       else 
-              #         move_vec = math.vec3.new(move_vec.x,move_vec.y,m_target_wp.z-pose.position.z)
-
-              #       move_vec = math.vec3.scale(move_vec, 10000)
-              #       # move_vec = LCA(move_vec)
-              #       goto3d(move_vec.x, move_vec.y, move_vec.z)
-              #     }
-      		      # }
-      		      # else{
-              #     # log("NET Move to: (",move_vec.x,",",move_vec.y,")")
-    		        #   # convert to cms 
-  	          	#   move_vec = math.vec2.scale(move_vec, 10000)
-              #     move_vec = LCA(move_vec)
-    	         #    if(path_sigmergy.get(Current_waypoint) !=nil)  goto(move_vec.x, move_vec.y)
-              #     else{
-              #       goto(0.0,0.0)
-              #       log("PATH STIG NIL INDEX ",path_sigmergy.get(Current_waypoint))
-              #     }
-      	       #  }
+              }
+              if(ROBOT_IN_AIR == 1){
+                if(Move_counter <= 0){
+                  var cur_move_goal = gps_from_vec(move_vec)
+                  storegoal(cur_move_goal.latitude, cur_move_goal.longitude, pose.position.altitude)
+                  Move_counter = 10
+                }
+                else{
+                  Move_counter = Move_counter - 1
+                }
+                goto_gps(chain_reached_goal)
+                # goto(move_vec.x,move_vec.y,TARGET_ALTITUDE)
               }
           }
           # }
@@ -3058,6 +2608,11 @@ function update_path_waypoint(increment_indicator){
 	}
 }
 
+function determine_no_of_robots_req_with_dis(distance_to_tar){
+  var num_robots = math.ceil(distance_to_tar/SAFE_COM_DISTANCE)
+
+  return num_robots
+}
 
 
 function determine_no_of_robots_req_in_chain(fromwp, uptowaypoint){
@@ -3101,6 +2656,14 @@ function determine_max_wp(num){
   }
   # log("[",id,"] distance at return ",distance_accum," WP ",s)
   return ws
+}
+
+function determine_max_wp_with_dis(distance_to, numb_in_chain){
+  var total_waypoints = distance_to/wp_resolution 
+  var dis_to_cover = numb_in_chain*SAFE_COM_DISTANCE*(1/wp_resolution)
+  var max_wp_this = math.round(total_waypoints - dis_to_cover)  
+  log("MAX wp ", max_wp_this)
+  return max_wp_this
 }
 
 function orient_towards_parent(){
