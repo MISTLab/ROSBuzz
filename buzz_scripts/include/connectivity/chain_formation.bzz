@@ -695,7 +695,7 @@ function backbone(){
       if((path_sigmergy.get(-2) == nil) or (path_sigmergy.size() <= path_sigmergy.get(-2))){
         # NETWORKER_STATE = 0
         log("[",id,"]Waiting for path_sigmergy to update ...")
-        var wp_zero = path_sigmergy[0]
+        var wp_zero = path_sigmergy.get(0)
         # if(path_sigmergy.get(-1) != nil and path_sigmergy.get(-2) != nil ){
         #   var u_cnt = 0
         #   while(u_cnt < path_sigmergy.get(-2)-1){
