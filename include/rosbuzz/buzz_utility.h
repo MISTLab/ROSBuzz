@@ -36,7 +36,7 @@ typedef struct rb_struct RB_struct;
 
 struct neiStatus
 {
-  uint gps_strenght = 0;
+  uint altitude = 0;
   uint batt_lvl = 0;
   uint xbee = 0;
   uint flight_status = 0;

@@ -25,6 +25,10 @@ function rc_cmd_listen() {
 			flight.rc_cmd=0
 			AUTO_LAUNCH_STATE = "DEPLOY"
 			neighbors.broadcast("cmd", 901)
+		} else if (flight.rc_cmd==902 and BVMSTATE!="BARRIERWAIT"){
+			flight.rc_cmd=0
+			AUTO_LAUNCH_STATE = "WAYPOINT"
+			neighbors.broadcast("cmd", 902)
 		}
 	} else {
 		if(flight.rc_cmd==21) {
@@ -108,6 +112,10 @@ function nei_cmd_listen() {
 						AUTO_LAUNCH_STATE = "DEPLOY"
 						barrier_set(ROBOTS, "TURNEDOFF", BVMSTATE, 901)
 						neighbors.broadcast("cmd", 901)
+					} else if(value==902){
+						AUTO_LAUNCH_STATE = "WAYPOINT"
+						barrier_set(ROBOTS, "TURNEDOFF", BVMSTATE, 902)
+						neighbors.broadcast("cmd", 902)
 					}
 				} else {
 					if(value==21 and BVMSTATE != "STOP") {
@@ -129,17 +137,17 @@ function nei_cmd_listen() {
 							barrier_set(ROBOTS, "DEPLOY", BVMSTATE, 901)
 							#barrier_ready(901)
 							#neighbors.broadcast("cmd", 901)
-						} else if(value==902 and BVMSTATE!="WAYPOINT" and BVMSTATE!="TURNEDOFF"){	# Waypoint
+						} else if(value==902 and BVMSTATE!="WAYPOINT"){	# Waypoint
 							destroyGraph()
 							barrier_set(ROBOTS, "WAYPOINT", BVMSTATE, 902)
 							#barrier_ready(902)
 							#neighbors.broadcast("cmd", 902)
-						} else if(value==903 and BVMSTATE!="PURSUIT" and BVMSTATE!="TURNEDOFF"){	# Pursuit
+						} else if(value==903 and BVMSTATE!="PURSUIT"){	# Pursuit
 							destroyGraph()
 							barrier_set(ROBOTS, "PURSUIT", BVMSTATE, 903)
 							#barrier_ready(903)
 							#neighbors.broadcast("cmd", 903)
-						} else if(value==904 and BVMSTATE!="IDLE" and BVMSTATE!="TURNEDOFF"){	# idle
+						} else if(value==904 and BVMSTATE!="IDLE"){	# idle
 							destroyGraph()
 							resetWP()
 							barrier_set(ROBOTS, "IDLE", BVMSTATE, 904)

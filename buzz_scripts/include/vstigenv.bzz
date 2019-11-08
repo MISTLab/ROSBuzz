@@ -33,8 +33,10 @@ function uav_updatestig() {
 	# TODO: Push values on update only?
 	if(vstig_counter<=0) {
 		vstig_buzzy = 1
-		var ls = battery.capacity*10 + s2i(BVMSTATE)
-	    #log("Pushing ", ls, "on vstig with id:", id)
+		bc = battery.capacity
+		if(bc>99) bc = 99
+		var ls = math.round(pose.position.altitude)*1000 + bc*10 + s2i(BVMSTATE)
+	    #log("Pushing ", ls, "on vstig with :", id, math.round(pose.position.altitude), bc, s2i(BVMSTATE))
 	    v_status.put(id, ls)
 		vstig_counter=WAIT4STEP
 	} else if(vstig_counter==WAIT4STEP-1){ # ensure comm. delay between fetch and update stig
@@ -48,13 +50,14 @@ function uav_updatestig() {
 }
 
 function unpackstatus(recv_value,state_struct){
-    #state_struct.gp=(recv_value-recv_value%1000000)/1000000
-    #recv_value=recv_value-state_struct.gp*1000000
+    state_struct.al=(recv_value-recv_value%1000)/1000
+    recv_value=recv_value-state_struct.al*1000
     state_struct.ba=(recv_value-recv_value%10)/10
     recv_value=recv_value-state_struct.ba*10
     #state_struct.xb=(recv_value-recv_value%10)/10
     #recv_value=recv_value-state_struct.xb*10
     state_struct.st=recv_value
+	#log("Unpack :", state_struct.al, state_struct.ba, state_struct.st)
 	return state_struct
 }
 	
@@ -94,7 +97,7 @@ function usertab_print(t) {
 
 function stattab_print() {
 	if(v_status.size()>0) {
-		var state_struct = {.id = -1, .gp = 0, .ba = 0, .xb = 0, .st = 0}
+		var state_struct = {.id = -1, .al = 0, .ba = 0, .xb = 0, .st = 0}
 		neighbors.foreach(function(rid, data) {
 			var nei_state = v_status.get(rid)
 			if(nei_state!=nil){
@@ -109,7 +112,7 @@ function stattab_print() {
 
 function stattab_send() {
 	if(v_status.size()>0) {
-			var state_struct = {.id = -1, .gp = -1, .ba = -1, .xb = -1, .st = 0}
+			var state_struct = {.id = -1, .al = -1, .ba = -1, .xb = -1, .st = 0}
 			neighbors.foreach(function(rid, data) {
 				var nei_state = v_status.get(rid)
 				if(nei_state!=nil){

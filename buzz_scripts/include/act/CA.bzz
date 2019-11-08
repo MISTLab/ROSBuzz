@@ -105,6 +105,8 @@ function RVO(preferedVelocity) {
     function(rid, data) {
 
       var angle = data.azimuth#-(data.azimuth * 0.017454)
+      get_nei_alt(rid)
+      log("Neighbor ", rid, "is at ", altout)
 
       #data_string = string.concat(data_string, ",", string.tostring(data.distance), ",", string.tostring(angle))
 

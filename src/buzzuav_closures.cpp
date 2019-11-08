@@ -877,6 +877,27 @@ int buzzuav_addtargetRB(buzzvm_t vm)
   return 0;
 }
 
+int buzzuav_get_nei_alt(buzzvm_t vm){
+  // Load id
+  buzzvm_lnum_assert(vm, 1);
+  buzzvm_lload(vm, 1);  // id
+  buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+  int uid = buzzvm_stack_at(vm, 1)->i.value;
+
+  // find altitude
+  int alt = -1;
+  map<int, buzz_utility::neighbors_status>::iterator it = neighbors_status_map.find(uid);
+  if (it != neighbors_status_map.end()){
+    alt = it->second.altitude;
+  }
+  //push altitude
+  buzzvm_pop(vm);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "altout", 1));
+  buzzvm_pushi(vm, alt);
+  buzzvm_gstore(vm);
+  return buzzvm_ret0(vm);
+}
+
 int buzzuav_addNeiStatus(buzzvm_t vm)
 /*
 / closure to add neighbors status to the BVM
@@ -904,9 +925,9 @@ int buzzuav_addNeiStatus(buzzvm_t vm)
   newRS.batt_lvl = buzzvm_stack_at(vm, 1)->i.value;
   buzzvm_pop(vm);
   buzzvm_dup(vm);
-  buzzvm_pushs(vm, buzzvm_string_register(vm, "gp", 1));
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "al", 1));
   buzzvm_tget(vm);
-  newRS.gps_strenght = buzzvm_stack_at(vm, 1)->i.value;
+  newRS.altitude = buzzvm_stack_at(vm, 1)->i.value;
   buzzvm_pop(vm);
   buzzvm_dup(vm);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "xb", 1));
@@ -923,7 +944,7 @@ int buzzuav_addNeiStatus(buzzvm_t vm)
   if (it != neighbors_status_map.end())
     neighbors_status_map.erase(it);
   neighbors_status_map.insert(make_pair(id, newRS));
-  return vm->state;
+  return buzzvm_ret0(vm);
 }
 
 mavros_msgs::Mavlink get_status()
@@ -936,7 +957,7 @@ mavros_msgs::Mavlink get_status()
   for (it = neighbors_status_map.begin(); it != neighbors_status_map.end(); ++it)
   {
     payload_out.payload64.push_back(it->first);
-    payload_out.payload64.push_back(it->second.gps_strenght);
+    payload_out.payload64.push_back(it->second.altitude);
     payload_out.payload64.push_back(it->second.batt_lvl);
     payload_out.payload64.push_back(it->second.xbee);
     payload_out.payload64.push_back(it->second.flight_status);

@@ -191,6 +191,7 @@ void clear_neighbours_pos();
  * closure to add a neighbor status
  */
 int buzzuav_addNeiStatus(buzzvm_t vm);
+int buzzuav_get_nei_alt(buzzvm_t vm);
 /*
  * returns the current array of neighbors status
  */
