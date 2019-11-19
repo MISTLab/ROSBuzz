@@ -2,6 +2,8 @@ robot_radius = 1.0
 safety_radius = 1.7
 combined_radius = 2 * robot_radius + safety_radius
 
+LAND_HEIGHT_TOL = 0.5
+
 # Lightweight collision avoidance
 function LCA( vel_vec ) {
 	collide = 0
@@ -14,6 +16,16 @@ function LCA( vel_vec ) {
 			var c = {}
 			c.distance = data.distance 
 			c.azimuth = data.azimuth
+
+      # get neighbor altitude
+      get_nei_alt(rid)
+
+      # ignore the ground station (id 0) and landed robots
+      if (rid == 0 or altout <= LAND_HEIGHT_TOL) {
+        return c
+      }
+
+      # detect collision
 			if (c.distance < combined_radius )
 				collide = 1
 			return c
@@ -23,13 +35,21 @@ function LCA( vel_vec ) {
 		#log("------>  AVOIDING NEIGHBOR! (LCA) <------")
 		#log("")
 		result = cart.reduce(function(rid, data, accum) {
-			if(data.distance < accum.distance and data.distance > 0.0){
-				accum.distance = data.distance
-				accum.angle = data.azimuth
-				return accum
-			}
-				return accum
-			}, {.distance= combined_radius * 2.0, .angle= 0.0})
+      # get neighbor altitue
+      get_nei_alt(rid)
+
+      # ignore the ground station (id 0) and landed robots
+      if (rid == 0 or altout <= LAND_HEIGHT_TOL) {
+        return accum
+      }
+
+      # find the closest robot
+      if(data.distance < accum.distance and data.distance > 0.0){
+        accum.distance = data.distance
+        accum.angle = data.azimuth
+      }
+      return accum
+    }, {.distance= combined_radius * 2.0, .angle= 0.0})
 
 
 		d_i = result.distance
@@ -107,6 +127,11 @@ function RVO(preferedVelocity) {
       var angle = data.azimuth#-(data.azimuth * 0.017454)
       get_nei_alt(rid)
       log("Neighbor ", rid, "is at ", altout)
+
+      # ignore the ground station (id 0) and landed robots
+      if (rid == 0 or altout <= LAND_HEIGHT_TOL) {
+        return
+      }
 
       #data_string = string.concat(data_string, ",", string.tostring(data.distance), ",", string.tostring(angle))
 
