@@ -21,9 +21,12 @@ function navigate() {
   BVMSTATE="NAVIGATE"
 	if(V_TYPE == 0) { # TODO: place these in a generic function in conversion.bzz
 		storegoal(goal_list[g_it].x, goal_list[g_it].y, pose.position.altitude)
-		cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
-		m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.long, 0),-1)
+		# cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
+		# m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.long, 0),-1)
 	}
+
+  cur_goal = math.vec2.new(5.0, 5.0)
+  m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.long, 0),-1)
 
 	print(" has to move ", math.vec2.length(cur_goal), "from ", m_pos.x, " ", m_pos.y)
 	if(math.vec2.length(cur_goal)>GOTO_MAXDIST*5) {
@@ -137,7 +140,7 @@ function getcell(m_curpos) {
 
 function populateGrid(m_pos) {
     # getproxobs(m_pos)
-    getneiobs (m_pos)
+    # getneiobs (m_pos)
     export_map(map)
 }
 
@@ -253,7 +256,7 @@ function check_path(m_path, goal_l, m_curpos, kh4) {
         Nvec = vec_from_gps(Nvec.x,Nvec.y,1)
         Nvec = getcell(Nvec)
     }
-    if(doesItIntersect(Cvec, Nvec)) {
+    if(doesItIntersect(Cvec, Nvec)) { # TODO: Cvec and Nvec should be vec2s
       log("Path blocked ! (", Cvec.x, "/", Cvec.y, "->", Nvec.x, "/", Nvec.y, ")")
       pathisblocked = 1
     }
@@ -289,6 +292,8 @@ function rrtstar() {
         if(size(pointList) != 0) {
             #log("Found ", size(pointList), " close to point: ", pointList[size(pointList)][3]) 
             ipt=1
+
+            # Loops through all points in pointList and find which one has the least cummulative distance to the generated point pt
             while(ipt <= size(pointList)) {
                 pointNumber = {}
                 mat_copyrow(pointNumber,1,pointList,ipt)
@@ -310,6 +315,8 @@ function rrtstar() {
                 }
                 ipt = ipt + 1
             }
+
+            # If a point were found, add the generated pt to the tree and set its parent as the one that were found
             if(minCounter > 0) {
                 numberOfPoints = numberOfPoints + 1;
                 arrayOfPoints[numberOfPoints] = {}
@@ -340,7 +347,7 @@ function rrtstar() {
                     # If there is no intersection we need consider its connection
                     nbCount = nbCount + 1;
                     if(intersects != 1) {
-                        # If the alternative path is shorter than change it
+                        # If the alternative path is shorter then change it
                         tmpdistance = Q[numberOfPoints][5]+math.vec2.length(math.vec2.sub(getvec(pointNumber,1),pt))
                         #log("Q: ", size(Q), "x", size(Q[1]))
                         if(tmpdistance < Q[pointNumber[1][4]][5]) {
@@ -422,7 +429,7 @@ function findClosestPoint(point,aPt) {
     return pointNb
 }
 
-# Find the closest point in the tree
+# Find a list of points in the tree which are closer to "point" than the radius "r"
 function findPointsInRadius(point,q,r) {
     var ptList = {}
     var counted = 0;
@@ -515,7 +522,7 @@ function getPath(Q,nb){
     var totpt = npt + 1
     while(npt > 0){
         pathR[totpt-npt] = {}
-        var tmpgoal = getvec(pathL,npt)
+        var tmpgoal = getvec(pathL,npt) # TODO: remove tmpgoal variable
         pathR[totpt-npt][1]=tmpgoal.x
         pathR[totpt-npt][2]=tmpgoal.y
         npt = npt - 1
