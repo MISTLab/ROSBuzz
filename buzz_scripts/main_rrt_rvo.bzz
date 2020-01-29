@@ -14,6 +14,8 @@ include "connectivity/chain_formation.bzz"
 #AUTO_LAUNCH_STATE = "DEPLOY" NOW SET IN LAUNCH FILE!!
 LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barrier expire; if set to be 0, the robots will carry on to AUTO_LAUNCH_STATE.
 
+GOTODIST_TOL = 0.6  # m.
+
 #####
 # Vehicule type:
 # 0 -> outdoor flying vehicle
@@ -25,13 +27,56 @@ if(id==0)	# No network ID=0, it's the groundstation/charging station.
 else
 	V_TYPE = 0
 
-goal_list = {
-	.0={.x = 45.5088103899, .y = -73.1540826153, .z = 2.5}
-}
+# goal_list = {
+# 	.0={.x = 45.5088103899, .y = -73.1540826153, .z = 2.5}
+# }
+
+waypoints = {}
+current_wp = 0
 
 
 # Executed once at init time.
 function init() {
+
+	# Select waypoints
+	if(id == 1) {
+		waypoints = {
+		.0 = math.vec2.new(10.0, 10.0)
+		}
+	}
+	# if(id == 2) {
+	# 	waypoints = {
+	# 	.0 = math.vec2.new(2.0, 2.0)
+	# 	}
+	# }
+	# if(id == 3) {
+	# 	waypoints = {
+	# 	.0 = math.vec2.new(2.0, 10.0)
+	# 	}
+	# }
+	if(id == 2) {
+		waypoints = {
+		.0 = math.vec2.new(15.0, 10.0)
+		}
+	}
+	if(id == 3) {
+		waypoints = {
+		.0 = math.vec2.new(-15.0, 5.0)
+		}
+	}
+	# if(id == 1) {
+	# 	waypoints = {
+	# 	.0 = math.vec2.new(45.5105, -73.6093),
+	# 	.1 = math.vec2.new(45.5104, -73.6094)
+	# 	}
+	# }
+	# if(id == 2) {
+	# 	waypoints = {
+	# 	.0 = math.vec2.new(45.5104, -73.6094),
+	# 	.1 = math.vec2.new(45.5105, -73.6093)
+	# 	}
+	# }
+
   	init_stig()
 	init_swarm()
 	#init_bidding()
@@ -48,7 +93,7 @@ function init() {
 # Executed at each time step.
 function step() {
 
-	print("Current state: ", BVMSTATE)
+	# print("Current state: ", BVMSTATE)
 
 	# listen to Remote Controller
 	rc_cmd_listen()

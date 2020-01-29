@@ -3,6 +3,7 @@
 #include <tf/tf.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <nav_msgs/Path.h>
 #include <std_msgs/UInt8.h>
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/CommandCode.h"
@@ -162,6 +163,7 @@ private:
   ros::Publisher neigh_pos_pub;
   ros::Publisher bvmstate_pub;
   ros::Publisher grid_pub;
+  ros::Publisher path_pub;
   ros::Publisher localsetpoint_nonraw_pub;
   ros::ServiceServer service;
   ros::Subscriber current_position_sub;
@@ -217,6 +219,9 @@ private:
 
   /*Grid publisher*/
   void grid_publisher();
+
+  /*Path publisher*/
+  void path_publisher();
 
   /*BVM message payload publisher*/
   void send_MPpayload();

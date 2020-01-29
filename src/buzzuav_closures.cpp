@@ -65,6 +65,8 @@ std::map<int, buzz_utility::RB_struct> neighbors_map;
 std::map<int, buzz_utility::RB_struct> neighbors_map_prev;
 std::map<int, buzz_utility::neighbors_status> neighbors_status_map;
 std::map<int, std::map<int, int>> grid;
+std::map<int, std::pair<int, int>> path;
+float origin_x, origin_y, resolution;
 
 /****************************************/
 /****************************************/
@@ -283,10 +285,19 @@ int buzz_exportmap(buzzvm_t vm)
 /----------------------------------------*/
 {
   grid.clear();
-  buzzvm_lnum_assert(vm, 1);
+  buzzvm_lnum_assert(vm, 4);
   // Get the parameter
-  buzzvm_lload(vm, 1);
+  buzzvm_lload(vm, 1);  // grid
+  buzzvm_lload(vm, 2);  // origin_y
+  buzzvm_lload(vm, 3);  // origin_x
+  buzzvm_lload(vm, 4);  // resolution
+  buzzvm_type_assert(vm, 4, BUZZTYPE_FLOAT);
+  buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+  buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
   buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);  // dictionary
+  resolution = buzzvm_stack_at(vm, 4)->f.value;
+  origin_x = buzzvm_stack_at(vm, 3)->f.value;
+  origin_y = buzzvm_stack_at(vm, 2)->f.value;
   buzzobj_t t = buzzvm_stack_at(vm, 1);
   for (int32_t i = 1; i <= buzzdict_size(t->t.value); ++i)
   {
@@ -307,6 +318,48 @@ int buzz_exportmap(buzzvm_t vm)
   }
   // DEBUG
   // ROS_INFO("----- Recorded a grid of %i(%i)", grid.size(), buzzdict_size(t->t.value));
+  return buzzvm_ret0(vm);
+}
+
+int buzz_exportpath(buzzvm_t vm)
+/*
+/ Buzz closure to export a 2D path
+/----------------------------------------*/
+{
+  path.clear();
+  buzzvm_lnum_assert(vm, 1);
+  // Get the parameter
+  buzzvm_lload(vm, 1);
+  buzzvm_type_assert(vm, 1, BUZZTYPE_TABLE);  // dictionary
+  buzzobj_t t = buzzvm_stack_at(vm, 1);
+  int x = 0, y = 0, ts = buzzdict_size(t->t.value);
+  for (int32_t i = 1; i <= ts; ++i)
+  {
+    buzzvm_dup(vm);
+    buzzvm_pushi(vm, i);
+    buzzvm_tget(vm);
+
+    buzzvm_dup(vm);
+    buzzvm_pushi(vm, 1);
+    buzzvm_tget(vm);
+    x = buzzvm_stack_at(vm, 1)->i.value;
+    buzzvm_pop(vm);
+
+    buzzvm_dup(vm);
+    buzzvm_pushi(vm, 2);
+    buzzvm_tget(vm);
+    y = buzzvm_stack_at(vm, 1)->i.value;
+    buzzvm_pop(vm);
+    
+    path.insert(std::pair<int, std::pair<int, int>>(i, std::pair<int, int>(x, y)));
+    buzzvm_pop(vm);
+  }
+  // DEBUG
+  // std::map<int, std::pair<int, int>>::iterator itr = path.begin();
+  // for (itr = path.begin(); itr != path.end(); ++itr)
+  // {
+  //   ROS_INFO("----- Path[%i] = %i, %i", itr->first, itr->second.first, itr->second.second);
+  // }
   return buzzvm_ret0(vm);
 }
 
@@ -1137,6 +1190,38 @@ std::map<int, std::map<int, int>> getgrid()
 /-------------------------------------------------------------*/
 {
   return grid;
+}
+
+std::map<int, std::pair<int, int>> getpath()
+/*
+/ return the path
+/-------------------------------------------------------------*/
+{
+  return path;
+}
+
+float get_origin_x()
+/*
+/ return the origin_x
+/-------------------------------------------------------------*/
+{
+  return origin_x;
+}
+
+float get_origin_y()
+/*
+/ return the origin_y
+/-------------------------------------------------------------*/
+{
+  return origin_y;
+}
+
+float get_resolution()
+/*
+/ return the resolution
+/-------------------------------------------------------------*/
+{
+  return resolution;
 }
 
 float* getgimbal()
