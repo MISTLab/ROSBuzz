@@ -1,8 +1,33 @@
-robot_radius = 1.0
+# Add an entry to this table for each robot that has a radius different from the default
+# The key is the robot's id and the value is the value of the radius
+robot_radius = {
+  .3 = 5.0
+}
+default_robot_radius = 1.0
 safety_radius = 1.7
-combined_radius = 2 * robot_radius + safety_radius
 
 LAND_HEIGHT_TOL = 0.5
+
+# Calculate the combined radius based on the neighbor's id
+function get_combined_radius(nid) {
+
+  # Get current robot radius
+  if(robot_radius[id] != nil) {
+    my_radius = robot_radius[id]
+  } else {
+    my_radius = default_robot_radius
+  }
+
+  # Get neighbor radius
+  if(robot_radius[nid] != nil) {
+    neighbor_radius = robot_radius[nid]
+  } else {
+    neighbor_radius = default_robot_radius
+  }
+
+  # Calculate combined radius
+  return my_radius + neighbor_radius + safety_radius
+}
 
 # Lightweight collision avoidance
 function LCA( vel_vec ) {
@@ -26,6 +51,7 @@ function LCA( vel_vec ) {
       }
 
       # detect collision
+      combined_radius = get_combined_radius(rid)
 			if (c.distance < combined_radius )
 				collide = 1
 			return c
@@ -34,6 +60,7 @@ function LCA( vel_vec ) {
 		#log("")
 		#log("------>  AVOIDING NEIGHBOR! (LCA) <------")
 		#log("")
+    closest_neighbor_id = -1
 		result = cart.reduce(function(rid, data, accum) {
       # get neighbor altitue
       get_nei_alt(rid)
@@ -45,17 +72,19 @@ function LCA( vel_vec ) {
 
       # find the closest robot
       if(data.distance < accum.distance and data.distance > 0.0){
+        closest_neighbor_id = rid
         accum.distance = data.distance
         accum.angle = data.azimuth
       }
       return accum
-    }, {.distance= combined_radius * 2.0, .angle= 0.0})
-
+    }, {.distance= 100.0, .angle= 0.0})
 
 		d_i = result.distance
 		data_alpha_i = result.angle
 
 		delta = math.vec2.new( d_i * math.cos(data_alpha_i), d_i * math.sin(data_alpha_i) )
+
+    combined_radius = get_combined_radius(closest_neighbor_id)
 
 		p = math.exp(-(d_i - combined_radius))
 		if ( math.cos( math.vec2.angle(vel_vec) - data_alpha_i ) < 0.0 ) {
@@ -134,6 +163,8 @@ function RVO(preferedVelocity) {
       }
 
       #data_string = string.concat(data_string, ",", string.tostring(data.distance), ",", string.tostring(angle))
+
+      combined_radius = get_combined_radius(rid)
 
       var distance = data.distance
       if(distance <= combined_radius) distance = combined_radius
@@ -263,4 +294,34 @@ function setup_velocity_callbacks() {
         }
 		r = r + 1
     }    
+}
+
+
+# State function to test collision avoidance
+function test_collision_avoidance(){
+	BVMSTATE="TEST_COLLISION_AVOIDANCE"
+
+  if(V_TYPE != 0) {
+    return
+  }
+	
+  # Get current waypoint
+  cur_goal = waypoints[current_wp]
+  cur_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, {.lat=45.510369, .lng=-73.609415})
+
+  # Calculate the distance to the waypoint
+  vector_to_target = math.vec2.sub(cur_goal, cur_pos)
+  distance_to_target = math.vec2.length(vector_to_target)
+  cur_goal = vector_to_target
+
+  if(distance_to_target > 0.5) {
+    goto(cur_goal.x, cur_goal.y, TARGET_ALTITUDE - pose.position.altitude)
+	} else {
+    # Increment the waypoint
+		if(current_wp < size(waypoints) - 1) {
+			current_wp = current_wp + 1
+		} else {
+			BVMSTATE="IDLE"
+		}
+	}
 }
