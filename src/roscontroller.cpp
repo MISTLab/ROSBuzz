@@ -46,7 +46,12 @@ roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
 
   //  Get Home position - wait for none-zero value
   if(pose_type == LOCAL_POSE){
-    // TODO: Figure out a way to determine local pose is published and it is good!!!
+    while(pose_received == 0){
+      ROS_INFO("Waiting for Pos.");
+      ros::Duration(0.5).sleep();
+      ros::spinOnce(); 
+   }
+    // TODO: Figure out a better way to determine local pose is published and it is good!!!
   }
   else{
     while (((cur_pos.latitude == 0.0f) || (cur_pos.altitude < -1000.0)))
@@ -1225,7 +1230,6 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
   if(pose_type == LOCAL_POSE){
     cur_pos.z = msg->pose.position.z;
   }
-
   if (!BClpose)
   {
     goto_pos[0] = cur_pos.x;
@@ -1233,7 +1237,7 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
     goto_pos[2] = 0.0;
     BClpose = true;
   }
-  
+  if(pose_received == 0) pose_received = 1;
   //  cur_pos.z = pose->pose.position.z; // Using relative altitude topic instead
   tf::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
   tf::Matrix3x3 m(q);
