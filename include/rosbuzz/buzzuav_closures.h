@@ -154,7 +154,7 @@ void set_filtered_packet_loss(float value);
  * sets current position
  */
 
-void set_currentNEDpos(double x, double y);
+void set_currentNEDpos(double x, double y, double z, double yaw, double x_offset, double y_offset);
 
 void set_currentpos(double latitude, double longitude, float altitude, float yaw);
 /*

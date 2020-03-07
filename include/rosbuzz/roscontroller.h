@@ -48,6 +48,14 @@ typedef enum {
   BUZZ_MESSAGE_TIME,     // Broadcast message with time info
 } rosbuzz_msgtype;
 
+/*
+ *  ROSBuzz Pose source types
+ */
+typedef enum {
+  GPS = 0,
+  LOCAL_POSE = 1
+} rosbuzz_posetype;
+
 // Time sync algo. constants
 #define COM_DELAY 100000000  // in nano seconds i.e 100 ms
 #define TIME_SYNC_JUMP_THR 500000000
@@ -97,7 +105,7 @@ private:
   };
   typedef struct POSE ros_pose;
 
-  ros_pose target, home, cur_pos;
+  ros_pose target, home, cur_pos, home_offset;
   double* goto_pos;
 
   struct MsgData
@@ -145,6 +153,7 @@ private:
   bool debug = false;
   bool setmode = false;
   bool BClpose = false;
+  int pose_type = 0;
   std::string bzzfile_name, WPfile;
   std::string bcfname, dbgfname;
   std::string stand_by;
@@ -239,6 +248,7 @@ private:
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);
   void gps_rb(POSE nei_pos, double out[]);
+  void local_pos_rb(POSE nei_pos, double out[]);
   void gps_ned_cur(float& ned_x, float& ned_y, POSE t);
   void gps_convert_ned(float& ned_x, float& ned_y, double gps_t_lon, double gps_t_lat, double gps_r_lon,
                        double gps_r_lat);

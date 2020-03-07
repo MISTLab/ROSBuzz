@@ -9,7 +9,7 @@ include "taskallocate/graphformGPS.bzz"
 include "vstigenv.bzz"
 #include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
-include "connectivity/chain_formation.bzz"
+include "connectivity/chain_formation_local.bzz"
 
 #AUTO_LAUNCH_STATE = "DEPLOY" NOW SET IN LAUNCH FILE!!
 LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barrier expire; if set to be 0, the robots will carry on to AUTO_LAUNCH_STATE.
@@ -98,8 +98,6 @@ function step() {
 	statef()
 
 	#log("Current state: ", BVMSTATE)
-
-
 }
  
 # Executed once when the robot (or the simulator) is reset.

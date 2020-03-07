@@ -1,0 +1,28 @@
+R0:
+  pose_x: 0.0
+  pose_y: 0.0
+  ori_theta: 0.0
+R1:
+  pose_x: 0.0
+  pose_y: 0.0
+  ori_theta: 0.0 
+R2:
+  pose_x: 0.0
+  pose_y: 2.0
+  ori_theta: 0.0 
+R3:
+  pose_x: 0.0
+  pose_y: 4.0
+  ori_theta: 0.0 
+R4: 
+  pose_x: 0.0
+  pose_y: 6.0
+  ori_theta: 0.0 
+R5:
+  pose_x: 0.0
+  pose_y: 0.0
+  ori_theta: 0.0
+R6:
+  pose_x: 0.0
+  pose_y: 0.0
+  ori_theta: 0.0 

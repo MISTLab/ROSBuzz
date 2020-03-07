@@ -17,7 +17,8 @@ namespace buzzuav_closures
 static double goto_pos[4];
 static double goto_gpsgoal[3];
 static double cur_pos[4];
-static double cur_NEDpos[2];
+static double cur_offset[2];
+static double cur_NEDpos[4];
 
 static int rc_id = -1;
 static int rc_cmd = 0;
@@ -1334,13 +1335,17 @@ int buzzuav_update_xbee_status(buzzvm_t vm)
   return vm->state;
 }
 
-void set_currentNEDpos(double x, double y)
+void set_currentNEDpos(double x, double y, double z, double yaw, double x_offset, double y_offset)
 /*
 / update interface position array
 -----------------------------------*/
 {
   cur_NEDpos[0] = x;
   cur_NEDpos[1] = y;
+  cur_NEDpos[2] = z;
+  cur_NEDpos[3] = yaw;
+  cur_offset[0] = x_offset;
+  cur_offset[1] = y_offset;
 }
 
 void set_currentpos(double latitude, double longitude, float altitude, float yaw)
@@ -1424,6 +1429,18 @@ int buzzuav_update_currentpos(buzzvm_t vm)
   buzzvm_pushs(vm, buzzvm_string_register(vm, "y", 0));
   buzzvm_pushf(vm, cur_NEDpos[1]);
   buzzvm_tput(vm);
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "z", 0));
+  buzzvm_pushf(vm, cur_NEDpos[2]);
+  buzzvm_tput(vm);
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "x_offset", 0));
+  buzzvm_pushf(vm, cur_offset[0]);
+  buzzvm_tput(vm);
+  buzzvm_push(vm, tPosition);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "y_offset", 0));
+  buzzvm_pushf(vm, cur_offset[1]);
+  buzzvm_tput(vm);
   //  Store read table in the proximity table
   buzzvm_push(vm, tPoseTable);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "position", 0));
@@ -1438,6 +1455,10 @@ int buzzuav_update_currentpos(buzzvm_t vm)
   buzzvm_push(vm, tOrientation);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "yaw", 0));
   buzzvm_pushf(vm, cur_pos[3]);
+  buzzvm_tput(vm);
+    buzzvm_push(vm, tOrientation);
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "local_yaw", 0));
+  buzzvm_pushf(vm, cur_NEDpos[3]);
   buzzvm_tput(vm);
   //  Store read table in the proximity table
   buzzvm_push(vm, tPoseTable);
@@ -1965,8 +1986,8 @@ std::vector<std::vector<double>> InitializePathPlanner(buzzvm_t m_tBuzzVM, float
     ob::StateSpacePtr space(new ob::RealVectorStateSpace(2));
     /* Set bounds to the state space */
     ob::RealVectorBounds m_bound(2);
-    m_bound.setLow(0,0);
-    m_bound.setLow(1,0);
+    m_bound.setLow(0,-half_map_height);
+    m_bound.setLow(1,-half_map_length);
     /* Should have been updated by import map call */
     m_bound.setHigh(0,half_map_height);
     m_bound.setHigh(1,half_map_length);
@@ -2107,7 +2128,7 @@ std::vector<std::vector<double>> InitializePathPlanner(buzzvm_t m_tBuzzVM, float
             std::ofstream::out | std::ofstream::trunc);
 
       std::vector<std::pair <std::vector<double>,double>> m_t_nodes;
-      m_rrt_planner->getAllNodesAs2DVec(m_t_nodes);
+      // m_rrt_planner->getAllNodesAs2DVec(m_t_nodes);
 
       // std::cout<<" Size of nodes: "<<m_t_nodes.size()<<std::endl;
       for(auto node : m_t_nodes){
@@ -2376,7 +2397,7 @@ std::vector<std::vector<double>> InitializePathPlanner(buzzvm_t m_tBuzzVM, float
         }
 
       std::vector<std::pair <std::vector<double>,double>> m_t_nodes;
-      m_rrt_planner->getAllNodesAs2DVec(m_t_nodes);
+      // m_rrt_planner->getAllNodesAs2DVec(m_t_nodes);
 
 
       std::ofstream log;

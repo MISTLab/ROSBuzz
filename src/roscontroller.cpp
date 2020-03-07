@@ -45,13 +45,17 @@ roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
   SetStreamRate(0, 10, 1);
 
   //  Get Home position - wait for none-zero value
-  while ((cur_pos.latitude == 0.0f) || (cur_pos.altitude < -1000.0))
-  {
-    ROS_INFO("Waiting for GPS. ");
-    ros::Duration(0.5).sleep();
-    ros::spinOnce();
+  if(pose_type == LOCAL_POSE){
+    // TODO: Figure out a way to determine local pose is published and it is good!!!
   }
-
+  else{
+    while (((cur_pos.latitude == 0.0f) || (cur_pos.altitude < -1000.0)))
+    {
+      ROS_INFO("Waiting for GPS. ");
+      ros::Duration(0.5).sleep();
+      ros::spinOnce();
+    }
+  }
   // Get Robot Id - wait for Xbee to be started
   // or else parse it from the launch file parameter
   if (xbeeplugged)
@@ -68,6 +72,14 @@ roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
   logical_time_rate = 0;
   time_sync_jumped = false;
   out_msg_time = 0;
+
+  if(pose_type == LOCAL_POSE){
+    // Update home offset form local_position/local.
+    std::string robot_name = "R"+std::to_string(robot_id);
+    n_c_priv.getParam(robot_name+"/pose_x",home_offset.x);
+    n_c_priv.getParam(robot_name+"/pose_y",home_offset.y);
+    ROS_ERROR("################# Current robot id : %s  off x: %f , off y %f", robot_name.c_str(),home_offset.x,home_offset.y);
+  }
   // Create log dir and open log file
   initcsvlog();
   buzzuav_closures::setWPlist(WPfile);
@@ -232,6 +244,7 @@ void roscontroller::logtocsv()
   log << ros::Time::now().toNSec() << ",";
 
   log << cur_pos.latitude << "," << cur_pos.longitude << "," << cur_pos.altitude << ",";
+  log << cur_pos.x << "," << cur_pos.y << "," << cur_pos.z << ",";
   log << (int)no_of_robots << ",";
   log << neighbours_pos_map.size() << ",";
   log << (int)inmsgdata.size() << "," << message_number << ",";
@@ -290,14 +303,36 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
     ROS_ERROR("Provide a setmode mode in Launch file");
     system("rosnode kill rosbuzz_node");
   }
-  // Obtain GPS position from launch file (facultative)
-  if (n_c.getParam("latitude", cur_pos.latitude))
-    n_c.getParam("longitude", cur_pos.longitude);
-  else
-  {
-    ROS_ERROR("Provide latitude in Launch file (default 0)");
-    system("rosnode kill rosbuzz_node");
+  // Obtain the Pose Source method: Implemented: GPS, Local
+  std::string poseSourceStr;
+  n_c.getParam("pose_source", poseSourceStr);
+  if(poseSourceStr.compare("LOCAL_POSE") == 0 ){
+    pose_type = LOCAL_POSE;
   }
+  else{
+    pose_type = GPS;
+  }
+  if(pose_type == LOCAL_POSE){
+    // Obtain GPS position from launch file (facultative)
+    if (n_c.getParam("local_x", cur_pos.x))
+      n_c.getParam("local_y", cur_pos.y);
+    else
+    {
+      ROS_ERROR("Local position selected : Provide local_x in Launch file (default 0)");
+      system("rosnode kill rosbuzz_node");
+    }
+  }
+  else{
+    // Obtain GPS position from launch file (facultative)
+    if (n_c.getParam("latitude", cur_pos.latitude))
+      n_c.getParam("longitude", cur_pos.longitude);
+    else
+    {
+      ROS_ERROR("Provide latitude in Launch file (default 0)");
+      system("rosnode kill rosbuzz_node");
+    }
+  }
+
   //  Obtain standby script to run during update
   n_c.getParam("stand_by", stand_by);
 
@@ -613,9 +648,17 @@ void roscontroller::neighbours_pos_publisher()
   neigh_tmp.header.stamp = current_time;
   neigh_tmp.header.frame_id = "/world";
   neigh_tmp.position_covariance_type = robot_id;  // custom robot id storage
-  neigh_tmp.latitude = cur_pos.latitude;
-  neigh_tmp.longitude = cur_pos.longitude;
-  neigh_tmp.altitude = cur_pos.altitude;
+  // Check what type of positioning is used and update the pose accordingly
+  if(pose_type == LOCAL_POSE){ // update the local pose in world coordinate system.
+    neigh_tmp.latitude = cur_pos.y + home_offset.x;
+    neigh_tmp.longitude = cur_pos.x + home_offset.y;
+    neigh_tmp.altitude = cur_pos.z;
+  }
+  else{
+    neigh_tmp.latitude = cur_pos.latitude;
+    neigh_tmp.longitude = cur_pos.longitude;
+    neigh_tmp.altitude = cur_pos.altitude;
+  }
   neigh_pos_array.pos_neigh.push_back(neigh_tmp);
 
   // Create the targets_found msg
@@ -731,9 +774,16 @@ with size.........  |   /
   uint64_t position[3];
   // Appened current position to message
   double tmp[3];
-  tmp[0] = cur_pos.latitude;
-  tmp[1] = cur_pos.longitude;
-  tmp[2] = cur_pos.altitude;
+  if(pose_type == LOCAL_POSE){
+    tmp[0] = cur_pos.y + home_offset.x;
+    tmp[1] = cur_pos.x + home_offset.y;
+    tmp[2] = cur_pos.z;
+  }
+  else{
+    tmp[0] = cur_pos.latitude;
+    tmp[1] = cur_pos.longitude;
+    tmp[2] = cur_pos.altitude;
+  }
   memcpy(position, tmp, 3 * sizeof(uint64_t));
   mavros_msgs::Mavlink payload_out;
   //  Add Robot id and message number to the published message
@@ -1029,6 +1079,24 @@ void roscontroller::gps_rb(POSE nei_pos, double out[])
   out[2] = 0.0;
 }
 
+void roscontroller::local_pos_rb(POSE nei_pos, double out[])
+/*
+/ Compute Range and Bearing of a neighbor in a local reference frame
+/ from local pose estimates
+----------------------------------------------------------- */
+{
+  float local_x = cur_pos.y + home_offset.x , local_y = cur_pos.x + home_offset.y;
+  local_x = nei_pos.x - local_x;
+  local_y = nei_pos.y - local_y;
+  // Rotate this ned vector according to your orientation. 
+  float un_rotated[2]={local_x, local_y};
+  local_x = (un_rotated[0] * cos(-1*cur_pos.yaw)) - (un_rotated[1] * sin(-1*cur_pos.yaw));
+  local_y = (un_rotated[0] * sin(-1*cur_pos.yaw)) + (un_rotated[1] * cos(-1*cur_pos.yaw));  
+  out[0] = sqrt(local_x * local_x + local_y * local_y);
+  out[1] = atan2(local_y, local_x);
+  out[2] = 0.0;
+}
+
 void roscontroller::gps_ned_cur(float& ned_x, float& ned_y, POSE t)
 /*
 / Get NED coordinates from a reference GPS point (struct input)
@@ -1101,6 +1169,9 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
 {
   cur_pos.x = msg->pose.position.x;
   cur_pos.y = msg->pose.position.y;
+  if(pose_type == LOCAL_POSE){
+    cur_pos.z = msg->pose.position.z;
+  }
 
   if (!BClpose)
   {
@@ -1109,14 +1180,16 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
     goto_pos[2] = 0.0;
     BClpose = true;
   }
-
-  buzzuav_closures::set_currentNEDpos(msg->pose.position.y, msg->pose.position.x);
+  
   //  cur_pos.z = pose->pose.position.z; // Using relative altitude topic instead
   tf::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
   tf::Matrix3x3 m(q);
   double roll, pitch, yaw;
   m.getRPY(roll, pitch, yaw);
   cur_pos.yaw = yaw;
+
+  buzzuav_closures::set_currentNEDpos(msg->pose.position.y, msg->pose.position.x, cur_pos.z,cur_pos.yaw, home_offset.x,
+                                      home_offset.y);
 }
 
 void roscontroller::rel_alt_callback(const std_msgs::Float64::ConstPtr& msg)
@@ -1126,7 +1199,8 @@ void roscontroller::rel_alt_callback(const std_msgs::Float64::ConstPtr& msg)
 {
   //  DEBUG
   // ROS_INFO("Altitude in: %f", msg->data);
-  cur_pos.z = (double)msg->data;
+  if(pose_type == GPS)
+    cur_pos.z = (double)msg->data;
 }
 
 void roscontroller::obstacle_dist_callback(const sensor_msgs::LaserScan::ConstPtr& msg)
@@ -1285,8 +1359,17 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
     nei_pos.latitude = neighbours_pos_payload[0];
     nei_pos.longitude = neighbours_pos_payload[1];
     nei_pos.altitude = neighbours_pos_payload[2];
+    if(pose_type == LOCAL_POSE){
+      nei_pos.x = neighbours_pos_payload[0];
+      nei_pos.y = neighbours_pos_payload[1];
+      nei_pos.z = neighbours_pos_payload[2];
+    }
     double cvt_neighbours_pos_payload[3];
-    gps_rb(nei_pos, cvt_neighbours_pos_payload);
+    if(pose_type == LOCAL_POSE){
+      local_pos_rb(nei_pos, cvt_neighbours_pos_payload);
+    }
+    else
+      gps_rb(nei_pos, cvt_neighbours_pos_payload);
     int index = 3;
     //  Extract robot id of the neighbour
     uint16_t* out = buzz_utility::u64_cvt_u16((uint64_t) * (message_obt + index));
