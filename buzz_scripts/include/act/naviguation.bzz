@@ -43,12 +43,12 @@ function goto(m_nav_x,m_nav_y, alt) {
 			m_navigation = math.vec2.new(0.0, 0.0) # force to stop
 			if(CA_ON==2)
 				broadcast_velocity(m_navigation)
-			goto_abs(m_navigation.x, m_navigation.y, alt - pose.position.altitude, 0.0) 
+			goto_abs(m_navigation.x, m_navigation.y, alt - pose.position.z, 0.0) 
 			# transf()
 	} else {
-		gf = {.0=m_navigation, .1=vec_from_gps(GPSlimit[1].lat, GPSlimit[1].lng, 0), .2=vec_from_gps(GPSlimit[2].lat, GPSlimit[2].lng, 0), .3=vec_from_gps(GPSlimit[3].lat, GPSlimit[3].lng, 0), .4=vec_from_gps(GPSlimit[4].lat, GPSlimit[4].lng, 0),.5=1}
-		#Always Geofence first before limiting speed
-		geofence(gf)
+		# gf = {.0=m_navigation, .1=vec_from_gps(GPSlimit[1].lat, GPSlimit[1].lng, 0), .2=vec_from_gps(GPSlimit[2].lat, GPSlimit[2].lng, 0), .3=vec_from_gps(GPSlimit[3].lat, GPSlimit[3].lng, 0), .4=vec_from_gps(GPSlimit[4].lat, GPSlimit[4].lng, 0),.5=1}
+		# #Always Geofence first before limiting speed
+		# geofence(gf)
 		# fetch the updated goal from geofence
 		# m_navigation = vec_from_gps(cur_goal.latitude, cur_goal.longitude, 0)
 		m_navigation = LimitSpeed(m_navigation, 1.0)
@@ -56,7 +56,7 @@ function goto(m_nav_x,m_nav_y, alt) {
 			m_navigation = LCA(m_navigation)
 		if(CA_ON==2)
 			m_navigation = RVO(m_navigation)
-		goto_abs(m_navigation.x, m_navigation.y, alt - pose.position.altitude, 0.0)
+		goto_abs(m_navigation.x, m_navigation.y, alt - pose.position.z, 0.0)
 	}
 }
 

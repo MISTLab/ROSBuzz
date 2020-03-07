@@ -103,6 +103,10 @@ void parse_gpslist();
  */
 int buzz_exportmap(buzzvm_t vm);
 /*
+ * closure to export a 2D path
+ */
+int buzz_exportpath(buzzvm_t vm);
+/*
  * closure to take a picture
  */
 int buzzuav_takepicture(buzzvm_t vm);
@@ -154,7 +158,7 @@ void set_filtered_packet_loss(float value);
  * sets current position
  */
 
-void set_currentNEDpos(double x, double y);
+void set_currentNEDpos(double x, double y, double z, double yaw, double x_offset, double y_offset);
 
 void set_currentpos(double latitude, double longitude, float altitude, float yaw);
 /*
@@ -165,6 +169,10 @@ double* getgoto();
  * returns the current grid
  */
 std::map<int, std::map<int, int>> getgrid();
+std::map<int, std::pair<int, int>> getpath();
+float get_origin_x();
+float get_origin_y();
+float get_resolution();
 int voronoi_center(buzzvm_t vm);
 
 /*
@@ -191,6 +199,7 @@ void clear_neighbours_pos();
  * closure to add a neighbor status
  */
 int buzzuav_addNeiStatus(buzzvm_t vm);
+int buzzuav_get_nei_alt(buzzvm_t vm);
 /*
  * returns the current array of neighbors status
  */

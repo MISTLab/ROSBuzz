@@ -3,6 +3,7 @@
 #include <tf/tf.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <nav_msgs/Path.h>
 #include <std_msgs/UInt8.h>
 #include "mavros_msgs/GlobalPositionTarget.h"
 #include "mavros_msgs/CommandCode.h"
@@ -47,6 +48,14 @@ typedef enum {
   BUZZ_MESSAGE,          // Broadcast message
   BUZZ_MESSAGE_TIME,     // Broadcast message with time info
 } rosbuzz_msgtype;
+
+/*
+ *  ROSBuzz Pose source types
+ */
+typedef enum {
+  GPS = 0,
+  LOCAL_POSE = 1
+} rosbuzz_posetype;
 
 // Time sync algo. constants
 #define COM_DELAY 100000000  // in nano seconds i.e 100 ms
@@ -97,7 +106,7 @@ private:
   };
   typedef struct POSE ros_pose;
 
-  ros_pose target, home, cur_pos;
+  ros_pose target, home, cur_pos, home_offset;
   double* goto_pos;
 
   struct MsgData
@@ -145,6 +154,7 @@ private:
   bool debug = false;
   bool setmode = false;
   bool BClpose = false;
+  int pose_type = 0;
   std::string bzzfile_name, WPfile;
   std::string bcfname, dbgfname;
   std::string stand_by;
@@ -162,6 +172,7 @@ private:
   ros::Publisher neigh_pos_pub;
   ros::Publisher bvmstate_pub;
   ros::Publisher grid_pub;
+  ros::Publisher path_pub;
   ros::Publisher localsetpoint_nonraw_pub;
   ros::ServiceServer service;
   ros::Subscriber current_position_sub;
@@ -218,6 +229,9 @@ private:
   /*Grid publisher*/
   void grid_publisher();
 
+  /*Path publisher*/
+  void path_publisher();
+
   /*BVM message payload publisher*/
   void send_MPpayload();
 
@@ -239,6 +253,7 @@ private:
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);
   void gps_rb(POSE nei_pos, double out[]);
+  void local_pos_rb(POSE nei_pos, double out[]);
   void gps_ned_cur(float& ned_x, float& ned_y, POSE t);
   void gps_convert_ned(float& ned_x, float& ned_y, double gps_t_lon, double gps_t_lat, double gps_r_lon,
                        double gps_r_lat);

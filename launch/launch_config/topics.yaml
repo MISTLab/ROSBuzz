@@ -9,9 +9,10 @@ topics:
   obstacles: obstacles
   inpayload:  inMavlink
   outpayload: outMavlink
-  gridn: grid
-  bstate: bvmstate
-  npose: neighbours_pos
+  gridn  : grid
+  path   : path
+  bstate : bvmstate
+  npose  : neighbours_pos
   fstatus: fleet_status
   targetf: targets_found
   yolobox: intermediator_ros/bounding_boxes

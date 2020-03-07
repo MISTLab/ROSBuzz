@@ -3,72 +3,140 @@
 #
 # map table-based matrix
 #####
-include "plan/mapmatrix.bzz"
+include "plan/occupancy_grid.bzz"
 
+# Parameters
 RRT_TIMEOUT = 500
 RRT_RUNSTEP = 3
-PROX_SENSOR_THRESHOLD_M = 8.0
-GSCALE = {.x=1, .y=1}
-map = nil
-cur_cell = {}
-nei_cell = {}
-mapgoal = {}
+RRT_MIN_STEPS = 0
+PROX_SENSOR_THRESHOLD_M = 6.0
 
+# TODO: ???????????????????
+cur_cell = {}
+mapgoal = {}
 
 #
 # Work in progress....
 function navigate() {
   BVMSTATE="NAVIGATE"
 	if(V_TYPE == 0) { # TODO: place these in a generic function in conversion.bzz
-		storegoal(goal_list[g_it].x, goal_list[g_it].y, pose.position.altitude)
-		cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
-		m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.long, 0),-1)
+		# storegoal(goal_list[g_it].x, goal_list[g_it].y, pose.position.altitude)
+		# cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude, 0)
+		# m_pos = math.vec2.scale(vec_from_gps(homegps.lat, homegps.lng, 0),-1)
 	}
 
-	print(" has to move ", math.vec2.length(cur_goal), "from ", m_pos.x, " ", m_pos.y)
-	if(math.vec2.length(cur_goal)>GOTO_MAXDIST*5) {
-		log("Sorry this is too far.")
-		return
-	}
+  if(V_TYPE != 0) {
+    return
+  }
 
-	# create the map
-	if(map==nil) {
-		dyn_init_map(cur_goal)
-		if(V_TYPE == 0) {
-			homegps.lat = pose.position.latitude
-			homegps.long = pose.position.longitude
-		}
-	}
+  # Get current waypoint
+  cur_goal = waypoints[current_wp]
+  cur_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, {.lat=45.510369, .lng=-73.609415})
+
+  print("Current waypoint: ", cur_goal.x, " / ", cur_goal.y)
+  print("Current position: ", cur_pos.x, " / ", cur_pos.y)
+
+  # Calculate the distance to the waypoint
+  vector_to_target = math.vec2.sub(cur_goal, cur_pos)
+  distance_to_target = math.vec2.length(vector_to_target)
+  cur_goal = vector_to_target
+
+  if(distance_to_target > GOTO_MAXDIST*5) {
+    log("Sorry this is too far.")
+    return
+  } else if(distance_to_target > GOTODIST_TOL) {
+    log(id, " has to move ", distance_to_target, " from ", cur_pos.x, " ", cur_pos.y)
+
+    # create the map
+    if(map == nil) {
+      log("There is no map yet, so let's create the map.")
+      dyn_init_map(cur_goal)
+      # if(V_TYPE == 0) {
+      #   homegps.lat = pose.position.latitude
+      #   homegps.lng = pose.position.longitude
+      # }
+      # print_map(map, math.vec2.new(math.round(size(map)/2.0),math.round(size(map[1])/2.0)))
+    }
 	
-	if(Path==nil) {			
-		# add proximity sensor and neighbor obstacles to the map
-		populateGrid(m_pos)
-		# start the planner
-		path_it = 1
-		pathPlanner(cur_goal, m_pos)
-	} else if(path_it <= size(Path)) {
-		var cur_path_pt = convert_pt(getvec(Path, path_it))
-		print(" heading to [", path_it, "/", size(Path), "]", cur_path_pt.x, cur_path_pt.y)
-		if(math.vec2.length(cur_path_pt) > GOTODIST_TOL) {
-			populateGrid(m_pos)
-			if(check_path(Path, path_it, m_pos, 0)) {
-        # stop
-				goto_abs(0.0, 0.0, rc_goto.altitude - pose.position.altitude, 0.0)
-				Path = nil
-				if(V_TYPE == 0)
-					cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude,0)
-				# re-start the planner
-				path_it = 1
-				pathPlanner(cur_goal, m_pos)
-			} else {
-				cur_path_pt = math.vec2.scale(cur_path_pt, GOTO_MAXVEL/math.vec2.length(cur_path_pt))
-				goto_abs(cur_path_pt.x, cur_path_pt.y, rc_goto.altitude - pose.position.altitude, 0.0)
-			}
-		} else
-			path_it = path_it + 1
+    if(Path==nil) {
+      log("Path is nil. Let's create a new Path")			
+      # add proximity sensor and neighbor obstacles to the map
+      populateGrid(cur_pos)
+      # start the planner
+      path_it = 1
+      pathPlanner(cur_goal, cur_pos)
+    } else if(path_it <= size(Path)) {
+      # log("I'm in the middle of the Path")
+      # var cur_path_pt = getvec(Path, path_it)#convert_pt(getvec(Path, path_it))
+      # log(" heading to [", path_it, "/", size(Path), "]", cur_path_pt.x, ':', cur_path_pt.y)
+      # dist_to_cur_path_pt = math.vec2.length(math.vec2.sub(math.vec2.new(cur_path_pt.x, cur_path_pt.y), cur_pos))
+      # log("distance to cur_path_pt: ", dist_to_cur_path_pt)
+      # if(dist_to_cur_path_pt > GOTODIST_TOL) {
+      #   populateGrid(cur_pos)
+        # if(check_path(Path, path_it, m_pos, 0)) {
+        #   # stop
+        # 	# goto_abs(0.0, 0.0, rc_goto.altitude - pose.position.altitude, 0.0)
+        #   goto(0.0, 0.0, 0.0)
+        # 	Path = nil
+        # 	if(V_TYPE == 0)
+        # 		cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude,0)
+        # 	# re-start the planner
+        # 	path_it = 1
+        # 	pathPlanner(cur_goal, m_pos)
+        # } else {
+          # cur_path_pt = math.vec2.scale(cur_path_pt, GOTO_MAXVEL/math.vec2.length(cur_path_pt))
+          #goto_abs(cur_path_pt.x, cur_path_pt.y, rc_goto.altitude - pose.position.altitude, 0.0)
+
+          # Vector to next point in path
+          # velocity_command = math.vec2.sub(math.vec2.new(cur_path_pt.x, cur_path_pt.y), cur_pos)
+          # draw_command(0, 0, 255, velocity_command)
+
+          # # Call RVO for collision avoidance
+          # rvo_vector = RVO(velocity_command)
+          # draw_command(0, 255, 0, rvo_vector)
+
+          # # Update current velocity with RVO vector 
+          # current_velocity = rvo_vector
+          # draw_command(255, 0, 0, current_velocity)
+
+          # # Move the robot
+          # goto(current_velocity.x, current_velocity.y, 0.0)
+        # }
+      log("Got path: ", size(Path))
+      var cur_path_pt = convert_pt(getvec(Path, path_it))
+      print(" heading to [", path_it, "/", size(Path), "]", cur_path_pt.x, cur_path_pt.y)
+      if(math.vec2.length(cur_path_pt) > GOTODIST_TOL) {
+        populateGrid(cur_pos)
+        if(check_path(Path, path_it, cur_pos, 0)) {
+          # stop
+          # goto(0.0, 0.0, TARGET_ALTITUDE - pose.position.altitude)
+          Path = nil
+          if(V_TYPE == 0)
+            cur_goal = vec_from_gps(rc_goto.latitude, rc_goto.longitude,0)
+          # re-start the planner
+          path_it = 1
+          pathPlanner(cur_goal, cur_pos)
+        } else {
+          cur_path_pt = math.vec2.scale(cur_path_pt, GOTO_MAXVEL/math.vec2.length(cur_path_pt))
+          goto(cur_path_pt.x, cur_path_pt.y, TARGET_ALTITUDE - pose.position.altitude)
+        }
+      } else
+        path_it = path_it + 1
+    } else {
+      log("I finished the Path")
+      Path = nil
+      BVMSTATE="IDLE"
+    }
 	} else {
-		Path = nil
-  		BVMSTATE="IDLE"
+    # Increment the waypoint
+		if(current_wp < size(waypoints) - 1){
+      log("Waypoint reached. Find new waypoint and reset Path.")
+			current_wp = current_wp + 1
+      Path = nil
+		} else {
+      log("I finished the mission.")
+			BVMSTATE="IDLE"
+		}
 	}
 }
 
@@ -76,7 +144,8 @@ function navigate() {
 # TODO: test with khepera/argos
 function dyn_init_map(m_navigation) {
     # create a map big enough for the goal
-    init_map(math.round(2*math.vec2.length(m_navigation))+10)
+    map_len = math.round(2*math.vec2.length(m_navigation))+10
+    init_map(map_len, map_len)
     # center the robot on the grid
     cur_cell = math.vec2.new(math.round(size(map)/2.0),math.round(size(map[1])/2.0))
 }
@@ -85,12 +154,16 @@ function dyn_init_map(m_navigation) {
 # TODO: test with khepera/argos
 function pathPlanner(m_goal, m_pos, kh4) {
     # place the robot on the grid
-    cur_cell = getcell(m_pos)
+    cur_cell = getcell(math.vec2.sub(m_pos, map_origin))
     # create the goal in the map grid
-    mapgoal = getcell(math.vec2.add(m_goal, m_pos))
+    mapgoal = getcell(m_goal)
+    log("cur_cell = ", cur_cell.x, ", ", cur_cell.y)
+    log("m_goal = ", m_goal.x, ", ", m_goal.y)
+    log("m_pos = ", m_pos.x, ", ", m_pos.y)
+    log("mapgoal = ", mapgoal.x, ", ", mapgoal.y)
 
-    #print_map(map)
-    export_map(map)
+    #print_map(map, cur_cell)
+    export_map(MAP_RESOLUTION, map_origin.x, map_origin.y, map)
 
     # Initialize RRTStar var
     log("--------Initialize RRTStar--------------")
@@ -113,20 +186,24 @@ function pathPlanner(m_goal, m_pos, kh4) {
     rrtstar()
 }
 
+# TODO: Move this to occupancy_grid.bzz
 # get the grid cell position (x,y) equivalent to the input position
 # input should be relative to home position (planing start point)
 function getcell(m_curpos) {
   var cell = {}
+  var height = size(map)
+  var width = size(map[1])
   # relative to center (start position)
-  cell = math.vec2.new(math.round(size(map)/2.0),math.round(size(map[1])/2.0))
-  var offset = math.vec2.new(m_curpos.x*GSCALE.x, m_curpos.y*GSCALE.y)
+  # Coordinates in the grid are inverted (row = y; col = x)
+  cell = math.vec2.new(math.round(width/2.0), math.round(height/2.0))
+  var offset = math.vec2.new(m_curpos.y / MAP_RESOLUTION, m_curpos.x / MAP_RESOLUTION)
   cell = math.vec2.add(cell, offset)
   cell = math.vec2.new(math.round(cell.x), math.round(cell.y))
   
-  if(cell.x > size(map))
-    cell.x = size(map)
-  if(cell.y > size(map[1]))
-      cell.y = size(map[1])
+  if(cell.x > width)
+    cell.x = width
+  if(cell.y > height)
+      cell.y = height
   if(cell.x < 1)
     cell.x = 1
   if(cell.y < 1)
@@ -136,9 +213,10 @@ function getcell(m_curpos) {
 }
 
 function populateGrid(m_pos) {
-    # getproxobs(m_pos)
-    getneiobs (m_pos)
-    export_map(map)
+    getproxobs(m_pos)
+    # getneiobs (m_pos)
+
+    export_map(MAP_RESOLUTION, map_origin.x, map_origin.y, map)
 }
 
 # TODO: populate the map with neighors as blobs instead ?
@@ -146,7 +224,7 @@ function getneiobs (m_curpos) {
     cur_cell = getcell(m_curpos)
     # add all neighbors as obstacles in the grid
     neighbors.foreach(function(rid, data) {
-            add_obstacle(math.vec2.add(math.vec2.newp(data.distance,data.azimuth),cur_cell), 0, 1.0)
+            add_obstacle(math.vec2.add(math.vec2.newp(data.distance,data.azimuth),cur_cell))
             })
 }
 
@@ -164,24 +242,24 @@ function getneiobs (m_curpos) {
 #           nei_cell[rid] = {.x=Ncell.x, .y=Ncell.y}
 #           if(old_nei[rid]!=nil) {
 #             if(old_nei[rid].x!=nei_cell[rid].x or old_nei[rid].y!=nei_cell[rid].y) {
-#               remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y), 0, 1)
-#               remove_obstacle(math.vec2.new(old_nei[rid].x+1, old_nei[rid].y), 0, 1)
-#               remove_obstacle(math.vec2.new(old_nei[rid].x-1, old_nei[rid].y), 0, 1)
-#               remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y+1), 0, 1)
-#               remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y-1), 0, 1)
-#               add_obstacle(Ncell, 0, 1.0)
-#               add_obstacle(math.vec2.new(Ncell.x+1, Ncell.y), 0, 1.0)
-#               add_obstacle(math.vec2.new(Ncell.x-1, Ncell.y), 0, 1.0)
-#               add_obstacle(math.vec2.new(Ncell.x, Ncell.y+1), 0, 1.0)
-#               add_obstacle(math.vec2.new(Ncell.x, Ncell.y-1), 0, 1.0)
+#               remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y))
+#               remove_obstacle(math.vec2.new(old_nei[rid].x+1, old_nei[rid].y))
+#               remove_obstacle(math.vec2.new(old_nei[rid].x-1, old_nei[rid].y))
+#               remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y+1))
+#               remove_obstacle(math.vec2.new(old_nei[rid].x, old_nei[rid].y-1))
+#               add_obstacle(Ncell)
+#               add_obstacle(math.vec2.new(Ncell.x+1, Ncell.y))
+#               add_obstacle(math.vec2.new(Ncell.x-1, Ncell.y))
+#               add_obstacle(math.vec2.new(Ncell.x, Ncell.y+1))
+#               add_obstacle(math.vec2.new(Ncell.x, Ncell.y-1))
 #               foundobstacle = 1
 #             }
 #           } else {
-#             add_obstacle(Ncell, 0, 1.0)
-#             add_obstacle(math.vec2.new(Ncell.x+1, Ncell.y), 0, 1.0)
-#             add_obstacle(math.vec2.new(Ncell.x-1, Ncell.y), 0, 1.0)
-#             add_obstacle(math.vec2.new(Ncell.x, Ncell.y+1), 0, 1.0)
-#             add_obstacle(math.vec2.new(Ncell.x, Ncell.y-1), 0, 1.0)
+#             add_obstacle(Ncell)
+#             add_obstacle(math.vec2.new(Ncell.x+1, Ncell.y))
+#             add_obstacle(math.vec2.new(Ncell.x-1, Ncell.y))
+#             add_obstacle(math.vec2.new(Ncell.x, Ncell.y+1))
+#             add_obstacle(math.vec2.new(Ncell.x, Ncell.y-1))
 #             foundobstacle = 1
 #           }
 #         })
@@ -192,44 +270,53 @@ function getneiobs (m_curpos) {
 # TODO: adapt to M100 stereo
 function getproxobs (m_curpos) {
   var updated_obstacle = 0
-  cur_cell = getcell(m_curpos)
+  l_pos = math.vec2.sub(m_curpos, map_origin)
+  cur_cell = getcell(l_pos)
+
+  log("My orientation: ", pose.orientation.yaw)
 
   reduce(proximity,
     function(key, value, acc) {
+      log("Range[", key, "]: ", value.value, " / ", value.angle)
       if (value.angle != -1) {  # down sensor of M100
         if(value.value < PROX_SENSOR_THRESHOLD_M) {
-          obs = getcell(math.vec2.add(m_curpos, math.vec2.newp(value.value, value.angle + pose.orientation.yaw)))
-          per = math.vec2.sub(obs,cur_cell)
-          obsr = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs)
-          obsl = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs)
-          obsr2 = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) + math.pi/2.0), obs)
-          obsl2 = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) - math.pi/2.0), obs)
+          obs_vec = math.vec2.newp(value.value, pose.orientation.yaw - value.angle)
+          log("Obs_vec = ", obs_vec.x, ", ", obs_vec.y)
+          log("l_pos = ", l_pos.x, ", ", l_pos.y)
+          obs = getcell(math.vec2.add(l_pos, math.vec2.newp(value.value, pose.orientation.yaw - value.angle)))
+          log("obs = ", obs.x, ", ", obs.y)
+          log("cur_cell = ", cur_cell.x, ", ", cur_cell.y)
+          # per = math.vec2.sub(obs,cur_cell)
+          # obsr = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs)
+          # obsl = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs)
+          # obsr2 = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) + math.pi/2.0), obs)
+          # obsl2 = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) - math.pi/2.0), obs)
           # obs2 = getcell(math.vec2.newp(math.vec2.length(obs) + 1.0, math.vec2.angle(obs)))
           # obsr2 = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs2)
           # obsl2 = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs2)
           if(map[math.round(obs.x)][math.round(obs.y)]!=0) {
-            add_obstacle(obs, 0, 0.25)
-            add_obstacle(obsr, 0, 0.25)
-            add_obstacle(obsl, 0, 0.25)
-            add_obstacle(obsr2, 0, 0.25)
-            add_obstacle(obsl2, 0, 0.25)
-            # add_obstacle(obs2, 0, 0.25)
-            # add_obstacle(obsr2, 0, 0.25)
-            # add_obstacle(obsl2, 0, 0.25)
+            add_obstacle(obs)
+            # add_obstacle(obsr)
+            # add_obstacle(obsl)
+            # add_obstacle(obsr2)
+            # add_obstacle(obsl2)
+            # add_obstacle(obs2)
+            # add_obstacle(obsr2)
+            # add_obstacle(obsl2)
             updated_obstacle = 1
           }
         } else {
           var line_length = PROX_SENSOR_THRESHOLD_M;
           while(line_length > 0) {
-            obs = getcell(math.vec2.add(m_curpos, math.vec2.newp(line_length, value.angle + pose.orientation.yaw)))
+            obs = getcell(math.vec2.add(l_pos, math.vec2.newp(line_length, value.angle + pose.orientation.yaw)))
             per = math.vec2.sub(obs,cur_cell)
             obsr = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) + math.pi/2.0), obs)
             obsl = math.vec2.add(math.vec2.newp(1.25, math.vec2.angle(per) - math.pi/2.0), obs)
             obsr = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) + math.pi/2.0), obs)
             obsl = math.vec2.add(math.vec2.newp(2.25, math.vec2.angle(per) - math.pi/2.0), obs)
-            remove_obstacle(obs, 0, 0.05)
-            remove_obstacle(obsr, 0, 0.05)
-            remove_obstacle(obsl, 0, 0.05)
+            remove_obstacle(obs)
+            remove_obstacle(obsr)
+            remove_obstacle(obsl)
             line_length = line_length - 1;
           }
         }
@@ -253,7 +340,7 @@ function check_path(m_path, goal_l, m_curpos, kh4) {
         Nvec = vec_from_gps(Nvec.x,Nvec.y,1)
         Nvec = getcell(Nvec)
     }
-    if(doesItIntersect(Cvec, Nvec)) {
+    if(doesItIntersect(Cvec, Nvec)) { # TODO: Cvec and Nvec should be vec2s
       log("Path blocked ! (", Cvec.x, "/", Cvec.y, "->", Nvec.x, "/", Nvec.y, ")")
       pathisblocked = 1
     }
@@ -277,7 +364,7 @@ function rrtstar() {
 
         # Point generation only as grid cell centers
         pt = math.vec2.new(math.round(HEIGHT * math.rng.uniform(1.0) + 1), math.round(WIDTH * math.rng.uniform(1.0) + 1))
-        #log("Point generated: ", pt.x, " ", pt.y)
+        # log("Point generated: ", pt.x, " ", pt.y)
 
         var pointList = findPointsInRadius(pt,Q,RADIUS);
 
@@ -287,8 +374,10 @@ function rrtstar() {
         minCounter = 0;
 
         if(size(pointList) != 0) {
-            #log("Found ", size(pointList), " close to point: ", pointList[size(pointList)][3]) 
+            # log("Found ", size(pointList), " close to point: ", pointList[size(pointList)][3]) 
             ipt=1
+
+            # Loops through all points in pointList and find which one has the least cummulative distance to the generated point pt
             while(ipt <= size(pointList)) {
                 pointNumber = {}
                 mat_copyrow(pointNumber,1,pointList,ipt)
@@ -310,6 +399,8 @@ function rrtstar() {
                 }
                 ipt = ipt + 1
             }
+
+            # If a point were found, add the generated pt to the tree and set its parent as the one that were found
             if(minCounter > 0) {
                 numberOfPoints = numberOfPoints + 1;
                 arrayOfPoints[numberOfPoints] = {}
@@ -323,7 +414,7 @@ function rrtstar() {
                 Q[numberOfPoints][4] = numberOfPoints
                 Q[numberOfPoints][5] = minCounted
 
-                #log("added point to Q(", size(Q), "): ", pt.x, " ", pt.y)
+                # log("added point to Q(", size(Q), "): ", pt.x, " ", pt.y)
 
                 # Now check to see if any of the other points can be redirected
                 nbCount = 0;
@@ -340,7 +431,7 @@ function rrtstar() {
                     # If there is no intersection we need consider its connection
                     nbCount = nbCount + 1;
                     if(intersects != 1) {
-                        # If the alternative path is shorter than change it
+                        # If the alternative path is shorter then change it
                         tmpdistance = Q[numberOfPoints][5]+math.vec2.length(math.vec2.sub(getvec(pointNumber,1),pt))
                         #log("Q: ", size(Q), "x", size(Q[1]))
                         if(tmpdistance < Q[pointNumber[1][4]][5]) {
@@ -377,7 +468,7 @@ function rrtstar() {
                 Q[numberOfPoints][4] = numberOfPoints
                 Q[numberOfPoints][5] = Q[pointNum][5]+math.vec2.length(math.vec2.sub(getvec(Q,pointNum),pt))
 
-                #log("added point to Q(", size(Q), "): ", pt.x, " ", pt.y)
+                # log("added point to Q(", size(Q), "): ", pt.x, " ", pt.y)
 
                 # Check to see if this new point is within the goal
                 if(pt.x < goalBoundary.xmax and pt.x > goalBoundary.xmin and pt.y > goalBoundary.ymin and pt.y < goalBoundary.ymax)
@@ -391,9 +482,13 @@ function rrtstar() {
         step_timeout = step_timeout + 1
     }
 
-    if(goalReached){
+    if(goalReached and timeout >= RRT_MIN_STEPS){
       log("Goal found(",numberOfPoints,")!")
+      Path = getPath(Q,numberOfPoints)
+      print_pos(Path)
+      export_path(Path)
       Path = convert_path(getPath(Q,numberOfPoints))
+      print_pos(Path)
       # done. resume the state machine
       BVMSTATE = "NAVIGATE"
     } else if(timeout >= RRT_TIMEOUT) {
@@ -422,7 +517,7 @@ function findClosestPoint(point,aPt) {
     return pointNb
 }
 
-# Find the closest point in the tree
+# Find a list of points in the tree which are closer to "point" than the radius "r"
 function findPointsInRadius(point,q,r) {
     var ptList = {}
     var counted = 0;
@@ -445,6 +540,9 @@ function findPointsInRadius(point,q,r) {
 # check if the line between 2 point intersect an obstacle
 function doesItIntersect(point,vector) {
     #log("DiI :", point.x, " ", point.y," ", vector.x," ", vector.y)
+
+    return 0
+
     var dif = math.vec2.sub(point,vector)
     var distance = math.vec2.length(dif)
     if(distance == 0.0){
@@ -515,11 +613,58 @@ function getPath(Q,nb){
     var totpt = npt + 1
     while(npt > 0){
         pathR[totpt-npt] = {}
-        var tmpgoal = getvec(pathL,npt)
+        var tmpgoal = getvec(pathL,npt) # TODO: remove tmpgoal variable
         pathR[totpt-npt][1]=tmpgoal.x
         pathR[totpt-npt][2]=tmpgoal.y
         npt = npt - 1
     }
     #log("Double-check path: ", check_path(pathR, 1, cur_cell, 1))
     return pathR
+}
+
+
+###########################################
+#                                         #
+#           UTILITY FUNCIONS              #
+#                                         #
+###########################################
+
+#
+# Test if a point is contained in a dictionary
+# PARAM dictionary: A list of vec2s
+# PARAM x: The point's x coordinate
+# PARAM y: The point's y coordinate
+# RETURN: 1 if the point is in the dictionary, 0 otherwise
+#
+function is_in(dictionary, x, y){
+  var dici = 0
+  while(dici < size(dictionary)){
+    if(dictionary[dici].x == x and dictionary[dici].y == y){
+      return 1
+    }
+    dici = dici + 1
+  }
+  return 0
+}
+
+# 
+# Return a point from the tree as a vec2
+# PARAM t: The tree
+# PARAM row: The index of the point
+# RETURN: A vec2 containing the point's coordinates
+#
+function getvec(t,row){
+    return math.vec2.new(t[row][1],t[row][2])
+}
+
+#
+# Print a tree
+# PARAM t: A dictionary representing the tree
+#
+function print_pos(t) {
+  var ir=1
+  while(ir <= size(t)) {
+      log(ir, ": ", t[ir][1], " ", t[ir][2])
+      ir = ir + 1
+  }
 }

@@ -3,16 +3,18 @@ include "update.bzz"
 # it requires an 'action' function to be defined here.
 include "act/states.bzz"
 include "utils/table.bzz"
-#include "plan/rrtstar.bzz"
-include "taskallocate/graphformGPS.bzz"
+include "plan/rrtstar.bzz"
+#include "taskallocate/graphformGPS.bzz"
 #include "taskallocate/bidding.bzz"
 include "vstigenv.bzz"
 #include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
-include "connectivity/chain_formation_local.bzz"
+include "connectivity/chain_formation.bzz"
 
 #AUTO_LAUNCH_STATE = "DEPLOY" NOW SET IN LAUNCH FILE!!
 LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barrier expire; if set to be 0, the robots will carry on to AUTO_LAUNCH_STATE.
+
+GOTODIST_TOL = 0.6  # m.
 
 #####
 # Vehicule type:
@@ -24,8 +26,57 @@ if(id==0)	# No network ID=0, it's the groundstation/charging station.
 	V_TYPE = 2
 else
 	V_TYPE = 0
+
+# goal_list = {
+# 	.0={.x = 45.5088103899, .y = -73.1540826153, .z = 2.5}
+# }
+
+waypoints = {}
+current_wp = 0
+
+
 # Executed once at init time.
 function init() {
+
+	# Select waypoints
+	if(id == 1) {
+		waypoints = {
+		.0 = math.vec2.new(10.0, 10.0)
+		}
+	}
+	if(id == 2) {
+		waypoints = {
+		.0 = math.vec2.new(2.0, 2.0)
+		}
+	}
+	# if(id == 3) {
+	# 	waypoints = {
+	# 	.0 = math.vec2.new(2.0, 10.0)
+	# 	}
+	# }
+	# if(id == 2) {
+	# 	waypoints = {
+	# 	.0 = math.vec2.new(15.0, 10.0)
+	# 	}
+	# }
+	# if(id == 3) {
+	# 	waypoints = {
+	# 	.0 = math.vec2.new(-15.0, 5.0)
+	# 	}
+	# }
+	# if(id == 1) {
+	# 	waypoints = {
+	# 	.0 = math.vec2.new(45.5105, -73.6093),
+	# 	.1 = math.vec2.new(45.5104, -73.6094)
+	# 	}
+	# }
+	# if(id == 2) {
+	# 	waypoints = {
+	# 	.0 = math.vec2.new(45.5104, -73.6094),
+	# 	.1 = math.vec2.new(45.5105, -73.6093)
+	# 	}
+	# }
+
   	init_stig()
 	init_swarm()
 	#init_bidding()
@@ -41,6 +92,8 @@ function init() {
 
 # Executed at each time step.
 function step() {
+
+	# print("Current state: ", BVMSTATE)
 
 	# listen to Remote Controller
 	rc_cmd_listen()
@@ -89,15 +142,14 @@ function step() {
 		statef=rrtstar
 	else if(BVMSTATE=="NAVIGATE")	# ends on idle, defined in rrtstar
 		statef=navigate
+	else if(BVMSTATE=="TEST_COLLISION_AVOIDANCE")
+		statef=test_collision_avoidance
 	else if(BVMSTATE == "FOLLOW")	#TODO: not tested in new structure
 		statef=follow
 	else if(BVMSTATE == "PICTURE")	#TODO: not tested in new structure
 		statef=take_picture
-		
 
 	statef()
-
-	#log("Current state: ", BVMSTATE)
 }
  
 # Executed once when the robot (or the simulator) is reset.

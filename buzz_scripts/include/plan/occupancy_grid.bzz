@@ -1,0 +1,160 @@
+#####
+#
+# Occupancy grid implementation
+#
+#####
+MAP_RESOLUTION = 1.0 # [m/cell]
+P_UNKNOWN = 1.0
+DEC_TRUST = 0.05
+INC_TRUST = 0.25
+
+map = nil
+map_origin = math.vec2.new(0.0, 0.0)
+
+#
+# Initialize the occupancy grid with all cells set to unknown and add an obstacle for testing
+# PARAM width: The grid's width in cells
+# PARAM height: The grid's height in cells
+#
+function init_test_map(width, height){
+    cp = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, {.lat=45.510369, .lng=-73.609415})
+    map_origin.x = cp.x
+    map_origin.y = cp.y
+    map = {}
+    var indexR = 1
+    while(indexR <= height) {
+        map[indexR] = {}
+        var indexC = 1
+        while(indexC <= width) {
+            map[indexR][indexC] = P_UNKNOWN
+            indexC = indexC + 1
+        }
+        indexR = indexR + 1
+    }
+    # DEBUG\TEST: puts an obstacle right in the middle
+    map[5][5] = 0.0
+    map[6][5] = 0.0
+    map[4][5] = 0.0
+    map[5][4] = 0.0
+    map[5][6] = 0.0
+
+    log("Occupancy grid initialized (",size(map),"x",size(map[1]),") with obstacles.")
+}
+
+#
+# Initialize the occupancy grid with all cells set to unknown
+# PARAM width: The grid's width in cells
+# PARAM height: The grid's height in cells
+#
+function init_map(width, height){
+    cp = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, {.lat=45.510369, .lng=-73.609415})
+    map_origin.x = cp.x
+    map_origin.y = cp.y
+    map = {}
+    var indexR = 1
+    while(indexR <= height) {
+        map[indexR] = {}
+        var indexC = 1
+        while(indexC <= width) {
+            map[indexR][indexC] = P_UNKNOWN
+            indexC = indexC + 1
+        }
+        indexR = indexR + 1
+    }
+    log("Occupancy grid initialized (",size(map),"x",size(map[1]),").")
+}
+
+# TODO: Implement the map update based on ray sensors
+# TODO: Implement log-odd?
+
+#
+# Add obstacle to the grid
+# PARAM pos: The cell to add the obstacle to
+#
+function add_obstacle(pos) {
+    var xi = math.round(pos.x)
+    var yi = math.round(pos.y)
+
+    if(xi <= size(map) and yi <= size(map[1]) and xi > 0 and yi > 0) {
+        # log("Add obstacle in cell: ", xi, " ", yi)
+        var old = map[xi][yi]
+        if(old - INC_TRUST > 0.0)
+          map[xi][yi] = old - INC_TRUST
+        else
+          map[xi][yi] = 0.0
+    }
+}
+
+#
+# Remove obstacle from the grid
+# PARAM pos: The cell to remove the obstacle from
+#
+function remove_obstacle(pos) {
+    var xi = math.round(pos.x)
+    var yi = math.round(pos.y)
+
+    if(xi <= size(map) and yi <= size(map[1]) and xi > 0 and yi > 0) {
+        # log("Remove obstacle in cell: ", xi, " ", yi)
+        var old = map[xi][yi]
+        if(old + DEC_TRUST < 1.0)  #x,y
+          map[xi][yi] = old + DEC_TRUST
+        else
+          map[xi][yi] = 1.0
+    }
+}
+
+# TODO: is this needed?
+function get_occupied_cells(cur_cell){
+  var occupied_cells = {}
+  occupied_cells[0] = cur_cell
+  occupied_cells[1] = math.vec2.new(cur_cell.x + 1, cur_cell.y)
+  occupied_cells[2] = math.vec2.new(cur_cell.x - 1, cur_cell.y)
+  occupied_cells[3] = math.vec2.new(cur_cell.x, cur_cell.y + 1)
+  occupied_cells[4] = math.vec2.new(cur_cell.x, cur_cell.y - 1)
+  return occupied_cells
+}
+
+###########################################
+#                                         #
+#           UTILITY FUNCIONS              #
+#                                         #
+###########################################
+
+#
+# Copy a full matrix row
+# PARAM out: A vector2
+# PARAM ro: A vector2
+# PARAM in: A vector2
+# PARAM ri: A vector2
+#
+function mat_copyrow(out,ro,in,ri){
+    out[ro] = {}
+    var icr = 1
+    while(icr <= size(in[ri])) {
+        out[ro][icr]=in[ri][icr]
+        icr = icr + 1
+    }
+}
+
+#
+# Print an occupancy grid 
+# PARAM t: 2d matrix representing an occupancy grid
+# PARAM cur_cell: vec2 containing the currently occupied grid cell
+#
+function print_map(t, cell) {
+  var ir=size(t)
+  log("Printing a ", size(t), " by ", size(t[1]), " map")
+  while(ir > 0) {
+      logst=string.concat("\t", string.tostring(ir), "\t:")
+      ic = size(t[ir])
+      while(ic > 0) {
+        if(ir==cell.x and ic==cell.y)
+          logst = string.concat(logst, " XXXXXXXX")
+        else
+          logst = string.concat(logst, " ", string.tostring(t[ir][ic]))
+        ic = ic - 1
+      }
+      log(logst)
+      ir = ir - 1
+  }
+}

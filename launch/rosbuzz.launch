@@ -12,11 +12,16 @@
   <arg name="setmode" default="false" />
   <arg name="latitude" default="0" />
   <arg name="longitude" default="0" />
+  <arg name="local_x" default="0" />
+  <arg name="local_y" default="0" />
   <arg name="ca_on" default="2" />
   <arg name="auto_state" default="WAYPOINT" />
+  <arg name="pose_source" default="GPS" />
+  <arg name="init_pose_file" default="mist_sim" />
 
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >
     <rosparam file="$(find rosbuzz)/launch/launch_config/$(arg launch_config).yaml"/>
+    <rosparam file="$(find rosbuzz)/misc/init_pose/$(arg init_pose_file).yaml"/>
     <param name="bzzfile_name" value="$(find rosbuzz)/buzz_scripts/$(arg script).bzz" />
     <param name="WPfile" value="$(find rosbuzz)/buzz_scripts/include/taskallocate/$(arg wpfile).csv" />
     <param name="debug" value="$(arg debug)" />
@@ -25,8 +30,11 @@
     <param name="setmode" value="$(arg setmode)"/>
     <param name="latitude" value="$(arg latitude)"/>
     <param name="longitude" value="$(arg longitude)"/>
+    <param name="local_x" value="$(arg local_x)"/>
+    <param name="local_y" value="$(arg local_y)"/>
     <param name="stand_by" value="$(find rosbuzz)/buzz_scripts/stand_by.bzz"/>
     <param name="ca_on" value="$(arg ca_on)"/>
     <param name="auto_state" value="$(arg auto_state)"/>
+    <param name="pose_source" value="$(arg pose_source)"/>
   </node>
 </launch>
