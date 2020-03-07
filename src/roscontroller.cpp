@@ -148,6 +148,7 @@ void roscontroller::RosControllerRun()
       neighbours_pos_publisher();
       state_publisher();
       grid_publisher();
+      path_publisher();
       send_MPpayload();
       //  Check updater state and step code
       if (update)
@@ -511,6 +512,13 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     ROS_ERROR("Provide a grid topic name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
+  if (node_handle.getParam("topics/path", topic))
+    path_pub = n_c.advertise<nav_msgs::Path>(topic, 5);
+  else
+  {
+    ROS_ERROR("Provide a path topic name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
 }
 
 void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
@@ -694,6 +702,9 @@ void roscontroller::grid_publisher()
 / Publish current Grid from Buzz script
 /----------------------------------------------------*/
 {
+  float origin_x = buzzuav_closures::get_origin_x();
+  float origin_y = buzzuav_closures::get_origin_y();
+  float resolution = buzzuav_closures::get_resolution();
   std::map<int, std::map<int, int>> grid = buzzuav_closures::getgrid();
   std::map<int, std::map<int, int>>::iterator itr = grid.begin();
   int g_w = itr->second.size();
@@ -708,11 +719,12 @@ void roscontroller::grid_publisher()
     grid_msg.header.frame_id = "/world";
     grid_msg.header.stamp = current_time;
     grid_msg.info.map_load_time = current_time;  // Same as header stamp as we do not load the map.
-    grid_msg.info.resolution = 0.01;             // gridMap.getResolution();
+    // grid_msg.info.resolution = 0.01;             // gridMap.getResolution();
+    grid_msg.info.resolution = resolution;
     grid_msg.info.width = g_w;
     grid_msg.info.height = g_h;
-    grid_msg.info.origin.position.x = round(g_w / 2.0) * grid_msg.info.resolution;
-    grid_msg.info.origin.position.y = round(g_h / 2.0) * grid_msg.info.resolution;
+    grid_msg.info.origin.position.x = origin_x - round(g_w / 2.0) * grid_msg.info.resolution;
+    grid_msg.info.origin.position.y = origin_y - round(g_h / 2.0) * grid_msg.info.resolution;
     grid_msg.info.origin.position.z = 0.0;
     grid_msg.info.origin.orientation.x = 0.0;
     grid_msg.info.origin.orientation.y = 0.0;
@@ -732,6 +744,47 @@ void roscontroller::grid_publisher()
       }
     }
     grid_pub.publish(grid_msg);
+  }
+}
+
+void roscontroller::path_publisher()
+/*
+/ Publish current Path from Buzz script
+/----------------------------------------------------*/
+{
+  float origin_x = buzzuav_closures::get_origin_x();
+  float origin_y = buzzuav_closures::get_origin_y();
+  float resolution = buzzuav_closures::get_resolution();
+  std::map<int, std::map<int, int>> grid = buzzuav_closures::getgrid();
+  std::map<int, std::map<int, int>>::iterator gitr = grid.begin();
+  int g_w = gitr->second.size();
+  int g_h = grid.size();
+
+  float path_origin_x = origin_x - round(g_w / 2.0) * resolution;
+  float path_origin_y = origin_y - round(g_h / 2.0) * resolution;
+
+  std::map<int, std::pair<int, int>> path = buzzuav_closures::getpath();
+  std::map<int, std::pair<int, int>>::iterator itr = path.begin();
+  int p_l = path.size();
+
+  if (p_l != 0)
+  {
+    // DEBUG
+    // ROS_INFO("------> Publishing a path of %i", p_l);
+    auto current_time = ros::Time::now();
+    nav_msgs::Path path_msg;
+    path_msg.header.frame_id = "/world";
+    path_msg.header.stamp = current_time;
+    path_msg.poses.resize(p_l);
+
+    for (itr = path.begin(); itr != path.end(); ++itr)
+    {
+      path_msg.poses[(itr->first - 1)].pose.position.x = path_origin_x + itr->second.first;
+      path_msg.poses[(itr->first - 1)].pose.position.y = path_origin_y + itr->second.second;
+      // DEBUG
+      //ROS_INFO("--------------> index: %i: (%f,%f)", idx, path_msg.poses[idx].pose.position.x, path_msg.poses[idx].pose.position.y);
+    }
+    path_pub.publish(path_msg);
   }
 }
 
