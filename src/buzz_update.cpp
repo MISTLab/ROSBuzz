@@ -488,6 +488,7 @@ void update_routine()
   if (*(int*)updater->mode == CODE_RUNNING)
   {
     buzzvm_function_call(VM, "updated_no_bct", 0);
+    buzzvm_pop(VM); // Pop return value
     // Check for update
     if (check_update())
     {
