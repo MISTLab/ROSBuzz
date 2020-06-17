@@ -409,6 +409,8 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
     ROS_ERROR("Error in  calling init, VM state : %i", VM->state);
     return 0;
   }
+  // Remove useless return value from the stack
+  buzzvm_pop(VM);
   // All OK
   return 1;
 }
@@ -471,6 +473,8 @@ int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t 
     ROS_ERROR("Error in  calling init, VM state : %i", VM->state);
     return 0;
   }
+  // Remove useless return value from the stack
+  buzzvm_pop(VM);
   // All OK
   return 1;
 }
@@ -515,6 +519,8 @@ void buzz_script_step()
     ROS_ERROR("%s: execution terminated abnormally: %s", BO_FNAME, buzz_error_info());
     buzzvm_dump(VM);
   }
+  // Remove useless return value from the stack
+  buzzvm_pop(VM);
 }
 
 void buzz_script_destroy()
@@ -565,6 +571,8 @@ int update_step_test()
     ROS_ERROR("%s: execution terminated abnormally: %s\n\n", BO_FNAME, buzz_error_info());
     fprintf(stdout, "step test VM state %i\n", a);
   }
+  // Remove useless return value from the stack
+  buzzvm_pop(VM);
 
   return a == BUZZVM_STATE_READY;
 }
