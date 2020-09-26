@@ -8,11 +8,11 @@ R1:
   ori_theta: 0.0 
 R2:
   pose_x: 0.0
-  pose_y: 2.0
+  pose_y: 0.5
   ori_theta: 0.0 
 R3:
   pose_x: 0.0
-  pose_y: 4.0
+  pose_y: 1.0
   ori_theta: 0.0 
 R4: 
   pose_x: 0.0

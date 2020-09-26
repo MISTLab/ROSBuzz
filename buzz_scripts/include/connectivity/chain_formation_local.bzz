@@ -230,7 +230,20 @@ function compute_path(){
     chain_statef = backbone
   }
 }
+
 function chain_formation(){
+
+    log("neighbors: ", neighbors.count())
+
+    neighbors.foreach(function(rid, data) {
+        log("robot ", rid, ": ",
+            "distance  = ", data.distance, ", ",
+            "azimuth   = ", data.azimuth)      
+    })
+
+}
+
+function chain_formation123(){
   if(id == 1){
     if(pose.position.z >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
       ROBOT_IN_AIR = 1 
