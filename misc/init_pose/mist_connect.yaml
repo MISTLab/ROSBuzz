@@ -3,17 +3,17 @@ R0:
   pose_y: 0.0
   ori_theta: 0.0
 R1:
-  pose_x: 0.0
-  pose_y: 0.0
+  pose_x: -0.812
+  pose_y: 0.747
   ori_theta: 0.0 
 R2:
-  pose_x: 0.0
-  pose_y: 0.5
-  ori_theta: 0.0 
+  pose_x: -0.848
+  pose_y: 0.268
+  ori_theta: 0.0
 R3:
-  pose_x: 0.0
-  pose_y: 1.0
-  ori_theta: 0.0 
+  pose_x: -0.846
+  pose_y: -0.143
+  ori_theta: 0.0
 R4: 
   pose_x: 0.0
   pose_y: 6.0

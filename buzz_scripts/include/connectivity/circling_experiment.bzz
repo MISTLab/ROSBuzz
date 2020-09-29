@@ -1,0 +1,201 @@
+########################################
+#
+# GLOBAL VARIABLES / PARAMETERS
+#
+########################################
+OUTPUT_FILENAME_AND_PATH = string.concat("/home/nvidia/", string.tostring(id), "-circling.csv")
+DESIRED_ORBIT_DIST = 0.8 # in meters
+NUMBER_OF_ROBOTS = 1
+
+#States
+NONE = 0
+WAITING = 1
+PERFORMING = 2
+DONE = 3
+
+# Global Vaiables
+time = 0
+m_state = NONE
+local_goal_reached = 0
+time_at_circling = 0
+initialized = 0
+finished_recording = 0
+
+# Relevant points
+Center ={ .x = 0.0, .y = 0.0 }
+Home_loc = {} 
+WP = {
+    .1 = { .x = -0.8, .y = 0 },
+    .2 = { .x = 0.8, .y = 0 },
+    .3 = { .x = 0, .y = 0.8 }
+}
+
+# Strigmergy
+task_stig = stigmergy.create(1)
+task_stig.put(id, WAITING)
+
+
+########################################
+#
+# CIRCLING EXPERIMENT
+#
+########################################
+
+function circling_experiment() {
+    
+    # Increment time
+    time = time + 1
+
+    # Initialize the experiment
+    if (initialized == 0) {
+        # Set current position as home location
+        Home_loc = { .x = pose.position.x, .y = pose.position.y }
+
+        # Open csv file to record data
+        csv_file = io.fopen(OUTPUT_FILENAME_AND_PATH, "w")
+        if (NUMBER_OF_ROBOTS == 1) {
+            io.fwrite(csv_file, "timestep,x,y,theta")
+        } else {
+            io.fwrite(csv_file, "timestep,x,y,theta,n1_id,n1_distance,n1_azimuth,n2_id,n2_distance,n2_azimuth")
+        }
+
+        # Experiment is initialized
+        log("Robot ", id, " started the experiment!!!")
+        initialized = 1
+    }
+
+    # Count number of robots in each state
+	var num_in_waiting = {.val=0}
+	var num_in_performing = {.val=0}
+	var num_in_done= {.val=0}
+    task_stig.foreach(function(k,v){
+		if(v == WAITING){
+			num_in_waiting.val = num_in_waiting.val + 1 
+		}
+		else if(v == PERFORMING){
+			num_in_performing.val = num_in_performing.val + 1
+		}
+		else if(v == DONE){
+			num_in_done.val = num_in_done.val + 1
+		}
+	})
+
+    log("Robot ", id, " - state: ", m_state)
+	
+    # State switches
+	if(id == 1){
+		if(num_in_waiting.val == NUMBER_OF_ROBOTS){
+			m_state = PERFORMING
+		}
+	}
+	else if(id == 2){
+		if(num_in_done.val == 1){
+			m_state = PERFORMING
+		}
+	}
+	else if(id == 3){
+		if(num_in_done.val == 2 ){
+		 	m_state = PERFORMING
+		}
+	}
+
+    # State actions
+	if(m_state == PERFORMING){
+		if(local_goal_reached == 0){
+			var local_target = WP[id]
+			local_target = math.vec2.sub(local_target, pose.position)
+			local_target = math.vec2.rotate(local_target,-pose.orientation.yaw)
+			if(math.vec2.length(local_target) > 0.1){
+				local_target = math.vec2.scale(local_target,100) # back in cms
+				goto(local_target.x,local_target.y,0)
+			}
+			else{
+				local_goal_reached = 1
+				time_at_circling = time
+			}
+		}
+		else if(local_goal_reached == 1){
+			# start orbiting
+			var I1 = math.vec2.sub(Center,pose.position)
+			I1 = math.vec2.rotate(I1,-pose.orientation.yaw)
+			var ortho = math.vec2.new(-I1.y,I1.x)
+			var DI1 = math.vec2.newp(math.vec2.length(I1)-DESIRED_ORBIT_DIST, math.vec2.angle(I1))
+			var local_target = math.vec2.add(ortho, DI1)
+			var circling_Track = math.vec2.sub(WP[id], pose.position)
+			if(math.vec2.length(circling_Track) > 0.1 or time - time_at_circling < 50){
+				local_target = math.vec2.scale(local_target,100) # back in cms
+				goto(local_target.x,local_target.y,0)
+			}
+			else{
+				local_goal_reached = 2
+			}
+		}
+		else if(local_goal_reached == 2){
+			var local_target = WP[id]
+			local_target = math.vec2.sub(local_target, pose.position)
+			local_target = math.vec2.rotate(local_target,-pose.orientation.yaw)
+			if(math.vec2.length(local_target) > 0.1){
+				local_target = math.vec2.scale(local_target,100) # back in cms
+				goto(local_target.x,local_target.y,0)
+			}
+			else{
+				local_goal_reached = 3
+			}
+		}
+		else{
+			var local_target = Home_loc
+			local_target = math.vec2.sub(local_target, pose.position)
+			local_target = math.vec2.rotate(local_target,-pose.orientation.yaw)
+			if(math.vec2.length(local_target) > 0.1){
+				local_target = math.vec2.scale(local_target,100) # back in cms
+				goto(local_target.x,local_target.y,0)
+			}
+			else{
+				m_state = DONE
+				task_stig.put(id,DONE)
+			}
+		}
+	}
+	else{
+		goto(0,0,0)
+	}
+
+    # Record the robot position and information about the neighbors
+    if (num_in_done.val < NUMBER_OF_ROBOTS) {
+        if (NUMBER_OF_ROBOTS == 1) {
+            io.fwrite(csv_file,
+                string.tostring(time), ",",
+                string.tostring(pose.position.x), ",",
+                string.tostring(pose.position.y), ",",
+                string.tostring(pose.orientation.yaw)
+            )
+        } else {
+            if (neighbors.count == 2) {
+                data_string = string.concat(
+                    string.tostring(time), ",",
+                    string.tostring(pose.position.x), ",",
+                    string.tostring(pose.position.y), ",",
+                    string.tostring(pose.orientation.yaw)
+                )
+
+                neighbors.foreach(
+                    function(rid, data) {
+                        data_string = string.concat(",", data_string, ",",
+                            string.tostring(rid), ",",
+                            string.tostring(data.distance), ",",
+                            string.tostring(data.azymuth)
+                        )
+                    })
+
+                io.fwrite(csv_file, data_string)
+            }
+        }        
+    } else {
+        if (finished_recording == 0) {
+            # Finish experiment when all robots are done
+            log("Robot ", id, " finished recording.")
+            io.fclose(csv_file)
+            finished_recording = 1
+        }
+    }
+}
