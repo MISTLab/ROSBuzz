@@ -37,11 +37,13 @@ function idle() {
 function launch() {
 	BVMSTATE = "LAUNCH"
 	neighbors.broadcast("cmd", 22)
+	log("Auto state", AUTO_LAUNCH_STATE)
 	if(AUTO_LAUNCH_STATE=="CHAIN_FORMATION" or AUTO_LAUNCH_STATE=="CIRCLING_EXPERIMENT"){
 		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
-		var ROBOTS_TEMP = 1
-                barrier_set(ROBOTS_TEMP, AUTO_LAUNCH_STATE, "STOP", 22)
-		barrier_ready(22)
+		var ROBOTS_TEMP = 2
+                #barrier_set(ROBOTS_TEMP, AUTO_LAUNCH_STATE, "STOP", 22)
+		#barrier_ready(22)
+		BVMSTATE=AUTO_LAUNCH_STATE
 	}
 	else{
 		log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)

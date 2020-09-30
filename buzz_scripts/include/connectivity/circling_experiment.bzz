@@ -5,7 +5,7 @@
 ########################################
 OUTPUT_FILENAME_AND_PATH = string.concat("/home/nvidia/", string.tostring(id), "-circling.csv")
 DESIRED_ORBIT_DIST = 0.8 # in meters
-NUMBER_OF_ROBOTS = 1
+NUMBER_OF_ROBOTS = 3
 
 #States
 NONE = 0
@@ -25,14 +25,14 @@ finished_recording = 0
 Center ={ .x = 0.0, .y = 0.0 }
 Home_loc = {} 
 WP = {
-    .1 = { .x = -0.8, .y = 0 },
-    .2 = { .x = 0.8, .y = 0 },
-    .3 = { .x = 0, .y = 0.8 }
+    .1 = { .x = 0.9, .y = 0 },
+    .2 = { .x = -0.9, .y = 0 },
+    .3 = { .x = 0, .y = 0.9 }
 }
 
 # Strigmergy
-task_stig = stigmergy.create(1)
-task_stig.put(id, WAITING)
+#task_stig = stigmergy.create(1)
+#task_stig.put(id, WAITING)
 
 
 ########################################
@@ -61,6 +61,9 @@ function circling_experiment() {
 
         # Experiment is initialized
         log("Robot ", id, " started the experiment!!!")
+	# Strigmergy
+	task_stig = stigmergy.create(8)
+	task_stig.put(id, WAITING)
         initialized = 1
     }
 
@@ -80,7 +83,7 @@ function circling_experiment() {
 		}
 	})
 
-    log("Robot ", id, " - state: ", m_state)
+    log("Robot ", id, " - state: ", m_state, "nei: ", neighbors.count())
 	
     # State switches
 	if(id == 1){
@@ -170,8 +173,9 @@ function circling_experiment() {
                 string.tostring(pose.orientation.yaw)
             )
         } else {
-            if (neighbors.count == 2) {
-                data_string = string.concat(
+            if (neighbors.count() > 0) {
+		var data_string ={.val=""}
+                data_string.val = string.concat(
                     string.tostring(time), ",",
                     string.tostring(pose.position.x), ",",
                     string.tostring(pose.position.y), ",",
@@ -180,15 +184,15 @@ function circling_experiment() {
 
                 neighbors.foreach(
                     function(rid, data) {
-                        data_string = string.concat(",", data_string, ",",
+                        data_string.val = string.concat(",", data_string.val, ",",
                             string.tostring(rid), ",",
                             string.tostring(data.distance), ",",
-                            string.tostring(data.azymuth)
+                            string.tostring(data.azimuth)
                         )
                     })
-
-                io.fwrite(csv_file, data_string)
-            }
+		log("LOg: ",data_string.val)		
+                io.fwrite(csv_file, data_string.val)            
+	    }
         }        
     } else {
         if (finished_recording == 0) {
