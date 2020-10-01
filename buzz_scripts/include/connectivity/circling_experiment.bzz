@@ -5,7 +5,7 @@
 ########################################
 OUTPUT_FILENAME_AND_PATH = string.concat("/home/nvidia/", string.tostring(id), "-circling.csv")
 DESIRED_ORBIT_DIST = 0.8 # in meters
-NUMBER_OF_ROBOTS = 1
+NUMBER_OF_ROBOTS = 3
 
 #States
 NONE = 0
@@ -181,9 +181,10 @@ function circling_experiment() {
                     string.tostring(pose.position.y), ",",
                     string.tostring(pose.orientation.yaw)
                 )
-
+		log(" yaw ", pose.orientation.yaw)
                 neighbors.foreach(
                     function(rid, data) {
+			log("rid ",rid," dis ", data.distance," ang ", data.azimuth)
                         data_string.val = string.concat(",", data_string.val, ",",
                             string.tostring(rid), ",",
                             string.tostring(data.distance), ",",
