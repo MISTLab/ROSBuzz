@@ -5,7 +5,7 @@
 ########################################
 OUTPUT_FILENAME_AND_PATH = string.concat("/home/nvidia/", string.tostring(id), "-circling.csv")
 DESIRED_ORBIT_DIST = 0.8 # in meters
-NUMBER_OF_ROBOTS = 3
+NUMBER_OF_ROBOTS = 1
 
 #States
 NONE = 0
