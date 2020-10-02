@@ -334,7 +334,7 @@ function voronoicentroid_done() {
 }
 
 # Custom state function for the developer to play with
-firstincus = 1
+# firstincus = 1
 function cusfun(){
 	BVMSTATE="CUSFUN"
 	if(firstincus) {

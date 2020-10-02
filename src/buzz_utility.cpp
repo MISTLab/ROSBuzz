@@ -523,6 +523,10 @@ void buzz_script_step()
   }
   // Remove useless return value from stack
   buzzvm_pop(VM);
+  // TODO: Who knows where, the stack piles up nils. It needs to be fixed. 
+  // For the moment, I am adding an extra pop here. 
+  buzzvm_pop(VM);
+
 
 }
 

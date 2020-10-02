@@ -1436,16 +1436,18 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
 
     if (debug)
       ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
-    //  Pass neighbour position to local maintaner
-    buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1],
-                                   cvt_neighbours_pos_payload[2]);
-    //  Put RID and pos
-    raw_neighbours_pos_put((int)out[1], raw_neigh_pos);
-    //  TODO: remove roscontroller local map array for neighbors
-    neighbours_pos_put((int)out[1], n_pos);
-    buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, nei_pos.latitude, nei_pos.longitude, nei_pos.altitude);
+    if((int)out[1] !=robot_id){
+      //  Pass neighbour position to local maintaner
+      buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1],
+                                     cvt_neighbours_pos_payload[2]);
+      //  Put RID and pos
+      raw_neighbours_pos_put((int)out[1], raw_neigh_pos);
+      //  TODO: remove roscontroller local map array for neighbors
+      neighbours_pos_put((int)out[1], n_pos);
+      buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, nei_pos.latitude, nei_pos.longitude, nei_pos.altitude);
+      buzz_utility::in_msg_append((message_obt + index));
+    }
     delete[] out;
-    buzz_utility::in_msg_append((message_obt + index));
   }
 }
 
