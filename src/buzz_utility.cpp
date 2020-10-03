@@ -511,10 +511,10 @@ void buzz_script_step()
 / Step through the buzz script
 -------------------------------*/
 {
-  //  Process available messages
-  in_message_process();
   //  Update sensors
   update_sensors();
+  //  Process available messages
+  in_message_process();
   // Call Buzz step() function
   if (buzzvm_function_call(VM, "step", 0) != BUZZVM_STATE_READY)
   {
@@ -523,10 +523,6 @@ void buzz_script_step()
   }
   // Remove useless return value from stack
   buzzvm_pop(VM);
-  // TODO: Who knows where, the stack piles up nils. It needs to be fixed. 
-  // For the moment, I am adding an extra pop here. 
-  buzzvm_pop(VM);
-
 
 }
 

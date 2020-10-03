@@ -1,11 +1,8 @@
+##########
+# Includes
+#########
 include "update.bzz"
-# don't use a stigmergy id=11 with this header, for barrier 
-# it requires an 'action' function to be defined here.
-include "act/neighborcomm.bzz"
-include "act/naviguation.bzz"
-include "utils/table.bzz"
 include "utils/vec2.bzz"
-
 include "connectivity/circling_experiment.bzz"
 
 
@@ -15,7 +12,7 @@ include "connectivity/circling_experiment.bzz"
 # 1 -> indoor flying vehicle
 # 2 -> outdoor wheeled vehicle
 # 3 -> indoor wheeled vehicle
-V_TYPE = 1
+V_TYPE = 3
 
 # Global variables
 
@@ -82,4 +79,38 @@ function stop() {
 # Core state function when on the ground
 function turnedoff() {
     BVMSTATE = "TURNEDOFF"
+}
+
+function rc_cmd_listen() {
+	if(BVMSTATE=="TURNEDOFF") {
+		if(flight.rc_cmd==22) {	#TAKEOFF\LAUNCH
+			flight.rc_cmd=0
+			BVMSTATE = "LAUNCH"
+			neighbors.broadcast("cmd", 22)
+		} 
+	} else {
+		if(flight.rc_cmd==21) {
+			flight.rc_cmd=0
+			BVMSTATE = "STOP"
+			neighbors.broadcast("cmd", 21)
+		} 
+	}
+}
+
+# listens to neighbors broadcasting commands
+function nei_cmd_listen() {
+    neighbors.listen("cmd",
+		function(vid, value, rid) {
+			print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
+			if(BVMSTATE=="TURNEDOFF") {
+				if(value==22) {
+					BVMSTATE = "LAUNCH"
+				}
+			} else {
+				if(value==21 and BVMSTATE != "STOP") {
+					BVMSTATE = "STOP"
+					neighbors.broadcast("cmd", 21)
+				}
+			}
+    })
 }

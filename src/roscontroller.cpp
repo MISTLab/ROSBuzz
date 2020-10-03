@@ -138,7 +138,7 @@ void roscontroller::RosControllerRun()
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
     //  Intialize  the  update monitor
-    update = buzz_update::init_update_monitor(bcfname.c_str(), standby_bo.c_str(), dbgfname.c_str(), robot_id);
+    update = NULL; //buzz_update::init_update_monitor(bcfname.c_str(), standby_bo.c_str(), dbgfname.c_str(), robot_id);
     //  set ROS loop rate
     ros::Rate loop_rate(BUZZRATE);
     // check for BVMSTATE variable
@@ -214,7 +214,7 @@ void roscontroller::RosControllerRun()
         buzzuav_closures::rc_call(NAV_LAND);
       else
         fcu_timeout -= 1 / BUZZRATE;
-      //  DEBUG
+      //  DEBUG*/
       // std::cout<< "HOME: " << home.latitude << ", " << home.longitude;
     }
   }

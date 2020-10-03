@@ -5,7 +5,7 @@
 ########################################
 OUTPUT_FILENAME_AND_PATH = string.concat("/home/nvidia/", string.tostring(id), "-circling.csv")
 DESIRED_ORBIT_DIST = 0.8 # in meters
-NUMBER_OF_ROBOTS = 3
+NUMBER_OF_ROBOTS = 1
 
 #States
 NONE = 0
@@ -111,7 +111,7 @@ function circling_experiment() {
 			local_target = math.vec2.rotate(local_target,-pose.orientation.yaw)
 			if(math.vec2.length(local_target) > 0.1){
 				local_target = math.vec2.scale(local_target,100) # back in cms
-				goto(local_target.x,local_target.y,0)
+				goto_abs(local_target.x,local_target.y,0.0,0.0)
 			}
 			else{
 				local_goal_reached = 1
@@ -128,7 +128,7 @@ function circling_experiment() {
 			var circling_Track = math.vec2.sub(CEXP_WP[id], pose.position)
 			if(math.vec2.length(circling_Track) > 0.1 or time - time_at_circling < 50){
 				local_target = math.vec2.scale(local_target,100) # back in cms
-				goto(local_target.x,local_target.y,0)
+				goto_abs(local_target.x,local_target.y,0.0,0.0)
 			}
 			else{
 				local_goal_reached = 2
@@ -140,7 +140,7 @@ function circling_experiment() {
 			local_target = math.vec2.rotate(local_target,-pose.orientation.yaw)
 			if(math.vec2.length(local_target) > 0.1){
 				local_target = math.vec2.scale(local_target,100) # back in cms
-				goto(local_target.x,local_target.y,0)
+				goto_abs(local_target.x,local_target.y,0.0,0.0)
 			}
 			else{
 				local_goal_reached = 3
@@ -152,7 +152,7 @@ function circling_experiment() {
 			local_target = math.vec2.rotate(local_target,-pose.orientation.yaw)
 			if(math.vec2.length(local_target) > 0.1){
 				local_target = math.vec2.scale(local_target,100) # back in cms
-				goto(local_target.x,local_target.y,0)
+				goto_abs(local_target.x,local_target.y,0.0,0.0)
 			}
 			else{
 				m_state = DONE
@@ -161,47 +161,37 @@ function circling_experiment() {
 		}
 	}
 	else{
-		goto(0,0,0)
+		goto_abs(0.0,0.0,0.0,0.0)
 	}
-
     # Record the robot position and information about the neighbors
-  #   if (num_in_done.val < NUMBER_OF_ROBOTS) {
-  #       if (NUMBER_OF_ROBOTS == 1) {
-  #           io.fwrite(csv_file,
-  #               string.tostring(time), ",",
-  #               string.tostring(pose.position.x), ",",
-  #               string.tostring(pose.position.y), ",",
-  #               string.tostring(pose.orientation.yaw)
-  #           )
-  #       } else {
-  #           if (neighbors.count() > 0) {
-		# var data_string ={.val=""}
-  #               data_string.val = string.concat(
-  #                   string.tostring(time), ",",
-  #                   string.tostring(pose.position.x), ",",
-  #                   string.tostring(pose.position.y), ",",
-  #                   string.tostring(pose.orientation.yaw)
-  #               )
-		# log(" yaw ", pose.orientation.yaw)
-  #               neighbors.foreach(
-  #                   function(rid, data) {
-		# 	log("rid ",rid," dis ", data.distance," ang ", data.azimuth)
-  #                       data_string.val = string.concat(",", data_string.val, ",",
-  #                           string.tostring(rid), ",",
-  #                           string.tostring(data.distance), ",",
-  #                           string.tostring(data.azimuth)
-  #                       )
-  #                   })
-		# log("LOg: ",data_string.val)		
-  #               io.fwrite(csv_file, data_string.val)            
-	 #    }
-  #       }        
-  #   } else {
-  #       if (finished_recording == 0) {
-  #           # Finish experiment when all robots are done
-  #           log("Robot ", id, " finished recording.")
-  #           io.fclose(csv_file)
-  #           finished_recording = 1
-  #       }
-  #   }
+    if (num_in_done.val < NUMBER_OF_ROBOTS) {
+    	var data_string ={.val=""}
+        data_string.val = string.concat(
+            string.tostring(time), ",",
+            string.tostring(pose.position.x), ",",
+            string.tostring(pose.position.y), ",",
+            string.tostring(pose.orientation.yaw)
+        )
+        log(" yaw ", pose.orientation.yaw)
+	neighbors.foreach(
+            function(rid, data) {
+		log("rid ",rid," dis ", data.distance," ang ", data.azimuth)
+                data_string.val = string.concat(",", data_string.val, ",",
+                string.tostring(rid), ",",
+                string.tostring(data.distance), ",",
+                string.tostring(data.azimuth)
+            	)
+            }
+	)
+	log("LOg: ",data_string.val)		
+        io.fwrite(csv_file, data_string.val)            
+    } else {
+        if (finished_recording == 0) {
+            # Finish experiment when all robots are done
+            log("Robot ", id, " finished recording.")
+            io.fclose(csv_file)
+            finished_recording = 1
+        }
+    }
 }
+
