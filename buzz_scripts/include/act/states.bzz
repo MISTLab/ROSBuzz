@@ -37,10 +37,13 @@ function idle() {
 function launch() {
 	BVMSTATE = "LAUNCH"
 	neighbors.broadcast("cmd", 22)
-	if(AUTO_LAUNCH_STATE=="CHAIN_FORMATION"){
+	log("Auto state", AUTO_LAUNCH_STATE)
+	if(AUTO_LAUNCH_STATE=="CHAIN_FORMATION" or AUTO_LAUNCH_STATE=="CIRCLING_EXPERIMENT"){
 		homegps = {.lat=pose.position.latitude, .lng=pose.position.longitude}
-		barrier_set(ROBOTS, AUTO_LAUNCH_STATE, "STOP", 22)
-		barrier_ready(22)
+		var ROBOTS_TEMP = 2
+                #barrier_set(ROBOTS_TEMP, AUTO_LAUNCH_STATE, "STOP", 22)
+		#barrier_ready(22)
+		BVMSTATE=AUTO_LAUNCH_STATE
 	}
 	else{
 		log("AUTO_LAUNCH_STATE: ", AUTO_LAUNCH_STATE)
@@ -275,7 +278,7 @@ function voronoicentroid() {
 	else if(not(size(wptab) > 0)){
 		return
 	}
-	#log("WP table size:", size(wptab))
+	log("WP table size:", size(wptab))
 	if(V_TYPE == 2){
 		return
 	}
@@ -331,12 +334,11 @@ function voronoicentroid_done() {
 }
 
 # Custom state function for the developer to play with
-firstincus = 1
+# firstincus = 1
 function cusfun(){
 	BVMSTATE="CUSFUN"
 	if(firstincus) {
 		discomp_init()
 		firstincus = 0
 	}
-	discomp_step()
 }

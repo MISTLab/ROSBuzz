@@ -21,6 +21,7 @@
 
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" launch-prefix="gdb -ex run --args">
     <rosparam file="$(find rosbuzz)/launch/launch_config/$(arg launch_config).yaml"/>
+    <rosparam file="$(find rosbuzz)/misc/init_pose/$(arg init_pose_file).yaml"/>
     <param name="bzzfile_name" value="$(find rosbuzz)/buzz_scripts/$(arg script).bzz" />
     <param name="WPfile" value="$(find rosbuzz)/buzz_scripts/include/taskallocate/$(arg wpfile).csv" />
     <param name="debug" value="$(arg debug)" />
@@ -29,6 +30,8 @@
     <param name="setmode" value="$(arg setmode)"/>
     <param name="latitude" value="$(arg latitude)"/>
     <param name="longitude" value="$(arg longitude)"/>
+    <param name="local_x" value="$(arg local_x)"/>
+    <param name="local_y" value="$(arg local_y)"/>
     <param name="stand_by" value="$(find rosbuzz)/buzz_scripts/stand_by.bzz"/>
     <param name="ca_on" value="$(arg ca_on)"/>
     <param name="auto_state" value="$(arg auto_state)"/>

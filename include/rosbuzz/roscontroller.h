@@ -155,6 +155,7 @@ private:
   bool setmode = false;
   bool BClpose = false;
   int pose_type = 0;
+  int pose_received = 0;
   std::string bzzfile_name, WPfile;
   std::string bcfname, dbgfname;
   std::string stand_by;

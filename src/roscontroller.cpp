@@ -46,7 +46,12 @@ roscontroller::roscontroller(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
 
   //  Get Home position - wait for none-zero value
   if(pose_type == LOCAL_POSE){
-    // TODO: Figure out a way to determine local pose is published and it is good!!!
+    while(pose_received == 0){
+      ROS_INFO("Waiting for Pos.");
+      ros::Duration(0.5).sleep();
+      ros::spinOnce(); 
+   }
+    // TODO: Figure out a better way to determine local pose is published and it is good!!!
   }
   else{
     while (((cur_pos.latitude == 0.0f) || (cur_pos.altitude < -1000.0)))
@@ -133,7 +138,7 @@ void roscontroller::RosControllerRun()
     ROS_INFO("[%i] Bytecode file found and set", robot_id);
     std::string standby_bo = Compile_bzz(stand_by) + ".bo";
     //  Intialize  the  update monitor
-    update = buzz_update::init_update_monitor(bcfname.c_str(), standby_bo.c_str(), dbgfname.c_str(), robot_id);
+    update = NULL; //buzz_update::init_update_monitor(bcfname.c_str(), standby_bo.c_str(), dbgfname.c_str(), robot_id);
     //  set ROS loop rate
     ros::Rate loop_rate(BUZZRATE);
     // check for BVMSTATE variable
@@ -209,7 +214,7 @@ void roscontroller::RosControllerRun()
         buzzuav_closures::rc_call(NAV_LAND);
       else
         fcu_timeout -= 1 / BUZZRATE;
-      //  DEBUG
+      //  DEBUG*/
       // std::cout<< "HOME: " << home.latitude << ", " << home.longitude;
     }
   }
@@ -1029,7 +1034,7 @@ script
       break;
 
     case NAV_SPLINE_WAYPOINT:
-      ROS_INFO("GOT moveto command : %f, %f, %f ",goto_pos[0], goto_pos[1], goto_pos[2]);
+      //ROS_INFO("GOT moveto command : %f, %f, %f ",goto_pos[0], goto_pos[1], goto_pos[2]);
       goto_pos = buzzuav_closures::getgoto();
       if (setmode)
         SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
@@ -1233,7 +1238,8 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
     goto_pos[2] = 0.0;
     BClpose = true;
   }
-  
+
+  if(pose_received == 0) pose_received = 1;
   //  cur_pos.z = pose->pose.position.z; // Using relative altitude topic instead
   tf::Quaternion q(msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
   tf::Matrix3x3 m(q);
@@ -1432,16 +1438,18 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
 
     if (debug)
       ROS_WARN("RAB of %i: %f, %f", (int)out[1], cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1]);
-    //  Pass neighbour position to local maintaner
-    buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1],
-                                   cvt_neighbours_pos_payload[2]);
-    //  Put RID and pos
-    raw_neighbours_pos_put((int)out[1], raw_neigh_pos);
-    //  TODO: remove roscontroller local map array for neighbors
-    neighbours_pos_put((int)out[1], n_pos);
-    buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, nei_pos.latitude, nei_pos.longitude, nei_pos.altitude);
+    if((int)out[1] !=robot_id){
+      //  Pass neighbour position to local maintaner
+      buzz_utility::Pos_struct n_pos(cvt_neighbours_pos_payload[0], cvt_neighbours_pos_payload[1],
+                                     cvt_neighbours_pos_payload[2]);
+      //  Put RID and pos
+      raw_neighbours_pos_put((int)out[1], raw_neigh_pos);
+      //  TODO: remove roscontroller local map array for neighbors
+      neighbours_pos_put((int)out[1], n_pos);
+      buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, nei_pos.latitude, nei_pos.longitude, nei_pos.altitude);
+      buzz_utility::in_msg_append((message_obt + index));
+    }
     delete[] out;
-    buzz_utility::in_msg_append((message_obt + index));
   }
 }
 

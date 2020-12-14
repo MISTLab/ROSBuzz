@@ -41,6 +41,7 @@ function barrier_ready(bc) {
   barrier.put(id, bc)
   barrier.put("d", 0)
   barrier.put("n", 1)
+  #log("barriers: ",barrier.get(id),",",barrier.get("d"),",",barrier.get("n"))
 }
 
 #
@@ -49,7 +50,9 @@ function barrier_ready(bc) {
 function barrier_wait(threshold, transf, resumef, bc) {
   if(barrier==nil) #failsafe
     barrier_create()
-  
+
+  #log("barriers: ",barrier.get(id),",",barrier.get("d"),",",barrier.get("n"))
+
   barrier.put(id, bc)
   if(barrier.get("n")<threshold)
     barrier.put("n", threshold)

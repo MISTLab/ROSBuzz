@@ -1485,6 +1485,7 @@ void update_neighbors(buzzvm_t vm)
 {
   //   Reset neighbor information
   buzzneighbors_reset(vm);
+
   //  Get robot id and update neighbor information
   map<int, buzz_utility::RB_struct>::iterator it;
   for (it = neighbors_map.begin(); it != neighbors_map.end(); ++it)

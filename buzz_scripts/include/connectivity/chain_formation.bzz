@@ -228,9 +228,6 @@ function chain_formation(){
 
     log("[",id,"] Waypoint pursuving: ",Current_waypoint,"par ",PARENT[0]," dis: ",parent_distance," pose (",c_pos.x,",",c_pos.y,") Role: ",ROLE, "C dist ", "child",CHILD[0], "dis", child_distance, "MAX_PATH_WP ", MAX_PATH_WP, "PARENT_WP", PARENT_WP," TR ",TARGET_REACHED)
     
-    if(id == 1 and exp_itreration == 50){
-
-    }
     # var c_pos = vec_from_gps_using_ref(pose.position.latitude, pose.position.longitude, CENTER_GPS_STATE)
 
     # var c_goal = vec_from_gps_using_ref(GOAL_GPS_STATE.lat, GOAL_GPS_STATE.lng, CENTER_GPS_STATE)

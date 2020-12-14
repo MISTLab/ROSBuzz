@@ -158,9 +158,9 @@ function intialize_chain_formation(){
   TEST_GOAL[0]={}
   TEST_GOAL[0]={.x= 2.42,.y=-0.115}
   TEST_GOAL[1]={}
-  TEST_GOAL[1]={.x= 2.42,.y=-1.751}
+  TEST_GOAL[1]={.x= 2.42,.y=-1.65}
   TEST_GOAL[2]={}
-  TEST_GOAL[2]={.x= 0.0,.y=-1.75}
+  TEST_GOAL[2]={.x= 0.0,.y=-1.65}
   TEST_GOAL[3]={}
   TEST_GOAL[3]={.x= 0.0,.y=0.0}
   
@@ -230,7 +230,20 @@ function compute_path(){
     chain_statef = backbone
   }
 }
+
 function chain_formation(){
+
+    log("neighbors: ", neighbors.count())
+
+    neighbors.foreach(function(rid, data) {
+        log("robot ", rid, ": ",
+            "distance  = ", data.distance, ", ",
+            "azimuth   = ", data.azimuth)      
+    })
+
+}
+
+function chain_formation123(){
   if(id == 1){
     if(pose.position.z >= TARGET_ALTITUDE-TARGET_ALTITUDE/20.0) {
       ROBOT_IN_AIR = 1 
@@ -311,7 +324,7 @@ function chain_formation(){
   if(id == 10){
     var m_pos = math.vec2.new(pose.position.x,pose.position.y)
     var m_target = math.vec2.sub(TEST_GOAL[Current_waypoint],m_pos)
-    m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+    m_target = math.vec2.rotate(m_target, -pose.orientation.yaw)
     if(math.vec2.length(m_target) < 0.05 ){
       if(Current_waypoint < 3){
         Current_waypoint = Current_waypoint + 1
@@ -321,8 +334,10 @@ function chain_formation(){
       }
     }
     else{
-      log("Move vec x ", m_target.x," y ",m_target.y," len ", math.vec2.length(m_target), "POS: (",pose.position.x,",",pose.position.y,")")
+      m_target = math.vec2.scale(m_target,100)
+      log("Move vec x ", m_target.x," y ",m_target.y," len ", math.vec2.length(m_target), "POS: (",pose.position.x,",",pose.position.y,") WP: ",Current_waypoint)
       # log("I am in air !")
+
       goto(m_target.x,m_target.y,TARGET_ALTITUDE)
     }
     

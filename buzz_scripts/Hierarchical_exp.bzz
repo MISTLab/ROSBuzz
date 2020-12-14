@@ -1,0 +1,116 @@
+##########
+# Includes
+#########
+include "update.bzz"
+include "utils/vec2.bzz"
+include "connectivity/circling_experiment.bzz"
+
+
+#####
+# Vehicule type:
+# 0 -> outdoor flying vehicle
+# 1 -> indoor flying vehicle
+# 2 -> outdoor wheeled vehicle
+# 3 -> indoor wheeled vehicle
+V_TYPE = 3
+
+# Global variables
+
+
+# Executed once at init time.
+function init() {	
+	# start the swarm command listener
+	nei_cmd_listen()
+
+    # Starting state: TURNEDOFF to wait for user input.
+	BVMSTATE = "TURNEDOFF"
+}
+
+# Executed at each time step.
+function step() {
+
+	# listen to Remote Controller
+	rc_cmd_listen()
+
+	#
+	# State machine
+	#
+	if(BVMSTATE=="TURNEDOFF"){
+		statef=turnedoff
+	} 
+	else if(BVMSTATE=="STOP"){	# ends on turnedoff
+		statef=stop
+	}
+	else if(BVMSTATE=="LAUNCH"){ # ends on AUTO_LAUNCH_STATE
+		statef=launch
+	}
+    else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
+        statef=circling_experiment		
+    }
+	statef()
+
+	#log("Current state: ", BVMSTATE)
+}
+ 
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+ 
+# Executed once at the end of experiment.
+function destroy() {
+}
+
+# An extract of Core States 
+# Core state function to launch the robot: takeoff and wait for others, or stop (land)
+function launch() {
+	BVMSTATE = "LAUNCH"
+	neighbors.broadcast("cmd", 22)
+	log("Auto state", AUTO_LAUNCH_STATE)
+	BVMSTATE=AUTO_LAUNCH_STATE
+}
+
+# Core state function to stop and land.
+function stop() {
+  BVMSTATE = "STOP"
+  barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
+  barrier_ready(21)	
+}
+
+# Core state function when on the ground
+function turnedoff() {
+    BVMSTATE = "TURNEDOFF"
+}
+
+function rc_cmd_listen() {
+	if(BVMSTATE=="TURNEDOFF") {
+		if(flight.rc_cmd==22) {	#TAKEOFF\LAUNCH
+			flight.rc_cmd=0
+			BVMSTATE = "LAUNCH"
+			neighbors.broadcast("cmd", 22)
+		} 
+	} else {
+		if(flight.rc_cmd==21) {
+			flight.rc_cmd=0
+			BVMSTATE = "STOP"
+			neighbors.broadcast("cmd", 21)
+		} 
+	}
+}
+
+# listens to neighbors broadcasting commands
+function nei_cmd_listen() {
+    neighbors.listen("cmd",
+		function(vid, value, rid) {
+			print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
+			if(BVMSTATE=="TURNEDOFF") {
+				if(value==22) {
+					BVMSTATE = "LAUNCH"
+				}
+			} else {
+				if(value==21 and BVMSTATE != "STOP") {
+					BVMSTATE = "STOP"
+					neighbors.broadcast("cmd", 21)
+				}
+			}
+    })
+}
