@@ -19,8 +19,10 @@ hvs = 0;
 #
 function barrier_create() {
   timeW = 1
-  if(barrier==nil)
+  BARRIER_VSTIG = 80
+  if( not (barrier != nil)){
     barrier = stigmergy.create(BARRIER_VSTIG)
+  }
 }
 
 function barrier_set(threshold, transf, resumef, bc) {
