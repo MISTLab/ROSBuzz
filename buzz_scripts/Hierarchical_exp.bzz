@@ -6,6 +6,7 @@ include "utils/vec2.bzz"
 include "utils/takeoff_heights.bzz"
 # include "formations/circling_experiment.bzz"
 include "formations/Object_movement_test.bzz"
+include "formations/forward_test.bzz"
 
 
 #####
@@ -55,6 +56,9 @@ function step() {
     # }
     else if(BVMSTATE=="FORMATION_MOVEMENT"){
         statef=hierarchical_step		
+    }
+    else if(BVMSTATE == "FORWARD_TEST"){
+    	statef=forward_test
     }
 	statef()
 
@@ -144,6 +148,6 @@ function goto(x, y) {
 		norm_fact = 1.0/math.vec2.length(g_vec)
 	}
 	var norm_goto = math.vec2.scale(g_vec, norm_fact)
-	norm_goto = math.vec2.scale(norm_goto, 2.0)
+	norm_goto = math.vec2.scale(norm_goto, 0.3)
 	goto_abs(norm_goto.x, norm_goto.y, height, 0.0)
 }
