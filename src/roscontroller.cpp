@@ -1247,8 +1247,14 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
   m.getRPY(roll, pitch, yaw);
   cur_pos.yaw = yaw;
 
-  buzzuav_closures::set_currentNEDpos(msg->pose.position.y, msg->pose.position.x, cur_pos.z,cur_pos.yaw, home_offset.x,
-                                      home_offset.y);
+  if(pose_type == LOCAL_POSE){
+    buzzuav_closures::set_currentNEDpos(msg->pose.position.y+home_offset.x, msg->pose.position.x+home_offset.y, cur_pos.z,cur_pos.yaw, home_offset.x,
+                                        home_offset.y);
+  }
+  else{
+    buzzuav_closures::set_currentNEDpos(msg->pose.position.y, msg->pose.position.x, cur_pos.z,cur_pos.yaw, home_offset.x,
+                                        home_offset.y);
+  }
 }
 
 void roscontroller::rel_alt_callback(const std_msgs::Float64::ConstPtr& msg)
@@ -1287,7 +1293,7 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw)
   moveMsg.header.frame_id = 1;
 
   //  DEBUG
-  // ROS_INFO("Lp: %.3f, %.3f - Del: %.3f, %.3f, %.3f", cur_pos.x, cur_pos.y, x, y, yaw);
+  ROS_INFO("Lp: %.3f, %.3f - Del: %.3f, %.3f, %.3f", cur_pos.x, cur_pos.y, x, y, yaw);
   moveMsg.pose.position.x = cur_pos.x + y;
   moveMsg.pose.position.y = cur_pos.y + x;
   moveMsg.pose.position.z = z;
@@ -1446,7 +1452,12 @@ void roscontroller::payload_obt(const mavros_msgs::Mavlink::ConstPtr& msg)
       raw_neighbours_pos_put((int)out[1], raw_neigh_pos);
       //  TODO: remove roscontroller local map array for neighbors
       neighbours_pos_put((int)out[1], n_pos);
-      buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, nei_pos.latitude, nei_pos.longitude, nei_pos.altitude);
+      if(pose_type == LOCAL_POSE){
+        buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x*100, n_pos.y, nei_pos.latitude, nei_pos.longitude, nei_pos.altitude);
+      }
+      else{
+        buzzuav_closures::neighbour_pos_callback((int)out[1], n_pos.x, n_pos.y, nei_pos.latitude, nei_pos.longitude, nei_pos.altitude);
+      }
       buzz_utility::in_msg_append((message_obt + index));
     }
     delete[] out;

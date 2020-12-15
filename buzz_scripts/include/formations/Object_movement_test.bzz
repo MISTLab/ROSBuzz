@@ -1,0 +1,1882 @@
+include "utils/vec2.bzz"
+include "utils/table.bzz"
+include "utils/targets.bzz"
+
+# Modes
+# Sheeps
+NONE=0
+LOOSE =1
+SHAPE=2
+RIGID =3
+
+# Dogs
+TASK_ALLOCATION=10
+DENSITY_CONFIG=11
+SHAPE_GOAL=12
+SHAPING=13
+MISSION=14
+STAND_BY=15
+
+# ROBOT TYPES
+SHEEP = 0
+DOG = 1
+
+#TASK Stigmergy states
+INITALIZED=0
+UNASSIGNED=1
+ASSIGNED=2
+PRE_SHAPE_MOVE=3
+REACHED=4
+SHAPED=5
+TAR_REACHED=6
+
+
+# Constants
+CHANGE_ERROR_TOL = 0.01
+ANGLE_TOLERENCE = 0.01  # APROX 0.5 deg, if 0.1 the aprox 5 Deg
+NUM_OF_ROBOTS =1000 # used to determine the dogs and sheeps
+MAX_FIELD_OF_VIEW = 200
+MAX_VEL = 5 #cm/step
+math.PI=3.14
+MAX_TIME_TO_FORGET=10
+TIME_TO_SHAPING_LOOSE = 50
+SAFETY_DISTANCE = 30
+MAX_TARGET_DIST = 0.5 # this is in meters
+
+
+
+# Potential Constants
+LJ_TARGET = 150.0
+LJ_EPSILON = 150.0
+LJ_SCALE = 4.0
+LJ_POW = 2.0
+MORSE_ALPHA = 1.0/50.0
+MORSE_D = -10.0
+DESIRED_MORSE_DIST = 0
+MORSE_ALPHA2 = -1.0/200.0
+MORSE_D2 = 1000.0
+BUCK_A = 0.1
+BUCK_C = 1000.0
+BUCK_TARGET = 50.0 # sigma
+HARMON_A0 = 0.0
+HARMON_K = 1.0/50.0
+CUBIC_A0 = 0.0
+CUBIC_K = 1.0/1000.0
+
+
+# Global variable
+Mode = NONE
+Accum = {.x=0,.y=0, .error =0}
+Old_error=0
+# Desired_dist = 50;  # Desired inter-robot distance for sheep
+track_dist=20
+Desired_heard_dist = 70
+Edge_following_dist=80
+last_seen_edge = {}
+ROLE = SHEEP
+time = 0
+shaping_time = 0
+m_dis_to_shaping_goal = {}
+Rigid_nei = {}
+Yeilding_for={}
+time_since_yeild=0
+structuring_time=0
+
+# Dog's store the error of its sheep neig in this table | Sheeps store the dogs in its neig
+# Used to check if a (neighboring) robot is a dog or sheep
+Collective_nei_error_table={}
+Nei_look_up={}    # Sheeps: Used to store the current nei in certain states.
+current_nei= -1 # used to identify edge following neighbour switching
+shape_task_num=1
+Other_dog_infront=-1
+
+# Variables for additional shaping section
+# DOG_NOP = -1
+# STARTUP = TASK_ALLOCATION
+# angle_spiral_counter = 0
+# SHAPE_GOAL_TIME = 20
+
+# Testing variable 
+Home_loc = {}
+Shape_target_reached = 0
+
+# Logging variable 
+Center_of_mass = {.x=0.0,.y=0.0, .px=0.0, .py=0.0, .cx=0.0, .cy=0.0, .fx=0.0, .fy=0.0, .setpang=0.0, .curang=0.0}
+TAR_REACHED=0
+
+
+function hierarchical_init() { 
+	Mode= LOOSE
+	mode_stig = stigmergy.create(1)
+	density_stig = stigmergy.create(2)
+	task_stig = stigmergy.create(3)
+    task_stig.onconflict(function(k,l,r) {  
+        if(r.data == nil) return l
+        else if (l.data == nil) return r
+        # Otherwise return remote value
+        else return r
+    })
+	bidding_stig = stigmergy.create(4)
+	bidding_stig.onconflict(function (k,local,remote) {
+	    if(remote.data <= local.data) return remote 
+	    else return local
+  	})
+	load_target()
+	if(id <= 2){
+        print("I am dog ", id)
+		ROLE=DOG
+		Mode=TASK_ALLOCATION
+	}
+	else{
+	 	Mode=LOOSE
+	} 
+	# This has to be after type determination.
+	# There are different function registered based on type.
+	register_listeners()
+}
+
+
+  
+
+function hierarchical_step(){
+	time = time + 1.0
+	# Sheep robots 
+	if(ROLE == SHEEP){
+		# If density in stigmergy is non null then go into the respective mode and execute that behaviour.
+		var density = density_stig.get("D")
+		if(density != nil){
+			Accum ={.x=0,.y=0, .error=0, .cnt=0, .dogs_x=0, . dogs_y=0}
+			var m_mode = density_stig.get("M")
+			# Mode switch (aka a state change)
+			if(m_mode == LOOSE and Mode != LOOSE){
+				log("Transition of sheep ", id, " to ", Mode)
+				Mode = LOOSE
+			}
+			else if(m_mode == SHAPE and Mode != SHAPE){
+				log("Transition of sheep ", id, " to ", Mode)
+				Mode = SHAPE
+				var field_of_view = density_stig.get("F")
+				if(field_of_view != nil){
+					field_of_view = field_of_view + track_dist
+					Nei_look_up = {}
+					neighbors.foreach(
+						function(rid,data){
+							if(data.distance < field_of_view and (not (Collective_nei_error_table[rid] != nil)))
+								Nei_look_up[rid]=data
+						}
+					)
+				}
+				else{
+					log("FOV NIL in mode swtich to SHAPE")
+				}
+				
+			}
+			else if(m_mode == RIGID and Mode != RIGID){
+				log("Transition of sheep ", id, " to ", Mode)
+				Mode = RIGID
+				var field_of_view = density_stig.get("F")
+				if(field_of_view != nil){
+					field_of_view = field_of_view + track_dist
+					Nei_look_up = {}
+					neighbors.foreach(
+						function(rid,data){
+							if(data.distance < field_of_view and (not (Collective_nei_error_table[rid] != nil)))
+								Nei_look_up[rid]=data
+						}
+					)
+				}
+			}
+			# Mode based behaviour
+			var field_of_view = density_stig.get("F")
+			if(field_of_view != nil){
+				field_of_view = field_of_view+track_dist
+				# debug.print("Mode ", m_mode)
+				var dog_rective_field=density_stig.get("R")
+				var safety_vec = math.vec2.new(0.0,0.0)
+				var dog_weight=0.9
+				# We allow bond breakage and formation in loose
+				if(Mode == LOOSE){
+					neighbors.foreach(
+						function(rid, data){
+							var potential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
+							var my_vec = math.vec2.newp(data.distance, data.azimuth)
+							if(data.distance < SAFETY_DISTANCE){	
+								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
+								# Initialize vector
+						        var myVec = math.vec2.newp(potential, data.azimuth)
+						        safety_vec.x  = safety_vec.x + myVec.x
+								safety_vec.y  = safety_vec.y + myVec.y
+							}		
+
+							if((not (Collective_nei_error_table[rid] != nil)) and data.distance < field_of_view){
+								# potential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
+								Accum.error = Accum.error + potential
+								# debug.rays.add(35,100,52, my_vec.x/100, my_vec.y/100, 0.0)
+						        # Initialize vector
+						        var myVec = math.vec2.newp(potential, data.azimuth)
+						        Accum.x = Accum.x + myVec.x
+						        Accum.y = Accum.y + myVec.y
+						        Accum.cnt=Accum.cnt+1
+							}
+							else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
+								# potential = harmonMagnitude(data.distance, dog_rective_field, HARMON_A0, HARMON_K)
+								potential = math.vec2.length(my_vec)
+								var myVec = math.vec2.newp(potential, data.azimuth)
+								if(potential > 0) myVec = math.vec2.scale(myVec,1/potential)
+								Accum.dogs_x = Accum.dogs_x + myVec.x
+								Accum.dogs_y = Accum.dogs_y + myVec.y
+								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
+							}
+
+							# old approch 
+							# var error = ((data.distance - density)/data.distance)
+							# Accum.error = Accum.error + math.abs(error)
+							# var my_vec = math.vec2.newp(data.distance, data.azimuth)
+							# if(data.distance < SAFETY_DISTANCE){
+							# 	my_vec=math.vec2.newp(100,data.azimuth)
+							# 	safety_vec.x  = safety_vec.x + (my_vec.x * error)
+							# 	safety_vec.y  = safety_vec.y + (my_vec.y * error)
+
+							# }
+							# if((not (Collective_nei_error_table[rid] != nil)) and data.distance < field_of_view){
+								
+								# debug.rays.add(35,100,52, my_vec.x/100, my_vec.y/100, 0.0)
+							# 	my_vec=math.vec2.newp(100,data.azimuth)
+							# 	Accum.x= Accum.x + (error * my_vec.x)
+							# 	Accum.y= Accum.y + (error * my_vec.y)
+							# 	# log("[",id,"] -> ",rid," Accum : (", Accum.x,",",Accum.y,") Error", error, " dist ", data.distance)
+							# }
+							# else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
+							# 	# Move in the opposite direction of this guy 
+							# 	Accum.x = Accum.x -  my_vec.x
+							# 	Accum.y = Accum.y -  my_vec.y
+								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
+							# }
+
+						}
+					)
+
+					# TODO Extract
+					var dog_vec = math.vec2.new(Accum.dogs_x,Accum.dogs_y)
+					if(math.vec2.length(dog_vec) > 0){
+						if(Accum.cnt > 0){
+							Accum.x = Accum.x/Accum.cnt
+							Accum.y = Accum.y/Accum.cnt
+						}
+						var combAccum={.x=0,.y=0}
+						combAccum.x = ((1-dog_weight)*Accum.x) - (dog_weight)*Accum.dogs_x
+						combAccum.y = ((1-dog_weight)*Accum.y) - (dog_weight)*Accum.dogs_y
+
+						# debug.print(" Acc mag ", math.vec2.length(Accum), " dog mag ", math.vec2.length(dog_vec), " Combined ", math.vec2.length(combAccum))
+						Accum.x = (1-dog_weight)*Accum.x - (dog_weight)*Accum.dogs_x
+						Accum.y = (1-dog_weight)*Accum.y - (dog_weight)*Accum.dogs_y
+					}
+					if(math.vec2.length(safety_vec) > 0 ){
+						goto(safety_vec.x,safety_vec.y)
+					}
+					else{
+					# debug.print(" ERROR :", math.abs(Old_error - Accum.error), " cur ", Accum.error," Pre ", Old_error , " Stig size : ", mode_stig.size(), " time ", time )
+						goto(Accum.x,Accum.y)
+					}
+					neighbors.broadcast("E",(Old_error - Accum.error))
+					Old_error = Accum.error
+				}
+				# We allow bond breakage but not formation in shape
+				else if(Mode == SHAPE){
+					neighbors.foreach(
+						function(rid, data){
+							var potential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
+							var my_vec = math.vec2.newp(data.distance, data.azimuth)
+							if(data.distance < SAFETY_DISTANCE){
+						
+								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
+								# Initialize vector
+						        var myVec = math.vec2.newp(potential, data.azimuth)
+						        safety_vec.x  = safety_vec.x + myVec.x
+								safety_vec.y  = safety_vec.y + myVec.y
+							}		
+
+							if(Nei_look_up[rid] != nil and data.distance < field_of_view){
+								# potential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
+								Accum.error = Accum.error + potential
+								# debug.rays.add(35,100,52, my_vec.x/100, my_vec.y/100, 0.0)
+						        # Initialize vector
+						        var myVec = math.vec2.newp(potential, data.azimuth)
+						        Accum.x = Accum.x + myVec.x
+						        Accum.y = Accum.y + myVec.y
+						        Accum.cnt = Accum.cnt + 1
+							}
+							else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
+								# potential = harmonMagnitude(data.distance, dog_rective_field, HARMON_A0, HARMON_K)
+								potential = math.vec2.length(my_vec)
+								var myVec = math.vec2.newp(potential, data.azimuth)
+								# myVec = math.vec2.scale(myVec,1/potential)
+								Accum.dogs_x = Accum.dogs_x + myVec.x
+								Accum.dogs_y = Accum.dogs_y + myVec.y
+								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
+							}
+
+
+							# var error = ((data.distance - density)/data.distance)
+							# Accum.error = Accum.error + math.abs(error)
+							# var my_vec = math.vec2.newp(data.distance, data.azimuth)
+							# if(data.distance < SAFETY_DISTANCE){
+							# 	my_vec=math.vec2.newp(100,data.azimuth)
+							# 	safety_vec.x  = safety_vec.x + (my_vec.x * error)
+							# 	safety_vec.y  = safety_vec.y + (my_vec.y * error)
+
+							# }
+							# # Only consider if this robot is not a new neighbour to avoid formation of new bonds
+							# if((not (Collective_nei_error_table[rid] != nil)) and Nei_look_up[rid] != nil and data.distance < field_of_view){
+								
+								# debug.rays.add(35,100,52, my_vec.x/100, my_vec.y/100, 0.0)
+							# 	my_vec=math.vec2.newp(100,data.azimuth)
+							# 	Accum.x= Accum.x + (error * my_vec.x)
+							# 	Accum.y= Accum.y + (error * my_vec.y)
+							# 	# log("[",id,"] -> ",rid," Accum : (", Accum.x,",",Accum.y,") Error", error, " dist ", data.distance)
+							# }
+							# else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
+							# 	# Move in the opposite direction of this guy 
+							# 	Accum.dogs_x = Accum.dogs_x +  my_vec.x
+							# 	Accum.dogs_y = Accum.dogs_y +  my_vec.y
+								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
+							# }
+						}
+					)
+					# var sheep_weight = 0.3
+					# var dog_vec = math.vec2.new(Accum.dogs_x, Accum.dogs_y)
+					# if(math.vec2.length(dog_vec) > 0){
+					# var normalized_dog = math.vec2.new(Accum.dogs_x, Accum.dogs_y)
+					# normalized_dog = math.vec2.scale(normalized_dog, 1/math.vec2.length(normalized_dog))
+					# Accum.x = Accum.x - Accum.dogs_x
+					# Accum.y = Accum.y - Accum.dogs_y
+					# }
+
+					# TODO Extract
+					# Movement calculation when there are dogs: combining sheep and dog accumulators based on weights
+					var dog_vec = math.vec2.new(Accum.dogs_x,Accum.dogs_y)
+					if(math.vec2.length(dog_vec) > 0){
+						if(Accum.cnt > 0){
+							Accum.x = Accum.x/Accum.cnt
+							Accum.y = Accum.y/Accum.cnt
+						}
+						# Debug check before calculation done
+						var combAccum={.x=0,.y=0}
+						combAccum.x = ((1-dog_weight)*Accum.x) - (dog_weight)*Accum.dogs_x
+						combAccum.y = ((1-dog_weight)*Accum.y) - (dog_weight)*Accum.dogs_y
+						# debug.print(" Acc mag ", math.vec2.length(Accum), " dog mag ", math.vec2.length(dog_vec), " Combined ", math.vec2.length(combAccum))
+
+						# Calculation based on weights
+						Accum.x = ((1-dog_weight)*Accum.x) - ((dog_weight)*Accum.dogs_x)
+						Accum.y = ((1-dog_weight)*Accum.y) - ((dog_weight)*Accum.dogs_y)
+					}
+
+					# Reaction override for dangerously close robots, otherwise normal
+					if(math.vec2.length(safety_vec) > 0 ){
+						goto(safety_vec.x,safety_vec.y)
+					}
+					else{
+						goto(Accum.x,Accum.y)
+					}
+
+					# Save errors
+					neighbors.broadcast("E",(Old_error - Accum.error))
+					Old_error = Accum.error
+				}
+				# We allow no bond change in rigid
+				else if(m_mode == RIGID){
+					neighbors.foreach(
+						function(rid, data){
+							var my_vec = math.vec2.newp(data.distance, data.azimuth)
+							if(data.distance < SAFETY_DISTANCE){
+								var generalPotential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
+								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
+								# Initialize vector
+						        var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
+						        safety_vec.x  = safety_vec.x + pot_vec.x
+								safety_vec.y  = safety_vec.y + pot_vec.y
+							}		
+
+							# check its a sheep and within the list of neighbors to conserve
+							if(Nei_look_up[rid] != nil){
+								var generalPotential = harmonMagnitude(data.distance, Nei_look_up[rid].distance, HARMON_A0, HARMON_K)
+								Accum.error = Accum.error + generalPotential
+								# debug.rays.add(35,100,52, my_vec.x/100, my_vec.y/100, 0.0)
+						        # Initialize vector
+						        var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
+						        Accum.x = Accum.x + pot_vec.x
+						        Accum.y = Accum.y + pot_vec.y
+						        Accum.cnt = Accum.cnt + 1
+							# otherwise check if dog within reactive range # NOTE Using a different potential
+							} else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
+								potential = math.vec2.length(my_vec)
+								var pot_vec = math.vec2.newp(potential, data.azimuth)
+								if(potential > 0) myVec = math.vec2.scale(pot_vec,1/potential)
+								Accum.dogs_x = Accum.dogs_x + myVec.x
+								Accum.dogs_y = Accum.dogs_y + myVec.y
+								# debug.rays.add(255,0,0, pot_vec.x/100, pot_vec.y/100, 0.0)
+							}
+						}
+					)
+
+					# TODO Extract
+					var dog_vec = math.vec2.new(Accum.dogs_x,Accum.dogs_y)
+					if(math.vec2.length(dog_vec) > 0){
+						if(Accum.cnt > 0){
+							Accum.x = Accum.x/Accum.cnt
+							Accum.y = Accum.y/Accum.cnt
+						}
+						var combAccum={.x=0,.y=0}
+						combAccum.x = ((1-dog_weight)*Accum.x) - (dog_weight)*Accum.dogs_x
+						combAccum.y = ((1-dog_weight)*Accum.y) - (dog_weight)*Accum.dogs_y
+
+						# debug.print(" Acc mag ", math.vec2.length(Accum), " dog mag ", math.vec2.length(dog_vec), " Combined ", math.vec2.length(combAccum))
+						Accum.x = ((1-dog_weight)*Accum.x) - (dog_weight)*Accum.dogs_x
+						Accum.y = ((1-dog_weight)*Accum.y) - (dog_weight)*Accum.dogs_y
+					}
+					
+					if(math.vec2.length(safety_vec) > 0 ){
+						goto(safety_vec.x,safety_vec.y)
+					}
+					else{
+						goto(Accum.x*5,Accum.y*5)
+					}
+					neighbors.broadcast("E",(Old_error - Accum.error))
+					Old_error = Accum.error
+				}
+			}
+			else{
+				goto(0.0,0.0)
+				log("FOV is NIL Value: ", field_of_view)
+			}
+		}
+		else{
+			goto(0.0,0.0)
+			log("density NIL value: ", density)
+		}
+		# compute_error_broadcast(Accum.error)
+	} # dog robots 
+	else if(ROLE == DOG){
+		# log("target size of shapes ", size(target[0].shape_angle), ", ",size(target[0].shape_distance), ",", size(target[0].goal),"x",target[0].goal.x,",",target[0].goal.y  )
+		# log("Dogs ", NUM_OF_DOGS_TO_USE)
+		# debug.print("Dog state: ", Mode, " shaping_time ", shaping_time, " size ", bidding_stig.size()," time ",  time, " nei ",neighbors.count())
+		var c_target = target[0]
+		# Step 1 Bidding/distributing tasks
+		print("Density stig ",density_stig.get("M"))
+		if(Mode == TASK_ALLOCATION){
+			if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
+			if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
+			if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
+			if(density_stig.get("R") != 80) density_stig.put("R", 80)
+
+			var m_moveable_state = moveable()
+			if(shaping_time == 0){
+				task_stig.put(id,INITALIZED)
+
+				if(m_moveable_state){
+					# find the task number under question. 
+					if(bidding_stig.size() > 0){
+						var c_task_Status = bidding_stig.get(bidding_stig.size())
+						if(c_task_Status == -1){
+							# bidding for the current task complete, move on to next
+							shape_task_num = bidding_stig.size()+1
+						}
+						else{
+							# bidding in progress, wait for your assignment time and update bidding if needed.
+							if(id < c_task_Status){
+								shape_task_num = bidding_stig.size()
+								bidding_stig.put(shape_task_num, id)
+							}
+						}
+					}
+					else{
+						# this is the first task, bid irrespectively 
+						bidding_stig.put(shape_task_num, id)
+					}
+				}
+				else if(bidding_stig.size() == size(c_target.shape_angle)){
+					Mode = STAND_BY
+					shaping_time = 0
+					return 0 # REVIEW ?
+				}
+				# log("[", id,"] Movable asking task ", shape_task_num)
+				shaping_time = time
+			}
+			else if(shaping_time > 0 and time - shaping_time < MAX_TIME_TO_FORGET){
+				if(id < bidding_stig.get(shape_task_num) and m_moveable_state){
+					bidding_stig.put(shape_task_num,id)
+				}
+			}
+
+			if(time-shaping_time  == MAX_TIME_TO_FORGET){ # REVIEW Why and why use time - shaping_time
+				if(id == bidding_stig.get(shape_task_num)){
+					task_stig.put(id,ASSIGNED)
+					bidding_stig.put(shape_task_num,-1)
+					Mode = SHAPE_GOAL
+					Old_error=0
+					shaping_time = 0
+					# log("$$$$$[", id,"] I won task ", shape_task_num)
+				}
+				else{
+					# If there are more tasks then go for the next task. # TODO Change allocation source/variable
+					if(bidding_stig.size() < size(c_target.shape_angle)){
+						shaping_time = 0
+						# log("?[", id,"] More tasks there going to next task ", shape_task_num)
+					}
+					else if(bidding_stig.size() == size(c_target.shape_angle)){
+						Mode = STAND_BY
+						shaping_time = 0
+					}
+				}
+			}
+		}
+		else if(Mode == SHAPE_GOAL){
+			log("Transition of dog ", id, " to ", Mode)
+			# debug.print("SHAPE GOAL ASSIGNED: GOAL ", shape_task_num)
+            # shaping_time substate: #TODO Separate from any neighbors to be able to safely prepare moving
+			if(not shaping_time){
+                log("Transition of dog ", id, " to submode", shaping_time)
+				Accum ={.x=0,.y=0, .error=0}
+				neighbors.foreach(
+					function(rid, data){
+						# var error = 0
+						# if(data.distance > 0) error = ((data.distance - c_target.density)/data.distance)
+						var potential = harmonMagnitude(data.distance, c_target.strength, HARMON_A0, HARMON_K)
+						
+						if(data.distance < c_target.strength+track_dist){
+							Accum.error = Accum.error + potential
+							var my_vec = math.vec2.newp(data.distance, data.azimuth)
+							# var my_vec = math.vec2.newp(data.distance, data.azimuth)
+							# debug.rays.add(0,100,0, my_vec.x/100, my_vec.y/100, 0.0)
+							var pot_vec = math.vec2.newp(potential, data.azimuth)
+					        Accum.x = Accum.x + pot_vec.x
+					        Accum.y = Accum.y + pot_vec.y
+							# log("[",id,"] -> ",rid," Accum : (", Accum.x,",",Accum.y,") Error", error, " dist ", data.distance)
+						}
+					}
+				)
+			    goto(Accum.x,Accum.y)
+			    print("goto ", Accum.x," , ", Accum.y, " Shape time ", shaping_time, " error ", math.abs(Old_error - Accum.error))
+			    if(math.abs(Old_error - Accum.error) < CHANGE_ERROR_TOL){
+			    	shaping_time = 1
+			    	# debug.trajectory.enable(10000,0,id-50,255)
+			    }
+			    Old_error = Accum.error
+			}
+            # shaping_time substate: Localizing sheep and approaching them. Also separate from any neighbors to be able to safely move
+			else if(shaping_time == 1){
+                log("Transition of dog ", id, " to submode", shaping_time)
+				# var dis_to_sheeps= math.vec2.dis(target[0].sheep_location, pose.position)*100
+				# # If you see the sheeps are too far away then get closer.
+				# if(dis_to_sheeps > target[0].sheep_cluster_size){
+					Accum ={.x=0,.y=0, .error=0, .cnt=0}
+					var wait_for_dog_in_pre_shape = {.val=0}
+					neighbors.foreach(
+						function(rid, data){
+							var dog_waiting_to_shape = 0
+							if((not (Collective_nei_error_table[rid] !=nil))) dog_waiting_to_shape = task_stig.get(rid)
+							if(dog_waiting_to_shape == PRE_SHAPE_MOVE and data.distance < 150){
+								wait_for_dog_in_pre_shape.val = 1
+							}
+
+							var potential = harmonMagnitude(data.distance, c_target.strength, HARMON_A0, HARMON_K)
+							
+							if(data.distance < c_target.strength+c_target.strength and potential < 0){
+								Accum.error = Accum.error + potential
+								var my_vec = math.vec2.newp(data.distance, data.azimuth)
+								# debug.rays.add(0,100,0, my_vec.x/100, my_vec.y/100, 0.0)
+								var pot_vec = math.vec2.newp(potential, data.azimuth)
+						        Accum.x = Accum.x + pot_vec.x
+						        Accum.y = Accum.y + pot_vec.y
+								Accum.cnt= Accum.cnt +1
+								log("[",id,"] -> ",rid," Accum : (", Accum.x,",",Accum.y,") Error", error, " dist ", data.distance)
+							}
+
+							if( (Collective_nei_error_table[rid] != nil or dog_waiting_to_shape == REACHED) and data.distance < Edge_following_dist){
+								# Found a sheep and it is at edge following distance. 
+								log("Found sheep! ", rid)
+								shaping_time = 3
+							}
+						}
+
+					)
+					if(Accum.cnt > 0){
+						Accum.x = Accum.x/Accum.cnt
+						Accum.y = Accum.y/Accum.cnt
+					}
+					var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)
+				    m_target = math.vec2.sub(m_target,pose.position)
+				    m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+				    if(math.vec2.length(m_target) > 0)  m_target = math.vec2.scale(m_target,1/math.vec2.length(m_target))
+				    if(wait_for_dog_in_pre_shape.val == 1){
+				    	goto(0.0,0.0)
+				    }
+				    else{
+					    goto(((5*m_target.x)+Accum.x)*100,((5*m_target.y)+Accum.y)*100)
+					}
+				    # debug.print("Shaping: task ",shape_task_num)
+				# }
+				# else{
+				# 	shaping_time = 2
+				# 	goto(0.0,0.0)
+				# }
+				
+			}
+   #          # shaping_time substate: Edge following
+			# else if(shaping_time == 2){
+			# 	var move_vec = compute_edge_following_vector()
+			# 	var sheep_center_vec = math.vec2.sub(pose.position,c_target.sheep_location)
+			# 	var sheep_cluster_angle=math.vec2.angle(sheep_center_vec)
+			# 	# debug.print(" Edge following !! (",move_vec.x,",",move_vec.y,") my ang to sheep: ", sheep_cluster_angle,"size last seen ",size(last_seen_edge))
+			# 	if(math.abs(sheep_cluster_angle - c_target.shape_angle[shape_task_num]) < ANGLE_TOLERENCE){
+			# 			shaping_time = 3 
+			# 			task_stig.put(id,PRE_SHAPE_MOVE)
+			# 			move_vec=math.vec2.new(0.0,0.0)
+			# 	}
+			# 	goto(move_vec.x*100,move_vec.y*100)
+			# 	# debug.rays.add(0,0,255,move_vec.x,move_vec.y,0.0)
+				
+			# }
+			else if(shaping_time == 3){
+                log("Transition of dog ", id, " to submode", shaping_time)
+				if(density_stig.get("R") != 70) density_stig.put("R", 70)
+				var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)	
+				m_target = math.vec2.sub(m_target,pose.position)
+				m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+				var target_ang = math.vec2.angle(m_target)
+				var number_below_preshape = {.val=0}
+				var stopping={.val=0}
+				neighbors.foreach(function(rid,data){
+					if(Collective_nei_error_table[rid] !=nil and data.distance <  target[0].pre_shape_dist){
+						number_below_preshape.val = number_below_preshape.val + 1
+					}
+					if( (not (Collective_nei_error_table[rid] !=nil)) and data.distance < 50){
+						if( data.azimuth < target_ang +target[0].dogs_max_inter_ang and data.azimuth > target_ang -target[0].dogs_max_inter_ang){
+							# log("[",id,"] rid ",rid, " dist ",data.distance, " ang ", data.azimuth, " target_ang ", target_ang)
+							stopping.val = 1
+						} 
+					}
+				})
+				if(number_below_preshape.val < 2 and stopping.val == 0){
+					# debug.print("DOG Moving Dist: ", math.vec2.length(m_target))
+					if(math.vec2.length(m_target) > 0) m_target = math.vec2.scale(m_target,1/math.vec2.length(m_target))
+					# goto(2,0)
+				}
+				else{
+					m_target = {.x=0,.y=0}
+					Mode = SHAPING
+					shaping_time = 1 # FIXME change to 0
+					task_stig.put(id,REACHED)
+				}	
+				
+				goto(m_target.x*100,m_target.y*100)
+			}
+		}
+		else if(Mode == SHAPING){
+			log("Transition of dog ", id, " to ", Mode)
+			# debug.print("Mode : SHAPING, Reached GOAL"," task ",shape_task_num," -> ",  c_target.shape_angle[shape_task_num], " mode ", shaping_time, " Pos (",pose.position.x,",",pose.position.y)
+			var dogs_in_position = {.val=0}
+
+            # shaping_time substate 1: Wait for all dogs to reach goals, then go to shaping_time == 2 # FIXME change to 0 based
+			if(shaping_time == 1){ # FIXME change to 0 based
+				task_stig.foreach(function(k,v){
+					if(v == REACHED){
+						dogs_in_position.val = dogs_in_position.val + 1
+					}
+				})
+				if(dogs_in_position.val == size(c_target.shape_distance)){
+					shaping_time = 2
+					structuring_time = time
+					# Check_if_another_dog is in front
+					# var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)	
+					# LocalTarget = math.vec2.newp(math.vec2.length(m_target) - c_target.shape_distance[shape_task_num], math.vec2.angle(m_target))
+				}
+			}
+			else if(shaping_time == 2){
+				if(time - structuring_time < 250){
+					if(density_stig.get("F") != c_target.strength+40) density_stig.put("F", c_target.strength+40)
+					if(density_stig.get("D") != c_target.density-10) density_stig.put("D",c_target.density-10)
+				}
+				else if(time - structuring_time < 450 ){
+					if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
+					if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
+				}
+				else{
+					shaping_time = 3
+				}
+			}
+            # shaping_time substate other: Shape. Move (slowly) to sheep center. #REVIEW Optional, if necessary to sqweeze the sheep into shape
+			else{				
+				if(density_stig.get("M") != SHAPE) density_stig.put("M",SHAPE)
+				if(density_stig.get("R") != 80) density_stig.put("R", 80)
+				var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)	
+				m_target = math.vec2.sub(m_target,pose.position)
+				m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+				var target_ang = math.vec2.angle(m_target)
+				# debug.print("Dist: ", math.vec2.length(m_target), "neighbors ", neighbors.count())
+				# Check for angle distance of any dogs. 
+				var stopping={.val=0}
+				neighbors.foreach(function(rid,data){
+					if( (not (Collective_nei_error_table[rid] !=nil)) and data.distance < target[0].shaping_inter_dog_dist){
+						if( data.azimuth < target_ang +target[0].dogs_max_inter_ang and data.azimuth > target_ang -target[0].dogs_max_inter_ang){
+							# log("[",id,"] rid ",rid, " dist ",data.distance, " ang ", data.azimuth, " target_ang ", target_ang)
+							stopping.val = 1
+							Other_dog_infront = rid
+						} 
+					}
+				})
+
+				if(math.vec2.length(m_target) > c_target.shape_distance[shape_task_num] and stopping.val == 0){
+					if(task_stig.get(id) == SHAPED) task_stig.put(id,REACHED)
+					# debug.print("DOG Moving Dist: ", math.vec2.length(m_target))
+					if(math.vec2.length(m_target) > 0) m_target = math.vec2.scale(m_target,1/math.vec2.length(m_target))
+					var speed_of_shapping=2
+					# var nei_center_of_mass_vec = nei_center_of_mass()
+					# goto((nei_center_of_mass_vec.x)*speed_of_shapping,(nei_center_of_mass_vec.y)*speed_of_shapping)
+					# var l_target = estimate_local_target_vec(c_target.sheep_location)
+					goto((m_target.x)*speed_of_shapping,(m_target.y)*speed_of_shapping)
+					# goto(2,0)
+				}
+				else{
+					# debug.print("DOG Reached  dist ", math.vec2.length(m_target), " stop because of other ", stopping.val)
+
+					goto(0.0,0.0)
+					# Transition to mission, if all dogs cooprate
+					if(task_stig.get(id) != SHAPED) task_stig.put(id,SHAPED)
+					task_stig.foreach(function(k,v){
+						if(v == SHAPED){
+							dogs_in_position.val = dogs_in_position.val + 1
+						}
+					})
+					if(dogs_in_position.val == size(c_target.shape_distance)){
+						shaping_time = 0
+						Mode = MISSION
+						Nei_look_up = {}
+					}
+
+					# Debug 
+					# shaping_time = time
+				}
+					
+			}
+		}
+		else if(Mode == MISSION){
+			log("Transition of dog ", id, " to ", Mode)
+            # Current strategy: Preserve distances (using potential) with other dogs and sheep Center of Mass
+			if(shaping_time < TIME_TO_SHAPING_LOOSE){
+				if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
+				if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
+				if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
+				if(density_stig.get("R") != 80) density_stig.put("R", 80)
+				shaping_time = shaping_time + 1
+				# debug.print("Yaw: ", pose.orientation.yaw, " Pos (",pose.position.x,",",pose.position.y,")")
+			}
+			else{
+				if(density_stig.get("M") != RIGID) density_stig.put("M",RIGID)	
+				var nei_center_of_mass_vec = {}
+				if(Other_dog_infront == -1){
+				 nei_center_of_mass_vec = nei_center_of_mass()
+				}
+				else{
+					var nei_in_front = neighbors.get(Other_dog_infront)
+					nei_center_of_mass_vec = math.vec2.newp(nei_in_front.distance, nei_in_front.azimuth)
+				}
+				# debug.print(" mass_center dis ", math.vec2.length(nei_center_of_mass_vec))
+				# debug.rays.add(0,0,255,nei_center_of_mass_vec.x/100,nei_center_of_mass_vec.y/100,0.0) # Blue
+				Center_of_mass.x=nei_center_of_mass_vec.x
+				Center_of_mass.y=nei_center_of_mass_vec.y
+				
+				if(size(Nei_look_up) == 0){
+					# This is only done once, when the robot enters this state. 
+					# Compute your target with respect to your current position and store it.
+					var sheepLoc = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)
+					sheepLoc = math.vec2.sub(sheepLoc,pose.position)
+					LocalTarget = math.vec2.sub(target[0].goal,sheepLoc)
+					m_target = math.vec2.sub(LocalTarget, pose.position)
+					m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+					var m_tar_ang = math.vec2.angle(m_target)
+					m_tar_ang = LimitAngle(m_tar_ang)
+					var  abs_tar_vec = math.vec2.newp(1.0,m_tar_ang)
+					abs_tar_vec = math.vec2.rotate(abs_tar_vec, pose.orientation.yaw)
+					
+					var m_cent_ang = math.vec2.angle(nei_center_of_mass_vec)
+					m_cent_ang = LimitAngle(m_cent_ang)
+					var abs_cent_vec = math.vec2.newp(1.0, m_cent_ang)
+					abs_cent_vec = math.vec2.rotate(abs_cent_vec, pose.orientation.yaw)
+
+					var m_ang_center = 0
+					if(math.vec2.angle(abs_tar_vec) > math.vec2.angle(abs_cent_vec)){
+						m_ang_center = (2*math.pi - math.vec2.angle(abs_tar_vec)) + math.vec2.angle(abs_cent_vec)
+					}
+					else{
+						m_ang_center = math.abs(math.vec2.angle(abs_tar_vec) - math.vec2.angle(abs_cent_vec))
+					}
+					Nei_look_up["center"]={.x=nei_center_of_mass_vec.x, .y=nei_center_of_mass_vec.y, .ang_diff = m_ang_center}
+				}
+					
+				var m_target = math.vec2.sub(LocalTarget, pose.position)	
+				m_target_positive_rot = math.vec2.rotate(m_target,pose.orientation.yaw)				
+				m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+				var Dist_to_target = math.vec2.length(m_target)
+				if(Dist_to_target > 0.1){
+					# debug.rays.add(255,0,0,m_target.x,m_target.y,0.0) # final red
+					var rotation_contribution = {.x=0.0, .y=0.0, .cnt = 0}
+					# Target angle with respect to your yaw
+					var m_tar_ang = math.vec2.angle(m_target)
+					m_tar_ang = LimitAngle(m_tar_ang)
+					var  abs_tar_vec = math.vec2.newp(1.0,m_tar_ang)
+					abs_tar_vec = math.vec2.rotate(abs_tar_vec, pose.orientation.yaw)
+					
+					# Center of mass angle with respect to your yaw
+					var m_cent_ang = math.vec2.angle(nei_center_of_mass_vec)
+					m_cent_ang = LimitAngle(m_cent_ang)
+					var abs_cent_vec = math.vec2.newp(1.0, m_cent_ang)
+					abs_cent_vec = math.vec2.rotate(abs_cent_vec, pose.orientation.yaw)
+
+					var m_ang_center = 0
+					if(math.vec2.angle(abs_tar_vec) > math.vec2.angle(abs_cent_vec)){
+						m_ang_center = (2*math.pi - math.vec2.angle(abs_tar_vec)) + math.vec2.angle(abs_cent_vec)
+					}
+					else{
+						m_ang_center = math.abs(math.vec2.angle(abs_tar_vec) - math.vec2.angle(abs_cent_vec))
+					}
+					var ang_diff_center = Nei_look_up.center.ang_diff - m_ang_center
+					var ang_vec = math.vec2.newp(100, ang_diff_center)
+					ang_diff_center = math.vec2.angle(ang_vec)
+							
+					# debug.print("m_tar ang ", LimitAngle((math.vec2.angle(math.vec2.rotate(m_target,pose.orientation.yaw))))," center of mass ang ", math.vec2.angle(math.vec2.rotate(nei_center_of_mass_vec,pose.orientation.yaw))," desired ",  Nei_look_up.center.ang_diff, " Current ", m_ang_center)
+					var c_go_vec = {.x=0.0,.y=0.0}
+					# Angular computation to keep the dog angle between the target, center of mass constant.
+					if( math.abs(ang_diff_center) > 0.1){
+						var m_ang_center_vec = math.vec2.newp(1.0,m_ang_center)
+						c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
+						if(Nei_look_up.center.ang_diff < math.pi){
+							if((m_ang_center < LimitAngle(Nei_look_up.center.ang_diff + math.pi) ) and (not m_ang_center < Nei_look_up.center.ang_diff)){
+								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, math.pi/2)
+								# log("[",id,"] Clockwise")
+							}
+							else{
+								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
+								# log("[",id,"] Counter Clockwise")
+							}
+						}
+						else{
+							if((m_ang_center < LimitAngle(Nei_look_up.center.ang_diff + math.pi) ) or (m_ang_center > Nei_look_up.center.ang_diff)){
+								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, math.pi/2)
+								# log("[",id,"] Clockwise")
+							}
+							else{
+								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
+								# log("[",id,"] Counter Clockwise")
+							}
+						}
+						c_go_vec = math.vec2.scale(c_go_vec, 0.01)
+
+					}
+
+					# Potential contribution for keeping the dogs close to sheeps
+					var centerpotential = 0
+					var centerpotVec ={.x=0, .y=0}
+					var DOGS_SHEEP_TOL = -5 # In cms
+					var dog_center_length_error = math.abs(math.vec2.length(nei_center_of_mass_vec)-math.vec2.length(Nei_look_up.center))
+					if(dog_center_length_error > 0){
+						centerpotential = harmonMagnitude(math.vec2.length(nei_center_of_mass_vec), math.vec2.length(Nei_look_up.center)-DOGS_SHEEP_TOL, HARMON_A0, HARMON_K)
+					}
+					centerpotVec = math.vec2.newp(centerpotential, math.vec2.angle(nei_center_of_mass_vec))
+					# debug.rays.add(255,255,0,centerpotVec.x/100,centerpotVec.y/100,0.0) # Yellow
+					
+					# Different Contributions.
+					rotation_contribution.x =  (0.05*centerpotVec.x)  + 0.05*c_go_vec.x
+					rotation_contribution.y =  (0.05*centerpotVec.y)  + 0.05*c_go_vec.y
+
+					if(math.vec2.length(m_target) > 0)
+						m_target = math.vec2.scale(m_target, (1/math.vec2.length(m_target)))
+
+					# var debug_old = m_target
+					# debug.rays.add(0,255,0,m_target.x,m_target.y,0.0) # Green
+					m_target.x = (rotation_contribution.x + 0.5*m_target.x)*2
+					m_target.y = (rotation_contribution.y + 0.5*m_target.y)*2
+					# debug.rays.add(0,255,128,m_target.x,m_target.y,0.0) # light red
+					# debug.print("angle contri ",0.1*math.vec2.length(c_go_vec)," length contri ",0.25*math.vec2.length(centerpotVec), "sheep total contri ", math.vec2.length(rotation_contribution)," targ contri ", math.vec2.length(debug_old) , " final contri ", math.vec2.length(m_target), "Tar Dist ", Dist_to_target )
+					######## Data Logging variables ###########
+					Center_of_mass.px=(0.05*centerpotVec.x)
+					Center_of_mass.py=(0.05*centerpotVec.y)
+
+					Center_of_mass.cx=(0.05*c_go_vec.x)
+					Center_of_mass.cy=(0.05*c_go_vec.y)
+
+					Center_of_mass.fx=m_target.x
+					Center_of_mass.fy=m_target.y
+
+					Center_of_mass.setpang=(Nei_look_up.center.ang_diff)
+					Center_of_mass.curang=(m_target.y)
+					if(math.vec2.length(nei_center_of_mass_vec) > 380 and Other_dog_infront != -1){
+						goto(nei_center_of_mass_vec.x,nei_center_of_mass_vec.y)
+					}
+					else{
+						###########################################
+						goto(m_target.x, m_target.y)
+					}
+				}
+				else{
+					######## Data Logging variables ###########
+					Center_of_mass.px=0.0
+					Center_of_mass.py=0.0
+
+					Center_of_mass.cx=0.05
+					Center_of_mass.cy=0.05
+
+					Center_of_mass.fx=0.0
+					Center_of_mass.fy=0.0
+
+					Center_of_mass.setpang=(Nei_look_up.center.ang_diff)
+					Center_of_mass.curang=(m_target.y)
+
+					###########################################
+					TAR_REACHED = 1
+					goto(0.0,0.0)
+				}
+			}
+			
+	    }
+	    neighbors.broadcast("DG",1)
+    }
+    else if(Mode == STAND_BY){
+    	# debug.print("STAND_BY")
+    }
+    update_nei_errors()
+   	
+}
+
+function estimate_local_target_vec(estimation_target){
+	var est_target = math.vec2.new(estimation_target.x,estimation_target.y)	
+	var diff_vec = math.vec2.sub(est_target,pose.position)
+	est_target = math.vec2.add(pose.position, math.vec2.newp(MAX_TARGET_DIST,math.vec2.angle(diff_vec)))
+	est_target = math.vec2.sub(est_target,pose.position)
+	est_target =  math.vec2.rotate(est_target,-pose.orientation.yaw)
+	return est_target
+
+}
+
+ #TODO consider not just using 0 and 1 as hardcoded choices. 
+ #TODO Also consider ruling out options if they don't fit the conditions, so it doesn't get stuck.
+# Edge following by using the tangent formed by the closest sheep. 
+# 1. Obtain vector of the closest sheep neigh and call this vector v1.
+# 2. Tangent vector 't' is perpendicular to v1. If v1=(vx, vy) then t=(-vy,vx). 
+#	 Just swap values and a sign (-vy, it could also be -vx, but not both -vy,-vx).
+# 3. Setting one direction or the order is just using t2= -t1= (vy, -vx), or (-vy, vx)
+function compute_edge_following_vector(){
+	
+	var neig_vec={}
+	var dog_repulsive_vec = math.vec2.new(0.0,0.0)
+	var yeild_for_dog_in_front = {.val=0, .id=-1}
+	var dog_angle={}
+	var first_nei={}
+	var neig_to_pivot={}
+	var raw_tangent = {}
+	var wait_for_dog_in_pre_shape={.val=0}
+	neighbors.foreach(function(rid, data){
+		var dog_waiting_to_shape = 0
+		if((not (Collective_nei_error_table[rid] !=nil))) dog_waiting_to_shape = task_stig.get(rid)
+		if(dog_waiting_to_shape == PRE_SHAPE_MOVE and data.distance < 150){
+			wait_for_dog_in_pre_shape.val = 1
+
+		}
+		# either a sheep or a dog with a task
+		if((Collective_nei_error_table[rid] !=nil or dog_waiting_to_shape == REACHED) and (not last_seen_edge[rid] != nil) ){
+
+				neig_vec[size(neig_vec)]={.dis=data.distance, .angle = data.azimuth, .id=rid}
+
+		}
+		# Check if there are dogs too close, so you can decide if you will yield #REVIEW
+		if( (not (Collective_nei_error_table[rid] !=nil)) and dog_waiting_to_shape == ASSIGNED and data.distance < target[0].density){
+			dog_angle[size(dog_angle)]={.id= rid, .ang=data.azimuth, .dis=data.distance}
+		}
+	})
+	table.sort(neig_vec, neig_comp_fun)
+	var tangent_scale=1
+
+	# Compute a tangent to the first smallest robot, second smallest robot seems too far away. 
+	first_nei=neighbors.get(neig_vec[0].id)
+	neig_to_pivot = math.vec2.newp(first_nei.distance, first_nei.azimuth)
+	raw_tangent = math.vec2.rotate(neig_to_pivot, math.pi/2)
+	var tangent_vec = math.vec2.scale(raw_tangent,1/first_nei.distance)
+	# Make sure to maintain a constant distance between the sheep cluster.
+	# Alter this vector according to the distance between this robot. 
+	var distance_error = ((first_nei.distance - Edge_following_dist)/first_nei.distance)
+	tangent_vec.x = (tangent_scale*tangent_vec.x) + (distance_error * neig_to_pivot.x)
+	tangent_vec.y = (tangent_scale*tangent_vec.y) + (distance_error * neig_to_pivot.y)
+	# debug.rays.add(0,0,255,neig_to_pivot.x/100,neig_to_pivot.y/100,0.0)
+
+	# make sure you have lached on to a new neighbor and are not latching on to the same nei.
+	if(neig_vec[0].id != current_nei and (not last_seen_edge[neig_vec[0].id] != nil) and (Collective_nei_error_table[current_nei] !=nil) ){
+		# log("[",id,"] adding ", current_nei, " new hook ", neig_vec[0].id)
+		# REVIEW save the new edge nei in last see and remove last elem
+		last_seen_edge[current_nei] = time-1
+		if (size(last_seen_edge) >= 10){
+			var earliest_time = { .t = 9999999999999999, .bot = nil }
+			foreach(last_seen_edge, function (k,v) {
+				if(v < earliest_time.t){
+					earliest_time.t = v
+					earliest_time.bot = k
+				}
+			})
+			if(earliest_time.bot != nil){
+				last_seen_edge[earliest_time.bot] = nil
+			}
+		}
+	}
+	# clear off very old values. 
+	var ids_to_scrub={}
+	foreach(last_seen_edge, function (k,v) {
+		if(time - v > 600){
+			ids_to_scrub[size(ids_to_scrub)] = k
+			
+		}
+	})
+	if(size(ids_to_scrub) > 0){
+		foreach(ids_to_scrub, function(k,v){
+			last_seen_edge[v]=nil
+		})
+	}
+	current_nei = neig_vec[0].id
+	if(size(dog_angle) > 0){
+		# Detrmine your yielding angle
+		# Correct the robot orientation with respect to the sheep and see if the dos is actually in front of you in edge following.
+		var Desired_yeild_ang = {.val=math.pi/4} # yeild if there is a sheep in the range (pi,-pi)
+		foreach(dog_angle, function(k,v){
+			var c_dog_ang = math.abs(math.vec2.angle(raw_tangent)-v.ang)
+			# Check if this robot is actually not ahead in the edge following. 
+			var nei_global_pos = math.vec2.newp(v.dis, v.ang)
+			nei_global_pos = math.vec2.rotate(nei_global_pos, pose.orientation.yaw)
+			nei_global_pos = math.vec2.add(nei_global_pos,pose.position)
+			var nei_glob_ang = math.vec2.angle(nei_global_pos) 
+			var m_global_ang = math.vec2.angle(pose.position)
+			if(c_dog_ang < Desired_yeild_ang.val){ 
+				# and nei_glob_ang < m_global_ang){
+				yeild_for_dog_in_front.val=1
+				yeild_for_dog_in_front.id = v.id
+
+				# log("[", id,"] yelding for ", v.id," ang ", v.ang, " diff ",c_dog_ang)
+			}
+		}) 
+		
+	}
+	
+	if(yeild_for_dog_in_front.val == 1 or wait_for_dog_in_pre_shape.val == 1){
+		var number_of_robots_before_me={.val=-1}
+		var break_loop={.val=0}
+		if(yeild_for_dog_in_front.val == 1){
+			# If this is the time you started yeilding update it.
+			if(time_since_yeild == 0){
+				time_since_yeild = time
+			}
+			var brdcast_val = math.vec2.angle(pose.position)
+			neighbors.broadcast("Y",brdcast_val)
+			if(time - time_since_yeild > 50){
+				foreach(Yeilding_for, function(k,v){
+					# log("[",id,"] robot : ",k, " is yeilding, ang: ",v.ang," my ang ", brdcast_val.ang )
+					if(time - v.t > MAX_TIME_TO_FORGET){
+						v = nil
+					}
+					else if(v.ang < brdcast_val){
+						number_of_robots_before_me.val = number_of_robots_before_me.val + 1
+					}
+				})
+				if(number_of_robots_before_me.val == -1){
+					break_loop.val=1
+				}
+			}
+		}
+		if(break_loop.val == 1){
+			# log("[",id,"] Breaking loop ")
+			# time_since_yeild=0
+			return tangent_vec
+		}
+		else{
+			return math.vec2.new(0.0,0.0)
+		}
+	}
+	else{
+		time_since_yeild=0
+		return tangent_vec
+	}
+}
+
+##Table comparator for sorting neighbours based on distance. 
+function neig_comp_fun(a,b){
+	return (a.dis <= b.dis)
+}
+
+# Check if a given dog is movable, if atleast one quadrent around it is empty withour neigh.
+function moveable(){
+	# var Zone1={.0=math.vec2.newp(MAX_FIELD_OF_VIEW,0),.1=math.vec2.newp(MAX_FIELD_OF_VIEW, 1.5708)}
+	# var Zone2={.0=math.vec2.newp(MAX_FIELD_OF_VIEW,1.5708),.1=math.vec2.newp(MAX_FIELD_OF_VIEW, 3.14159)}
+	# var Zone3={.0=math.vec2.newp(MAX_FIELD_OF_VIEW,3.14159),.1=math.vec2.newp(MAX_FIELD_OF_VIEW, 4.71239)}
+	# var Zone4={.0=math.vec2.newp(MAX_FIELD_OF_VIEW,4.71239),.1=math.vec2.newp(MAX_FIELD_OF_VIEW, 6.28319)}
+	var m_ang={}
+	var zones={.1=0,.2=0,.3=0,.4=0}
+	neighbors.foreach(function(rid, data){
+		if((not(Collective_nei_error_table[rid] !=nil))){
+			var c_point = math.vec2.newp(data.distance,data.azimuth)
+			m_ang[rid]=0
+			if(c_point.x > 0 and c_point.y > 0){
+				m_ang[rid] = 1
+				zones[1]=1
+			}
+			else if(c_point.x < 0 and c_point.y > 0 ){
+				m_ang[rid] = 2
+				zones[2]=1
+			}
+			else if(c_point.x < 0 and c_point.y < 0){
+				m_ang[rid] = 3
+				zones[3]=1
+			}
+			else{
+				m_ang[rid] = 4
+				zones[4]=1 
+			}
+		}
+	})
+	
+	return ((not zones[1]) or (not zones[2]) or (not zones[3]) or (not zones[4]))
+}
+
+# Similor to the idea here: https://www.geeksforgeeks.org/check-whether-a-given-point-lies-inside-a-triangle-or-not/
+function is_inside_triangle(linea, lineb, point) 
+{    
+   var linec = math.vec2.new(0,0) 
+   A = area_of_triangle (linea, lineb, linec) 
+   A1 = area_of_triangle(point, lineb, linec) 
+   A2 = area_of_triangle(linea, point, linec) 
+   A3 = area_of_triangle(linea, lineb, point) 
+   
+   if(A == A1 + A2 + A3) return 1
+   else return 0 
+} 
+
+function area_of_triangle(linea,lineb,linec) 
+{ 
+   return math.abs((linea.x*(lineb.y-linec.y) + lineb.x*(linec.y-linea.y)+ linec.x*(linea.y-lineb.y))/2.0) 
+} 
+
+function cvt_angle_to_2pi(ang){
+	if(ang < 0){
+		return ang + 2*math.PI
+	}
+	else{
+		return ang
+	}
+}
+
+function LimitAngle(angle){
+	if(angle>2*math.pi)
+		return angle-2*math.pi
+	else if (angle<0)
+		return angle+2*math.pi
+	else
+		return angle
+}
+
+function cvt_angle_to_pi(ang){
+	if(ang > 2*math.PI){
+		return (-2*math.PI)-(2*math.PI - ang)
+	}
+	else{
+		return ang
+	}
+}
+
+function check_sheep_stable(){
+	var result={.count=0}
+	foreach(Collective_nei_error_table,	
+		function(rid,value){
+			if(value !=nil and math.abs(value.error) < CHANGE_ERROR_TOL){
+				result.count = result.count + 1
+			}
+		}
+	)
+	if(neighbors.count() > 0 and (result.count*1.0/neighbors.count()*1.0) >=0.7){
+		return 1
+	}
+	else{
+		return 0 
+	}
+
+}
+
+
+
+function register_listeners(){
+	if(ROLE == DOG){
+		# Listening to a nei_error_change
+		neighbors.listen("E", # Errors
+		    function(vid, value, rid) {
+		   		if(Collective_nei_error_table[rid] == nil){  
+			     	Collective_nei_error_table[rid] = {.error=value, .time=0}
+		    	}
+		    	else{
+		    		Collective_nei_error_table[rid].error = value
+		    		Collective_nei_error_table[rid].time = 0
+		    	}
+		    	# log("Error ", value)
+		    }
+		)
+		neighbors.listen("Y", # Yealding coordination
+		    function(vid, value, rid) {
+		   		if(Collective_nei_error_table[rid] == nil){  
+			     	Yeilding_for[rid]={.t=time, .ang=value}
+		    	}
+		    	# log("Error ", value)
+		    }
+		)
+
+	}
+
+	if(ROLE == SHEEP){
+		# Listening to a nei_error_change
+		neighbors.listen("DG", # Dogs
+		    function(vid, value, rid) {
+		    	# log("[",id,"]Dog broadcast!!! from ", rid)
+		   		if(Collective_nei_error_table[rid] == nil){  
+			     	Collective_nei_error_table[rid] = {.error=value, .time=0}
+		    	}
+		    	else{
+		    		Collective_nei_error_table[rid].error = value
+		    		Collective_nei_error_table[rid].time = 0
+		    	}
+		    }
+		)
+	}
+}
+
+function update_nei_errors(){
+	foreach(Collective_nei_error_table,
+		function(key,value){
+			if(value != nil){
+				value.time = value.time + 1
+				if(value.time > MAX_TIME_TO_FORGET){
+					value=nil
+				}
+			}
+		}
+	)
+}
+
+function obtain_local_vec_to_target(coord1,coord2,yaw){
+    m_target = math.vec2.new(coord1.x,coord1.y)
+    m_pos = math.vec2.new(coord2.x,coord2.y)
+    m_target = math.vec2.sub(m_target,m_pos)
+    m_target = math.vec2.rotate(m_target,-yaw)
+    return m_target
+}
+
+# find the mean value of nei table vectors
+function nei_center_of_mass() {
+	var mean_vec = math.vec2.new(0.0, 0.0)
+	var mean_num = {.val =0 }
+	neighbors.foreach(function(rid, data) {
+		if(Collective_nei_error_table[rid]!=nil){
+			var m_vec = math.vec2.newp(data.distance,data.azimuth)
+			mean_vec.x = mean_vec.x+ m_vec.x
+			mean_vec.y = mean_vec.y+ m_vec.y
+			mean_num.val = mean_num.val + 1
+		}
+	})
+	if(mean_num.val > 0)
+		mean_vec = math.vec2.scale(mean_vec, 1.0/mean_num.val)
+	return mean_vec
+}
+
+
+##############################################################################
+### Potential functions. 
+##############################################################################
+
+## Lennard-Jones Potential
+
+# Lennard-Jones interaction magnitude. Target (sigma) and epsilon are constants. 
+# Copied from https://the.swarming.buzz/ICRA2017/listings/dispersion.bzz.html
+function ljMagnitudeExample(dist, target, epsilon, scale, pow) {
+  return - (epsilon / dist) * ((target / dist)^(2*pow) - (target / dist)^pow)
+}
+
+# Neighbor data to LJ interaction vector
+function ljVector(rid, data) {
+  return math.vec2.newp(ljMagnitudeExample(data.distance, LJ_TARGET, LJ_EPSILON, 4, 2), data.azimuth)
+}
+
+# Accumulator of neighbor LJ interactions
+function ljSum(rid, data, accum) {
+	# var my_vec = math.vec2.newp(data.distance, data.azimuth) #TODO Try this if other doesnt work
+	# data.x = data.x * my_vec.x
+	# data.y = data.y * my_vec.y
+  return math.vec2.add(data, accum)
+}
+
+# Calculates and actuates the flocking interaction
+function ljCalculatePotential(given_neighbors) {
+  # Calculate accumulator
+  var accum = given_neighbors.map(ljVector).reduce(ljSum, math.vec2.new(0.0, 0.0))
+  if(neighbors.count() > 0)
+    math.vec2.scale(accum, 1.0 / neighbors.count())
+  return accum
+}
+
+
+#TODO Try with dist - desiredDist
+# Lennard-Jones interaction magnitude. Target (sigma) and epsilon are constants.
+function ljMagnitude(dist, target, epsilon, scale, pow) {
+  return - epsilon * ((target / dist)^(2*pow) - (target / dist)^(pow))
+}
+
+## Morse Potential
+# Morse interaction magnitude
+function morseMagnitude(dist, desiredDist, alpha, D) {
+  return D * math.exp(-2.0 * alpha * (dist - desiredDist)) - 2.0 * D * math.exp(-1 * alpha * (dist - desiredDist))
+}
+
+## Buckingham Potential
+# Buckingham interaction magnitude
+function buckMagnitude(dist, target, A, C) {
+  return A * math.exp(dist / target) - C * (target / dist)^6
+}
+
+## Harmonic 'potential'
+# Harmonic magnitude
+function harmonMagnitude(dist, desiredDist, a0, k) {
+  # return a0 + 1/2 * k * (dist - desiredDist)^2
+
+  # if(dist - desiredDist > 10^-10){
+	  # extract sign to make negative when x-x0 < 0. -> more stay on outer edge than usual
+	  return a0 + ((dist - desiredDist)/math.abs(dist - desiredDist)) * 1.0/2.0 * k * (dist - desiredDist)^2
+  # }
+  # else{
+  # 	  return 0 
+  # }
+  # extract sign AND distort to make steeper below x0
+  # return a0 + ((dist - desiredDist)/math.abs(dist)) * 1/2 * k * (dist - desiredDist)^2
+}
+
+## Cubic 'potential'
+# cubic magnitude
+function cubicMagnitude(dist, desiredDist, a0, k) {
+  return a0 + 1.0/2.0 *  k * (dist - desiredDist)^3
+}
+
+
+
+
+###########################################################################################
+# Some Experimental and test snippets
+###########################################################################################
+
+# Snippet used to observe the effect of configuring the density. 
+
+# else if(Mode == DENSITY_CONFIG){
+# 			if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
+# 			if(time < 300){
+# 				if(density_stig.get("F") != 70) density_stig.put("F", 70)
+# 				if(density_stig.get("D") !=70) density_stig.put("D",70)
+				# debug.print(Mode, "DENSITY_CONFIG 70 ,", time)
+# 			}
+# 			else if (time < 500){
+# 				if(density_stig.get("F") != 90) density_stig.put("F", 90)
+# 				if(density_stig.get("D") !=90) density_stig.put("D", 90)
+				# debug.print(Mode, "DENSITY_CONFIG 90 ,", time)
+# 			}
+# 			else if (time < 700){
+# 				if(density_stig.get("F") != 100) density_stig.put("F", 100)
+# 				if(density_stig.get("D") !=110)	density_stig.put("D", 110)
+				# debug.print(Mode, "DENSITY_CONFIG 110, ", time)
+# 			}
+# 			else if (time < 900){
+# 				if(time < 800){
+# 					if(density_stig.get("F") != 200) density_stig.put("F", 200)
+# 				}
+# 				else{
+# 					if(density_stig.get("F") != 90) density_stig.put("F", 90)
+# 				}
+# 				if(density_stig.get("D") !=90)	density_stig.put("D", 90)
+				# debug.print(Mode, "DENSITY_CONFIG 90, ", time)
+# 			}
+# 			else if (time < 1100){
+# 				if(time < 1000){
+# 					if(density_stig.get("F") != 200) density_stig.put("F", 200)
+# 				}
+# 				else{
+# 					if(density_stig.get("F") != 70) density_stig.put("F", 70)
+# 				}
+# 				if(density_stig.get("D") !=70)	density_stig.put("D", 70)
+				# debug.print(Mode, "DENSITY_CONFIG 70, ", time)
+# 			} 
+# 			else 
+			# debug.print(Mode, "DENSITY_CONFIG out side", time, " val ",density_stig.get("D"))
+# 		}
+
+# if(time > 325 and  Shape_target_reached == 0){
+# 				if(density_stig.get("M") != SHAPE) density_stig.put("M",SHAPE)
+# 				var m_target = {}
+# 				if(id == 30 ) m_target =  math.vec2.new(0.5,0.5)
+# 				else if(id == 31 ) m_target =  math.vec2.new(-0.5,-0.5)
+# 				# var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)
+# 			    m_target = math.vec2.sub(m_target,pose.position)
+# 			    m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+# 			    if(math.vec2.length(m_target) < 0.1) Shape_target_reached = 1
+# 			    m_target = math.vec2.scale(m_target,10)
+# 			    var too_close ={.val=0}
+# 			    neighbors.foreach(
+# 			    	function(rid,data){
+# 			    		# log("dis ", data.distance, "rid ", rid)
+# 			    		if(data.distance < 50){
+# 			    			too_close.val = 1
+# 			    			log("too_close ",rid)
+# 			    		}
+# 			    	}
+# 			    )
+# 			    if(too_close.val == 0)
+# 				    goto(m_target.x,m_target.y)
+# 				else{
+# 					goto(0.0,0.0)
+# 				}
+# 			}
+# 			else if(time > 800 and Shape_target_reached == 1){
+# 				if(density_stig.get("M") != RIGID) density_stig.put("M",RIGID)
+# 				var m_target = {}
+
+# 				if(id == 30 ) m_target =  math.vec2.new(4.3,0.5)
+# 				else if(id == 31 ) m_target =  math.vec2.new(4.3,0.5)
+			    
+# 			    m_target = math.vec2.sub(m_target,pose.position)
+# 			    m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+# 			    m_target = math.vec2.scale(m_target,10)
+# 			    var too_close ={.val=0}
+# 			    if(id == 31){
+# 				    neighbors.foreach(
+# 				    	function(rid,data){
+# 				    		# log("dis ", data.distance, "rid ", rid)
+# 				    		if(data.distance < 50){
+# 				    			too_close.val = 1
+# 				    			log("too_close ",rid)
+# 				    		}
+# 				    	}
+# 				    )
+# 				    if(too_close.val == 0)
+# 					    goto(m_target.x,m_target.y)
+# 					else{
+# 						goto(0.0,0.0)
+# 					}
+# 				}
+# 				else{
+# 					neighbors.foreach(
+# 				    	function(rid,data){
+# 				    		# log("dis ", data.distance, "rid ", rid)
+# 				    		if(data.distance > too_close.val){
+# 				    			too_close.val = data.distance
+# 				    			log("too_close ",rid)
+# 				    		}
+# 				    	}
+# 				    )
+# 				    if(too_close.val < 140)
+# 					    goto(m_target.x,m_target.y)
+# 					else{
+# 						goto(0.0,0.0)
+# 					}
+# 				}
+# 			}
+
+#
+# if(time > 325 and  Shape_target_reached == 0){
+# 				if(density_stig.get("M") != SHAPE) density_stig.put("M",SHAPE)
+# 				var m_target = {}
+# 				if(id == 30 ) m_target =  math.vec2.new(0.77,0.44)
+# 				else if(id == 31 ) m_target =  math.vec2.new(-0.77,-0.5)
+# 				# var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)
+# 			    m_target = math.vec2.sub(m_target,pose.position)
+# 			    m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+# 			    if(math.vec2.length(m_target) < 0.1) Shape_target_reached = 1
+# 			    m_target = math.vec2.scale(m_target,10)
+# 			    var too_close ={.val=0}
+# 			    neighbors.foreach(
+# 			    	function(rid,data){
+# 			    		# log("dis ", data.distance, "rid ", rid)
+# 			    		if(data.distance < 50){
+# 			    			too_close.val = 1
+# 			    			log("too_close ",rid)
+# 			    		}
+# 			    	}
+# 			    )
+# 			    if(too_close.val == 0)
+# 				    goto(m_target.x,m_target.y)
+# 				else{
+# 					goto(0.0,0.0)
+# 				}
+# 			}
+# 			else if(time > 800 and time < 2000 and Shape_target_reached == 1){
+# 				if(density_stig.get("M") != RIGID) density_stig.put("M",RIGID)
+# 				var m_target = {}
+
+# 				if(id == 30 ) m_target =  math.vec2.new(4.3,2)
+# 				else if(id == 31 ) m_target =  math.vec2.new(4.3,2)
+			    
+# 			    m_target = math.vec2.sub(m_target,pose.position)
+# 			    m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+# 			    m_target = math.vec2.scale(m_target,10)
+# 			    var too_close ={.val=0}
+# 			    if(id == 31){
+# 				    neighbors.foreach(
+# 				    	function(rid,data){
+# 				    		# log("dis ", data.distance, "rid ", rid)
+# 				    		if(data.distance < 50){
+# 				    			too_close.val = 1
+# 				    			log("too_close ",rid)
+# 				    		}
+# 				    	}
+# 				    )
+# 				    if(too_close.val == 0)
+# 					    goto(m_target.x,m_target.y)
+# 					else{
+# 						goto(0.0,0.0)
+# 					}
+# 				}
+# 				else{
+# 					neighbors.foreach(
+# 				    	function(rid,data){
+# 				    		# log("dis ", data.distance, "rid ", rid)
+# 				    		if(data.distance > too_close.val ){
+# 				    			too_close.val = data.distance
+# 				    			log("too_close ",rid)
+# 				    		}
+# 				    	}
+# 				    )
+# 				    log("Largest val : ", too_close.val)
+# 				    if(too_close.val < 200)
+# 					    goto(m_target.x,m_target.y)
+# 					else{
+# 						goto(0.0,0.0)
+# 					}
+# 				}
+# 			}
+# 			else if(time > 2000 and id == 31){
+# 				var m_target = {}
+# 				m_target =  math.vec2.new(-0.77,-0.5)	
+# 				m_target = math.vec2.sub(m_target,pose.position)
+# 			    m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+# 			    m_target = math.vec2.scale(m_target,10)
+# 			    goto(m_target.x,m_target.y)
+# 			}
+# 			else{
+# 			 goto(0.0,0.0)
+# 			}
+#
+
+
+###################
+# Shaping and movement test. 
+# var c_target = target[0]
+# 				# if(time < 200){
+# 				# 	if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
+# 				# 	if(density_stig.get("F") != 45) density_stig.put("F", 45)
+# 				# 	if(density_stig.get("D") != 45) density_stig.put("D",45)
+# 				# 	if(density_stig.get("R") != 80) density_stig.put("R", 80)
+# 				# 	Home_loc = math.vec2.new(pose.position.x,pose.position.y)
+# 				# }
+# 				# else 
+# 				if(time < 200){
+# 					if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
+# 					if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
+# 					if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
+# 					if(density_stig.get("R") != 80) density_stig.put("R", 80)
+# 				}
+# 				else{
+# 					if( (time > 600 and time < 650) ){#or (time > 800 and time < 850) or (time > 1000 and time < 1050) ){
+# 						if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
+# 					}
+# 					else{ 
+# 						if(density_stig.get("M") != SHAPE) density_stig.put("M",SHAPE)
+# 					}
+
+# 					if(time < 600){
+# 						# if(density_stig.get("M") != SHAPE) density_stig.put("M",SHAPE)
+# 						# if(density_stig.get("F") != 150) density_stig.put("F", 150)
+# 						# if(density_stig.get("D") != 150) density_stig.put("D",150)
+# 						# if(density_stig.get("R") != 150) density_stig.put("R", 150)
+# 						var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)	
+						
+# 						m_target = math.vec2.sub(m_target,pose.position)
+# 						m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+						# debug.print("Dist: ", math.vec2.length(m_target), "neighbors ", neighbors.count())
+# 						if(math.vec2.length(m_target) > c_target.shape_distance[shape_task_num]){
+# 							m_target = math.vec2.scale(m_target,1/math.vec2.length(m_target))
+# 							var speed_of_shapping=2
+# 							# goto((m_target.x)*speed_of_shapping,(m_target.y)*speed_of_shapping)
+# 							goto(2,0)
+# 						}
+# 						else{
+# 							shaping_time = 2
+# 							goto(0.0,0.0)
+							# Debug 
+# 							shaping_time = time
+# 						}
+# 					}
+# 					else if(time  < 10000){
+# 						# Go rigid
+# 						# var field_of_view = c_target.density+track_dist
+# 						#Cluster with a single linkage algorithm
+# 						# var clustering_results = SingLink.singleLinkage(200, 0) # TODO: Varible changed 
+# 						# var clusters = clustering_results.clusters
+
+# 						# Choose the first cluster
+# 						# var cluster_cible = clusters[0]
+# 						var nei_center_of_mass_vec = nei_center_of_mass()
+						# debug.print(" mass_center dis ", math.vec2.length(nei_center_of_mass_vec))
+# 						if(size(Nei_look_up) == 0){
+# 							Nei_look_up["center"]={.x=nei_center_of_mass_vec.x, .y=nei_center_of_mass_vec.y}
+# 							neighbors.foreach(function(rid,data){
+# 								if(data.distance < 80){
+# 									Nei_look_up[rid]={.data = {.distance=data.distance, .azimuth=data.azimuth}}
+# 								}
+# 								if( (not(Collective_nei_error_table[rid] !=nil)) ){
+# 									var clus_ang=math.vec2.angle(nei_center_of_mass_vec) - data.azimuth
+# 									Nei_look_up[rid] = {.data = {.distance=data.distance, .azimuth=data.azimuth}, .clustAng=clus_ang}
+# 								}
+# 							})
+# 							# Compute your local target
+# 							var sheepLoc = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)
+# 							sheepLoc = math.vec2.sub(sheepLoc,pose.position)
+# 							LocalTarget = math.vec2.sub(target[0].goal,sheepLoc)
+# 							# m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+# 						}
+
+# 						# if(time - shaping_time > 100 and time -shaping_time < 300 ){
+# 						# 	if(density_stig.get("D") != 60) density_stig.put("D",60)
+# 						# 	if(density_stig.get("F") != 60) density_stig.put("F", 60)
+# 						# 	if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
+# 						# }
+# 						# else if(time - shaping_time > 300 and time -shaping_time < 500){
+# 						# 	if(density_stig.get("F") != 80) density_stig.put("F", 80)
+# 						# 	if(density_stig.get("D") != 80) density_stig.put("D",80)
+# 						# }
+# 						# else{
+# 							if(density_stig.get("M") != RIGID) density_stig.put("M",RIGID)
+# 						# }
+# 						# var m_target = math.vec2.newp(8, math.vec2.angle(Home_loc))	
+# 						var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)	
+# 						m_target = math.vec2.sub(m_target,pose.position)
+# 						m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
+# 						var raw_tangent = math.vec2.new(-m_target.y,m_target.x)
+# 						var distance_error = ((math.vec2.length(m_target) - 1.40)/math.vec2.length(m_target))
+# 						var mov_false = {.val = 0}
+# 						#First: determine the different cluster with a single linkage algorithm
+# 						# var clustering_results = SingLink.singleLinkage(200, 0) # TODO: Varible changed 
+# 						# var clusters = clustering_results.clusters
+# 						var ortho1 = {.x = nei_center_of_mass_vec.y, .y = -nei_center_of_mass_vec.x}
+# 						var ortho2 = {.x = -nei_center_of_mass_vec.y, .y = nei_center_of_mass_vec.x}	
+# 						# normalize orthogonal vectors
+# 						# ortho1 = math.vec2.scale(ortho1, 1/math.vec2.length(ortho1))
+# 						# ortho2 = math.vec2.scale(ortho2, 1/math.vec2.length(ortho2))
+
+# 						# Second: Choose the farthest cluster from the objective
+# 						var rotation_contribution = {.x=0.0, .y=0.0, .cnt = 0}
+# 						# if((math.vec2.length(nei_center_of_mass_vec) < 100 or math.vec2.length(nei_center_of_mass_vec) > 200)) mov_false.val=1	
+# 						neighbors.foreach(function(rid,data){							
+# 							if(Nei_look_up[rid] != nil){								
+# 								if(Nei_look_up[rid].clustAng != nil){
+# 									var clus_ang = math.vec2.angle(nei_center_of_mass_vec) - Nei_look_up[rid].data.azimuth
+# 									var change_in_ang = Nei_look_up[rid].clustAng - clus_ang 
+# 									# log("[",id,"] ->",rid," Angle diff: ", change_in_ang, " Stored angle ", Nei_look_up[rid].clustAng, ",cur: ", clus_ang)
+# 									var rotpotential = harmonMagnitude(data.distance, Nei_look_up[rid].data.distance, HARMON_A0, HARMON_K)
+# 									var rot_vec = math.vec2.newp(rotpotential, data.azimuth)
+# 									rotation_contribution.x = rotation_contribution.x + rot_vec.x
+# 									rotation_contribution.y = rotation_contribution.y + rot_vec.y
+# 									rotation_contribution.cnt = rotation_contribution.cnt + 1  
+# 									# if( math.abs(change_in_ang) > 0.1){
+# 									# 	rotation_contribution.cnt = rotation_contribution.cnt + 1  
+# 									# 	if(change_in_ang > 0){
+# 									# 		rotation_contribution.x = rotation_contribution.x + ortho2.x
+# 									# 		rotation_contribution.y = rotation_contribution.y + ortho2.y
+
+# 									# 	}
+# 									# 	else{
+# 									# 		rotation_contribution.x = rotation_contribution.x + ortho1.x
+# 									# 		rotation_contribution.y = rotation_contribution.y + ortho1.y 
+# 									# 	}
+# 									# }
+# 								}
+# 							}
+# 						}
+# 						)
+# 						m_target = math.vec2.sub(LocalTarget, pose.position)
+# 						m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+
+# 						if(mov_false.val==0 and math.vec2.length(m_target) > 0.1){
+# 							# goto((raw_tangent.x + distance_error*m_target.x)*2 ,(raw_tangent.y+distance_error*m_target.y)*2 )
+# 							m_target = math.vec2.sub(LocalTarget, pose.position)
+# 							m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+
+# 							# foreach(clusters, function (i, cluster) {
+# 							# 	if (math.vec2.length(math.vec2.sub(m_target, clusters[i].mass_center)) > math.vec2.length(math.vec2.sub(m_target, cluster_cible.mass_center))) {
+# 							# 		cluster_cible = clusters[i]
+# 							# 	}
+# 							# })
+# 							if(rotation_contribution.cnt > 0){
+# 								var centerpotential = harmonMagnitude(math.vec2.length(nei_center_of_mass_vec), math.vec2.length(Nei_look_up.center), HARMON_A0, HARMON_K)
+# 								var centerpotVec = math.vec2.newp(centerpotential, math.vec2.angle(nei_center_of_mass_vec))
+# 								rotation_contribution.x = rotation_contribution.x + centerpotVec.x
+# 								rotation_contribution.y = rotation_contribution.y + centerpotVec.y
+
+# 								# rotation_contribution.x = rotation_contribution.x/rotation_contribution.cnt
+# 								# rotation_contribution.y = rotation_contribution.y/rotation_contribution.cnt
+# 							}
+# 							# if(rotation_contribution.cnt > 0)
+# 							# 	rotation_contribution = math.vec2.scale(rotation_contribution, 1/math.vec2.length(rotation_contribution))
+							
+# 							rotation_contribution= math.vec2.scale(rotation_contribution, 1/math.vec2.length(rotation_contribution))
+# 							var Dist_to_target = math.vec2.length(m_target)
+							
+
+# 							m_target = math.vec2.scale(m_target, (1/math.vec2.length(m_target)))
+							# var debug_old = m_target
+# 							m_target.x = rotation_contribution.x + 2*m_target.x
+# 							m_target.y = rotation_contribution.y + 2*m_target.y
+
+							# debug.print("Rot contri ", math.vec2.length(rotation_contribution)," linear targ contri ", math.vec2.length(debug_old) , " target_contri final ", math.vec2.length(m_target), "dst ", math.vec2.length(nei_center_of_mass_vec), "Tar Dist ", Dist_to_target)
+# 							goto(m_target.x*2, m_target.y*2)
+# 						}
+# 						else goto(0.0,0.0)
+# 					}
+# 					else {
+# 						goto(0,0)
+# 					}
+# 				}
+
+
+# # Scripted dog movement
+#     else if (ROLE == DOG_NOP) {
+        # debug.print("Dog state: ", Mode, " shaping_time ", shaping_time, " size ", bidding_stig.size()," time ",  time, " nei ",neighbors.count())
+# 		var c_target = target[0]
+#         var num_shaping_times = 1
+#         if (Mode == STARTUP) {
+#             if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
+#             if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
+#             if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
+#             if(density_stig.get("R") != 80) density_stig.put("R", 80)
+
+#             if (time >= SHAPE_GOAL_TIME) {
+#                 task_stig.put(id, ASSIGNED)
+#                 Mode = SHAPE_GOAL
+#                 Old_error=0
+#                 shaping_time = 0
+#             }
+#         } else if (Mode == SHAPE_GOAL) {
+#             if(density_stig.get("M") != SHAPE) density_stig.put("M",SHAPE)
+#             # 1 - n movements, to shape the desired shape
+#             # Either use sheep_location or estimate CoM of sheep, as target
+
+#             # if (shaping_time == 0) {
+#             #     var vec_to_target = estimate_local_target_vec_full(c_target.sheep_location)
+#             #     var vec_to_target_dist = math.vec2.length(vec_to_target)
+#             #     var desired_dist = c_target.shape_distance[4]
+            #     debug.rays.add(255,0,0, vec_to_target.x, vec_to_target.y, 0.0)
+#             #     if (vec_to_target_dist >= desired_dist) {
+#             #         # log(id, " Vec to target ", vec_to_target.x, ", ", vec_to_target.y, " dist ", vec_to_target_dist, " target ", desired_dist)
+#             #         task_stig.put(id,ASSIGNED)
+
+#             #         # Move towards target, faster when further #TODO Improve this
+#             #         var speed_factor = math.exp(vec_to_target_dist)
+#             #         goto(vec_to_target.x * speed_factor, vec_to_target.y * speed_factor)
+#             #     } else {
+#             #          # Stop if moving
+#             #         goto(0.0, 0.0)
+#             #         task_stig.put(id,REACHED)
+
+#             #         # Check that everyone is done before moving on
+#             #         if (stigAllEqualTo(task_stig, REACHED)) {
+            #             debug.print(id, " everyone reached.")
+#             #             if (shaping_time >= num_shaping_times - 1)
+#             #                 Mode = SHAPING
+#             #             else 
+            #                 debug.print(id, " everyone reached. Going to next shaping time")
+#             #                 shaping_time = 1
+#             #         }
+#             #     }
+#             # } else
+
+#              if (shaping_time == 0) {
+#                 var vec_to_target = estimate_local_target_vec_full(c_target.sheep_location)
+#                 var vec_to_target_dist = math.vec2.length(vec_to_target)
+#                 var desired_dist = c_target.shape_distance[3]
+#                 vec_to_target = get_corrected_tanget_vec(vec_to_target, vec_to_target_dist, desired_dist)
+
+#                 # Spiral effect
+#                 vec_to_target = math.vec2.rotate(vec_to_target, 2*math.pi / 100 * angle_spiral_counter)
+#                 if (time % 10 == 0) {
+#                     angle_spiral_counter = angle_spiral_counter +1
+#                 }
+
+                # debug.rays.add(255,0,0, vec_to_target.x, vec_to_target.y, 0.0)
+#                 if (vec_to_target_dist >= desired_dist) {
+#                     if (id == 100){
+#                         log(id, " Vec to target ", vec_to_target.x, ", ", vec_to_target.y, " dist ", vec_to_target_dist, " target ", desired_dist)
+#                     }
+#                     task_stig.put(id,ASSIGNED)
+
+#                     # Move towards target, faster when further
+#                     var speed_factor = math.exp(vec_to_target_dist)*3
+                    # debug.trajectory.enable(1000)
+#                     goto(vec_to_target.x * speed_factor, vec_to_target.y * speed_factor) # TODO CONsider scaling to speedup
+#                 }
+#                 # else {
+#                 #      # Stop if moving
+#                 #     goto(0.0, 0.0)
+                #     debug.print(id, " I am at my shape target")
+#                 #     task_stig.put(id,REACHED)
+
+#                 #     # Check that everyone is done before moving on #BUG using ALL_REACHED since some robots seem to get stuck with nil in their task_stig
+#                 #     if (stigAllEqualTo(task_stig, REACHED)) {
+#                 #         if (shaping_time >= num_shaping_times - 1)
+#                 #             Mode = SHAPING
+#                 #         else 
+#                 #             shaping_time = 2
+#                 #     }
+#                 # }
+#             }
+
+#             # TODO More than one movement use substate with shaping_time 2, 3,... recommend using CoM again, but just do a different movement eg tangent
+#         } else if (Mode == SHAPING) {
+#             if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
+#         } else if (Mode == MISSION) {
+#             if(density_stig.get("M") != RIGID) density_stig.put("M",RIGID)
+#         }
+#     }
+
+# # Compute tangent vector, self-correcting to follow circle
+# function get_corrected_tanget_vec(vec_to_target, curr_dist, desired_dist) {
+#     var correction_dist = desired_dist - curr_dist
+#     var correction_vec = math.vec2.newp(correction_dist, math.vec2.angle(vec_to_target))
+#     var rotated = math.vec2.rotate(vec_to_target, math.pi / 2)
+
+#     return math.vec2.sub(rotated, correction_vec)
+# }
+
+# function stigAllEqualTo(stig, value) {
+#     var allEqual = 1
+#     stig.foreach(function(k,v) {
+#         v = stig.get(k)
+#         if (v != value){
+#             log("robot", id, " key ", k, " val ", v, " not equal to ", value)
+#             allEqual = 0
+#         }
+#     })
+#     return allEqual
+# }
+
+# function estimate_local_target_vec_full(estimation_target) {
+#     # Compute vector from my location to target
+#     var est_target = math.vec2.new(estimation_target.x, estimation_target.y)	
+# 	var diff_vec = math.vec2.sub(est_target, pose.position)
+#     # log("raw vec distance ", math.vec2.length(diff_vec))
+#     # Rotate for the robot's reference frame
+# 	est_target =  math.vec2.rotate(diff_vec, -pose.orientation.yaw)
+# 	return est_target
+# }

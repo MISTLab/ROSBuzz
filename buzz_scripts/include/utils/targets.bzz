@@ -1,0 +1,163 @@
+function load_target(){
+	target = {}
+	target[0]={ .sheep_location={.x=0.0,.y=0.0},
+				# .sheep_cluster_size=180, DELETE
+				.density=1000,
+				.strength=100,
+				.shaping_inter_dog_dist=80,
+				.dogs_max_inter_ang = math.pi/8,
+				# dumbel shape
+				# .shape_angle={.1=0,.2=0.349066,.3=3.14159,.4=-2.792524},
+				# 4 goals for dogs, on edge around sheep cluster
+				# .shape_angle={.1=0,.2=1.5708,.3=3.14159,.4=-1.5708},
+				# # Distance to move (inward), in shaping the sheep
+				# .shape_distance={.1=2.5,.2=2.5,.3=2.5,.4=2.5},
+				.shape_angle={.1=math.pi},
+				.pre_shape_dist=70,
+				# Distance to move (inward), in shaping the sheep
+				.shape_distance={.1=2.0},
+				# .shape_distance={.1=1.5,.2=1.5,.3=1.5,.4=1.5},
+				# .shape_distance={.1=1.0,.2=1.0,.3=1.0,.4=1.0},
+				# .shape_rotation={.1=0,.2=1.5708,.3=3.14159,.4=-1.5708},
+				# 2 shape angles
+				# .shape_angle={.1=3.14159,.2=-1.5708},
+				# .shape_distance={.1=1.5,.2=1.5},
+				# .shape_rotation={.1=1.5708,.2=3.14159},
+				# .shape_operation={.1=0,.2=0,.3=0,.4=0},
+				# .shape_angle={.1=0,.2=0.7853,.3=1.5708,.4=2.35619,.5=3.14154,.6=3.92699,.7=4.71239,.8=5.49779, .9=0, .10=0,.11=0, .12=0, .13=0, .14=0},
+				# .shape_operation={.1=0,.2=0,.3=0,.4=0,.5=0,.6=0,.7=0,.8=0,.9=0, .10=0,.11=0,.12=0,.13=0,.14=0},
+				# Absolute goal location, for where the swarm should end
+				.goal={.x=0.0,.y=1.0}
+
+	}
+}
+
+function load_targets_from_loop_fun(){
+	log("JOB: ",NUM_OF_SHEEP,",",NUM_OF_DOGS_TO_USE,",",SET_SHAPE,",",MOVEMENT_TYPE)
+	target ={.0={
+				.sheep_location={.x=0.0,.y=0.0},
+				.density=70,
+				.strength=70,
+				.shaping_inter_dog_dist=80,
+				.pre_shape_dist=70,
+				.shape_angle={},
+				.shape_distance={},
+				.goal={}
+				}
+			}
+	var set_of_angles = {}
+	var set_of_dist ={}
+	# clover
+	if(SET_SHAPE == 0){
+		target[0].dogs_max_inter_ang = math.pi/8
+		set_of_angles = {.1=0,.2=1.5708,.3=3.14159,.4=-1.5708}
+		if(NUM_OF_SHEEP <= 50){
+			set_of_dist = {.1=1.5,.2=1.5,.3=1.5,.4=1.5}
+		}
+		else if(NUM_OF_SHEEP <= 100){
+			set_of_dist = {.1=1.5,.2=1.5,.3=1.5,.4=1.5}
+		}
+		else if(NUM_OF_SHEEP == 300){
+			set_of_dist = {.1=2.0,.2=2.0,.3=2.0,.4=2.0}
+		}
+		else{
+			set_of_dist = {.1=3.0,.2=3.0,.3=3.0,.4=3.0}
+		}
+	}
+	# alt clover?
+	else if(SET_SHAPE == 1){
+		target[0].dogs_max_inter_ang = math.pi/8
+		set_of_angles = {.1 = 0.349066-3.14159,.2 = 3.14159-0.349066,.3 = 0.349066, .4= -0.349066}
+		if(NUM_OF_SHEEP <= 50){
+			set_of_dist = {.1=1.5,.2=1.5,.3=1.5,.4=1.5}
+		}
+		else if(NUM_OF_SHEEP <= 100){
+			set_of_dist = {.1=1.5,.2=1.5,.3=1.5,.4=1.5}
+		}
+		else if(NUM_OF_SHEEP == 300){
+			set_of_dist = {.1=2.0,.2=2.0,.3=2.0,.4=2.0}
+		}
+		else{
+			set_of_dist = {.1=3.0,.2=3.0,.3=3.0,.4=3.0}
+		}
+	}
+
+	# in every case that isnt none/no shape
+	if(SET_SHAPE !=2){
+		var loop_time = math.floor(NUM_OF_DOGS_TO_USE/size(set_of_angles))
+		var cnt1= 0
+		var ind = 1
+		while(cnt1 < loop_time){
+			var cnt2 = 0
+			while(cnt2 < size(set_of_angles)){
+				target[0].shape_angle[ind] = set_of_angles[cnt2+1]
+				target[0].shape_distance[ind] = set_of_dist[cnt2+1]
+				# log("[",id,"] angs ", target[0].shape_angle[ind])
+				cnt2 = cnt2 + 1
+				ind = ind + 1
+			}
+			cnt1 = cnt1 + 1
+		}
+	}
+	else{ # for the no shape case
+		target[0].dogs_max_inter_ang = 0
+		var desired_ang_diff = math.pi/(NUM_OF_DOGS_TO_USE)
+		var fHalfSide = 1.5
+		var PreShape = 2.0
+		if(NUM_OF_SHEEP <=50){
+			fHalfSide = 1.5
+			PreShape = 2.0
+		}
+		else if(NUM_OF_SHEEP <= 100){
+			fHalfSide = 2.0
+			PreShape = 2.5
+			# desired_ang_diff = math.min(desired_ang_diff, 0.39)
+		}
+		else if(NUM_OF_SHEEP == 300){
+			fHalfSide = 4.5
+			PreShape = 5.0
+		}
+		else if(NUM_OF_SHEEP == 1000){
+			fHalfSide = 7.5
+		}
+		else{
+			desired_ang_diff = math.min(desired_ang_diff, 0.39)
+		}
+		var cnt1= 0
+		var ind = 2
+		var ang_cnt = 1
+		target[0].shape_angle[1] = math.pi
+		target[0].shape_distance[1] = fHalfSide
+		log("[",id,"] Count ", cnt1, " ang ", target[0].shape_angle[ind-1])
+
+		while(cnt1 < NUM_OF_DOGS_TO_USE-1){
+			if(ind % 2 == 0){
+				target[0].shape_angle[ind] =  math.pi-(desired_ang_diff*ang_cnt)
+				
+			}
+			else{
+				target[0].shape_angle[ind] =  -math.pi+(desired_ang_diff*ang_cnt)
+				ang_cnt = ang_cnt + 1
+			}
+
+			target[0].shape_distance[ind] = fHalfSide
+			ind = ind + 1
+			cnt1 = cnt1 + 1
+			log("[",id,"] Count ", cnt1, " ang ", target[0].shape_angle[ind-1])
+		}
+	}
+
+	# straight
+	if(MOVEMENT_TYPE == 0){ 
+		target[0].goal={.x=10,.y=0}
+	}
+	# diagonal
+	else if (MOVEMENT_TYPE == 1) {
+		target[0].goal={.x=7.07,.y=7.07}
+	}
+	# Rotate
+	else {
+		# TODO
+	}
+	
+}
