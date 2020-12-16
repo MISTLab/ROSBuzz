@@ -3,14 +3,10 @@
 #########
 include "update.bzz"
 include "utils/vec2.bzz"
-<<<<<<< HEAD
-include "connectivity/circling_experiment.bzz"
-=======
 include "utils/takeoff_heights.bzz"
 # include "formations/circling_experiment.bzz"
 include "formations/Object_movement_test.bzz"
 include "formations/forward_test.bzz"
->>>>>>> 4b5ce3d818b405f74b1586de466fabca8c12aad5
 
 
 #####
