@@ -71,7 +71,7 @@ Old_error=0
 # Desired_dist = 50;  # Desired inter-robot distance for sheep
 track_dist=20
 Desired_heard_dist = 70
-Edge_following_dist=80
+Edge_following_dist=50
 last_seen_edge = {}
 ROLE = SHEEP
 time = 0
@@ -190,7 +190,7 @@ function hierarchical_step(){
 			var field_of_view = density_stig.get("F")
 			if(field_of_view != nil){
 				field_of_view = field_of_view+track_dist
-				# debug.print("Mode ", m_mode)
+				print("Mode ", m_mode)
 				var dog_rective_field=density_stig.get("R")
 				var safety_vec = math.vec2.new(0.0,0.0)
 				var dog_weight=0.9

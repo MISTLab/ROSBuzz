@@ -1,8 +1,8 @@
 function load_target(){
 	target = {}
-	target[0]={ .sheep_location={.x=-1.0,.y=-7.0},
+	target[0]={ .sheep_location={.x=2.4225,.y=2.5925},
 				# .sheep_cluster_size=180, DELETE
-				.density=100,
+				.density=75,
 				.strength=100,
 				.shaping_inter_dog_dist=80,
 				.dogs_max_inter_ang = math.pi/8,
