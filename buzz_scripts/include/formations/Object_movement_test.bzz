@@ -200,7 +200,8 @@ function hierarchical_step(){
 						function(rid, data){
 							var potential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
 							var my_vec = math.vec2.newp(data.distance, data.azimuth)
-							if(data.distance < SAFETY_DISTANCE){	
+							if(data.distance < SAFETY_DISTANCE){
+								if (rid == 5) print("Safety triggered for ", id)
 								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
 								# Initialize vector
 						        var myVec = math.vec2.newp(potential, data.azimuth)
@@ -276,6 +277,7 @@ function hierarchical_step(){
 					}
 					else{
 					# debug.print(" ERROR :", math.abs(Old_error - Accum.error), " cur ", Accum.error," Pre ", Old_error , " Stig size : ", mode_stig.size(), " time ", time )
+						print("goto (",Accum.x,",",Accum.y,")")
 						goto(Accum.x,Accum.y)
 					}
 					neighbors.broadcast("E",(Old_error - Accum.error))
@@ -595,7 +597,7 @@ function hierarchical_step(){
 							if( (Collective_nei_error_table[rid] != nil or dog_waiting_to_shape == REACHED) and data.distance < Edge_following_dist){
 								# Found a sheep and it is at edge following distance. 
 								log("Found sheep! ", rid)
-								shaping_time = 3
+								shaping_time = 2
 							}
 						}
 
@@ -622,21 +624,21 @@ function hierarchical_step(){
 				# }
 				
 			}
-   #          # shaping_time substate: Edge following
-			# else if(shaping_time == 2){
-			# 	var move_vec = compute_edge_following_vector()
-			# 	var sheep_center_vec = math.vec2.sub(pose.position,c_target.sheep_location)
-			# 	var sheep_cluster_angle=math.vec2.angle(sheep_center_vec)
-			# 	# debug.print(" Edge following !! (",move_vec.x,",",move_vec.y,") my ang to sheep: ", sheep_cluster_angle,"size last seen ",size(last_seen_edge))
-			# 	if(math.abs(sheep_cluster_angle - c_target.shape_angle[shape_task_num]) < ANGLE_TOLERENCE){
-			# 			shaping_time = 3 
-			# 			task_stig.put(id,PRE_SHAPE_MOVE)
-			# 			move_vec=math.vec2.new(0.0,0.0)
-			# 	}
-			# 	goto(move_vec.x*100,move_vec.y*100)
-			# 	# debug.rays.add(0,0,255,move_vec.x,move_vec.y,0.0)
+            # shaping_time substate: Edge following
+			else if(shaping_time == 2){
+				var move_vec = compute_edge_following_vector()
+				var sheep_center_vec = math.vec2.sub(pose.position,c_target.sheep_location)
+				var sheep_cluster_angle=math.vec2.angle(sheep_center_vec)
+				# debug.print(" Edge following !! (",move_vec.x,",",move_vec.y,") my ang to sheep: ", sheep_cluster_angle,"size last seen ",size(last_seen_edge))
+				if(math.abs(sheep_cluster_angle - c_target.shape_angle[shape_task_num]) < ANGLE_TOLERENCE){
+						shaping_time = 3 
+						task_stig.put(id,PRE_SHAPE_MOVE)
+						move_vec=math.vec2.new(0.0,0.0)
+				}
+				goto(move_vec.x*100,move_vec.y*100)
+				# debug.rays.add(0,0,255,move_vec.x,move_vec.y,0.0)
 				
-			# }
+			}
 			else if(shaping_time == 3){
                 log("Transition of dog ", id, " to submode", shaping_time)
 				if(density_stig.get("R") != 70) density_stig.put("R", 70)
