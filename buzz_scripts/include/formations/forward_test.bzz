@@ -1,0 +1,16 @@
+target_pos = nil
+
+function forward_test(){
+	if(isnil(target_pos)){
+		target_pos = {.x = pose.position.x+10, .y = pose.position.y}
+	}
+	else{
+		var l_tar=math.vec2.sub(target_pos,pose.position)
+		if(math.vec2.length(l_tar) > 0.2){
+			goto(l_tar.x*100,l_tar.y*100)
+		}
+		else{
+			log("Target reached !!")
+		}
+	}
+}

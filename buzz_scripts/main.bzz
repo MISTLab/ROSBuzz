@@ -10,7 +10,7 @@ include "vstigenv.bzz"
 #include "timesync.bzz"
 include "utils/takeoff_heights.bzz"
 #include "connectivity/chain_formation_local.bzz"
-include "connectivity/circling_experiment.bzz"
+include "formations/circling_experiment.bzz"
 
 #AUTO_LAUNCH_STATE = "DEPLOY" NOW SET IN LAUNCH FILE!!
 LAND_AFTER_BARRIER_EXPIRE = 1 # if set to be 1 , the robots will land after barrier expire; if set to be 0, the robots will carry on to AUTO_LAUNCH_STATE.

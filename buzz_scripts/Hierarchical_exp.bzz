@@ -3,7 +3,14 @@
 #########
 include "update.bzz"
 include "utils/vec2.bzz"
+<<<<<<< HEAD
 include "connectivity/circling_experiment.bzz"
+=======
+include "utils/takeoff_heights.bzz"
+# include "formations/circling_experiment.bzz"
+include "formations/Object_movement_test.bzz"
+include "formations/forward_test.bzz"
+>>>>>>> 4b5ce3d818b405f74b1586de466fabca8c12aad5
 
 
 #####
@@ -22,13 +29,16 @@ function init() {
 	# start the swarm command listener
 	nei_cmd_listen()
 
+	# run the hierarchical movement init
+	hierarchical_init()
+
     # Starting state: TURNEDOFF to wait for user input.
 	BVMSTATE = "TURNEDOFF"
 }
 
 # Executed at each time step.
 function step() {
-
+	log("[",id,"] POS (",pose.position.x,",",pose.position.y,",",pose.position.z,")")
 	# listen to Remote Controller
 	rc_cmd_listen()
 
@@ -44,8 +54,14 @@ function step() {
 	else if(BVMSTATE=="LAUNCH"){ # ends on AUTO_LAUNCH_STATE
 		statef=launch
 	}
-    else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
-        statef=circling_experiment		
+    # else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
+    #     statef=circling_experiment		
+    # }
+    else if(BVMSTATE=="FORMATION_MOVEMENT"){
+        statef=hierarchical_step		
+    }
+    else if(BVMSTATE == "FORWARD_TEST"){
+    	statef=forward_test
     }
 	statef()
 
@@ -65,15 +81,25 @@ function destroy() {
 function launch() {
 	BVMSTATE = "LAUNCH"
 	neighbors.broadcast("cmd", 22)
-	log("Auto state", AUTO_LAUNCH_STATE)
-	BVMSTATE=AUTO_LAUNCH_STATE
+	if(pose.position.z >= takeoff_heights[id]-takeoff_heights[id]/20.0 or V_TYPE == 3) {
+		log("Auto state", AUTO_LAUNCH_STATE)
+		BVMSTATE=AUTO_LAUNCH_STATE
+	} else {
+		log("Altitude: ", pose.position.z)
+		uav_takeoff(takeoff_heights[id])
+	}
+	
 }
 
 # Core state function to stop and land.
 function stop() {
   BVMSTATE = "STOP"
-  barrier_set(ROBOTS,"TURNEDOFF","STOP", 21)
-  barrier_ready(21)	
+  if(pose.position.z <= 0.2) {
+		BVMSTATE = "TURNEDOFF"
+	} else{
+		uav_land()
+		neighbors.broadcast("cmd", 21)
+	}
 }
 
 # Core state function when on the ground
@@ -88,7 +114,7 @@ function rc_cmd_listen() {
 			BVMSTATE = "LAUNCH"
 			neighbors.broadcast("cmd", 22)
 		} 
-	} else {
+	} else if(BVMSTATE != "STOP") {
 		if(flight.rc_cmd==21) {
 			flight.rc_cmd=0
 			BVMSTATE = "STOP"
@@ -106,11 +132,24 @@ function nei_cmd_listen() {
 				if(value==22) {
 					BVMSTATE = "LAUNCH"
 				}
-			} else {
+			} else if(BVMSTATE != "STOP") {
 				if(value==21 and BVMSTATE != "STOP") {
 					BVMSTATE = "STOP"
 					neighbors.broadcast("cmd", 21)
 				}
 			}
     })
+}
+
+# goto wrapper for argos based scripts
+function goto(x, y) {
+	var height = takeoff_heights[id]
+	var g_vec = math.vec2.new(x,y)
+	var norm_fact= 1.0
+	if(math.vec2.length(g_vec) > 0.0){
+		norm_fact = 1.0/math.vec2.length(g_vec)
+	}
+	var norm_goto = math.vec2.scale(g_vec, norm_fact)
+	norm_goto = math.vec2.scale(norm_goto, 0.3)
+	goto_abs(norm_goto.x, norm_goto.y, height, 0.0)
 }

@@ -39,10 +39,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 # Optinal OMPL libs for path planning
-
-find_package(ompl)
-
 if(OMPL_FOUND)
+  find_package(ompl)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOMPL_FOUND=1")
   message("${Blue} ####################")
   message("${Blue} #################### =======================================================")
