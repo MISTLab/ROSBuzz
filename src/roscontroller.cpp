@@ -1232,9 +1232,17 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
   }
   if (!BClpose)
   {
-    goto_pos[0] = cur_pos.x;
-    goto_pos[1] = cur_pos.y;
-    goto_pos[2] = 0.0;
+    if(pose_type == LOCAL_POSE){
+      goto_pos[0] = 0.0;
+      goto_pos[1] = 0.0;
+      goto_pos[2] = 0.0;
+    }
+    else{
+      goto_pos[0] = cur_pos.x;
+      goto_pos[1] = cur_pos.y;
+      goto_pos[2] = 0.0;
+    }
+
     BClpose = true;
   }
 
@@ -1292,10 +1300,18 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw)
   moveMsg.header.frame_id = 1;
 
   //  DEBUG
-  ROS_INFO("Lp: %.3f, %.3f - Del: %.3f, %.3f, %.3f", cur_pos.x, cur_pos.y, x, y, yaw);
-  moveMsg.pose.position.x = cur_pos.x + y;
-  moveMsg.pose.position.y = cur_pos.y + x;
-  moveMsg.pose.position.z = z;
+  ROS_INFO("Lp: %.7f, %.7f - Del: %.7f, %.7f, %.7f", cur_pos.x, cur_pos.y, x, y, yaw);
+  if(pose_type == LOCAL_POSE){
+    moveMsg.pose.position.x = x;
+    moveMsg.pose.position.y = y;
+    moveMsg.pose.position.z = z;
+  }
+  else{
+    //  DEBUG
+    moveMsg.pose.position.x = cur_pos.x + y;
+    moveMsg.pose.position.y = cur_pos.y + x;
+    moveMsg.pose.position.z = z;
+  }
 
   tf::Quaternion q;
   q.setRPY(0.0, 0.0, yaw);

@@ -14,7 +14,7 @@ namespace buzzuav_closures
 {
 // TODO: Minimize the required global variables and put them in the header
 // static const rosbzz_node::roscontroller* roscontroller_ptr;
-static double goto_pos[4];
+static double goto_pos[4]={0,0,0,0};
 static double goto_gpsgoal[3];
 static double cur_pos[4];
 static double cur_offset[2];

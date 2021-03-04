@@ -122,7 +122,7 @@ function hierarchical_init() {
 	    else return local
   	})
 	load_target()
-	if(id <= 2){
+	if(id < 2){
         print("I am dog ", id)
 		ROLE=DOG
 		Mode=TASK_ALLOCATION
