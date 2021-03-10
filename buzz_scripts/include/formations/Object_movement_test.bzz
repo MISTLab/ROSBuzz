@@ -81,6 +81,8 @@ Rigid_nei = {}
 Yeilding_for={}
 time_since_yeild=0
 structuring_time=0
+applied_proximity=0
+old_prox={}
 
 # Global test path. 
 GLOBAL_TEST_PATH={.1={.x=-1.408,.y=0.0}, .2={.x=-2.0,.y=-1.0}, .3={.x=-3.5,.y=-1.0}}
@@ -391,6 +393,29 @@ function hierarchical_step(){
 				}
 				# We allow no bond change in rigid
 				else if(m_mode == RIGID){
+
+					var largest_error = {.id=-1,.x=0,.y=0,.error=0}
+					var obstacle_accum = {}
+					obstacle_accum.x = 0.0
+					obstacle_accum.y = 0.0
+					var i = 0
+					var max_prox = 0
+
+					# Check if an obstacle is detected.
+					while(i < size(proximity)) {
+						if(proximity[i].value > max_prox){
+							max_prox = proximity[i].value
+						}
+						obstacle_accum.x = obstacle_accum.x + proximity[i].value * math.cos(proximity[i].angle)
+						obstacle_accum.y = obstacle_accum.y + proximity[i].value * math.sin(proximity[i].angle)
+						i = i + 1
+					}
+					obstacle_accum.x = obstacle_accum.x / size(proximity)
+					obstacle_accum.y = obstacle_accum.y / size(proximity)
+					var length_prox = math.sqrt(obstacle_accum.x * obstacle_accum.x + obstacle_accum.y * obstacle_accum.y)
+					var obs_ang = math.atan(obstacle_accum.y, obstacle_accum.x)
+
+
 					neighbors.foreach(
 						function(rid, data){
 							var my_vec = math.vec2.newp(data.distance, data.azimuth)
@@ -448,12 +473,60 @@ function hierarchical_step(){
 						}
 					}
 					
-					if(math.vec2.length(safety_vec) > 0 ){
+					if(length_prox > 0.0 and (applied_proximity != 0 or length_prox > 0.12)){
+						Accum.x =0.5*Accum.x* 1/math.vec2.length(Accum)
+						Accum.y =0.5*Accum.y* 1/math.vec2.length(Accum)
+						var obstacle_potential = harmonMagnitude(math.vec2.length(Accum), 100, HARMON_A0, HARMON_K)
+						# var obstacle_vec = math.vec2.newp((length_prox*5)+0.1, obs_ang)
+						var obstacle_vec = math.vec2.newp(obstacle_potential, obs_ang)
+						# obstacle_vec =math.vec2.rotate(obstacle_vec,-math.pi)
+						obstacle_vec = math.vec2.scale(obstacle_vec, 1/math.vec2.length(obstacle_vec))
+						var before_Addition = {.x=Accum.x, .y=Accum.y}
+						
+						Accum.x = (obstacle_vec.x + (0.05*Accum.x))
+						Accum.y = (obstacle_vec.y + (0.05*Accum.y))
+						applied_proximity = 1
+						old_prox = math.vec2.new(obstacle_vec.x,obstacle_vec.y)
+					}
+					else{
+						if(applied_proximity != 0){
+							Accum.x =  0.5*Accum.x* 1/math.vec2.length(Accum)
+							Accum.y =  0.5*Accum.y* 1/math.vec2.length(Accum)
+
+							applied_proximity = applied_proximity +1
+							if(applied_proximity >3){
+								applied_proximity = 0
+							}
+							
+							Accum.x = (old_prox.x + (0.05*Accum.x))
+							Accum.y = (old_prox.y + (0.05*Accum.y))
+							
+						}
+						else{
+							Accum.x =  0.5*Accum.x* 1/math.vec2.length(Accum)
+							Accum.y = 0.5*Accum.y* 1/math.vec2.length(Accum)
+						}
+						
+
+					}
+
+					
+				    if(math.vec2.length(safety_vec) > 0 and length_prox <= 0.12 ){
+						Accum.x =  0.5*Accum.x* 1/math.vec2.length(Accum)
+						Accum.y = 0.5*Accum.y* 1/math.vec2.length(Accum)
+
+						safety_vec.x =  safety_vec.x* 1/math.vec2.length(safety_vec)
+						safety_vec.y = safety_vec.y* 1/math.vec2.length(safety_vec)
+
+						safety_vec.x = safety_vec.x + (0.3*Accum.x)
+						safety_vec.y = safety_vec.y + (0.3*Accum.y)
+
 						goto(safety_vec.x,safety_vec.y)
 					}
 					else{
 						goto(Accum.x*10,Accum.y*10)
 					}
+
 					neighbors.broadcast("E",(Old_error - Accum.error))
 					Old_error = Accum.error
 				}
@@ -698,7 +771,7 @@ function hierarchical_step(){
 					}
 				})
 				if(dogs_in_position.val == size(c_target.shape_distance)){
-					shaping_time = 2
+					shaping_time = 3
 					structuring_time = time
 					# Check_if_another_dog is in front
 					# var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)	
