@@ -34,7 +34,7 @@ function init() {
 
 # Executed at each time step.
 function step() {
-	log("[",id,"] POS (",pose.position.x,",",pose.position.y,",",pose.position.z,")")
+	log("[",id,"] POS (",pose.position.x,",",pose.position.y,",",pose.position.z,") yaw: ", pose.orientation.yaw)
 	# listen to Remote Controller
 	rc_cmd_listen()
 

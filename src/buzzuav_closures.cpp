@@ -1450,6 +1450,7 @@ void set_currentNEDpos(double x, double y, double z, double yaw, double x_offset
   cur_NEDpos[1] = y;
   cur_NEDpos[2] = z;
   cur_NEDpos[3] = yaw;
+  cur_pos[3] =yaw;
   cur_offset[0] = x_offset;
   cur_offset[1] = y_offset;
 }

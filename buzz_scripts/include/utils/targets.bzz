@@ -1,6 +1,6 @@
 function load_target(){
 	target = {}
-	target[0]={ .sheep_location={.x=2.4225,.y=2.5925},
+	target[0]={ .sheep_location={.x=0.24225,.y=0.25925},
 				# .sheep_cluster_size=180, DELETE
 				.density=75,
 				.strength=100,
