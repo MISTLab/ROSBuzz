@@ -1280,8 +1280,12 @@ void roscontroller::obstacle_dist_callback(const sensor_msgs::LaserScan::ConstPt
 /Set obstacle Obstacle distance table into BVM from subscriber
 /-------------------------------------------------------------*/
 {
-  float obst[5];
-  for (int i = 0; i < 5; i++)
+  int num_of_prox=5;
+  if(pose_type == LOCAL_POSE){
+    num_of_prox=8;
+  }
+  float obst[num_of_prox];
+  for (int i = 0; i < num_of_prox; i++)
     obst[i] = msg->ranges[i];
   buzzuav_closures::set_obstacle_dist(obst);
 }

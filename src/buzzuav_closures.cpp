@@ -26,7 +26,8 @@ static double rc_gpsgoal[3];
 static float rc_gimbal[4];
 
 static float batt[3];
-static float obst[5] = { 0, 0, 0, 0, 0 };
+static float obst[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+static const number_of_proximity=8;
 static uint8_t status;
 
 static int cur_cmd = 0;
@@ -1287,7 +1288,7 @@ void set_obstacle_dist(float dist[])
 / update interface proximity value array
 -----------------------------------*/
 {
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < number_of_proximity; i++)
     obst[i] = dist[i];
 }
 
