@@ -433,8 +433,15 @@ function hierarchical_step(){
 						combAccum.y = ((1-dog_weight)*Accum.y) - (dog_weight)*Accum.dogs_y
 
 						# debug.print(" Acc mag ", math.vec2.length(Accum), " dog mag ", math.vec2.length(dog_vec), " Combined ", math.vec2.length(combAccum))
-						Accum.x = ((1-dog_weight)*Accum.x) - (dog_weight)*Accum.dogs_x
-						Accum.y = ((1-dog_weight)*Accum.y) - (dog_weight)*Accum.dogs_y
+						var pull = density_stig.get("P")
+						if(pull){
+							Accum.x = ((1-dog_weight)*Accum.x) + (dog_weight)*Accum.dogs_x
+							Accum.y = ((1-dog_weight)*Accum.y) + (dog_weight)*Accum.dogs_y
+						}
+						else{
+							Accum.x = ((1-dog_weight)*Accum.x) - (dog_weight)*Accum.dogs_x
+							Accum.y = ((1-dog_weight)*Accum.y) - (dog_weight)*Accum.dogs_y
+						}
 					}
 					
 					if(math.vec2.length(safety_vec) > 0 ){
@@ -770,6 +777,8 @@ function hierarchical_step(){
 				if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
 				if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
 				if(density_stig.get("R") != 80) density_stig.put("R", 80)
+				if(density_stig.get("P") != 1) density_stig.put("P", 1)
+
 				shaping_time = shaping_time + 1
 				# debug.print("Yaw: ", pose.orientation.yaw, " Pos (",pose.position.x,",",pose.position.y,")")
 			}
@@ -787,157 +796,207 @@ function hierarchical_step(){
 				# debug.rays.add(0,0,255,nei_center_of_mass_vec.x/100,nei_center_of_mass_vec.y/100,0.0) # Blue
 				Center_of_mass.x=nei_center_of_mass_vec.x
 				Center_of_mass.y=nei_center_of_mass_vec.y
-				
-				if(size(Nei_look_up) == 0){
-					# This is only done once, when the robot enters this state. 
-					# Compute your target with respect to your current position and store it.
-					var sheepLoc = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)
-					sheepLoc = math.vec2.sub(sheepLoc,pose.position)
-					LocalTarget = math.vec2.sub(target[0].goal,sheepLoc)
-					m_target = math.vec2.sub(LocalTarget, pose.position)
+
+				if(math.vec2.length(nei_center_of_mass_vec) < 100){
+					# Find the current path tracking point. 
+					var path_tracking_point=GLOBAL_TEST_PATH[TEST_PATH_PTR]
+					var m_target = math.vec2.sub(path_tracking_point, pose.position)					
 					m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
-					var m_tar_ang = math.vec2.angle(m_target)
-					m_tar_ang = LimitAngle(m_tar_ang)
-					var  abs_tar_vec = math.vec2.newp(1.0,m_tar_ang)
-					abs_tar_vec = math.vec2.rotate(abs_tar_vec, pose.orientation.yaw)
-					
-					var m_cent_ang = math.vec2.angle(nei_center_of_mass_vec)
-					m_cent_ang = LimitAngle(m_cent_ang)
-					var abs_cent_vec = math.vec2.newp(1.0, m_cent_ang)
-					abs_cent_vec = math.vec2.rotate(abs_cent_vec, pose.orientation.yaw)
-
-					var m_ang_center = 0
-					if(math.vec2.angle(abs_tar_vec) > math.vec2.angle(abs_cent_vec)){
-						m_ang_center = (2*math.pi - math.vec2.angle(abs_tar_vec)) + math.vec2.angle(abs_cent_vec)
+					var Dist_to_target = math.vec2.length(m_target)
+					m_target = math.vec2.scale(m_target,100)
+					if(Dist_to_target > 0.1){
+						# Compute center of mass in global coordinates, neglecting robot yaw. 
+						# debug.rays.add(0,255,0,m_target.x/100,m_target.y/100,0.0) 
+						# debug.rays.add(0,0,255,nei_center_of_mass_vec.x/100,nei_center_of_mass_vec.y/100,0.0) 
+						# var ang_diff = LimitAngle(math.vec2.angle(nei_center_of_mass_vec)) - LimitAngle(math.vec2.angle(m_target))
+						# ang_diff = LimitAngle(ang_diff)
+						# debug.print("Ang diff ", math.abs(ang_diff - math.pi), " ang_diff ", ang_diff, " WP ",TEST_PATH_PTR)
+						# if(math.abs(ang_diff - math.pi) < 0.1){
+							# Move streight to the target, the sheep is aligned
+							# if(shaping_time > 200 ){
+								goto(m_target.x,m_target.y)
+							# }
+							# else{
+							# 	shaping_time = shaping_time + 1
+							# }
+						# }
+						# else if(ang_diff - math.pi < 0){
+						# 	# anti-clockwise
+						# 	var move_vec = math.vec2.new(-nei_center_of_mass_vec.y,nei_center_of_mass_vec.x)
+						# 	move_vec = math.vec2.add(move_vec, math.vec2.newp(math.vec2.length(nei_center_of_mass_vec)-100,math.vec2.angle(nei_center_of_mass_vec)))
+						# 	goto(move_vec.x,move_vec.y)
+						# }
+						# else{
+						# 	# clockwise
+						# 	var move_vec = math.vec2.new(nei_center_of_mass_vec.y,-nei_center_of_mass_vec.x)							
+						# 	move_vec = math.vec2.add(move_vec, math.vec2.newp(math.vec2.length(nei_center_of_mass_vec)-100,math.vec2.angle(nei_center_of_mass_vec)))
+						# 	goto(move_vec.x,move_vec.y)
+						# }
 					}
 					else{
-						m_ang_center = math.abs(math.vec2.angle(abs_tar_vec) - math.vec2.angle(abs_cent_vec))
-					}
-					Nei_look_up["center"]={.x=nei_center_of_mass_vec.x, .y=nei_center_of_mass_vec.y, .ang_diff = m_ang_center}
-				}
-					
-				var m_target = math.vec2.sub(LocalTarget, pose.position)	
-				m_target_positive_rot = math.vec2.rotate(m_target,pose.orientation.yaw)				
-				m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
-				var Dist_to_target = math.vec2.length(m_target)
-				if(Dist_to_target > 0.1){
-					# debug.rays.add(255,0,0,m_target.x,m_target.y,0.0) # final red
-					var rotation_contribution = {.x=0.0, .y=0.0, .cnt = 0}
-					# Target angle with respect to your yaw
-					var m_tar_ang = math.vec2.angle(m_target)
-					m_tar_ang = LimitAngle(m_tar_ang)
-					var  abs_tar_vec = math.vec2.newp(1.0,m_tar_ang)
-					abs_tar_vec = math.vec2.rotate(abs_tar_vec, pose.orientation.yaw)
-					
-					# Center of mass angle with respect to your yaw
-					var m_cent_ang = math.vec2.angle(nei_center_of_mass_vec)
-					m_cent_ang = LimitAngle(m_cent_ang)
-					var abs_cent_vec = math.vec2.newp(1.0, m_cent_ang)
-					abs_cent_vec = math.vec2.rotate(abs_cent_vec, pose.orientation.yaw)
-
-					var m_ang_center = 0
-					if(math.vec2.angle(abs_tar_vec) > math.vec2.angle(abs_cent_vec)){
-						m_ang_center = (2*math.pi - math.vec2.angle(abs_tar_vec)) + math.vec2.angle(abs_cent_vec)
-					}
-					else{
-						m_ang_center = math.abs(math.vec2.angle(abs_tar_vec) - math.vec2.angle(abs_cent_vec))
-					}
-					var ang_diff_center = Nei_look_up.center.ang_diff - m_ang_center
-					var ang_vec = math.vec2.newp(100, ang_diff_center)
-					ang_diff_center = math.vec2.angle(ang_vec)
-							
-					# debug.print("m_tar ang ", LimitAngle((math.vec2.angle(math.vec2.rotate(m_target,pose.orientation.yaw))))," center of mass ang ", math.vec2.angle(math.vec2.rotate(nei_center_of_mass_vec,pose.orientation.yaw))," desired ",  Nei_look_up.center.ang_diff, " Current ", m_ang_center)
-					var c_go_vec = {.x=0.0,.y=0.0}
-					# Angular computation to keep the dog angle between the target, center of mass constant.
-					if( math.abs(ang_diff_center) > 0.1){
-						var m_ang_center_vec = math.vec2.newp(1.0,m_ang_center)
-						c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
-						if(Nei_look_up.center.ang_diff < math.pi){
-							if((m_ang_center < LimitAngle(Nei_look_up.center.ang_diff + math.pi) ) and (not m_ang_center < Nei_look_up.center.ang_diff)){
-								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, math.pi/2)
-								# log("[",id,"] Clockwise")
-							}
-							else{
-								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
-								# log("[",id,"] Counter Clockwise")
-							}
+						if(TEST_PATH_PTR < size(GLOBAL_TEST_PATH)){
+							TEST_PATH_PTR = TEST_PATH_PTR + 1
 						}
 						else{
-							if((m_ang_center < LimitAngle(Nei_look_up.center.ang_diff + math.pi) ) or (m_ang_center > Nei_look_up.center.ang_diff)){
-								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, math.pi/2)
-								# log("[",id,"] Clockwise")
-							}
-							else{
-								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
-								# log("[",id,"] Counter Clockwise")
-							}
+							log("Reached the final goal!!")
 						}
-						c_go_vec = math.vec2.scale(c_go_vec, 0.01)
-
-					}
-
-					# Potential contribution for keeping the dogs close to sheeps
-					var centerpotential = 0
-					var centerpotVec ={.x=0, .y=0}
-					var DOGS_SHEEP_TOL = -5 # In cms
-					var dog_center_length_error = math.abs(math.vec2.length(nei_center_of_mass_vec)-math.vec2.length(Nei_look_up.center))
-					if(dog_center_length_error > 0){
-						centerpotential = harmonMagnitude(math.vec2.length(nei_center_of_mass_vec), math.vec2.length(Nei_look_up.center)-DOGS_SHEEP_TOL, HARMON_A0, HARMON_K)
-					}
-					centerpotVec = math.vec2.newp(centerpotential, math.vec2.angle(nei_center_of_mass_vec))
-					# debug.rays.add(255,255,0,centerpotVec.x/100,centerpotVec.y/100,0.0) # Yellow
-					
-					# Different Contributions.
-					rotation_contribution.x =  (0.05*centerpotVec.x)  + 0.05*c_go_vec.x
-					rotation_contribution.y =  (0.05*centerpotVec.y)  + 0.05*c_go_vec.y
-
-					if(math.vec2.length(m_target) > 0)
-						m_target = math.vec2.scale(m_target, (1/math.vec2.length(m_target)))
-
-					# var debug_old = m_target
-					# debug.rays.add(0,255,0,m_target.x,m_target.y,0.0) # Green
-					m_target.x = (rotation_contribution.x + 0.5*m_target.x)*2
-					m_target.y = (rotation_contribution.y + 0.5*m_target.y)*2
-					# debug.rays.add(0,255,128,m_target.x,m_target.y,0.0) # light red
-					# debug.print("angle contri ",0.1*math.vec2.length(c_go_vec)," length contri ",0.25*math.vec2.length(centerpotVec), "sheep total contri ", math.vec2.length(rotation_contribution)," targ contri ", math.vec2.length(debug_old) , " final contri ", math.vec2.length(m_target), "Tar Dist ", Dist_to_target )
-					######## Data Logging variables ###########
-					Center_of_mass.px=(0.05*centerpotVec.x)
-					Center_of_mass.py=(0.05*centerpotVec.y)
-
-					Center_of_mass.cx=(0.05*c_go_vec.x)
-					Center_of_mass.cy=(0.05*c_go_vec.y)
-
-					Center_of_mass.fx=m_target.x
-					Center_of_mass.fy=m_target.y
-
-					Center_of_mass.setpang=(Nei_look_up.center.ang_diff)
-					Center_of_mass.curang=(m_target.y)
-					if(math.vec2.length(nei_center_of_mass_vec) > 380 and Other_dog_infront != -1){
-						goto(nei_center_of_mass_vec.x,nei_center_of_mass_vec.y)
-					}
-					else{
-						###########################################
-						goto(m_target.x, m_target.y)
+						goto(0.0,0.0)
 					}
 				}
 				else{
-					######## Data Logging variables ###########
-					Center_of_mass.px=0.0
-					Center_of_mass.py=0.0
-
-					Center_of_mass.cx=0.05
-					Center_of_mass.cy=0.05
-
-					Center_of_mass.fx=0.0
-					Center_of_mass.fy=0.0
-
-					Center_of_mass.setpang=(Nei_look_up.center.ang_diff)
-					Center_of_mass.curang=(m_target.y)
-
-					###########################################
-					TAR_REACHED = 1
 					goto(0.0,0.0)
 				}
+				
+				# if(size(Nei_look_up) == 0){
+				# 	# This is only done once, when the robot enters this state. 
+				# 	# Compute your target with respect to your current position and store it.
+				# 	var sheepLoc = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)
+				# 	sheepLoc = math.vec2.sub(sheepLoc,pose.position)
+				# 	LocalTarget = math.vec2.sub(target[0].goal,sheepLoc)
+				# 	m_target = math.vec2.sub(LocalTarget, pose.position)
+				# 	m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+				# 	var m_tar_ang = math.vec2.angle(m_target)
+				# 	m_tar_ang = LimitAngle(m_tar_ang)
+				# 	var  abs_tar_vec = math.vec2.newp(1.0,m_tar_ang)
+				# 	abs_tar_vec = math.vec2.rotate(abs_tar_vec, pose.orientation.yaw)
+					
+				# 	var m_cent_ang = math.vec2.angle(nei_center_of_mass_vec)
+				# 	m_cent_ang = LimitAngle(m_cent_ang)
+				# 	var abs_cent_vec = math.vec2.newp(1.0, m_cent_ang)
+				# 	abs_cent_vec = math.vec2.rotate(abs_cent_vec, pose.orientation.yaw)
+
+				# 	var m_ang_center = 0
+				# 	if(math.vec2.angle(abs_tar_vec) > math.vec2.angle(abs_cent_vec)){
+				# 		m_ang_center = (2*math.pi - math.vec2.angle(abs_tar_vec)) + math.vec2.angle(abs_cent_vec)
+				# 	}
+				# 	else{
+				# 		m_ang_center = math.abs(math.vec2.angle(abs_tar_vec) - math.vec2.angle(abs_cent_vec))
+				# 	}
+				# 	Nei_look_up["center"]={.x=nei_center_of_mass_vec.x, .y=nei_center_of_mass_vec.y, .ang_diff = m_ang_center}
+				# }
+					
+				# var m_target = math.vec2.sub(LocalTarget, pose.position)	
+				# m_target_positive_rot = math.vec2.rotate(m_target,pose.orientation.yaw)				
+				# m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+				# var Dist_to_target = math.vec2.length(m_target)
+				# if(Dist_to_target > 0.1){
+				# 	# debug.rays.add(255,0,0,m_target.x,m_target.y,0.0) # final red
+				# 	var rotation_contribution = {.x=0.0, .y=0.0, .cnt = 0}
+				# 	# Target angle with respect to your yaw
+				# 	var m_tar_ang = math.vec2.angle(m_target)
+				# 	m_tar_ang = LimitAngle(m_tar_ang)
+				# 	var  abs_tar_vec = math.vec2.newp(1.0,m_tar_ang)
+				# 	abs_tar_vec = math.vec2.rotate(abs_tar_vec, pose.orientation.yaw)
+					
+				# 	# Center of mass angle with respect to your yaw
+				# 	var m_cent_ang = math.vec2.angle(nei_center_of_mass_vec)
+				# 	m_cent_ang = LimitAngle(m_cent_ang)
+				# 	var abs_cent_vec = math.vec2.newp(1.0, m_cent_ang)
+				# 	abs_cent_vec = math.vec2.rotate(abs_cent_vec, pose.orientation.yaw)
+
+				# 	var m_ang_center = 0
+				# 	if(math.vec2.angle(abs_tar_vec) > math.vec2.angle(abs_cent_vec)){
+				# 		m_ang_center = (2*math.pi - math.vec2.angle(abs_tar_vec)) + math.vec2.angle(abs_cent_vec)
+				# 	}
+				# 	else{
+				# 		m_ang_center = math.abs(math.vec2.angle(abs_tar_vec) - math.vec2.angle(abs_cent_vec))
+				# 	}
+				# 	var ang_diff_center = Nei_look_up.center.ang_diff - m_ang_center
+				# 	var ang_vec = math.vec2.newp(100, ang_diff_center)
+				# 	ang_diff_center = math.vec2.angle(ang_vec)
+							
+				# 	# debug.print("m_tar ang ", LimitAngle((math.vec2.angle(math.vec2.rotate(m_target,pose.orientation.yaw))))," center of mass ang ", math.vec2.angle(math.vec2.rotate(nei_center_of_mass_vec,pose.orientation.yaw))," desired ",  Nei_look_up.center.ang_diff, " Current ", m_ang_center)
+				# 	var c_go_vec = {.x=0.0,.y=0.0}
+				# 	# Angular computation to keep the dog angle between the target, center of mass constant.
+				# 	if( math.abs(ang_diff_center) > 0.1){
+				# 		var m_ang_center_vec = math.vec2.newp(1.0,m_ang_center)
+				# 		c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
+				# 		if(Nei_look_up.center.ang_diff < math.pi){
+				# 			if((m_ang_center < LimitAngle(Nei_look_up.center.ang_diff + math.pi) ) and (not m_ang_center < Nei_look_up.center.ang_diff)){
+				# 				c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, math.pi/2)
+				# 				# log("[",id,"] Clockwise")
+				# 			}
+				# 			else{
+				# 				c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
+				# 				# log("[",id,"] Counter Clockwise")
+				# 			}
+				# 		}
+				# 		else{
+				# 			if((m_ang_center < LimitAngle(Nei_look_up.center.ang_diff + math.pi) ) or (m_ang_center > Nei_look_up.center.ang_diff)){
+				# 				c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, math.pi/2)
+				# 				# log("[",id,"] Clockwise")
+				# 			}
+				# 			else{
+				# 				c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
+				# 				# log("[",id,"] Counter Clockwise")
+				# 			}
+				# 		}
+				# 		c_go_vec = math.vec2.scale(c_go_vec, 0.01)
+
+				# 	}
+
+				# 	# Potential contribution for keeping the dogs close to sheeps
+				# 	var centerpotential = 0
+				# 	var centerpotVec ={.x=0, .y=0}
+				# 	var DOGS_SHEEP_TOL = -5 # In cms
+				# 	var dog_center_length_error = math.abs(math.vec2.length(nei_center_of_mass_vec)-math.vec2.length(Nei_look_up.center))
+				# 	if(dog_center_length_error > 0){
+				# 		centerpotential = harmonMagnitude(math.vec2.length(nei_center_of_mass_vec), math.vec2.length(Nei_look_up.center)-DOGS_SHEEP_TOL, HARMON_A0, HARMON_K)
+				# 	}
+				# 	centerpotVec = math.vec2.newp(centerpotential, math.vec2.angle(nei_center_of_mass_vec))
+				# 	# debug.rays.add(255,255,0,centerpotVec.x/100,centerpotVec.y/100,0.0) # Yellow
+					
+				# 	# Different Contributions.
+				# 	rotation_contribution.x =  (0.05*centerpotVec.x)  + 0.05*c_go_vec.x
+				# 	rotation_contribution.y =  (0.05*centerpotVec.y)  + 0.05*c_go_vec.y
+
+				# 	if(math.vec2.length(m_target) > 0)
+				# 		m_target = math.vec2.scale(m_target, (1/math.vec2.length(m_target)))
+
+				# 	# var debug_old = m_target
+				# 	# debug.rays.add(0,255,0,m_target.x,m_target.y,0.0) # Green
+				# 	m_target.x = (rotation_contribution.x + 0.5*m_target.x)*2
+				# 	m_target.y = (rotation_contribution.y + 0.5*m_target.y)*2
+				# 	# debug.rays.add(0,255,128,m_target.x,m_target.y,0.0) # light red
+				# 	# debug.print("angle contri ",0.1*math.vec2.length(c_go_vec)," length contri ",0.25*math.vec2.length(centerpotVec), "sheep total contri ", math.vec2.length(rotation_contribution)," targ contri ", math.vec2.length(debug_old) , " final contri ", math.vec2.length(m_target), "Tar Dist ", Dist_to_target )
+				# 	######## Data Logging variables ###########
+				# 	Center_of_mass.px=(0.05*centerpotVec.x)
+				# 	Center_of_mass.py=(0.05*centerpotVec.y)
+
+				# 	Center_of_mass.cx=(0.05*c_go_vec.x)
+				# 	Center_of_mass.cy=(0.05*c_go_vec.y)
+
+				# 	Center_of_mass.fx=m_target.x
+				# 	Center_of_mass.fy=m_target.y
+
+				# 	Center_of_mass.setpang=(Nei_look_up.center.ang_diff)
+				# 	Center_of_mass.curang=(m_target.y)
+				# 	if(math.vec2.length(nei_center_of_mass_vec) > 380 and Other_dog_infront != -1){
+				# 		goto(nei_center_of_mass_vec.x,nei_center_of_mass_vec.y)
+				# 	}
+				# 	else{
+				# 		###########################################
+				# 		goto(m_target.x, m_target.y)
+				# 	}
+				# }
+				# else{
+				# 	######## Data Logging variables ###########
+				# 	Center_of_mass.px=0.0
+				# 	Center_of_mass.py=0.0
+
+				# 	Center_of_mass.cx=0.05
+				# 	Center_of_mass.cy=0.05
+
+				# 	Center_of_mass.fx=0.0
+				# 	Center_of_mass.fy=0.0
+
+				# 	Center_of_mass.setpang=(Nei_look_up.center.ang_diff)
+				# 	Center_of_mass.curang=(m_target.y)
+
+				# 	###########################################
+				# 	TAR_REACHED = 1
+				# 	goto(0.0,0.0)
+				# }
 			}
 			
 	    }

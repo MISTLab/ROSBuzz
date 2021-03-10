@@ -27,7 +27,7 @@ static float rc_gimbal[4];
 
 static float batt[3];
 static float obst[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-static const number_of_proximity=8;
+static const int number_of_proximity=8;
 static uint8_t status;
 
 static int cur_cmd = 0;
@@ -1638,6 +1638,40 @@ int buzzuav_update_flight_status(buzzvm_t vm)
   buzzvm_pushf(vm, goto_gpsgoal[2]);
   buzzvm_tput(vm);
   buzzvm_gstore(vm);
+  return vm->state;
+}
+
+int buzzuav_update_kh4prox(buzzvm_t vm){
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "proximity", 1));
+  buzzvm_pusht(vm);
+  buzzobj_t tProxTable = buzzvm_stack_at(vm, 1);
+  buzzvm_gstore(vm);
+
+  //  Fill into the proximity table
+  buzzobj_t tProxRead;
+  float angle = 0;
+  for (size_t i = 0; i < number_of_proximity; ++i)
+  {
+    //  Create table for i-th read
+    buzzvm_pusht(vm);
+    tProxRead = buzzvm_stack_at(vm, 1);
+    buzzvm_pop(vm);
+    //  Fill in the read
+    buzzvm_push(vm, tProxRead);
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "value", 0));
+    buzzvm_pushf(vm, obst[i + 1]);
+    buzzvm_tput(vm);
+    buzzvm_push(vm, tProxRead);
+    buzzvm_pushs(vm, buzzvm_string_register(vm, "angle", 0));
+    angle = (7 - i)*0.785398;
+    buzzvm_pushf(vm, angle);
+    buzzvm_tput(vm);
+    //  Store read table in the proximity table
+    buzzvm_push(vm, tProxTable);
+    buzzvm_pushi(vm, i);
+    buzzvm_push(vm, tProxRead);
+    buzzvm_tput(vm);
+  }
   return vm->state;
 }
 

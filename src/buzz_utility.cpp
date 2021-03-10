@@ -497,7 +497,8 @@ void update_sensors()
   // Update sensors
   buzzuav_closures::buzzuav_update_battery(VM);
   buzzuav_closures::buzzuav_update_xbee_status(VM);
-  buzzuav_closures::buzzuav_update_prox(VM);
+  buzzuav_closures::buzzuav_update_kh4prox(VM);
+  // buzzuav_closures::buzzuav_update_prox(VM);
   buzzuav_closures::buzzuav_update_currentpos(VM);
   buzzuav_closures::update_neighbors(VM);
   buzzuav_closures::buzzuav_update_flight_status(VM);
