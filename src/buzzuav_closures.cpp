@@ -1659,7 +1659,8 @@ int buzzuav_update_kh4prox(buzzvm_t vm){
     //  Fill in the read
     buzzvm_push(vm, tProxRead);
     buzzvm_pushs(vm, buzzvm_string_register(vm, "value", 0));
-    buzzvm_pushf(vm, obst[i + 1]);
+    buzzvm_pushf(vm, obst[i]);
+    obst[i]=0.0;
     buzzvm_tput(vm);
     buzzvm_push(vm, tProxRead);
     buzzvm_pushs(vm, buzzvm_string_register(vm, "angle", 0));
