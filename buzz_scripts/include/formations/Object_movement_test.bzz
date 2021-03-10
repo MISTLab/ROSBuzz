@@ -40,7 +40,7 @@ MAX_VEL = 5 #cm/step
 math.PI=3.14
 MAX_TIME_TO_FORGET=10
 TIME_TO_SHAPING_LOOSE = 50
-SAFETY_DISTANCE = 30
+SAFETY_DISTANCE = 50
 MAX_TARGET_DIST = 0.5 # this is in meters
 
 
@@ -81,6 +81,10 @@ Rigid_nei = {}
 Yeilding_for={}
 time_since_yeild=0
 structuring_time=0
+
+# Global test path. 
+GLOBAL_TEST_PATH={.1={.x=-1.408,.y=0.0}, .2={.x=-2.0,.y=-1.0}, .3={.x=-3.5,.y=-1.0}}
+TEST_PATH_PTR=1
 
 # Dog's store the error of its sheep neig in this table | Sheeps store the dogs in its neig
 # Used to check if a (neighboring) robot is a dog or sheep
@@ -448,7 +452,7 @@ function hierarchical_step(){
 						goto(safety_vec.x,safety_vec.y)
 					}
 					else{
-						goto(Accum.x*5,Accum.y*5)
+						goto(Accum.x*10,Accum.y*10)
 					}
 					neighbors.broadcast("E",(Old_error - Accum.error))
 					Old_error = Accum.error
@@ -776,7 +780,7 @@ function hierarchical_step(){
 				if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
 				if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
 				if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
-				if(density_stig.get("R") != 80) density_stig.put("R", 80)
+				if(density_stig.get("R") != 150) density_stig.put("R", 150)
 				if(density_stig.get("P") != 1) density_stig.put("P", 1)
 
 				shaping_time = shaping_time + 1
@@ -797,7 +801,7 @@ function hierarchical_step(){
 				Center_of_mass.x=nei_center_of_mass_vec.x
 				Center_of_mass.y=nei_center_of_mass_vec.y
 
-				if(math.vec2.length(nei_center_of_mass_vec) < 100){
+				if(math.vec2.length(nei_center_of_mass_vec) < 150){
 					# Find the current path tracking point. 
 					var path_tracking_point=GLOBAL_TEST_PATH[TEST_PATH_PTR]
 					var m_target = math.vec2.sub(path_tracking_point, pose.position)					
