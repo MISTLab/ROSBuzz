@@ -1,0 +1,10 @@
+# Request the planner to querry the ESDF and return the navigation tube points.
+Header header
+
+
+# The path used to compute the navigation tube. 
+geometry_msgs/Pose[] path
+-------
+
+# Return the computed tube based on the map.
+geometry_msgs/Pose[] tube

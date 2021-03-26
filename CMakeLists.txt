@@ -34,6 +34,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   mavros_msgs
   sensor_msgs
+  geometry_msgs
   nav_msgs
   message_generation
 )
@@ -59,6 +60,11 @@ endif()
 
 ##############################
 ##############################
+add_service_files(
+  DIRECTORY msg/srv
+  FILES
+  navigation_tube.srv
+)
 
 add_message_files(
  FILES
