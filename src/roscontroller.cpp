@@ -1074,8 +1074,7 @@ script
     }
       break;
 
-    case SET_GUIDED_SUBMODE_STANDARD:{
-      // setting the enum to a random one :-(, no sutable alternative available.
+    case EXPLORE:{
       if(!planner_service_called){
         ROS_INFO("[ROSBuzz ]Setting the robot to exploration mode --------------");
         std_srvs::Trigger srv;
@@ -1660,6 +1659,12 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
       rc_cmd = CMD_SYNC_CLOCK;
       buzzuav_closures::rc_call(rc_cmd);
       ROS_INFO("<---------------- Time Sync requested ----------->");
+      res.success = true;
+      break;
+    case RADIATION_DETECTED:
+      rc_cmd = RADIATION_DETECTED;
+      buzzuav_closures::rc_call(rc_cmd);
+      ROS_INFO("[ROSBuzz ]<---------------- RADIATION Detected ----------->");
       res.success = true;
       break;
     default:

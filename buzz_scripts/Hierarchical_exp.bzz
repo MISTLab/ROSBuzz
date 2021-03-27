@@ -27,6 +27,7 @@ EXPLORER = 1
 # Global variables
 init_motion = 0 # Varible to determine if initialization is done.
 radiation_source_located = 0
+homing_complete = 0
 
 # Constants
 GOTODIST_TOL = 0.1
@@ -72,9 +73,9 @@ function step() {
 	else if(BVMSTATE=="EXPLORE"){
 		statef=explore
 	}
-	else if(BVMSTATE=="RETURN_TO_BASE"){
-		statef=return_to_base
-	}
+	# else if(BVMSTATE=="RETURN_TO_BASE"){
+	# 	statef=return_to_base
+	# }
     else if(BVMSTATE=="HIRACHIAL_BEHAVIORS"){
         statef=hierarchical_step		
     }
@@ -157,7 +158,19 @@ function explore(){
 				# Hand over the movement control to exploration stack and monitor.
 				do_exploration()
 				# Scan for radiation.
-				# scan_for_radiation_source()
+				if(flight.rc_cmd == 911){
+					flight.rc_cmd = 0
+					radiation_source_located = 1
+				}
+				if(radiation_source_located == 1){
+					# return to base or Home
+					# Tell exploration planner to home.
+					# TODO: STILL PATH needs to be populated in the BVM with the navigation tube.
+					do_homing()
+					if(homing_complete == 1){
+						# 
+					}
+				}
 			}
 		}
 	}
@@ -182,7 +195,12 @@ function rc_cmd_listen() {
 			BVMSTATE = "STOP"
 			neighbors.broadcast("cmd", 21)
 		} 
-	} 
+	} else if(BVMSTATE == "EXPLORE"){
+		if(flight.rc_cmd == 888){
+			BVMSTATE = "HIRACHIAL_BEHAVIORS"
+			neighbors.broadcast("cmd",888)
+		}
+	}
 }
 
 # listens to neighbors broadcasting commands

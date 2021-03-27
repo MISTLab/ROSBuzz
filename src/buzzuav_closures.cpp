@@ -1047,7 +1047,7 @@ int buzzuav_takepicture(buzzvm_t vm)
 int buzzuav_do_exploration(buzzvm_t vm)
 
 {
-  buzz_cmd = SET_GUIDED_SUBMODE_STANDARD;
+  buzz_cmd = EXPLORE;
   return buzzvm_ret0(vm);
 }
 
