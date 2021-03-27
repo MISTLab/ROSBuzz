@@ -24,3 +24,5 @@ const short NAV_RETURN_TO_LAUNCH = mavros_msgs::CommandCode::NAV_RETURN_TO_LAUNC
 const short NAV_WAYPOINT = mavros_msgs::CommandCode::NAV_WAYPOINT;
 const short CMD_REQUEST_UPDATE = 666;
 const short CMD_SYNC_CLOCK = 777;
+const short SET_GUIDED_SUBMODE_STANDARD = mavros_msgs::CommandCode::SET_GUIDED_SUBMODE_STANDARD;
+const short START_RX_PAIR = mavros_msgs::CommandCode::START_RX_PAIR;

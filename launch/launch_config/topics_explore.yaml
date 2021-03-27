@@ -1,0 +1,27 @@
+topics:
+  gps     :   global_position/global
+  battery :   battery
+  status  :   state
+  estatus :   extended_state
+  setpoint:   setpoint_position/local
+  localpos: local_position/pose
+  altitude: global_position/rel_alt
+  obstacles: obstacles
+  inpayload:  inMavlink
+  outpayload: outMavlink
+  gridn  : grid
+  path   : path
+  bstate : bvmstate
+  npose  : neighbours_pos
+  fstatus: fleet_status
+  targetf: targets_found
+  yolobox: intermediator_ros/bounding_boxes
+services:
+  fcclient:   cmd/command
+  armclient:  cmd/arming
+  modeclient: set_mode
+  stream:  set_stream_rate
+  rcservice:  buzzcmd
+  netstatus:  network_status
+  explore_planner: /planner_control_interface/std_srvs/automatic_planning
+  explore_control: /kh4/explore_control

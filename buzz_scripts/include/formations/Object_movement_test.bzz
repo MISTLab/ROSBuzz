@@ -42,6 +42,7 @@ MAX_TIME_TO_FORGET=10
 TIME_TO_SHAPING_LOOSE = 50
 SAFETY_DISTANCE = 50
 MAX_TARGET_DIST = 0.5 # this is in meters
+PROXMITY_NORMALIZATION_VAL=1024
 
 
 
@@ -398,20 +399,24 @@ function hierarchical_step(){
 					var obstacle_accum = {}
 					obstacle_accum.x = 0.0
 					obstacle_accum.y = 0.0
+					obstacle_accum.cnt = 0
 					var i = 0
 					var max_prox = 0
 
 					# Check if an obstacle is detected.
 					while(i < size(proximity)) {
-						if(proximity[i].value > max_prox){
-							max_prox = proximity[i].value
+						if(proximity[i].value/PROXMITY_NORMALIZATION_VAL > 0.2 and i > 5 and i < 3){
+							if(proximity[i].value/PROXMITY_NORMALIZATION_VAL > max_prox){
+								max_prox = proximity[i].value/PROXMITY_NORMALIZATION_VAL
+							}
+							obstacle_accum.x = obstacle_accum.x + (proximity[i].value/PROXMITY_NORMALIZATION_VAL) * math.cos(proximity[i].angle)
+							obstacle_accum.y = obstacle_accum.y + (proximity[i].value/PROXMITY_NORMALIZATION_VAL) * math.sin(proximity[i].angle)
+							obstacle_accum.cnt = obstacle_accum.cnt +1
 						}
-						obstacle_accum.x = obstacle_accum.x + proximity[i].value * math.cos(proximity[i].angle)
-						obstacle_accum.y = obstacle_accum.y + proximity[i].value * math.sin(proximity[i].angle)
 						i = i + 1
 					}
-					obstacle_accum.x = obstacle_accum.x / size(proximity)
-					obstacle_accum.y = obstacle_accum.y / size(proximity)
+					obstacle_accum.x = obstacle_accum.x / obstacle_accum.cnt
+					obstacle_accum.y = obstacle_accum.y / obstacle_accum.cnt
 					var length_prox = math.sqrt(obstacle_accum.x * obstacle_accum.x + obstacle_accum.y * obstacle_accum.y)
 					var obs_ang = math.atan(obstacle_accum.y, obstacle_accum.x)
 

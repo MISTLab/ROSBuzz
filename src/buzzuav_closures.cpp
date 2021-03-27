@@ -1041,6 +1041,27 @@ int buzzuav_takepicture(buzzvm_t vm)
   return buzzvm_ret0(vm);
 }
 
+/*
+/ Buzz closure to do exploration.
+/----------------------------------------*/
+int buzzuav_do_exploration(buzzvm_t vm)
+
+{
+  buzz_cmd = SET_GUIDED_SUBMODE_STANDARD;
+  return buzzvm_ret0(vm);
+}
+
+/*
+/ Buzz closure to take back control from planner.
+/----------------------------------------*/
+int buzzuav_take_back_control(buzzvm_t vm)
+
+{
+  buzz_cmd = START_RX_PAIR;
+  return buzzvm_ret0(vm);
+}
+
+
 int buzzuav_setgimbal(buzzvm_t vm)
 /*
 / Buzz closure to change locally the gimbal orientation

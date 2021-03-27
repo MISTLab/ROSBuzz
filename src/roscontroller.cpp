@@ -475,6 +475,17 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     ROS_ERROR("Provide a network status service name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
+  // Exploration service ( Optional ).
+  if(node_handle.getParam("services/explore_planner", topic))
+  {
+    planner_client_start_planner = n_c.serviceClient<std_srvs::Trigger>(topic);
+  }
+
+  if(node_handle.getParam("services/explore_control", topic))
+  {
+    explore_client_control = n_c.serviceClient<rosbuzz::bool_srv>(topic);
+  }
+
   if (node_handle.getParam("topics/outpayload", topic))
     payload_pub = n_c.advertise<mavros_msgs::Mavlink>(topic, 5);
   else
@@ -936,7 +947,7 @@ script
   float* gimbal;
   switch (buzzuav_closures::bzz_cmd())
   {
-    case NAV_TAKEOFF:
+    case NAV_TAKEOFF: {
       goto_pos = buzzuav_closures::getgoto();
       goto_pos[0] = 0.0;
       goto_pos[1] = 0.0;
@@ -971,9 +982,11 @@ script
         else
           ROS_ERROR("Failed to call service from flight controller");
       }
+    }
       break;
 
     case NAV_LAND:
+    {
       cmd_srv.request.param5 = cur_pos.latitude;
       cmd_srv.request.param6 = cur_pos.longitude;
       cmd_srv.request.param7 = 0.0;
@@ -998,9 +1011,10 @@ script
         ROS_ERROR("Failed to call service from flight controller");
       }
       armstate = 0;
+    }
       break;
 
-    case NAV_RETURN_TO_LAUNCH:  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
+    case NAV_RETURN_TO_LAUNCH: {  // TODO: NOT FULLY IMPLEMENTED/TESTED !!!
       cmd_srv.request.param5 = home.latitude;
       cmd_srv.request.param6 = home.longitude;
       cmd_srv.request.param7 = home.altitude;
@@ -1011,9 +1025,10 @@ script
       }
       else
         ROS_ERROR("Failed to call service from flight controller");
+    }
       break;
 
-    case COMPONENT_ARM_DISARM:
+    case COMPONENT_ARM_DISARM:{
       if (!armstate)
       {
         if (setmode)
@@ -1021,9 +1036,10 @@ script
         armstate = 1;
         Arm();
       }
+    }
       break;
 
-    case COMPONENT_ARM_DISARM + 1:
+    case COMPONENT_ARM_DISARM + 1:{
       if (armstate)
       {
         if (setmode)
@@ -1031,16 +1047,18 @@ script
         armstate = 0;
         Arm();
       }
+    }
       break;
 
-    case NAV_SPLINE_WAYPOINT:
+    case NAV_SPLINE_WAYPOINT:{
       //ROS_INFO("GOT moveto command : %f, %f, %f ",goto_pos[0], goto_pos[1], goto_pos[2]);
       goto_pos = buzzuav_closures::getgoto();
       if (setmode)
         SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
+    }
       break;
 
-    case DO_MOUNT_CONTROL:
+    case DO_MOUNT_CONTROL:{
       gimbal = buzzuav_closures::getgimbal();
       cmd_srv.request.param1 = gimbal[0];
       cmd_srv.request.param2 = gimbal[1];
@@ -1053,9 +1071,45 @@ script
       }
       else
         ROS_ERROR("Failed to call service from flight controller");
+    }
       break;
 
-    case IMAGE_START_CAPTURE:
+    case SET_GUIDED_SUBMODE_STANDARD:{
+      // setting the enum to a random one :-(, no sutable alternative available.
+      if(!planner_service_called){
+        ROS_INFO("[ROSBuzz ]Setting the robot to exploration mode --------------");
+        std_srvs::Trigger srv;
+        if (planner_client_start_planner.call(srv)) {
+          // planner was set to planning mode. Give the planner the access to control by informing the robot controller.
+          rosbuzz::bool_srv bsrv;
+          bsrv.request.in=true;
+          if(!explore_client_control.call(bsrv)){
+            ROS_ERROR("ROSBUZZ failed to give control to planner, Service call failed: %s",
+                    explore_client_control.getService().c_str());
+          }
+        }
+        else{
+          ROS_ERROR("[ROSBUZZ] Service call failed: %s",
+                    planner_client_start_planner.getService().c_str());
+        }
+      }
+      else{
+        ;
+      }
+    }
+      break;
+      
+    case START_RX_PAIR: { //take back control on ROSBUZZ!
+      rosbuzz::bool_srv ssrv;
+      ssrv.request.in=false;
+      if(!explore_client_control.call(ssrv)){
+        ROS_ERROR("ROSBUZZ failed to take back control from planner, Service call failed: %s",
+                explore_client_control.getService().c_str());
+      }
+    }
+      break;
+
+    case IMAGE_START_CAPTURE:{
       ROS_INFO("TAKING A PICTURE HERE!! --------------");
       mavros_msgs::CommandBool capture_command;
       if (capture_srv.call(capture_command))
@@ -1064,6 +1118,12 @@ script
       }
       else
         ROS_ERROR("Failed to call service from camera streamer");
+    }
+      break;
+
+    default:{
+      ROS_ERROR("[ROSBuzz] buzz_cmd----> Received unregistered command: ");
+    }
       break;
   }
 }

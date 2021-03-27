@@ -17,8 +17,20 @@ include "formations/forward_test.bzz"
 # 3 -> indoor wheeled vehicle
 V_TYPE = 3
 
-# Global variables
+# ROBOT TYPES BASED ON SPECILIZATION
+# SHEEP = 0
+# DOG = 1
 
+# Explorer robot
+EXPLORER = 1
+
+# Global variables
+init_motion = 0 # Varible to determine if initialization is done.
+radiation_source_located = 0
+
+# Constants
+GOTODIST_TOL = 0.1
+GOTO_MAXVEL = 2 #m/s 
 
 # Executed once at init time.
 function init() {	
@@ -39,7 +51,14 @@ function step() {
 	rc_cmd_listen()
 
 	#
-	# State machine
+	# Top level State machine for Radiation cleanup experiment.
+	# States: 
+	# 1. TURNEDOFF -> the robot does nothing, it ideals
+	# 2. STOP -> A state to transition to turnedoff.
+	# 3. LAUNCH -> Entry state that performs initlization for the robot to transition to the subsequent states.
+	# 4. EXPLORE -> Explores the environment until a target is detected. 
+	# 5. RETURN_TO_BASE -> Returns to base to dump the map and receive further directives.
+	# 6. HIRACHIAL_BEHAVIORS -> Uses hirarchial control to perfrom a mission. 
 	#
 	if(BVMSTATE=="TURNEDOFF"){
 		statef=turnedoff
@@ -50,15 +69,22 @@ function step() {
 	else if(BVMSTATE=="LAUNCH"){ # ends on AUTO_LAUNCH_STATE
 		statef=launch
 	}
-    # else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
-    #     statef=circling_experiment		
-    # }
-    else if(BVMSTATE=="FORMATION_MOVEMENT"){
+	else if(BVMSTATE=="EXPLORE"){
+		statef=explore
+	}
+	else if(BVMSTATE=="RETURN_TO_BASE"){
+		statef=return_to_base
+	}
+    else if(BVMSTATE=="HIRACHIAL_BEHAVIORS"){
         statef=hierarchical_step		
     }
     else if(BVMSTATE == "FORWARD_TEST"){
     	statef=forward_test
     }
+    # else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
+    #     statef=circling_experiment		
+    # }
+
 	statef()
 
 	#log("Current state: ", BVMSTATE)
@@ -72,7 +98,7 @@ function reset() {
 function destroy() {
 }
 
-# An extract of Core States 
+# Implementation of Core States 
 # Core state function to launch the robot: takeoff and wait for others, or stop (land)
 function launch() {
 	BVMSTATE = "LAUNCH"
@@ -103,6 +129,46 @@ function turnedoff() {
     BVMSTATE = "TURNEDOFF"
 }
 
+# Core state to explore and map the environment. 
+function explore(){
+	BVMSTATE ="EXPLORE"
+	if(ROLE == DOG){
+		# Coordinate the exploration with other robots. 
+		if(id == EXPLORER){
+			# Perform the initialization motion to determine the exploration direction. 
+			if(init_motion == 0){
+				# forward motion of 2 meters 
+				var vec_to_target = math.vec2.new(2,0)
+				var local_vec = math.vec2.sub(vec_to_target,pose.position)
+				local_vec = math.vec2.rotate(local_vec, -pose.orientation.yaw)
+				if(math.vec2.length(local_vec) < GOTODIST_TOL){
+					# cvt to cms
+					local_vec = math.vec2.scale(local_vec,100)
+					# Limit speed
+					local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
+					goto(local_vec.x,local_vec.y)
+				}
+				else{
+					# init motion complete
+					init_motion = 1
+				}
+			}
+			else{
+				# Hand over the movement control to exploration stack and monitor.
+				do_exploration()
+				# Scan for radiation.
+				# scan_for_radiation_source()
+			}
+		}
+	}
+	else{
+		# just ideal, if you are not capable of exploring.
+
+	}
+}
+
+
+# function to handle rc commands.
 function rc_cmd_listen() {
 	if(BVMSTATE=="TURNEDOFF") {
 		if(flight.rc_cmd==22) {	#TAKEOFF\LAUNCH
@@ -116,7 +182,7 @@ function rc_cmd_listen() {
 			BVMSTATE = "STOP"
 			neighbors.broadcast("cmd", 21)
 		} 
-	}
+	} 
 }
 
 # listens to neighbors broadcasting commands

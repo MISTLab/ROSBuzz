@@ -252,6 +252,16 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "geofence", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_geofence));
   buzzvm_gstore(VM);
+  // Exploration based hooks
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "do_exploration", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_do_exploration));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "take_back_control", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_take_back_control));
+  buzzvm_gstore(VM);
+
+  
+
   #if OMPL_FOUND
   buzzvm_pushs(VM, buzzvm_string_register(VM, "InitializePathPlanner", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::C_InitializePathPlanner));

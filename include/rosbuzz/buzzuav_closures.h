@@ -233,6 +233,17 @@ int buzzuav_gohome(buzzvm_t vm);
 int buzzuav_geofence(buzzvm_t vm);
 
 /*
+ * Triggers the exploration planner for exploration 
+ */
+int buzzuav_do_exploration(buzzvm_t vm);
+
+/*
+ * Take back control from the planner
+ */
+int buzzuav_take_back_control(buzzvm_t vm);
+
+
+/*
  * Updates battery information in Buzz
  */
 int buzzuav_update_battery(buzzvm_t vm);

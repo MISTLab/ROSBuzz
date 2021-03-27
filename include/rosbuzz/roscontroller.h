@@ -25,6 +25,8 @@
 #include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/Float64.h"
 #include "std_msgs/String.h"
+#include "rosbuzz/bool_srv.h"
+#include <std_srvs/Trigger.h>
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
 #include <sstream>
@@ -156,6 +158,7 @@ private:
   bool BClpose = false;
   int pose_type = 0;
   int pose_received = 0;
+  bool planner_service_called=false;
   std::string bzzfile_name, WPfile;
   std::string bcfname, dbgfname;
   std::string stand_by;
@@ -167,6 +170,8 @@ private:
   ros::ServiceClient xbeestatus_srv;
   ros::ServiceClient capture_srv;
   ros::ServiceClient stream_client;
+  ros::ServiceClient planner_client_start_planner;
+  ros::ServiceClient explore_client_control;
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
   ros::Publisher targetf_pub;

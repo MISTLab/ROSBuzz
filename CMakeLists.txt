@@ -64,6 +64,7 @@ add_service_files(
   DIRECTORY msg/srv
   FILES
   navigation_tube.srv
+  bool_srv.srv
 )
 
 add_message_files(
