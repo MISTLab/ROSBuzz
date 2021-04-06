@@ -5,6 +5,7 @@ function load_target(){
 				.density=75,
 				.strength=100,
 				.shaping_inter_dog_dist=80,
+				.dog_dist=60,
 				.dogs_max_inter_ang = math.pi/8,
 				# dumbel shape
 				# .shape_angle={.1=0,.2=0.349066,.3=3.14159,.4=-2.792524},
@@ -12,7 +13,7 @@ function load_target(){
 				# .shape_angle={.1=0,.2=1.5708,.3=3.14159,.4=-1.5708},
 				# # Distance to move (inward), in shaping the sheep
 				# .shape_distance={.1=2.5,.2=2.5,.3=2.5,.4=2.5},
-				.shape_angle={.2=math.pi,.1=0},
+				.shape_angle={.1=math.pi,.2=0.0},
 				.pre_shape_dist=70,
 				# Distance to move (inward), in shaping the sheep
 				.movement_tension={.1=390,.2=390},

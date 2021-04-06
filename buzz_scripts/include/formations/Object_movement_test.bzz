@@ -807,7 +807,7 @@ function hierarchical_step(){
 				var move_vec = compute_edge_following_vector()
 				var sheep_center_vec = math.vec2.sub(pose.position,c_target.sheep_location)
 				var sheep_cluster_angle=math.vec2.angle(sheep_center_vec)
-				# debug.print(" Edge following !! (",move_vec.x,",",move_vec.y,") my ang to sheep: ", sheep_cluster_angle,"size last seen ",size(last_seen_edge))
+				print(" Edge following !! (",move_vec.x,",",move_vec.y,") my ang to sheep: ", sheep_cluster_angle,"size last seen ",size(last_seen_edge))
 				if(math.abs(sheep_cluster_angle - c_target.shape_angle[shape_task_num]) < ANGLE_TOLERENCE){
 						shaping_time = 3 
 						task_stig.put(id,PRE_SHAPE_MOVE)
