@@ -1120,10 +1120,6 @@ script
     }
       break;
 
-    default:{
-      ROS_ERROR("[ROSBuzz] buzz_cmd----> Received unregistered command: ");
-    }
-      break;
   }
 }
 
@@ -1363,7 +1359,7 @@ void roscontroller::SetLocalPosition(float x, float y, float z, float yaw)
   moveMsg.header.frame_id = 1;
 
   //  DEBUG
-  ROS_INFO("Lp: %.7f, %.7f - Del: %.7f, %.7f, %.7f", cur_pos.x, cur_pos.y, x, y, yaw);
+  //ROS_INFO("Lp: %.7f, %.7f - Del: %.7f, %.7f, %.7f", cur_pos.x, cur_pos.y, x, y, yaw);
   if(pose_type == LOCAL_POSE){
     moveMsg.pose.position.x = x;
     moveMsg.pose.position.y = y;

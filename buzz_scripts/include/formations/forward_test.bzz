@@ -2,7 +2,8 @@ target_pos = nil
 
 function forward_test(){
 	if(isnil(target_pos)){
-		target_pos = {.x = pose.position.x+10, .y = pose.position.y}
+		#target_pos = {.x = pose.position.x+10, .y = pose.position.y}
+		target_pos = {.x = 0.24, .y = 0.25}
 	}
 	else{
 		var l_tar=math.vec2.sub(target_pos,pose.position)

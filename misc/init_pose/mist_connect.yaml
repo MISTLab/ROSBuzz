@@ -7,8 +7,8 @@ R1:
   pose_y: 0.0
   ori_theta: 0.0 
 R2:
-  pose_x: 0.0
-  pose_y: 0.0
+  pose_x: -1.408
+  pose_y: 1.0
   ori_theta: 0.0
 R3:
   pose_x: 0.4845

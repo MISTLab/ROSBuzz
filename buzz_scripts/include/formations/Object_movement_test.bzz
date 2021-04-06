@@ -70,7 +70,7 @@ CUBIC_K = 1.0/1000.0
 
 # Global variable
 Mode = NONE
-Accum = {.x=0,.y=0, .error =0}
+Accum ={.x=0,.y=0, .error=0, .cnt=0, .dogs_x=0, . dogs_y=0}
 Old_error=0
 # Desired_dist = 50;  # Desired inter-robot distance for sheep
 track_dist=20
@@ -140,7 +140,7 @@ function hierarchical_init() {
   	})
   	epsilon_stig = stigmergy.create(5)
 	load_target()
-	if(id < 2){
+	if(id <= 2){
         print("I am dog ", id)
 		ROLE=DOG
 		Mode=TASK_ALLOCATION
@@ -210,7 +210,7 @@ function hierarchical_step(){
 				field_of_view = field_of_view+track_dist
 				print("Mode ", m_mode)
 				var dog_rective_field=density_stig.get("R")
-				var safety_vec = math.vec2.new(0.0,0.0)
+				var safety_vec = {.x=0, .y=0, .cnt=0}
 				var dog_weight=0.9
 				# We allow bond breakage and formation in loose
 				if(Mode == LOOSE){
@@ -299,7 +299,7 @@ function hierarchical_step(){
 					}
 					else{
 					# debug.print(" ERROR :", math.abs(Old_error - Accum.error), " cur ", Accum.error," Pre ", Old_error , " Stig size : ", mode_stig.size(), " time ", time )
-						print("goto (",Accum.x,",",Accum.y,")")
+						#print("goto (",Accum.x,",",Accum.y,")")
 						goto(Accum.x,Accum.y)
 					}
 					neighbors.broadcast("E",(Old_error - Accum.error))
@@ -641,7 +641,7 @@ function hierarchical_step(){
 		# debug.print("Dog state: ", Mode, " shaping_time ", shaping_time, " size ", bidding_stig.size()," time ",  time, " nei ",neighbors.count())
 		var c_target = target[0]
 		# Step 1 Bidding/distributing tasks
-		print("Density stig ",density_stig.get("M"))
+		#print("Density stig ",density_stig.get("M"))
 		if(Mode == TASK_ALLOCATION){
 			if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
 			if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
@@ -694,7 +694,7 @@ function hierarchical_step(){
 					Mode = SHAPE_GOAL
 					Old_error=0
 					shaping_time = 0
-					# log("$$$$$[", id,"] I won task ", shape_task_num)
+					log("$$$$$[", id,"] I won task ", shape_task_num)
 				}
 				else{
 					# If there are more tasks then go for the next task. # TODO Change allocation source/variable
@@ -791,6 +791,7 @@ function hierarchical_step(){
 				    	goto(0.0,0.0)
 				    }
 				    else{
+					    #goto(m_target.x,m_target.y)
 					    goto(((5*m_target.x)+Accum.x)*100,((5*m_target.y)+Accum.y)*100)
 					}
 				    # debug.print("Shaping: task ",shape_task_num)
@@ -836,7 +837,7 @@ function hierarchical_step(){
 						} 
 					}
 				})
-				if(number_below_preshape.val < 2 and stopping.val == 0){
+				if(number_below_preshape.val < 1 and stopping.val == 0){
 					# debug.print("DOG Moving Dist: ", math.vec2.length(m_target))
 					if(math.vec2.length(m_target) > 0) m_target = math.vec2.scale(m_target,1/math.vec2.length(m_target))
 					# goto(2,0)
@@ -1262,7 +1263,9 @@ function compute_edge_following_vector(){
 	})
 	table.sort(neig_vec, neig_comp_fun)
 	var tangent_scale=1
-
+	if(isnil(neig_vec[0])){
+		return math.vec2.new(0.0,0.0)
+        }
 	# Compute a tangent to the first smallest robot, second smallest robot seems too far away. 
 	first_nei=neighbors.get(neig_vec[0].id)
 	neig_to_pivot = math.vec2.newp(first_nei.distance, first_nei.azimuth)
