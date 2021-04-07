@@ -32,6 +32,9 @@ function startrobot {
 function stoprobot {
 	sudo service dji stop
 }
+function printlog {
+        sudo journalctl -u dji.service -n 50
+}
 function updaterobot {
 	rosrun robot_upstart uninstall dji
 	if [ "$1" = 0 ] && [ "$2" = "X" ]
@@ -79,6 +82,16 @@ function updaterobot {
 	  echo "Installing launch file for Solo"
 	  echo "With heavenmav"
 	  rosrun robot_upstart install --logdir /media/key/ROS_WS/log/ dji_sdk_mistlab/launch_robot/soloHeaven.launch
+	elif [ "$1" = 0 ] && [ "$2" = "B" ]
+        then
+          echo "Installing launch file for kh4 TX1"
+          echo "With Batman"
+          rosrun robot_upstart install --job dji dji_sdk_mistlab/launch_robot/kh4.launch
+	elif [ "$1" = 1 ] && [ "$2" = "B" ]
+        then
+          echo "Installing launch file for kh4 TX2"
+          echo "With Batman"
+          rosrun robot_upstart install --job dji dji_sdk_mistlab/launch_robot/kh4_tx2.launch
 	else
 	  echo "Wrong arguments!"
 	fi

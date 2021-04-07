@@ -710,11 +710,11 @@ function hierarchical_step(){
 			}
 		}
 		else if(Mode == SHAPE_GOAL){
-			log("Transition of dog ", id, " to ", Mode)
+			log("dog m", Mode)
 			# debug.print("SHAPE GOAL ASSIGNED: GOAL ", shape_task_num)
             # shaping_time substate: #TODO Separate from any neighbors to be able to safely prepare moving
 			if(not shaping_time){
-                log("Transition of dog ", id, " to submode", shaping_time)
+                                log("dog to s-m", shaping_time)
 				Accum ={.x=0,.y=0, .error=0}
 				neighbors.foreach(
 					function(rid, data){
@@ -735,7 +735,7 @@ function hierarchical_step(){
 					}
 				)
 			    goto(Accum.x,Accum.y)
-			    print("goto ", Accum.x," , ", Accum.y, " Shape time ", shaping_time, " error ", math.abs(Old_error - Accum.error))
+			    #print("goto ", Accum.x," , ", Accum.y, " Shape time ", shaping_time, " error ", math.abs(Old_error - Accum.error))
 			    if(math.abs(Old_error - Accum.error) < CHANGE_ERROR_TOL){
 			    	shaping_time = 1
 			    	# debug.trajectory.enable(10000,0,id-50,255)
@@ -744,7 +744,8 @@ function hierarchical_step(){
 			}
             # shaping_time substate: Localizing sheep and approaching them. Also separate from any neighbors to be able to safely move
 			else if(shaping_time == 1){
-                log("Transition of dog ", id, " to submode", shaping_time)
+	                        log("dog to s-m", shaping_time)
+                
 				# var dis_to_sheeps= math.vec2.dis(target[0].sheep_location, pose.position)*100
 				# # If you see the sheeps are too far away then get closer.
 				# if(dis_to_sheeps > target[0].sheep_cluster_size){
@@ -768,7 +769,7 @@ function hierarchical_step(){
 						        Accum.x = Accum.x + pot_vec.x
 						        Accum.y = Accum.y + pot_vec.y
 								Accum.cnt= Accum.cnt +1
-								log("[",id,"] -> ",rid," Accum : (", Accum.x,",",Accum.y,") Error", error, " dist ", data.distance)
+								#log("[",id,"] -> ",rid," Accum : (", Accum.x,",",Accum.y,") Error", error, " dist ", data.distance)
 							}
 
 							if( (Collective_nei_error_table[rid] != nil or dog_waiting_to_shape == REACHED) and data.distance < Edge_following_dist){
@@ -807,7 +808,7 @@ function hierarchical_step(){
 				var move_vec = compute_edge_following_vector()
 				var sheep_center_vec = math.vec2.sub(pose.position,c_target.sheep_location)
 				var sheep_cluster_angle=math.vec2.angle(sheep_center_vec)
-				print(" Edge following !! (",move_vec.x,",",move_vec.y,") my ang to sheep: ", sheep_cluster_angle,"size last seen ",size(last_seen_edge))
+				#print(" Edge following !! (",move_vec.x,",",move_vec.y,") my ang to sheep: ", sheep_cluster_angle,"size last seen ",size(last_seen_edge))
 				if(math.abs(sheep_cluster_angle - c_target.shape_angle[shape_task_num]) < ANGLE_TOLERENCE){
 						shaping_time = 3 
 						task_stig.put(id,PRE_SHAPE_MOVE)
@@ -818,7 +819,7 @@ function hierarchical_step(){
 				
 			}
 			else if(shaping_time == 3){
-                log("Transition of dog ", id, " to submode", shaping_time)
+                                log("dog to s-m", shaping_time)
 				if(density_stig.get("R") != 70) density_stig.put("R", 70)
 				var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)	
 				m_target = math.vec2.sub(m_target,pose.position)
@@ -853,7 +854,8 @@ function hierarchical_step(){
 			}
 		}
 		else if(Mode == SHAPING){
-			log("Transition of dog ", id, " to ", Mode)
+                        log("dog to s-m", shaping_time)
+
 			# debug.print("Mode : SHAPING, Reached GOAL"," task ",shape_task_num," -> ",  c_target.shape_angle[shape_task_num], " mode ", shaping_time, " Pos (",pose.position.x,",",pose.position.y)
 			var dogs_in_position = {.val=0}
 
