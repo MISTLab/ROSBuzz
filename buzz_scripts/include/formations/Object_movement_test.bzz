@@ -87,6 +87,7 @@ time_since_yeild=0
 structuring_time=0
 applied_proximity=0
 old_prox={}
+closest_control_point={.id=-1,.dis=999999}
 
 # Global test path. 
 GLOBAL_TEST_PATH={.1={.x=-1.408,.y=0.0}, .2={.x=-2.0,.y=-1.0}, .3={.x=-3.5,.y=-1.0}}
@@ -106,6 +107,7 @@ Other_dog_infront=-1
 cm_tension = 0
 movement_tension_step=0
 control_point_id=-1
+
 
 # Variables for additional shaping section
 # DOG_NOP = -1
@@ -468,8 +470,10 @@ function hierarchical_step(){
 						        Accum.y = Accum.y + pot_vec.y
 						        Accum.cnt = Accum.cnt + 1
 							# otherwise check if dog within reactive range # NOTE Using a different potential
-							} else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
-								if(id == control_point_id){
+							} 
+							else{
+								if(id == control_point_id and closest_control_point.id == rid){
+									# log("[",id,"] aplying dog mag")
 									potential = math.vec2.length(my_vec)
 									var pot_vec = math.vec2.newp(potential, data.azimuth)
 									if(potential > 0) myVec = math.vec2.scale(pot_vec,1/potential)
@@ -477,7 +481,7 @@ function hierarchical_step(){
 									var dogpot_vec = math.vec2.newp(dogPotential, data.azimuth)
 									Accum.dogs_x = Accum.dogs_x + dogpot_vec.x
 									Accum.dogs_y = Accum.dogs_y + dogpot_vec.y
-									# debug.rays.add(255,0,0, pot_vec.x/100, pot_vec.y/100, 0.0)
+									# debug.rays.add(255,0,0, dogpot_vec.x/100, dogpot_vec.y/100, 0.0)
 								}
 							}
 						}
@@ -1531,13 +1535,16 @@ function register_listeners(){
 
 		    	# log("[",id,"]Dog broadcast!!! from ", rid, " val ", value, " reactive field ",dog_rective_field.val, "stig ", density_stig.get("R"), " dis ", dist )
 						   		
-		   		if(Collective_nei_error_table[rid] == nil and dist < dog_rective_field.val){
-
-			     	control_point_id = value
-
-		    	}
+		   		# if(Collective_nei_error_table[rid] == nil ){
+		   			if(dist < closest_control_point.dis){
+		   				# log("[",id,"]cloest val ", value)
+		   				control_point_id = value
+		   				closest_control_point.id=rid
+		   				closest_control_point.dis = dist
+		   			}	
+		    	# }
 		    }
-		) 
+		)  
 
 	}
 }
