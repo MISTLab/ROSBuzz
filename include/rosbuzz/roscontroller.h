@@ -29,6 +29,7 @@
 #include <std_srvs/Trigger.h>
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
+#include <rosbuzz/hierarchical_status.h>
 #include <sstream>
 #include <buzz/buzzasm.h>
 #include "buzz_utility.h"
@@ -178,6 +179,7 @@ private:
   ros::Publisher neigh_pos_pub;
   ros::Publisher bvmstate_pub;
   ros::Publisher grid_pub;
+  ros::Publisher hierarchical_status_pub;
   ros::Publisher path_pub;
   ros::Publisher localsetpoint_nonraw_pub;
   ros::ServiceServer service;
@@ -237,6 +239,9 @@ private:
 
   /*Path publisher*/
   void path_publisher();
+
+  /*Hierarchical Status publisher*/
+  void hierarchical_status_publisher();
 
   /*BVM message payload publisher*/
   void send_MPpayload();
