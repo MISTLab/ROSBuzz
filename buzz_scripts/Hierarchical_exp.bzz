@@ -119,6 +119,7 @@ function stop() {
   BVMSTATE = "STOP"
   if(pose.position.z <= 0.2) {
 		BVMSTATE = "TURNEDOFF"
+		goto(0.0,0.0)
 	} else{
 		uav_land()
 		neighbors.broadcast("cmd", 21)
