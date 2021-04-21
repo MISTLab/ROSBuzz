@@ -1228,13 +1228,13 @@ function hierarchical_step(){
     update_nei_errors()
    	
 	# Export status to UI
-	density = density_stig.get("D")
-	mode = density_stig.get("M")
-	field_of_view = density_stig.get("F")
-	dog_reactive_field = density_stig.get("R")
-	pull = density_stig.get("P")
+	var ui_density = density_stig.get("D")
+	var ui_mode = density_stig.get("M")
+	var ui_field_of_view = density_stig.get("F")
+	var ui_dog_reactive_field = density_stig.get("R")
+	var ui_pull = density_stig.get("P")
 	# Hooks
-	export_follower_status(density, mode, field_of_view, dog_reactive_field, pull)
+	export_follower_status(ui_density, ui_mode, ui_field_of_view, ui_dog_reactive_field, ui_pull)
 	export_guide_state(id, task_stig.get(id))
 }
 

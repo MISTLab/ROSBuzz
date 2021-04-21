@@ -825,8 +825,8 @@ void roscontroller::hierarchical_status_publisher()
   status_msg.field_of_view = status[2];
   status_msg.dog_reactive_field = status[3];
   status_msg.pull = status[4];
-  status_msg.guide_1_status = status[5];
-  status_msg.guide_2_status = status[6];
+  status_msg.guide_1_state = status[5];
+  status_msg.guide_1_state = status[6];
 
   hierarchical_status_pub.publish(status_msg);
 }
