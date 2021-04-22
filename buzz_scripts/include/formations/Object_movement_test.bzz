@@ -1227,6 +1227,15 @@ function hierarchical_step(){
     }
     update_nei_errors()
    	
+	# Export status to UI
+	var ui_density = density_stig.get("D")
+	var ui_mode = density_stig.get("M")
+	var ui_field_of_view = density_stig.get("F")
+	var ui_dog_reactive_field = density_stig.get("R")
+	var ui_pull = density_stig.get("P")
+	# Hooks
+	export_follower_status(ui_density, ui_mode, ui_field_of_view, ui_dog_reactive_field, ui_pull)
+	export_guide_state(id, task_stig.get(id))
 }
 
 function broadcast_reactor_control_point(){

@@ -243,6 +243,12 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "export_path", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzz_exportpath));
   buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "export_follower_status", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzz_exportFollowerStatus));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "export_guide_state", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzz_exportGuideState));
+  buzzvm_gstore(VM);
   buzzvm_pushs(VM, buzzvm_string_register(VM, "reset_rc", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_resetrc));
   buzzvm_gstore(VM);

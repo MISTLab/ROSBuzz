@@ -70,10 +70,12 @@ add_service_files(
 add_message_files(
  FILES
  neigh_pos.msg
+ hierarchical_status.msg
 )
 
 generate_messages(
 DEPENDENCIES
+std_msgs
 sensor_msgs
 )
 

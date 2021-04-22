@@ -107,6 +107,14 @@ int buzz_exportmap(buzzvm_t vm);
  */
 int buzz_exportpath(buzzvm_t vm);
 /*
+ * closure to export the follower status in the Hierarchical Swarm
+ */
+int buzz_exportFollowerStatus(buzzvm_t vm);
+/*
+ * closure to export the guide state in the Hierarchical Swarm
+ */
+int buzz_exportGuideState(buzzvm_t vm);
+/*
  * closure to take a picture
  */
 int buzzuav_takepicture(buzzvm_t vm);
@@ -165,6 +173,10 @@ void set_currentpos(double latitude, double longitude, float altitude, float yaw
  * returns the current go to position
  */
 double* getgoto();
+/*
+ * returns the hierarchical swarm status
+ */
+int* get_hierarchical_status();
 /*
  * returns the current grid
  */

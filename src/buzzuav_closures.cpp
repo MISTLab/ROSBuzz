@@ -19,6 +19,7 @@ static double goto_gpsgoal[3];
 static double cur_pos[4];
 static double cur_offset[2];
 static double cur_NEDpos[4];
+static int hierarchical_status[7]={-1,-1,-1,-1,-1,-1,-1};
 
 static int rc_id = -1;
 static int rc_cmd = 0;
@@ -362,6 +363,58 @@ int buzz_exportpath(buzzvm_t vm)
   // {
   //   ROS_INFO("----- Path[%i] = %i, %i", itr->first, itr->second.first, itr->second.second);
   // }
+  return buzzvm_ret0(vm);
+}
+
+int buzz_exportFollowerStatus(buzzvm_t vm)
+/*
+/ Buzz closure to export the follower status in the Hierarchical Swarm
+/---------------------------------------------------------------------*/
+{
+  buzzvm_lnum_assert(vm, 5);
+  buzzvm_lload(vm, 1);  // pull
+  buzzvm_lload(vm, 2);  // dog_reactive_field
+  buzzvm_lload(vm, 3);  // field_of_view
+  buzzvm_lload(vm, 4);  // mode
+  buzzvm_lload(vm, 5);  // density
+  buzzvm_type_assert(vm, 5, BUZZTYPE_INT);
+  buzzvm_type_assert(vm, 4, BUZZTYPE_INT);
+  buzzvm_type_assert(vm, 3, BUZZTYPE_INT);
+  buzzvm_type_assert(vm, 2, BUZZTYPE_INT);
+  buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+  hierarchical_status[0] = buzzvm_stack_at(vm, 5)->i.value;
+  hierarchical_status[1] = buzzvm_stack_at(vm, 4)->i.value;
+  hierarchical_status[2] = buzzvm_stack_at(vm, 3)->i.value;
+  hierarchical_status[3] = buzzvm_stack_at(vm, 2)->i.value;
+  hierarchical_status[4] = buzzvm_stack_at(vm, 1)->i.value;
+
+  return buzzvm_ret0(vm);
+}
+
+int buzz_exportGuideState(buzzvm_t vm)
+/*
+/ Buzz closure to export the guide state in the Hierarchical Swarm
+/---------------------------------------------------------------------*/
+{
+  // Ids of the two guide robots
+  int guide_1_id = 1;
+  int guide_2_id = 2;
+
+  buzzvm_lnum_assert(vm, 2);
+  buzzvm_lload(vm, 1);  // state
+  buzzvm_lload(vm, 2);  // id
+  buzzvm_type_assert(vm, 2, BUZZTYPE_INT);
+  buzzvm_type_assert(vm, 1, BUZZTYPE_INT);
+  int id = buzzvm_stack_at(vm, 2)->i.value;
+  int state = buzzvm_stack_at(vm, 1)->i.value;
+
+  if (id == guide_1_id)
+    hierarchical_status[5] = state;
+  else if (id == guide_2_id)
+    hierarchical_status[6] = state;
+  else
+    ROS_INFO("Unknown robot id received by guide state closure!");
+
   return buzzvm_ret0(vm);
 }
 
@@ -1205,6 +1258,14 @@ double* getgoto()
 /-------------------------------------------------------------*/
 {
   return goto_pos;
+}
+
+int* get_hierarchical_status()
+/*
+/ return the Hierarchical Swarm status
+/-------------------------------------------------------------*/
+{
+  return hierarchical_status;
 }
 
 std::map<int, std::map<int, int>> getgrid()

@@ -154,6 +154,7 @@ void roscontroller::RosControllerRun()
       state_publisher();
       grid_publisher();
       path_publisher();
+      hierarchical_status_publisher();
       send_MPpayload();
       //  Check updater state and step code
       if (update)
@@ -528,6 +529,13 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     ROS_ERROR("Provide a grid topic name in YAML file");
     system("rosnode kill rosbuzz_node");
   }
+  if (node_handle.getParam("topics/hierarchical_status", topic))
+    hierarchical_status_pub = n_c.advertise<rosbuzz::hierarchical_status>(topic, 5);
+  else
+  {
+    ROS_ERROR("Provide a hierarchical swarm status topic name in YAML file");
+    system("rosnode kill rosbuzz_node");
+  }
   if (node_handle.getParam("topics/path", topic))
     path_pub = n_c.advertise<nav_msgs::Path>(topic, 5);
   else
@@ -802,6 +810,25 @@ void roscontroller::path_publisher()
     }
     path_pub.publish(path_msg);
   }
+}
+
+void roscontroller::hierarchical_status_publisher()
+/*
+/ Publish current Hierarchical Swarm Status from Buzz script
+/-----------------------------------------------------------*/
+{
+  int* status = buzzuav_closures::get_hierarchical_status();
+
+  rosbuzz::hierarchical_status status_msg;
+  status_msg.density = status[0];
+  status_msg.mode = status[1];
+  status_msg.field_of_view = status[2];
+  status_msg.dog_reactive_field = status[3];
+  status_msg.pull = status[4];
+  status_msg.guide_1_state = status[5];
+  status_msg.guide_1_state = status[6];
+
+  hierarchical_status_pub.publish(status_msg);
 }
 
 void roscontroller::Arm()

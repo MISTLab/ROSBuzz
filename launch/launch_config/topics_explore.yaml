@@ -16,6 +16,7 @@ topics:
   fstatus: fleet_status
   targetf: targets_found
   yolobox: intermediator_ros/bounding_boxes
+  hierarchical_status: hierarchical_status
 services:
   fcclient:   cmd/command
   armclient:  cmd/arming
