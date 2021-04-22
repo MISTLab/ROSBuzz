@@ -92,6 +92,12 @@ function updaterobot {
           echo "Installing launch file for kh4 TX2"
           echo "With Batman"
           rosrun robot_upstart install --job dji dji_sdk_mistlab/launch_robot/kh4_tx2.launch
+	elif [ "$1" = 0 ] && [ "$2" = "P" ]
+        then
+          echo "Installing gbplanner launch file for kh4 TX2"
+          echo "With kh4adapter"
+          rosrun robot_upstart install --job dji gbplanner/launch/kh4_set_tx2.launch
+
 	else
 	  echo "Wrong arguments!"
 	fi
