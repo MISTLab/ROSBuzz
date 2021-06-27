@@ -21,8 +21,10 @@ V_TYPE = 3
 # SHEEP = 0
 # DOG = 1
 
-# Explorer robot
-EXPLORER = 1
+# Explorer robot (key-> ID, value -> Priority)
+EXPLORER_IDs = {.1=1, .9=2}
+EXPLORER = 0
+
 
 # Global variables
 init_motion = 0 # Varible to determine if initialization is done.
@@ -41,6 +43,10 @@ function init() {
 	# run the hierarchical movement init
 	hierarchical_init()
 
+	# Determine your role.
+	if(not (isnil(EXPLORER_IDs[id]))){
+		EXPLORER = 1
+	}
     # Starting state: TURNEDOFF to wait for user input.
 	BVMSTATE = "TURNEDOFF"
 }
@@ -58,7 +64,7 @@ function step() {
 	# 2. STOP -> A state to transition to turnedoff.
 	# 3. LAUNCH -> Entry state that performs initlization for the robot to transition to the subsequent states.
 	# 4. EXPLORE -> Explores the environment until a target is detected. 
-	# 5. RETURN_TO_BASE -> Returns to base to dump the map and receive further directives.
+	# 5. RETURN_TO_BASE -> TARGET found return to base to dump the map and pickup followers.
 	# 6. HIRACHIAL_BEHAVIORS -> Uses hirarchial control to perfrom a mission. 
 	#
 	if(BVMSTATE=="TURNEDOFF"){
@@ -73,9 +79,9 @@ function step() {
 	else if(BVMSTATE=="EXPLORE"){
 		statef=explore
 	}
-	# else if(BVMSTATE=="RETURN_TO_BASE"){
-	# 	statef=return_to_base
-	# }
+	else if(BVMSTATE=="RETURN_TO_BASE"){
+		statef=return_to_base
+	}
     else if(BVMSTATE=="HIRACHIAL_BEHAVIORS"){
         statef=hierarchical_step		
     }
@@ -141,23 +147,32 @@ function explore(){
 			if(init_motion == 0){
 				# forward motion of 2 meters 
 				var vec_to_target = math.vec2.new(2,0)
-				var local_vec = math.vec2.sub(vec_to_target,pose.position)
-				local_vec = math.vec2.rotate(local_vec, -pose.orientation.yaw)
-				if(math.vec2.length(local_vec) < GOTODIST_TOL){
-					# cvt to cms
-					local_vec = math.vec2.scale(local_vec,100)
-					# Limit speed
-					local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
-					goto(local_vec.x,local_vec.y)
-				}
-				else{
+				
+				if(not (goto_point(vec_to_target)) ){
 					# init motion complete
 					init_motion = 1
 				}
 			}
 			else{
-				# Hand over the movement control to exploration stack and monitor.
-				do_exploration()
+				# Perform local planning to maximize the environmental information and coverage.
+				if( isnil(CUR_PATH)){
+					if(call_local_planner()){
+						CUR_PATH = get_local_planner_path()
+					}
+				}
+				else{
+					var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+					if(not (goto_point(cur_wp))){
+						# WP reached
+						if(CUR_WP_IDX < size(CUR_PATH)){
+							CUR_WP_IDX = CUR_WP_IDX + 1
+						}
+						else{
+							CUR_PATH = nil
+							goto(0.0,0.0)
+						}
+					}
+				}
 				# Scan for radiation.
 				if(flight.rc_cmd == 911){
 					flight.rc_cmd = 0
@@ -218,6 +233,10 @@ function nei_cmd_listen() {
 					BVMSTATE = "STOP"
 					neighbors.broadcast("cmd", 21)
 				}
+			} else if(BVMSTATE == "EXPLORE"){
+				if(value = 999 and BVMSTATE != "RETURN_TO_BASE"){
+					BVMSTATE = "RETURN_TO_BASE"
+				}
 			}
     })
 }
@@ -235,4 +254,20 @@ function goto(x, y) {
 	norm_goto.x = 1.0/100.0 * norm_goto.x
 	norm_goto.y = 1.0/100.0 * norm_goto.y
 	goto_abs(norm_goto.x, norm_goto.y, height, 0.0)
+}
+
+function goto_point(pt){
+	var local_vec = math.vec2.sub(vec_to_target,pose.position)
+	local_vec = math.vec2.rotate(local_vec, -pose.orientation.yaw)
+	if(math.vec2.length(local_vec) < GOTODIST_TOL){
+		# cvt to cms
+		local_vec = math.vec2.scale(local_vec,100)
+		# Limit speed
+		local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
+		goto(local_vec.x,local_vec.y)
+		return 1
+	}
+	else{
+		return 0
+	}
 }
