@@ -30,10 +30,13 @@ EXPLORER = 0
 init_motion = 0 # Varible to determine if initialization is done.
 radiation_source_located = 0
 homing_complete = 0
+CUR_PATH ={}
+CUR_WP_IDX =0
 
 # Constants
 GOTODIST_TOL = 0.1
 GOTO_MAXVEL = 2 #m/s 
+
 
 # Executed once at init time.
 function init() {	
@@ -155,7 +158,7 @@ function explore(){
 			}
 			else{
 				# Perform local planning to maximize the environmental information and coverage.
-				if( isnil(CUR_PATH)){
+				if( isnil(CUR_PATH) or size(CUR_PATH) <= 0){
 					if(call_local_planner()){
 						CUR_PATH = get_local_planner_path()
 					}
@@ -169,6 +172,7 @@ function explore(){
 						}
 						else{
 							CUR_PATH = nil
+							CUR_WP_IDX=0
 							goto(0.0,0.0)
 						}
 					}

@@ -43,6 +43,8 @@ static float api_rssi = 0.0;
 static bool logVoronoi = false;
 static std::vector<bounding_box> yolo_boxes;
 
+std::vector<std::vector<float>> exploration_path;
+
 std::ofstream voronoicsv;
 
 template <typename T> int sign(T val) {
@@ -70,6 +72,59 @@ std::map<int, buzz_utility::neighbors_status> neighbors_status_map;
 std::map<int, std::map<int, int>> grid;
 std::map<int, std::pair<int, int>> path;
 float origin_x, origin_y, resolution;
+
+/*
+/ Utility function to push a table with string
+----------------------------------------------------------- */
+
+buzzvm_state TablePut_str_fval(buzzobj_t t_table,
+                               const std::string& str_key,
+                               float f_value,
+                               buzzvm_t m_tBuzzVM) {
+  buzzvm_push(m_tBuzzVM, t_table);
+  buzzvm_pushs(m_tBuzzVM, buzzvm_string_register(m_tBuzzVM, str_key.c_str(), 1));
+  buzzvm_pushf(m_tBuzzVM, f_value);
+  buzzvm_tput(m_tBuzzVM);
+  return m_tBuzzVM->state;
+}
+
+/*
+/ Utility function to push 3d vectors with string id
+----------------------------------------------------------- */
+
+buzzvm_state TablePut_str_3dvec(buzzobj_t t_table,
+                                       const std::string& str_key,
+                                       std::vector<float> &vec3d,
+                                       buzzvm_t m_tBuzzVM) {
+   buzzvm_push(m_tBuzzVM, t_table);
+   buzzvm_pushs(m_tBuzzVM, buzzvm_string_register(m_tBuzzVM, str_key.c_str(), 1));
+   buzzvm_pusht(m_tBuzzVM);
+   buzzobj_t tVecTable = buzzvm_stack_at(m_tBuzzVM, 1);
+   buzzvm_tput(m_tBuzzVM);
+   TablePut_str_fval(tVecTable, "x", vec3d[0], m_tBuzzVM);
+   TablePut_str_fval(tVecTable, "y", vec3d[1], m_tBuzzVM);
+   TablePut_str_fval(tVecTable, "z", vec3d[2], m_tBuzzVM);
+   return m_tBuzzVM->state;
+}
+
+/*
+/ Utility function to push 3d vectors with int id
+----------------------------------------------------------- */
+
+buzzvm_state TablePut_int_vec3d(buzzobj_t t_table,
+                                       int n_idx,
+                                       std::vector<float> &vec3d,
+                                       buzzvm_t m_tBuzzVM) {
+   buzzvm_push(m_tBuzzVM, t_table);
+   buzzvm_pushi(m_tBuzzVM, n_idx);
+   buzzvm_pusht(m_tBuzzVM);
+   buzzobj_t tVecTable = buzzvm_stack_at(m_tBuzzVM, 1);
+   buzzvm_tput(m_tBuzzVM);
+   TablePut_str_fval(tVecTable, "x", vec3d[0], m_tBuzzVM);
+   TablePut_str_fval(tVecTable, "y", vec3d[1], m_tBuzzVM);
+   TablePut_str_fval(tVecTable, "z", vec3d[2], m_tBuzzVM);
+   return m_tBuzzVM->state;
+}
 
 /****************************************/
 /****************************************/
@@ -1097,7 +1152,7 @@ int buzzuav_takepicture(buzzvm_t vm)
 /*
 / Buzz closure to do exploration.
 /----------------------------------------*/
-int buzzuav_do_exploration(buzzvm_t vm)
+int buzzuav_call_local_planner(buzzvm_t vm)
 
 {
   buzz_cmd = EXPLORE;
@@ -1373,6 +1428,15 @@ void set_obstacle_dist(float dist[])
   for (int i = 0; i < number_of_proximity; i++)
     obst[i] = dist[i];
 }
+
+void update_explore_path(std::vector<std::vector<float>> path)
+/*
+/ update explorer path
+-----------------------------------*/
+{
+  exploration_path = path;
+}
+
 
 void set_battery(float voltage, float current, float remaining)
 /*
@@ -1820,6 +1884,18 @@ int buzzuav_update_prox(buzzvm_t vm)
   return vm->state;
 }
 
+int buzzuav_get_local_planner_path(buzzvm_t vm){
+  /* Create empty positioning data table */
+  buzzvm_pusht(vm);
+  buzzobj_t path_Pose = buzzvm_stack_at(vm, 1);
+  for(uint32_t i=0; i< exploration_path.size();++i){ 
+    /* Store position data */
+    TablePut_int_vec3d(path_Pose, i, exploration_path[i], vm);
+    std::cout<<"Controls "<<i<<" X "<<exploration_path[i][0]<<" Y "<<exploration_path[i][1]<<" Z "<<exploration_path[i][2]<<std::endl;
+  }
+  return buzzvm_ret1(vm);
+}
+
 int dummy_closure(buzzvm_t vm)
 /*
 / Dummy closure for use during update testing
@@ -1831,6 +1907,8 @@ int dummy_closure(buzzvm_t vm)
 void set_log_path(std::string path){
   log_path = path;
 }
+
+
 
 /****************************************/
 /****************************************/

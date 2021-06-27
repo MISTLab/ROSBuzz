@@ -223,6 +223,11 @@ mavros_msgs::Mavlink get_status();
 void set_obstacle_dist(float dist[]);
 
 /*
+ * Update_explore_path
+ */
+void update_explore_path(std::vector<std::vector<float>> path);
+
+/*
  * Commands the UAV to takeoff
  */
 int buzzuav_takeoff(buzzvm_t vm);
@@ -245,9 +250,9 @@ int buzzuav_gohome(buzzvm_t vm);
 int buzzuav_geofence(buzzvm_t vm);
 
 /*
- * Triggers the exploration planner for exploration 
+ * Triggers the exploration planner
  */
-int buzzuav_do_exploration(buzzvm_t vm);
+int buzzuav_call_local_planner(buzzvm_t vm);
 
 /*
  * Take back control from the planner
@@ -285,6 +290,12 @@ int buzzuav_update_flight_status(buzzvm_t vm);
 int buzzuav_update_prox(buzzvm_t vm);
 
 int buzzuav_update_kh4prox(buzzvm_t vm);
+
+/*
+ * Fetch the exploration path
+ */
+int buzzuav_get_local_planner_path(buzzvm_t vm);
+
 /*
  * returns the current FC command
  */

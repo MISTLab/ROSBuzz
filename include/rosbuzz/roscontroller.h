@@ -12,6 +12,7 @@
 #include "mavros_msgs/ExtendedState.h"
 #include "mavros_msgs/SetMode.h"
 #include "mavros_msgs/State.h"
+#include <trajectory_msgs/MultiDOFJointTrajectory.h>
 //#include "mavros_msgs/BatteryStatus.h"
 #include "sensor_msgs/BatteryState.h"
 #include "mavros_msgs/Mavlink.h"
@@ -194,6 +195,7 @@ private:
   ros::Subscriber relative_altitude_sub;
   ros::Subscriber local_pos_sub;
   ros::Subscriber yolo_sub;
+  ros::Subscriber explore_path_sub;
 
   std::map<std::string, std::string> m_smTopic_infos;
 
@@ -260,6 +262,9 @@ private:
 
   /*Set the current position of the robot callback*/
   void set_cur_pos(double latitude, double longitude, double altitude);
+
+  /*Set the current exploration path*/
+  void path_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
 
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);

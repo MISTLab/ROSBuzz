@@ -415,6 +415,9 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   node_handle.getParam("topics/inpayload", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs::Mavlink"));
 
+  node_handle.getParam("topics/explorer_path", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs::MultiDOFJointTrajectory"));  
+
   node_handle.getParam("topics/yolobox", yolobox_sub_name);
 }
 
@@ -603,6 +606,10 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     else if (it->second == "mavros_msgs::Mavlink")
     {
       payload_sub = n_c.subscribe(it->first, MAX_NUMBER_OF_ROBOTS, &roscontroller::payload_obt, this);
+    }
+        else if (it->second == "trajectory_msgs::MultiDOFJointTrajectory")
+    {
+      explore_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_cb, this);
     }
 
     std::cout << "Subscribed to: " << it->first << endl;
@@ -1103,19 +1110,13 @@ script
 
     case EXPLORE:{
       if(!planner_service_called){
-        ROS_INFO("[ROSBuzz ]Setting the robot to exploration mode --------------");
         std_srvs::Trigger srv;
         if (planner_client_start_planner.call(srv)) {
-          // planner was set to planning mode. Give the planner the access to control by informing the robot controller.
-          rosbuzz::bool_srv bsrv;
-          bsrv.request.in=true;
-          if(!explore_client_control.call(bsrv)){
-            ROS_ERROR("ROSBUZZ failed to give control to planner, Service call failed: %s",
-                    explore_client_control.getService().c_str());
-          }
+          planner_service_called = true;
+          ROS_INFO("[ROSBuzz] Planner call successful");
         }
         else{
-          ROS_ERROR("[ROSBUZZ] Service call failed: %s",
+          ROS_ERROR("[ROSBUZZ] Planner Service call failed: %s",
                     planner_client_start_planner.getService().c_str());
         }
       }
@@ -1194,6 +1195,24 @@ void roscontroller::set_cur_pos(double latitude, double longitude, double altitu
   cur_pos.longitude = longitude;
   cur_pos.altitude = altitude;
 }
+
+void roscontroller::path_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
+/*
+/Set the explorer path callback
+/--------------------------------------------------------*/
+{
+  std::vector<std::vector<float>> path;
+  for(int i=0; i<msg->points.size(); ++i){
+    std::vector<float> path_point;
+    path_point.push_back(msg->points[i].transforms[0].translation.x);
+    path_point.push_back(msg->points[i].transforms[0].translation.y);
+    path_point.push_back(msg->points[i].transforms[0].translation.z);
+    path.push_back(path_point);
+  }
+  buzzuav_closures::update_explore_path(path);
+  planner_service_called = false;
+}
+
 
 float roscontroller::constrainAngle(float x)
 /*

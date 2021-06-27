@@ -17,6 +17,7 @@ topics:
   targetf: targets_found
   yolobox: intermediator_ros/bounding_boxes
   hierarchical_status: hierarchical_status
+  topics/explorer_path: /kh4/command/trajectory
 services:
   fcclient:   cmd/command
   armclient:  cmd/arming
@@ -24,5 +25,5 @@ services:
   stream:  set_stream_rate
   rcservice:  buzzcmd
   netstatus:  network_status
-  explore_planner: /planner_control_interface/std_srvs/automatic_planning
+  explore_planner: /planner_control_interface/std_srvs/rosbuzz_planning
   explore_control: /kh4/explore_control
