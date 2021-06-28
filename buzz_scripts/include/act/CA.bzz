@@ -1,7 +1,9 @@
 # Add an entry to this table for each robot that has a radius different from the default
 # The key is the robot's id and the value is the value of the radius
 robot_radius = {
-  .3 = 5.0
+  .1 = 0.6,
+  .3 = 5.0,
+  .9 = 0.6
 }
 default_robot_radius = 1.0
 safety_radius = 1.7
@@ -296,6 +298,18 @@ function setup_velocity_callbacks() {
     }    
 }
 
+function setup_velocity_callbacks_from_table(robots_to_listen){
+  foreach(robots_to_listen,function(nid,priority){
+    if(nid != id){
+      neighbors.listen(string.concat("v", string.tostring(nid)),
+        function(vid, value, rid) {
+          #log("got value", value, "from", rid)
+          velocities[rid] = value
+        }
+      )
+    }
+  })
+}
 
 # State function to test collision avoidance
 function test_collision_avoidance(){

@@ -7,6 +7,7 @@ include "utils/takeoff_heights.bzz"
 # include "formations/circling_experiment.bzz"
 include "formations/Object_movement_test.bzz"
 include "formations/forward_test.bzz"
+include "act/CA.bzz"
 
 
 #####
@@ -17,6 +18,17 @@ include "formations/forward_test.bzz"
 # 3 -> indoor wheeled vehicle
 V_TYPE = 3
 
+
+#####
+# Exploration sub-states:
+# 0 -> exploring the environment to maximize coverage.
+# 1 -> yeilding to one of the high priority robot.
+# 2 -> returning back home to fetch minion robots.
+# 3 -> 
+EXPLORE_EXPLORING = 0
+EXPLORE_YEILDING = 1
+EXPLORE_RETUNING = 2
+
 # ROBOT TYPES BASED ON SPECILIZATION
 # SHEEP = 0
 # DOG = 1
@@ -24,6 +36,7 @@ V_TYPE = 3
 # Explorer robot (key-> ID, value -> Priority)
 EXPLORER_IDs = {.1=1, .9=2}
 EXPLORER = 0
+EXPLORE_STATE = 0
 
 
 # Global variables
@@ -36,6 +49,7 @@ CUR_WP_IDX =0
 # Constants
 GOTODIST_TOL = 0.1
 GOTO_MAXVEL = 3 #m/s 
+EXPLORATION_YEILD = 100 #cms
 
 
 # Executed once at init time.
@@ -49,6 +63,7 @@ function init() {
 	# Determine your role.
 	if(not (isnil(EXPLORER_IDs[id]))){
 		EXPLORER = 1
+		setup_velocity_callbacks_from_table(EXPLORER_IDs)
 	}
     # Starting state: TURNEDOFF to wait for user input.
 	BVMSTATE = "TURNEDOFF"
@@ -146,59 +161,85 @@ function explore(){
 	if(ROLE == DOG){
 		# Coordinate the exploration with other robots. 
 		if(EXPLORER){
-			# Perform the initialization motion to determine the exploration direction. 
-			if(init_motion == 0){
-				# forward motion of 2 meters 
-				var vec_to_target = math.vec2.new(-3,-1)
-				
-				if(goto_point(vec_to_target) == 0){
-					# init motion complete
-					goto(0.0,0.0)
-					init_motion = 1
+			if(EXPLORE_STATE == EXPLORE_EXPLORING){
+
+				if(high_priority_robot_in_field()){
+					EXPLORE_STATE = EXPLORE_YEILDING
+					return
 				}
-			}
-			else{
-				# Perform local planning to maximize the environmental information and coverage.
-				if( isnil(CUR_PATH)){
-					CUR_PATH = get_local_planner_path()
-					if(size(CUR_PATH) <= 0 ){
-						call_local_planner()
-					}			
+				
+				# Perform the initialization motion to determine the exploration direction. 
+				if(init_motion == 0){
+					# forward motion of 2 meters 
+					var vec_to_target = math.vec2.new(-3,-1)
+					
+					if(goto_point(vec_to_target) == 0){
+						# init motion complete
+						goto(0.0,0.0)
+						init_motion = 1
+					}
 				}
 				else{
-					if(size(CUR_PATH) <= 0){
-						CUR_PATH = nil
-                                                CUR_WP_IDX=0
-                                                goto(0.0,0.0)
+					# Perform local planning to maximize the environmental information and coverage.
+					if( isnil(CUR_PATH)){
+						CUR_PATH = get_local_planner_path()
+						if(size(CUR_PATH) <= 0 ){
+							call_local_planner()
+						}			
 					}
 					else{
-						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
-						if(not (goto_point(cur_wp))){
-							# WP reached
-							if(CUR_WP_IDX < size(CUR_PATH)-1){
-								CUR_WP_IDX = CUR_WP_IDX + 1
-							}
-							else{
-								CUR_PATH = nil
-								CUR_WP_IDX=0
-								goto(0.0,0.0)
+						# Following a path, complete the path.
+						if(size(CUR_PATH) <= 0){
+							CUR_PATH = nil
+	                        CUR_WP_IDX=0
+	                        goto(0.0,0.0)
+						}
+						else{
+							var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+							if(not (goto_point(cur_wp))){
+								# WP reached
+								if(CUR_WP_IDX < size(CUR_PATH)-1){
+									CUR_WP_IDX = CUR_WP_IDX + 1
+								}
+								else{
+									CUR_PATH = nil
+									CUR_WP_IDX=0
+									goto(0.0,0.0)
+								}
 							}
 						}
 					}
-				}
-				# Scan for radiation.
-				if(flight.rc_cmd == 911){
-					flight.rc_cmd = 0
-					radiation_source_located = 1
-				}
-				if(radiation_source_located == 1){
-					# return to base or Home
-					# Tell exploration planner to home.
-					# TODO: STILL PATH needs to be populated in the BVM with the navigation tube.
-					do_homing()
-					if(homing_complete == 1){
-						# 
+					# Scan for radiation.
+					if(radiation_source_located == 1){
+						# return to base or Home
+						# Tell exploration planner to home.
+						# TODO: STILL PATH needs to be populated in the BVM with the navigation tube.
+						neighbors.broadcast("cmd", 888)
+						hierarchial_path_to_source = get_hierarchial_behavior_path() # todo implement
+						hierarchial_navigational_tube = get_hierarchial_nav_tube() # todo implement
+						CUR_PATH = get_path_to_base() # todo implement
+						EXPLORE_STATE = EXPLORE_RETUNING
+						CUR_WP_IDX=0
 					}
+				}
+			}
+		}
+		else if(EXPLORE_STATE == EXPLORE_YEILDING){
+			if( not high_priority_robot_in_field()){
+				EXPLORE_STATE = EXPLORE_EXPLORING
+			}
+		}
+		else if(EXPLORE_STATE == EXPLORE_RETUNING){
+			neighbors.broadcast("cmd", 888)
+			var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+			if(not (goto_point(cur_wp))){
+				# WP reached
+				if(CUR_WP_IDX < size(CUR_PATH)-1){
+					CUR_WP_IDX = CUR_WP_IDX + 1
+				}
+				else{
+					# Home reached, trigger hierarchial behaviror.
+					goto(0.0,0.0)
 				}
 			}
 		}
@@ -229,6 +270,9 @@ function rc_cmd_listen() {
 			BVMSTATE = "HIRACHIAL_BEHAVIORS"
 			neighbors.broadcast("cmd",888)
 		}
+	}else if(flight.rc_cmd == 911){
+		flight.rc_cmd = 0
+		radiation_source_located = 1
 	}
 }
 
@@ -250,6 +294,11 @@ function nei_cmd_listen() {
 				if(value == 999 and BVMSTATE != "RETURN_TO_BASE"){
 					BVMSTATE = "RETURN_TO_BASE"
 				}
+			}
+			else if(value == 888 and EXPLORE_STATE != EXPLORE_RETUNING){
+				CUR_PATH = get_path_to_base() # todo implement
+				EXPLORE_STATE = EXPLORE_RETUNING
+				CUR_WP_IDX=0
 			}
     })
 }
@@ -280,10 +329,25 @@ function goto_point(vec_to_target){
 		local_vec = math.vec2.scale(local_vec,100)
 		# Limit speed
 		local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
+		local_vec = RVO(local_vec)
 		goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
 		return 1
 	}
 	else{
 		return 0
 	}
+}
+
+function high_priority_robot_in_field(){
+	var found_robot ={.0=0}
+	neighbors.foreach(
+	  	function(rid, data) {
+	  		if( (not isnil(EXPLORER_IDs[rid])) and data.distance < EXPLORATION_YEILD){
+	  			if(EXPLORER_IDs[rid] > EXPLORER_IDs[id]){
+	    			found_robot[0] = 1
+	  			}
+	  		}
+		}
+	)
+	return found_robot[0]
 }
