@@ -537,14 +537,12 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
   else
   {
     ROS_ERROR("Provide a hierarchical swarm status topic name in YAML file");
-    system("rosnode kill rosbuzz_node");
   }
   if (node_handle.getParam("topics/path", topic))
     path_pub = n_c.advertise<nav_msgs::Path>(topic, 5);
   else
   {
     ROS_ERROR("Provide a path topic name in YAML file");
-    system("rosnode kill rosbuzz_node");
   }
 }
 

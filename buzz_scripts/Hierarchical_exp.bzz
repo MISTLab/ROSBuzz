@@ -35,7 +35,7 @@ CUR_WP_IDX =0
 
 # Constants
 GOTODIST_TOL = 0.1
-GOTO_MAXVEL = 2 #m/s 
+GOTO_MAXVEL = 3 #m/s 
 
 
 # Executed once at init time.
@@ -56,7 +56,7 @@ function init() {
 
 # Executed at each time step.
 function step() {
-	log("[",id,"] POS (",pose.position.x,",",pose.position.y,",",pose.position.z,") yaw: ", pose.orientation.yaw)
+	log("[",id,"] POS (",pose.position.x,",",pose.position.y,",",pose.position.z,") yaw: ", pose.orientation.yaw, " WP ",CUR_WP_IDX)
 	# listen to Remote Controller
 	rc_cmd_listen()
 
@@ -145,35 +145,44 @@ function explore(){
 	BVMSTATE ="EXPLORE"
 	if(ROLE == DOG){
 		# Coordinate the exploration with other robots. 
-		if(id == EXPLORER){
+		if(EXPLORER){
 			# Perform the initialization motion to determine the exploration direction. 
 			if(init_motion == 0){
 				# forward motion of 2 meters 
-				var vec_to_target = math.vec2.new(2,0)
+				var vec_to_target = math.vec2.new(-3,-1)
 				
-				if(not (goto_point(vec_to_target)) ){
+				if(goto_point(vec_to_target) == 0){
 					# init motion complete
+					goto(0.0,0.0)
 					init_motion = 1
 				}
 			}
 			else{
 				# Perform local planning to maximize the environmental information and coverage.
-				if( isnil(CUR_PATH) or size(CUR_PATH) <= 0){
-					if(call_local_planner()){
-						CUR_PATH = get_local_planner_path()
-					}
+				if( isnil(CUR_PATH)){
+					CUR_PATH = get_local_planner_path()
+					if(size(CUR_PATH) <= 0 ){
+						call_local_planner()
+					}			
 				}
 				else{
-					var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
-					if(not (goto_point(cur_wp))){
-						# WP reached
-						if(CUR_WP_IDX < size(CUR_PATH)){
-							CUR_WP_IDX = CUR_WP_IDX + 1
-						}
-						else{
-							CUR_PATH = nil
-							CUR_WP_IDX=0
-							goto(0.0,0.0)
+					if(size(CUR_PATH) <= 0){
+						CUR_PATH = nil
+                                                CUR_WP_IDX=0
+                                                goto(0.0,0.0)
+					}
+					else{
+						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+						if(not (goto_point(cur_wp))){
+							# WP reached
+							if(CUR_WP_IDX < size(CUR_PATH)-1){
+								CUR_WP_IDX = CUR_WP_IDX + 1
+							}
+							else{
+								CUR_PATH = nil
+								CUR_WP_IDX=0
+								goto(0.0,0.0)
+							}
 						}
 					}
 				}
@@ -238,7 +247,7 @@ function nei_cmd_listen() {
 					neighbors.broadcast("cmd", 21)
 				}
 			} else if(BVMSTATE == "EXPLORE"){
-				if(value = 999 and BVMSTATE != "RETURN_TO_BASE"){
+				if(value == 999 and BVMSTATE != "RETURN_TO_BASE"){
 					BVMSTATE = "RETURN_TO_BASE"
 				}
 			}
@@ -257,18 +266,21 @@ function goto(x, y) {
 	# Convert cm to m
 	norm_goto.x = 1.0/100.0 * norm_goto.x
 	norm_goto.y = 1.0/100.0 * norm_goto.y
+	log("GOTo ",norm_goto.x,",", norm_goto.y)
 	goto_abs(norm_goto.x, norm_goto.y, height, 0.0)
 }
 
-function goto_point(pt){
-	var local_vec = math.vec2.sub(vec_to_target,pose.position)
+function goto_point(vec_to_target){
+	var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+	var NedPos = math.vec2.sub(pose.position,home_offset)
+	var local_vec = math.vec2.sub(vec_to_target,NedPos)
 	local_vec = math.vec2.rotate(local_vec, -pose.orientation.yaw)
-	if(math.vec2.length(local_vec) < GOTODIST_TOL){
-		# cvt to cms
+	if(math.vec2.length(local_vec) > GOTODIST_TOL){
+		# scale to desired vel
 		local_vec = math.vec2.scale(local_vec,100)
 		# Limit speed
 		local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
-		goto(local_vec.x,local_vec.y)
+		goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
 		return 1
 	}
 	else{

@@ -1434,7 +1434,9 @@ void update_explore_path(std::vector<std::vector<float>> path)
 / update explorer path
 -----------------------------------*/
 {
+  printf("Updating Exploration path before %i points\n",exploration_path.size());
   exploration_path = path;
+  printf("Updating Exploration path after %i points\n",exploration_path.size());
 }
 
 
@@ -1893,6 +1895,9 @@ int buzzuav_get_local_planner_path(buzzvm_t vm){
     TablePut_int_vec3d(path_Pose, i, exploration_path[i], vm);
     std::cout<<"Controls "<<i<<" X "<<exploration_path[i][0]<<" Y "<<exploration_path[i][1]<<" Z "<<exploration_path[i][2]<<std::endl;
   }
+  
+  printf("Transfering Exploration path with %i points\n",exploration_path.size());
+  exploration_path.clear();
   return buzzvm_ret1(vm);
 }
 

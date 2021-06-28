@@ -17,7 +17,7 @@ topics:
   targetf: targets_found
   yolobox: intermediator_ros/bounding_boxes
   hierarchical_status: hierarchical_status
-  topics/explorer_path: /kh4/command/trajectory
+  explorer_path: /kh4/command/trajectory
 services:
   fcclient:   cmd/command
   armclient:  cmd/arming
