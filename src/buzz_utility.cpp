@@ -540,6 +540,8 @@ void buzz_script_step()
   }
   // Remove useless return value from stack
   buzzvm_pop(VM);
+  // cleanup all the old data
+  buzzuav_closures::clear_planner_paths();
 }
 
 void buzz_script_destroy()

@@ -147,6 +147,10 @@ void rc_call(int rc_cmd);
  */
 void set_battery(float voltage, float current, float remaining);
 /*
+ * clears all old paths.
+ */
+void clear_planner_paths();
+/*
  * Update yolo boxes into buzz
  */
 int buzzuav_update_yolo_boxes(buzzvm_t vm);

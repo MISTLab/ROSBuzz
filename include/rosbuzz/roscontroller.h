@@ -184,6 +184,7 @@ private:
   ros::Publisher path_pub;
   ros::Publisher localsetpoint_nonraw_pub;
   ros::ServiceServer service;
+  ros::ServiceServer beacon_service;
   ros::Subscriber current_position_sub;
   ros::Subscriber users_sub;
   ros::Subscriber battery_sub;

@@ -1450,6 +1450,14 @@ void set_battery(float voltage, float current, float remaining)
   batt[2] = remaining;
 }
 
+void clear_planner_paths()
+/*
+ * clear all old paths from storage.
+ ----------------------------------*/
+{
+  exploration_path.clear();
+}
+
 int buzzuav_update_battery(buzzvm_t vm)
 /*
 / update BVM battery table

@@ -33,8 +33,9 @@ EXPLORE_RETUNING = 2
 # SHEEP = 0
 # DOG = 1
 
-# Explorer robot (key-> ID, value -> Priority)
+# Explorer robot (key-> ID, value -> Priority, lower higher priority)
 EXPLORER_IDs = {.1=1, .9=2}
+INIT_MOTIONS ={.1={.x=-3, .y=-1}, .9={.x=-1, .y = -1}}
 EXPLORER = 0
 EXPLORE_STATE = 0
 
@@ -45,6 +46,7 @@ radiation_source_located = 0
 homing_complete = 0
 CUR_PATH ={}
 CUR_WP_IDX =0
+global_planner_called=0
 
 # Constants
 GOTODIST_TOL = 0.1
@@ -171,7 +173,7 @@ function explore(){
 				# Perform the initialization motion to determine the exploration direction. 
 				if(init_motion == 0){
 					# forward motion of 2 meters 
-					var vec_to_target = math.vec2.new(-3,-1)
+					var vec_to_target = INIT_MOTIONS[id]
 					
 					if(goto_point(vec_to_target) == 0){
 						# init motion complete
@@ -182,7 +184,7 @@ function explore(){
 				else{
 					# Perform local planning to maximize the environmental information and coverage.
 					if( isnil(CUR_PATH)){
-						CUR_PATH = get_local_planner_path()
+						CUR_PATH = get_planner_path()
 						if(size(CUR_PATH) <= 0 ){
 							call_local_planner()
 						}			
@@ -209,18 +211,6 @@ function explore(){
 							}
 						}
 					}
-					# Scan for radiation.
-					if(radiation_source_located == 1){
-						# return to base or Home
-						# Tell exploration planner to home.
-						# TODO: STILL PATH needs to be populated in the BVM with the navigation tube.
-						neighbors.broadcast("cmd", 888)
-						hierarchial_path_to_source = get_hierarchial_behavior_path() # todo implement
-						hierarchial_navigational_tube = get_hierarchial_nav_tube() # todo implement
-						CUR_PATH = get_path_to_base() # todo implement
-						EXPLORE_STATE = EXPLORE_RETUNING
-						CUR_WP_IDX=0
-					}
 				}
 			}
 		}
@@ -228,18 +218,51 @@ function explore(){
 			if( not high_priority_robot_in_field()){
 				EXPLORE_STATE = EXPLORE_EXPLORING
 			}
+			log("Explorer Yeilding to a nearby robot.")
 		}
 		else if(EXPLORE_STATE == EXPLORE_RETUNING){
-			neighbors.broadcast("cmd", 888)
-			var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
-			if(not (goto_point(cur_wp))){
-				# WP reached
-				if(CUR_WP_IDX < size(CUR_PATH)-1){
-					CUR_WP_IDX = CUR_WP_IDX + 1
+			if(EXPLORER){
+				neighbors.broadcast("cmd", 911)
+				if(isnil(CUR_PATH)){
+					CUR_PATH = get_global_planner_path() # todo implement
 				}
-				else{
-					# Home reached, trigger hierarchial behaviror.
-					goto(0.0,0.0)
+				else if(size(CUR_PATH) <= 0){
+					CUR_PATH = get_global_planner_path()
+				}
+				if(size(CUR_PATH) <=0){
+					# return to base or Home
+					# Tell exploration planner to home using the global graph.
+					if(global_planner_called){
+						if(radiation_source_located == 1){
+							# This robot found the source, compute path to source and nav tube.
+							call_global_planner_for_base_paths() 
+							global_planner_called = 1
+						}
+						else{
+							# Someother robot found the source, simply home.
+							call_global_planner() 
+						}
+					}
+					else{
+						if(size(CUR_PATH) > 0){
+							hierarchial_path_to_source = get_hierarchial_behavior_path() # todo implement
+							hierarchial_navigational_tube = get_hierarchial_nav_tube() # todo implement
+							EXPLORE_STATE = EXPLORE_RETUNING
+							CUR_WP_IDX=0
+						}
+					}
+				}
+				var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+				if(not (goto_point(cur_wp))){
+					# WP reached
+					if(CUR_WP_IDX < size(CUR_PATH)-1){
+						CUR_WP_IDX = CUR_WP_IDX + 1
+					}
+					else{
+						# Home reached, TODO: trigger hierarchial behaviror.
+						BVMSTATE = "TURNEDOFF"
+						goto(0.0,0.0)
+					}
 				}
 			}
 		}
@@ -269,10 +292,13 @@ function rc_cmd_listen() {
 		if(flight.rc_cmd == 888){
 			BVMSTATE = "HIRACHIAL_BEHAVIORS"
 			neighbors.broadcast("cmd",888)
+		}else if(flight.rc_cmd == 911){
+			flight.rc_cmd = 0
+			if(BVMSTATE = "EXPLORE"){
+				radiation_source_located = 1
+				EXPLORE_STATE = EXPLORE_RETUNING
+			}
 		}
-	}else if(flight.rc_cmd == 911){
-		flight.rc_cmd = 0
-		radiation_source_located = 1
 	}
 }
 
@@ -295,7 +321,7 @@ function nei_cmd_listen() {
 					BVMSTATE = "RETURN_TO_BASE"
 				}
 			}
-			else if(value == 888 and EXPLORE_STATE != EXPLORE_RETUNING){
+			else if(value == 911 and EXPLORE_STATE != EXPLORE_RETUNING){
 				CUR_PATH = get_path_to_base() # todo implement
 				EXPLORE_STATE = EXPLORE_RETUNING
 				CUR_WP_IDX=0

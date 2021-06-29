@@ -27,3 +27,4 @@ services:
   netstatus:  network_status
   explore_planner: /planner_control_interface/std_srvs/rosbuzz_planning
   explore_control: /kh4/explore_control
+  becon_trigger: trigger_beacon

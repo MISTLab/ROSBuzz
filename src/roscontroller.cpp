@@ -490,6 +490,11 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     explore_client_control = n_c.serviceClient<rosbuzz::bool_srv>(topic);
   }
 
+    if(node_handle.getParam("services/becon_trigger", topic))
+  {
+    beacon_service = n_c.advertiseService(topic, &roscontroller::beacon_callback, this);
+  }
+
   if (node_handle.getParam("topics/outpayload", topic))
     payload_pub = n_c.advertise<mavros_msgs::Mavlink>(topic, 5);
   else
@@ -1713,6 +1718,17 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
       res.success = true;
       break;
   }
+  return true;
+}
+
+bool beacon_callback(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+/*
+/ Beacon service called set the flight command
+--------------------------------------------------------------------------*/
+{
+  rc_cmd = 911;
+  buzzuav_closures::rc_call(rc_cmd);
+  res.success = true; 
   return true;
 }
 
