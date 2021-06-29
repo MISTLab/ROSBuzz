@@ -30,6 +30,7 @@
 #include <std_srvs/Trigger.h>
 #include <sensor_msgs/LaserScan.h>
 #include <rosbuzz/neigh_pos.h>
+#include <rosbuzz/homing_path_set.h>
 #include <rosbuzz/hierarchical_status.h>
 #include <sstream>
 #include <buzz/buzzasm.h>
@@ -66,6 +67,7 @@ typedef enum {
 #define TIME_SYNC_JUMP_THR 500000000
 #define MOVING_AVERAGE_ALPHA 0.1
 #define MAX_NUMBER_OF_ROBOTS 10
+
 
 #define TIMEOUT 60
 #define BUZZRATE 10
@@ -173,7 +175,8 @@ private:
   ros::ServiceClient capture_srv;
   ros::ServiceClient stream_client;
   ros::ServiceClient planner_client_start_planner;
-  ros::ServiceClient explore_client_control;
+  ros::ServiceClient global_homing_with_navs_client;
+  ros::ServiceClient global_homing_client;
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
   ros::Publisher targetf_pub;
@@ -267,6 +270,12 @@ private:
   /*Set the current exploration path*/
   void path_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
 
+  /*Set the current homing path with nav tubes*/
+  void path_home_nav_cb(const rosbuzz::homing_path_setConstPtr& msg);
+
+  /*Set the current homing path*/
+  void path_home_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
+
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);
   void gps_rb(POSE nei_pos, double out[]);
@@ -327,6 +336,8 @@ private:
   void SetLocalPositionNonRaw(float x, float y, float z, float yaw);
 
   void SetStreamRate(int id, int rate, int on_off);
+
+  bool beacon_callback(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
 
   void get_number_of_robots();
 

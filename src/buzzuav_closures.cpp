@@ -44,6 +44,8 @@ static bool logVoronoi = false;
 static std::vector<bounding_box> yolo_boxes;
 
 std::vector<std::vector<float>> exploration_path;
+std::vector<std::vector<float>> homing_path;
+std::vector<std::vector<float>> nav_tube;
 
 std::ofstream voronoicsv;
 
@@ -89,6 +91,21 @@ buzzvm_state TablePut_str_fval(buzzobj_t t_table,
 }
 
 /*
+/ Utility function to push a table with int
+----------------------------------------------------------- */
+
+buzzvm_state TablePut_int_fval(buzzobj_t t_table,
+                               int nidx,
+                               float f_value,
+                               buzzvm_t m_tBuzzVM) {
+  buzzvm_push(m_tBuzzVM, t_table);
+  buzzvm_pushi(m_tBuzzVM, nidx);
+  buzzvm_pushf(m_tBuzzVM, f_value);
+  buzzvm_tput(m_tBuzzVM);
+  return m_tBuzzVM->state;
+}
+
+/*
 / Utility function to push 3d vectors with string id
 ----------------------------------------------------------- */
 
@@ -125,6 +142,8 @@ buzzvm_state TablePut_int_vec3d(buzzobj_t t_table,
    TablePut_str_fval(tVecTable, "z", vec3d[2], m_tBuzzVM);
    return m_tBuzzVM->state;
 }
+
+
 
 /****************************************/
 /****************************************/
@@ -1160,14 +1179,26 @@ int buzzuav_call_local_planner(buzzvm_t vm)
 }
 
 /*
-/ Buzz closure to take back control from planner.
+/ Buzz closure to do get the global planner path with nav tube.
 /----------------------------------------*/
-int buzzuav_take_back_control(buzzvm_t vm)
+int buzzuav_call_global_planner_for_base_paths(buzzvm_t vm)
 
 {
-  buzz_cmd = START_RX_PAIR;
+  buzz_cmd = GLOBAL_HOME_WITH_TUB;
   return buzzvm_ret0(vm);
 }
+
+
+/*
+/ Buzz closure to get home path.
+/----------------------------------------*/
+int buzzuav_call_global_planner(buzzvm_t vm)
+
+{
+  buzz_cmd = GLOBAL_HOME;
+  return buzzvm_ret0(vm);
+}
+
 
 
 int buzzuav_setgimbal(buzzvm_t vm)
@@ -1434,9 +1465,26 @@ void update_explore_path(std::vector<std::vector<float>> path)
 / update explorer path
 -----------------------------------*/
 {
-  printf("Updating Exploration path before %i points\n",exploration_path.size());
   exploration_path = path;
-  printf("Updating Exploration path after %i points\n",exploration_path.size());
+  printf("Updating Exploration path with %i points\n",exploration_path.size());
+}
+
+void update_home_path(std::vector<std::vector<float>> path)
+/*
+/ update the homing path
+-----------------------------------*/
+{
+  homing_path = path;
+  printf("Updating Homing path with %i points\n",homing_path.size());
+}
+
+void update_nav_tube(std::vector<std::vector<float>> tube)
+/*
+/ update nav tube
+-----------------------------------*/
+{
+  nav_tube = tube;
+  printf("Updating nav tube with %i points\n",nav_tube.size()/2);
 }
 
 
@@ -1456,6 +1504,8 @@ void clear_planner_paths()
  ----------------------------------*/
 {
   exploration_path.clear();
+  homing_path.clear();
+  nav_tube.clear();
 }
 
 int buzzuav_update_battery(buzzvm_t vm)
@@ -1901,11 +1951,43 @@ int buzzuav_get_local_planner_path(buzzvm_t vm){
   for(uint32_t i=0; i< exploration_path.size();++i){ 
     /* Store position data */
     TablePut_int_vec3d(path_Pose, i, exploration_path[i], vm);
-    std::cout<<"Controls "<<i<<" X "<<exploration_path[i][0]<<" Y "<<exploration_path[i][1]<<" Z "<<exploration_path[i][2]<<std::endl;
   }
   
   printf("Transfering Exploration path with %i points\n",exploration_path.size());
   exploration_path.clear();
+  return buzzvm_ret1(vm);
+}
+
+int buzzuav_get_global_planner_path(buzzvm_t vm){
+  /* Create empty positioning data table */
+  buzzvm_pusht(vm);
+  buzzobj_t path_Pose = buzzvm_stack_at(vm, 1);
+  for(uint32_t i=0; i< homing_path.size();++i){ 
+    /* Store position data */
+    TablePut_int_vec3d(path_Pose, i, homing_path[i], vm);
+  }
+  
+  printf("Transfering Homing path with %i points\n",homing_path.size());
+  homing_path.clear();
+  return buzzvm_ret1(vm);
+}
+
+int buzzuav_get_hierarchial_nav_tube(buzzvm_t vm){
+  /* Create empty positioning data table */
+  buzzvm_pusht(vm);
+  int idx = 0;
+  for(uint32_t i=0; i< nav_tube.size();i+=2){ 
+    buzzvm_pushi(vm, idx);
+    buzzvm_pusht(vm);
+    buzzobj_t tVecTable = buzzvm_stack_at(vm, 1);
+    buzzvm_tput(vm);
+    /* Store position data */
+    TablePut_int_vec3d(tVecTable, 1, nav_tube[i], vm);
+    TablePut_int_vec3d(tVecTable, 2, nav_tube[i+1], vm);
+    idx++;
+  }
+  printf("Transfering nav tube with %i points idx: %i \n",nav_tube.size(), idx);
+  nav_tube.clear();
   return buzzvm_ret1(vm);
 }
 

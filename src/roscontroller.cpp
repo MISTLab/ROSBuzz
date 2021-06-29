@@ -413,10 +413,16 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "std_msgs/Float64"));
 
   node_handle.getParam("topics/inpayload", topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs::Mavlink"));
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs/Mavlink"));
 
   node_handle.getParam("topics/explorer_path", topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs::MultiDOFJointTrajectory"));  
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs/MultiDOFJointTrajectory"));
+
+  node_handle.getParam("topics/global_homing_navs_path", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "rosbuzz/homing_path_set"));  
+
+  node_handle.getParam("topics/global_homing_path", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs/MultiDOFJointTrajectory/home"));  
 
   node_handle.getParam("topics/yolobox", yolobox_sub_name);
 }
@@ -485,15 +491,21 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     planner_client_start_planner = n_c.serviceClient<std_srvs::Trigger>(topic);
   }
 
-  if(node_handle.getParam("services/explore_control", topic))
-  {
-    explore_client_control = n_c.serviceClient<rosbuzz::bool_srv>(topic);
-  }
-
-    if(node_handle.getParam("services/becon_trigger", topic))
+  if(node_handle.getParam("services/becon_trigger", topic))
   {
     beacon_service = n_c.advertiseService(topic, &roscontroller::beacon_callback, this);
   }
+
+  if(node_handle.getParam("services/global_home_navs_planner", topic))
+  {
+    global_homing_with_navs_client = n_c.serviceClient<std_srvs::Trigger>(topic);
+  }
+
+    if(node_handle.getParam("services/global_home_planner", topic))
+  {
+    global_homing_client = n_c.serviceClient<std_srvs::Trigger>(topic);
+  }
+
 
   if (node_handle.getParam("topics/outpayload", topic))
     payload_pub = n_c.advertise<mavros_msgs::Mavlink>(topic, 5);
@@ -606,14 +618,23 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     {
       obstacle_sub = n_c.subscribe(it->first, 5, &roscontroller::obstacle_dist_callback, this);
     }
-    else if (it->second == "mavros_msgs::Mavlink")
+    else if (it->second == "mavros_msgs/Mavlink")
     {
       payload_sub = n_c.subscribe(it->first, MAX_NUMBER_OF_ROBOTS, &roscontroller::payload_obt, this);
     }
-        else if (it->second == "trajectory_msgs::MultiDOFJointTrajectory")
+    else if (it->second == "trajectory_msgs/MultiDOFJointTrajectory")
     {
       explore_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_cb, this);
     }
+    else if (it->second == "trajectory_msgs/MultiDOFJointTrajectory:home")
+    {
+      explore_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_home_cb, this);
+    }
+    else if (it->second == "rosbuzz/homing_path_set")
+    {
+      explore_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_home_nav_cb, this);
+    }
+
 
     std::cout << "Subscribed to: " << it->first << endl;
   }
@@ -1128,14 +1149,30 @@ script
       }
     }
       break;
-      
-    case START_RX_PAIR: { //take back control on ROSBUZZ!
-      rosbuzz::bool_srv ssrv;
-      ssrv.request.in=false;
-      if(!explore_client_control.call(ssrv)){
-        ROS_ERROR("ROSBUZZ failed to take back control from planner, Service call failed: %s",
-                explore_client_control.getService().c_str());
+
+    case GLOBAL_HOME_WITH_TUB:{
+      std_srvs::Trigger srv;
+      if (global_homing_with_navs_client.call(srv)) {
+        ROS_INFO("[ROSBuzz] Global Plan (Homing) with nav tube call successful");
       }
+      else{
+        ROS_ERROR("[ROSBUZZ] Global Plan (Homing) with nav tube call failed: %s",
+                  global_homing_with_navs_client.getService().c_str());
+      }
+    
+    }
+      break;
+
+    case GLOBAL_HOME:{
+      std_srvs::Trigger srv;
+      if (global_homing_client.call(srv)) {
+        ROS_INFO("[ROSBuzz] Global Plan (Homing) call successful");
+      }
+      else{
+        ROS_ERROR("[ROSBUZZ] Global Plan (Homing) call failed: %s",
+                  global_homing_client.getService().c_str());
+      }
+      
     }
       break;
 
@@ -1213,6 +1250,49 @@ void roscontroller::path_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstP
     path.push_back(path_point);
   }
   buzzuav_closures::update_explore_path(path);
+  planner_service_called = false;
+}
+
+void roscontroller::path_home_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
+/*
+/Set the explorer path callback
+/--------------------------------------------------------*/
+{
+  std::vector<std::vector<float>> path;
+  for(int i=0; i<msg->points.size(); ++i){
+    std::vector<float> path_point;
+    path_point.push_back(msg->points[i].transforms[0].translation.x);
+    path_point.push_back(msg->points[i].transforms[0].translation.y);
+    path_point.push_back(msg->points[i].transforms[0].translation.z);
+    path.push_back(path_point);
+  }
+  buzzuav_closures::update_home_path(path);
+  planner_service_called = false;
+}
+
+void roscontroller::path_home_nav_cb(const rosbuzz::homing_path_setConstPtr& msg)
+/*
+/Set the explorer path callback
+/--------------------------------------------------------*/
+{
+  std::vector<std::vector<float>> path;
+  for(int i=0; i<msg->path.size(); ++i){
+    std::vector<float> path_point;
+    path_point.push_back(msg->path[i].pose.position.x);
+    path_point.push_back(msg->path[i].pose.position.y);
+    path_point.push_back(msg->path[i].pose.position.z);
+    path.push_back(path_point);
+  }
+  buzzuav_closures::update_home_path(path);
+  path.clear();
+  for(int i=0; i<msg->tube.size(); ++i){
+    std::vector<float> path_point;
+    path_point.push_back(msg->tube[i].position.x);
+    path_point.push_back(msg->tube[i].position.y);
+    path_point.push_back(msg->tube[i].position.z);
+    path.push_back(path_point);
+  }
+  buzzuav_closures::update_nav_tube(path);
   planner_service_called = false;
 }
 
@@ -1721,12 +1801,12 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
   return true;
 }
 
-bool beacon_callback(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
+bool roscontroller::beacon_callback(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
 /*
 / Beacon service called set the flight command
 --------------------------------------------------------------------------*/
 {
-  rc_cmd = 911;
+  int rc_cmd = RADIATION_DETECTED;
   buzzuav_closures::rc_call(rc_cmd);
   res.success = true; 
   return true;

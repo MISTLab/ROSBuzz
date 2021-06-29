@@ -36,7 +36,6 @@ EXPLORE_RETUNING = 2
 # Explorer robot (key-> ID, value -> Priority, lower higher priority)
 EXPLORER_IDs = {.1=1, .9=2}
 INIT_MOTIONS ={.1={.x=-3, .y=-1}, .9={.x=-1, .y = -1}}
-EXPLORER = 0
 EXPLORE_STATE = 0
 
 
@@ -47,6 +46,8 @@ homing_complete = 0
 CUR_PATH ={}
 CUR_WP_IDX =0
 global_planner_called=0
+hierarchial_path_to_source={}
+hierarchial_navigational_tube={}
 
 # Constants
 GOTODIST_TOL = 0.1
@@ -64,7 +65,7 @@ function init() {
 
 	# Determine your role.
 	if(not (isnil(EXPLORER_IDs[id]))){
-		EXPLORER = 1
+		ROLE = DOG
 		setup_velocity_callbacks_from_table(EXPLORER_IDs)
 	}
     # Starting state: TURNEDOFF to wait for user input.
@@ -162,58 +163,57 @@ function explore(){
 	BVMSTATE ="EXPLORE"
 	if(ROLE == DOG){
 		# Coordinate the exploration with other robots. 
-		if(EXPLORER){
-			if(EXPLORE_STATE == EXPLORE_EXPLORING){
+		if(EXPLORE_STATE == EXPLORE_EXPLORING){
 
-				if(high_priority_robot_in_field()){
-					EXPLORE_STATE = EXPLORE_YEILDING
-					return
-				}
+			if(high_priority_robot_in_field()){
+				EXPLORE_STATE = EXPLORE_YEILDING
+				return
+			}
+			
+			# Perform the initialization motion to determine the exploration direction. 
+			if(init_motion == 0){
+				# forward motion of 2 meters 
+				var vec_to_target = INIT_MOTIONS[id]
 				
-				# Perform the initialization motion to determine the exploration direction. 
-				if(init_motion == 0){
-					# forward motion of 2 meters 
-					var vec_to_target = INIT_MOTIONS[id]
-					
-					if(goto_point(vec_to_target) == 0){
-						# init motion complete
-						goto(0.0,0.0)
-						init_motion = 1
-					}
+				if(goto_point(vec_to_target) == 0){
+					# init motion complete
+					goto(0.0,0.0)
+					init_motion = 1
+				}
+			}
+			else{
+				# Perform local planning to maximize the environmental information and coverage.
+				if( isnil(CUR_PATH)){
+					CUR_PATH = get_planner_path()
+					if(size(CUR_PATH) <= 0 ){
+						call_local_planner()
+					}			
 				}
 				else{
-					# Perform local planning to maximize the environmental information and coverage.
-					if( isnil(CUR_PATH)){
-						CUR_PATH = get_planner_path()
-						if(size(CUR_PATH) <= 0 ){
-							call_local_planner()
-						}			
+					# Following a path, complete the path.
+					if(size(CUR_PATH) <= 0){
+						CUR_PATH = nil
+                        CUR_WP_IDX=0
+                        goto(0.0,0.0)
 					}
 					else{
-						# Following a path, complete the path.
-						if(size(CUR_PATH) <= 0){
-							CUR_PATH = nil
-	                        CUR_WP_IDX=0
-	                        goto(0.0,0.0)
-						}
-						else{
-							var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
-							if(not (goto_point(cur_wp))){
-								# WP reached
-								if(CUR_WP_IDX < size(CUR_PATH)-1){
-									CUR_WP_IDX = CUR_WP_IDX + 1
-								}
-								else{
-									CUR_PATH = nil
-									CUR_WP_IDX=0
-									goto(0.0,0.0)
-								}
+						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+						if(not (goto_point(cur_wp))){
+							# WP reached
+							if(CUR_WP_IDX < size(CUR_PATH)-1){
+								CUR_WP_IDX = CUR_WP_IDX + 1
+							}
+							else{
+								CUR_PATH = nil
+								CUR_WP_IDX=0
+								goto(0.0,0.0)
 							}
 						}
 					}
 				}
 			}
 		}
+	
 		else if(EXPLORE_STATE == EXPLORE_YEILDING){
 			if( not high_priority_robot_in_field()){
 				EXPLORE_STATE = EXPLORE_EXPLORING
@@ -221,37 +221,41 @@ function explore(){
 			log("Explorer Yeilding to a nearby robot.")
 		}
 		else if(EXPLORE_STATE == EXPLORE_RETUNING){
-			if(EXPLORER){
-				neighbors.broadcast("cmd", 911)
-				if(isnil(CUR_PATH)){
-					CUR_PATH = get_global_planner_path() # todo implement
+			neighbors.broadcast("cmd", 911)
+			if(isnil(CUR_PATH)){
+				CUR_PATH = get_global_planner_path()
+				if(size(CUR_PATH) > 0){ 
+					hierarchial_path_to_source = reverse_table(CUR_PATH)
+					hierarchial_navigational_tube = get_hierarchial_nav_tube() 
+					CUR_WP_IDX=0
 				}
-				else if(size(CUR_PATH) <= 0){
-					CUR_PATH = get_global_planner_path()
+			}
+			else if(size(CUR_PATH) <= 0){
+				CUR_PATH = get_global_planner_path()
+				if(size(CUR_PATH) > 0){
+					hierarchial_path_to_source = reverse_table(CUR_PATH) 
+					hierarchial_navigational_tube = get_hierarchial_nav_tube() 
+					CUR_WP_IDX=0
 				}
-				if(size(CUR_PATH) <=0){
-					# return to base or Home
-					# Tell exploration planner to home using the global graph.
-					if(global_planner_called){
-						if(radiation_source_located == 1){
-							# This robot found the source, compute path to source and nav tube.
-							call_global_planner_for_base_paths() 
-							global_planner_called = 1
-						}
-						else{
-							# Someother robot found the source, simply home.
-							call_global_planner() 
-						}
+				# return to base or Home
+				# Tell exploration planner to home using the global graph.
+				if(not global_planner_called){
+					if(radiation_source_located == 1){
+						# This robot found the source, compute path to source and nav tube.
+						call_global_planner_for_base_paths() 
+						global_planner_called = 1
 					}
 					else{
-						if(size(CUR_PATH) > 0){
-							hierarchial_path_to_source = get_hierarchial_behavior_path() # todo implement
-							hierarchial_navigational_tube = get_hierarchial_nav_tube() # todo implement
-							EXPLORE_STATE = EXPLORE_RETUNING
-							CUR_WP_IDX=0
-						}
+						# Someother robot found the source, simply home.
+						call_global_planner() 
+						global_planner_called = 1
 					}
 				}
+				else{
+					# planner is working please wait.
+				}
+			}
+			else{
 				var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
 				if(not (goto_point(cur_wp))){
 					# WP reached
@@ -294,7 +298,7 @@ function rc_cmd_listen() {
 			neighbors.broadcast("cmd",888)
 		}else if(flight.rc_cmd == 911){
 			flight.rc_cmd = 0
-			if(BVMSTATE = "EXPLORE"){
+			if(BVMSTATE == "EXPLORE"){
 				radiation_source_located = 1
 				EXPLORE_STATE = EXPLORE_RETUNING
 			}
@@ -322,9 +326,7 @@ function nei_cmd_listen() {
 				}
 			}
 			else if(value == 911 and EXPLORE_STATE != EXPLORE_RETUNING){
-				CUR_PATH = get_path_to_base() # todo implement
 				EXPLORE_STATE = EXPLORE_RETUNING
-				CUR_WP_IDX=0
 			}
     })
 }
@@ -376,4 +378,16 @@ function high_priority_robot_in_field(){
 		}
 	)
 	return found_robot[0]
+}
+
+function reverse_table(table_c){
+	var ret_table ={}
+	var idx = size(table_c)
+	var f_idx = 0
+	while(idx >= 0){
+		ret_table[f_idx] = table_c[idx]
+		idx = idx - 1
+		f_idx = f_idx + 1 
+	}
+	return ret_table
 }

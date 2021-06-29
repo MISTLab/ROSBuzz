@@ -262,11 +262,20 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "call_local_planner", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_call_local_planner));
   buzzvm_gstore(VM);
-  buzzvm_pushs(VM, buzzvm_string_register(VM, "take_back_control", 1));
-  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_take_back_control));
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "call_global_planner_for_base_paths", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_call_global_planner_for_base_paths));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "call_global_planner", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_call_global_planner));
   buzzvm_gstore(VM);
   buzzvm_pushs(VM, buzzvm_string_register(VM, "get_local_planner_path", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_local_planner_path));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "get_global_planner_path", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_global_planner_path));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "get_hierarchial_nav_tube", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_hierarchial_nav_tube));
   buzzvm_gstore(VM);
   
 

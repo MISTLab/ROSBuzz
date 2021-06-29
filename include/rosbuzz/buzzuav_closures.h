@@ -12,6 +12,11 @@
 #define DEG2RAD(DEG) (double)((DEG) * ((M_PI) / (180.0)))
 #define RAD2DEG(RAD) (double)((RAD) * ((180.0) / (M_PI)))
 
+
+#define GLOBAL_HOME_WITH_TUB 50001
+#define GLOBAL_HOME 50002
+#define RADIATION_DETECTED 911
+#define EXPLORE 50003
 static std::string log_path;
 /* Path Planner using ompl libs definition of namespaces and CONSTANST */
 #if OMPL_FOUND
@@ -232,6 +237,19 @@ void set_obstacle_dist(float dist[]);
 void update_explore_path(std::vector<std::vector<float>> path);
 
 /*
+ * Update_explore_path
+ */
+void update_home_path(std::vector<std::vector<float>> path);
+
+
+/*
+ * Update nav tube
+ */
+void update_nav_tube(std::vector<std::vector<float>> tube);
+
+
+
+/*
  * Commands the UAV to takeoff
  */
 int buzzuav_takeoff(buzzvm_t vm);
@@ -259,9 +277,28 @@ int buzzuav_geofence(buzzvm_t vm);
 int buzzuav_call_local_planner(buzzvm_t vm);
 
 /*
- * Take back control from the planner
+ * Triggers the global planner anlong with nav tube.
  */
-int buzzuav_take_back_control(buzzvm_t vm);
+
+int buzzuav_call_global_planner_for_base_paths(buzzvm_t vm);
+
+/*
+ * Triggers the global planner only for path to base.
+ */
+
+int buzzuav_call_global_planner(buzzvm_t vm);
+
+/*
+ * Updates the gloabal planner path.
+ */
+
+int buzzuav_get_global_planner_path(buzzvm_t vm);
+
+/*
+ * Updates the hierarchial nav tube.
+ */
+
+int buzzuav_get_hierarchial_nav_tube(buzzvm_t vm);
 
 
 /*
@@ -299,6 +336,11 @@ int buzzuav_update_kh4prox(buzzvm_t vm);
  * Fetch the exploration path
  */
 int buzzuav_get_local_planner_path(buzzvm_t vm);
+
+/*
+ * Fetch the global planner path
+ */
+int buzzuav_get_global_planner_path(buzzvm_t vm);
 
 /*
  * returns the current FC command

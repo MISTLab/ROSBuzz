@@ -71,6 +71,7 @@ add_message_files(
  FILES
  neigh_pos.msg
  hierarchical_status.msg
+ homing_path_set.msg
 )
 
 generate_messages(
