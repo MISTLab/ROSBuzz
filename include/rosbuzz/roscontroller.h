@@ -200,7 +200,8 @@ private:
   ros::Subscriber local_pos_sub;
   ros::Subscriber yolo_sub;
   ros::Subscriber explore_path_sub;
-
+  ros::Subscriber home_path_sub;
+  ros::Subscriber home_nav_path_sub;
   std::map<std::string, std::string> m_smTopic_infos;
 
   int setpoint_counter;

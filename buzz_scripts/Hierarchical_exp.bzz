@@ -184,7 +184,7 @@ function explore(){
 			else{
 				# Perform local planning to maximize the environmental information and coverage.
 				if( isnil(CUR_PATH)){
-					CUR_PATH = get_planner_path()
+					CUR_PATH = get_local_planner_path()
 					if(size(CUR_PATH) <= 0 ){
 						call_local_planner()
 					}			
@@ -193,8 +193,8 @@ function explore(){
 					# Following a path, complete the path.
 					if(size(CUR_PATH) <= 0){
 						CUR_PATH = nil
-                        CUR_WP_IDX=0
-                        goto(0.0,0.0)
+                        			CUR_WP_IDX=0
+                        			goto(0.0,0.0)
 					}
 					else{
 						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)

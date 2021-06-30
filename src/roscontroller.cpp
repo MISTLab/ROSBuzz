@@ -413,16 +413,16 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "std_msgs/Float64"));
 
   node_handle.getParam("topics/inpayload", topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs/Mavlink"));
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "mavros_msgs::Mavlink"));
 
   node_handle.getParam("topics/explorer_path", topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs/MultiDOFJointTrajectory"));
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs::MultiDOFJointTrajectory"));
 
   node_handle.getParam("topics/global_homing_navs_path", topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "rosbuzz/homing_path_set"));  
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "rosbuzz::homing_path_set"));  
 
   node_handle.getParam("topics/global_homing_path", topic);
-  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs/MultiDOFJointTrajectory/home"));  
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs::MultiDOFJointTrajectory::home"));  
 
   node_handle.getParam("topics/yolobox", yolobox_sub_name);
 }
@@ -618,21 +618,21 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     {
       obstacle_sub = n_c.subscribe(it->first, 5, &roscontroller::obstacle_dist_callback, this);
     }
-    else if (it->second == "mavros_msgs/Mavlink")
+    else if (it->second == "mavros_msgs::Mavlink")
     {
       payload_sub = n_c.subscribe(it->first, MAX_NUMBER_OF_ROBOTS, &roscontroller::payload_obt, this);
     }
-    else if (it->second == "trajectory_msgs/MultiDOFJointTrajectory")
+    else if (it->second == "trajectory_msgs::MultiDOFJointTrajectory")
     {
       explore_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_cb, this);
     }
-    else if (it->second == "trajectory_msgs/MultiDOFJointTrajectory:home")
+    else if (it->second == "trajectory_msgs::MultiDOFJointTrajectory:home")
     {
-      explore_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_home_cb, this);
+      home_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_home_cb, this);
     }
-    else if (it->second == "rosbuzz/homing_path_set")
+    else if (it->second == "rosbuzz::homing_path_set")
     {
-      explore_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_home_nav_cb, this);
+      home_nav_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_home_nav_cb, this);
     }
 
 
