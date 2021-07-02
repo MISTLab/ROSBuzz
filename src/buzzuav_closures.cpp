@@ -1975,6 +1975,7 @@ int buzzuav_get_global_planner_path(buzzvm_t vm){
 int buzzuav_get_hierarchial_nav_tube(buzzvm_t vm){
   /* Create empty positioning data table */
   buzzvm_pusht(vm);
+  buzzobj_t path_Pose = buzzvm_stack_at(vm, 1);
   int idx = 0;
   for(uint32_t i=0; i< nav_tube.size();i+=2){ 
     buzzvm_pushi(vm, idx);
@@ -1988,6 +1989,7 @@ int buzzuav_get_hierarchial_nav_tube(buzzvm_t vm){
   }
   printf("Transfering nav tube with %i points idx: %i \n",nav_tube.size(), idx);
   nav_tube.clear();
+  buzzvm_push(vm, path_Pose);
   return buzzvm_ret1(vm);
 }
 

@@ -75,7 +75,8 @@ function init() {
 # Executed at each time step.
 function step() {
 	log("[",id,"] POS (",pose.position.x,",",pose.position.y,",",pose.position.z,") yaw: ", pose.orientation.yaw, " WP ",CUR_WP_IDX)
-	# listen to Remote Controller
+	log("BVM state: ", BVMSTATE, " EXPLORE_STATE ", EXPLORE_STATE)
+        # listen to Remote Controller
 	rc_cmd_listen()
 
 	#
@@ -226,8 +227,13 @@ function explore(){
 				CUR_PATH = get_global_planner_path()
 				if(size(CUR_PATH) > 0){ 
 					hierarchial_path_to_source = reverse_table(CUR_PATH)
-					hierarchial_navigational_tube = get_hierarchial_nav_tube() 
+					log("Hirarchial path: ",size(hierarchial_path_to_source))
+					hierarchial_navigational_tube = get_hierarchial_nav_tube()
+					log("tube size ",size(hierarchial_navigational_tube)) 
 					CUR_WP_IDX=0
+				}
+				else{
+					goto(0.0,0.0)
 				}
 			}
 			else if(size(CUR_PATH) <= 0){
@@ -235,6 +241,7 @@ function explore(){
 				if(size(CUR_PATH) > 0){
 					hierarchial_path_to_source = reverse_table(CUR_PATH) 
 					hierarchial_navigational_tube = get_hierarchial_nav_tube() 
+					log("tube size ",size(hierarchial_navigational_tube)) 
 					CUR_WP_IDX=0
 				}
 				# return to base or Home
@@ -253,6 +260,7 @@ function explore(){
 				}
 				else{
 					# planner is working please wait.
+					goto(0.0,0.0)
 				}
 			}
 			else{
@@ -262,8 +270,9 @@ function explore(){
 					if(CUR_WP_IDX < size(CUR_PATH)-1){
 						CUR_WP_IDX = CUR_WP_IDX + 1
 					}
-					else{
+					else if(CUR_WP_IDX >= size(CUR_PATH)-1){
 						# Home reached, TODO: trigger hierarchial behaviror.
+						log("HOME REACHED")
 						BVMSTATE = "TURNEDOFF"
 						goto(0.0,0.0)
 					}
@@ -292,18 +301,20 @@ function rc_cmd_listen() {
 			BVMSTATE = "STOP"
 			neighbors.broadcast("cmd", 21)
 		} 
-	} else if(BVMSTATE == "EXPLORE"){
-		if(flight.rc_cmd == 888){
-			BVMSTATE = "HIRACHIAL_BEHAVIORS"
-			neighbors.broadcast("cmd",888)
-		}else if(flight.rc_cmd == 911){
-			flight.rc_cmd = 0
-			if(BVMSTATE == "EXPLORE"){
-				radiation_source_located = 1
-				EXPLORE_STATE = EXPLORE_RETUNING
-			}
-		}
+	} 
+	if(flight.rc_cmd == 911){
+		flight.rc_cmd = 0
+		radiation_source_located = 1
+		EXPLORE_STATE = EXPLORE_RETUNING
+ 		BVMSTATE ="EXPLORE"
+		CUR_PATH = nil
+ 		CUR_WP_IDX=0
+		log("RADIATION DETECTED!!!")
 	}
+	else if(flight.rc_cmd == 888){
+		BVMSTATE = "HIRACHIAL_BEHAVIORS"
+		neighbors.broadcast("cmd",888)
+	} 
 }
 
 # listens to neighbors broadcasting commands
@@ -325,8 +336,11 @@ function nei_cmd_listen() {
 					BVMSTATE = "RETURN_TO_BASE"
 				}
 			}
-			else if(value == 911 and EXPLORE_STATE != EXPLORE_RETUNING){
+			else if(value == 911 and EXPLORE_STATE != EXPLORE_RETUNING and BVMSTATE == "EXPLORE"){
 				EXPLORE_STATE = EXPLORE_RETUNING
+				BVMSTATE ="EXPLORE"
+				CUR_PATH = nil
+				log("RADIATION DETECTED!!!")
 			}
     })
 }
@@ -362,6 +376,7 @@ function goto_point(vec_to_target){
 		return 1
 	}
 	else{
+		goto(0,0)
 		return 0
 	}
 }
