@@ -626,7 +626,7 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     {
       explore_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_cb, this);
     }
-    else if (it->second == "trajectory_msgs::MultiDOFJointTrajectory:home")
+    else if (it->second == "trajectory_msgs::MultiDOFJointTrajectory::home")
     {
       home_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_home_cb, this);
     }

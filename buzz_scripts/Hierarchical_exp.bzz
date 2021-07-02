@@ -35,7 +35,7 @@ EXPLORE_RETUNING = 2
 
 # Explorer robot (key-> ID, value -> Priority, lower higher priority)
 EXPLORER_IDs = {.1=1, .9=2}
-INIT_MOTIONS ={.1={.x=-3, .y=-1}, .9={.x=-1, .y = -1}}
+INIT_MOTIONS ={.1={.x=-1.5, .y=-1}, .9={.x=-1, .y = -1}}
 EXPLORE_STATE = 0
 
 
@@ -52,7 +52,7 @@ hierarchial_navigational_tube={}
 # Constants
 GOTODIST_TOL = 0.1
 GOTO_MAXVEL = 3 #m/s 
-EXPLORATION_YEILD = 100 #cms
+EXPLORATION_YEILD = 250 #cms
 
 
 # Executed once at init time.
@@ -168,6 +168,7 @@ function explore(){
 
 			if(high_priority_robot_in_field()){
 				EXPLORE_STATE = EXPLORE_YEILDING
+				goto(0,0)
 				return
 			}
 			
@@ -240,7 +241,7 @@ function explore(){
 				CUR_PATH = get_global_planner_path()
 				if(size(CUR_PATH) > 0){
 					hierarchial_path_to_source = reverse_table(CUR_PATH) 
-					hierarchial_navigational_tube = get_hierarchial_nav_tube() 
+					#hierarchial_navigational_tube = get_hierarchial_nav_tube() 
 					log("tube size ",size(hierarchial_navigational_tube)) 
 					CUR_WP_IDX=0
 				}
@@ -331,16 +332,18 @@ function nei_cmd_listen() {
 					BVMSTATE = "STOP"
 					neighbors.broadcast("cmd", 21)
 				}
-			} else if(BVMSTATE == "EXPLORE"){
+			} 
+			if(BVMSTATE == "EXPLORE"){
 				if(value == 999 and BVMSTATE != "RETURN_TO_BASE"){
 					BVMSTATE = "RETURN_TO_BASE"
 				}
-			}
-			else if(value == 911 and EXPLORE_STATE != EXPLORE_RETUNING and BVMSTATE == "EXPLORE"){
-				EXPLORE_STATE = EXPLORE_RETUNING
-				BVMSTATE ="EXPLORE"
-				CUR_PATH = nil
-				log("RADIATION DETECTED!!!")
+				if(value == 911 and EXPLORE_STATE != EXPLORE_RETUNING){
+                                        EXPLORE_STATE = EXPLORE_RETUNING
+                                        BVMSTATE ="EXPLORE"
+                                        CUR_PATH = nil
+                                        log("RADIATION DETECTED!!!")
+                                }
+
 			}
     })
 }
@@ -385,8 +388,9 @@ function high_priority_robot_in_field(){
 	var found_robot ={.0=0}
 	neighbors.foreach(
 	  	function(rid, data) {
-	  		if( (not isnil(EXPLORER_IDs[rid])) and data.distance < EXPLORATION_YEILD){
-	  			if(EXPLORER_IDs[rid] > EXPLORER_IDs[id]){
+			if(EXPLORER_IDs[rid]){
+	  			log("Explorer in range ",rid, "at distance ", data.distance)
+	  			if(EXPLORER_IDs[rid] < EXPLORER_IDs[id] and data.distance < EXPLORATION_YEILD){
 	    			found_robot[0] = 1
 	  			}
 	  		}
@@ -397,7 +401,7 @@ function high_priority_robot_in_field(){
 
 function reverse_table(table_c){
 	var ret_table ={}
-	var idx = size(table_c)
+	var idx = size(table_c) - 1
 	var f_idx = 0
 	while(idx >= 0){
 		ret_table[f_idx] = table_c[idx]

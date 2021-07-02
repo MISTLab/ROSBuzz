@@ -1,12 +1,12 @@
 # Add an entry to this table for each robot that has a radius different from the default
 # The key is the robot's id and the value is the value of the radius
 robot_radius = {
-  .1 = 0.6,
+  .1 = 60,
   .3 = 5.0,
-  .9 = 0.6
+  .9 = 60
 }
 default_robot_radius = 1.0
-safety_radius = 1.7
+safety_radius = 170
 
 LAND_HEIGHT_TOL = 0.5
 
@@ -54,14 +54,15 @@ function LCA( vel_vec ) {
 
       # detect collision
       combined_radius = get_combined_radius(rid)
+      log("combined ",combined_radius)
 			if (c.distance < combined_radius )
 				collide = 1
 			return c
 	})
 	if (collide) {
-		#log("")
-		#log("------>  AVOIDING NEIGHBOR! (LCA) <------")
-		#log("")
+		log("")
+		log("------>  AVOIDING NEIGHBOR! (LCA) <------")
+		log("")
     closest_neighbor_id = -1
 		result = cart.reduce(function(rid, data, accum) {
       # get neighbor altitue
@@ -160,10 +161,10 @@ function RVO(preferedVelocity) {
       log("Neighbor ", rid, "is at ", altout)
 
       # ignore the ground station (id 0) and landed robots
-      if (rid == 0 or altout <= LAND_HEIGHT_TOL) {
+      if (rid == 0 or (altout <= LAND_HEIGHT_TOL and V_TYPE > 2)) {
         return
       }
-
+      log("Not landed robot")
       #data_string = string.concat(data_string, ",", string.tostring(data.distance), ",", string.tostring(angle))
 
       combined_radius = get_combined_radius(rid)
@@ -204,7 +205,7 @@ function RVO(preferedVelocity) {
   # Detect collision
   foreach(VO_all, function(rid, vo) {
     vAB = math.vec2.sub(preferedVelocity, vo.velocity)
-    #log("[",preferedVelocity.x,preferedVelocity.y,"]","[",vo.velocity.x,vo.velocity.y,"]")
+    log("[",preferedVelocity.x,preferedVelocity.y,"]","[",vo.velocity.x,vo.velocity.y,"]")
     var vel_angle = math.acos(vAB.x / math.vec2.length(vAB))
     if(vAB.y < 0) vel_angle = vel_angle * -1
 
@@ -216,9 +217,9 @@ function RVO(preferedVelocity) {
   # Calculate suitable velocities
   if(collision) {
 
-    #log("")
-    #log("------>  AVOIDING NEIGHBOR! (RVO) <------")
-    #log("")
+    log("")
+    log("------>  AVOIDING NEIGHBOR! (RVO) <------")
+    log("")
 
     var idx = 0
 	  var n = 0

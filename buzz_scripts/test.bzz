@@ -1,0 +1,159 @@
+
+
+include "update.bzz"
+
+# don't use a stigmergy id=11 with this header, for barrier 
+
+# it requires an 'action' function to be defined here.
+
+include "act/states.bzz"
+
+include "vstigenv.bzz"
+
+
+
+### I'm running 2 drones in the swarm, with ID's 1 and 2.
+
+### Drone 1 broadcasts, Drone 2 listens and prints.
+
+
+
+function action() {
+
+	if (id == 1) {
+
+		neighbors.broadcast("state_update","Before broadcasting the array.")
+
+
+
+		var i = 0
+
+		var test_waypoints = {}
+
+		while (i < 7) {
+
+			test_waypoints[i] = {.lat=3.0, .long=4.0, .alt=5.0}
+
+			i = i + 1
+
+		}
+
+
+
+		neighbors.broadcast("state_update",test_waypoints)
+
+		neighbors.broadcast("state_update","After broadcasting the array.")
+
+	}
+
+}
+
+
+
+
+
+# Executed once at init time.
+
+function init() {
+
+  	init_stig()
+
+	init_swarm()
+
+
+
+    # Starting state: TURNEDOFF to wait for user input.
+
+	BVMSTATE = "TURNEDOFF"
+
+
+
+	# Listen to broadcasted information to key "state_update"
+
+	neighbors.listen("state_update",function(vid,value,rid){		
+
+		log("Received:",value)
+
+	})
+
+}
+
+
+
+# Executed at each time step.
+
+function step() {
+
+
+
+	if (id == 1) {
+
+		neighbors.broadcast("state_update","BROADCASTING STILL WORKING?")
+
+	}
+
+
+
+	log("Current state:",BVMSTATE)
+
+	
+
+	rc_cmd_listen()
+
+	nei_cmd_listen()
+
+	
+
+
+
+	#
+
+	# State machine
+
+	#
+
+	if(BVMSTATE=="TURNEDOFF")
+
+		statef=turnedoff
+
+	else if(BVMSTATE=="STOP")	# ends on turnedoff
+
+		statef=stop
+
+	else if(BVMSTATE=="LAUNCH") # ends on AUTO_LAUNCH_STATE
+
+		statef=launch
+
+	else if(BVMSTATE=="IDLE")
+
+		statef=idle
+
+	else if(BVMSTATE=="ACTION")
+
+		statef=action
+
+
+
+	statef()
+
+}
+
+ 
+
+# Executed once when the robot (or the simulator) is reset.
+
+function reset() {
+
+	neighbors.ignore("state_update")
+
+}
+
+ 
+
+# Executed once at the end of experiment.
+
+function destroy() {
+
+	neighbors.ignore("state_update")
+
+}
