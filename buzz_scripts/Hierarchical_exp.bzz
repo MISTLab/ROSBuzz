@@ -176,8 +176,8 @@ function explore(){
 			if(init_motion == 0){
 				# forward motion of 2 meters 
 				var vec_to_target = INIT_MOTIONS[id]
-				
-				if(goto_point(vec_to_target) == 0){
+				var last_wp = 0				
+				if(goto_point(vec_to_target, last_wp) == 0){
 					# init motion complete
 					goto(0.0,0.0)
 					init_motion = 1
@@ -200,7 +200,11 @@ function explore(){
 					}
 					else{
 						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
-						if(not (goto_point(cur_wp))){
+						var last_wp = 0
+						if(CUR_WP_IDX == size(CUR_PATH)-1){
+							last_wp = 1
+						}
+						if(not (goto_point(cur_wp, last_wp))){
 							# WP reached
 							if(CUR_WP_IDX < size(CUR_PATH)-1){
 								CUR_WP_IDX = CUR_WP_IDX + 1
@@ -266,7 +270,8 @@ function explore(){
 			}
 			else{
 				var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
-				if(not (goto_point(cur_wp))){
+				var last_wp = 0
+				if(not (goto_point(cur_wp, last_wp))){
 					# WP reached
 					if(CUR_WP_IDX < size(CUR_PATH)-1){
 						CUR_WP_IDX = CUR_WP_IDX + 1
@@ -364,12 +369,16 @@ function goto(x, y) {
 	goto_abs(norm_goto.x, norm_goto.y, height, 0.0)
 }
 
-function goto_point(vec_to_target){
+function goto_point(vec_to_target, last_wp){
 	var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
 	var NedPos = math.vec2.sub(pose.position,home_offset)
 	var local_vec = math.vec2.sub(vec_to_target,NedPos)
 	local_vec = math.vec2.rotate(local_vec, -pose.orientation.yaw)
-	if(math.vec2.length(local_vec) > GOTODIST_TOL){
+	var last_wp_tol = 0.0
+	if(last_wp){
+		last_wp_tol = 0.2
+	}
+	if(math.vec2.length(local_vec) > GOTODIST_TOL+last_wp_tol){
 		# scale to desired vel
 		local_vec = math.vec2.scale(local_vec,100)
 		# Limit speed
