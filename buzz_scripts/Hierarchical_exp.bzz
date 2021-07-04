@@ -201,9 +201,6 @@ function explore(){
 					else{
 						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
 						var last_wp = 0
-						if(CUR_WP_IDX == size(CUR_PATH)-1){
-							last_wp = 1
-						}
 						if(not (goto_point(cur_wp, last_wp))){
 							# WP reached
 							if(CUR_WP_IDX < size(CUR_PATH)-1){
@@ -230,7 +227,7 @@ function explore(){
 			neighbors.broadcast("cmd", 911)
 			if(isnil(CUR_PATH)){
 				CUR_PATH = get_global_planner_path()
-				if(size(CUR_PATH) > 0){ 
+				if(size(CUR_PATH) > 0 and radiation_source_located){ 
 					hierarchial_path_to_source = reverse_table(CUR_PATH)
 					log("Hirarchial path: ",size(hierarchial_path_to_source))
 					hierarchial_navigational_tube = get_hierarchial_nav_tube()
@@ -243,7 +240,7 @@ function explore(){
 			}
 			else if(size(CUR_PATH) <= 0){
 				CUR_PATH = get_global_planner_path()
-				if(size(CUR_PATH) > 0){
+				if(size(CUR_PATH) > 0 and radiation_source_located){
 					hierarchial_path_to_source = reverse_table(CUR_PATH) 
 					#hierarchial_navigational_tube = get_hierarchial_nav_tube() 
 					log("tube size ",size(hierarchial_navigational_tube)) 
