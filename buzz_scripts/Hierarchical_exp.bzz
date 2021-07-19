@@ -35,7 +35,7 @@ EXPLORE_RETUNING = 2
 
 # Explorer robot (key-> ID, value -> Priority, lower higher priority)
 EXPLORER_IDs = {.1=1, .9=2}
-INIT_MOTIONS ={.1={.x=2.5, .y=1.5}, .9={.x=-1, .y = -1}}
+INIT_MOTIONS ={.1={.x=2.5, .y=1.0}, .9={.x=-1, .y = -1}}
 EXPLORE_STATE = 0
 
 
@@ -381,7 +381,7 @@ function goto_point(vec_to_target, last_wp){
 		# Limit speed
 		local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
 		local_vec = RVO(local_vec)
-		local_vec = math.vec2.rotate(local_vec,YAW_OFFSET)
+		#local_vec = math.vec2.rotate(local_vec,YAW_OFFSET)
 		goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
 		return 1
 	}
