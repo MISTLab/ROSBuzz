@@ -54,9 +54,14 @@ GOTODIST_TOL = 0.3
 GOTO_MAXVEL = 3 #m/s 
 EXPLORATION_YEILD = 250 #cms
 YAW_OFFSET=3.14
+FILE_PATH = "/home/nvidia/gbplanner_ws/src/control/rosbuzz/buzz_scripts/log/"
+BEHAVIOR_FILE_NAME = string.concat(FILE_PATH, string.tostring(id), "-Behavior_bzz_log.csv")
+csv_file =""
 
 # Executed once at init time.
 function init() {	
+	# Open csv file to record data
+    csv_file = io.fopen(BEHAVIOR_FILE_NAME, "w")
 	# start the swarm command listener
 	nei_cmd_listen()
 
@@ -125,6 +130,7 @@ function reset() {
  
 # Executed once at the end of experiment.
 function destroy() {
+	io.fclose(csv_file)
 }
 
 # Implementation of Core States 
