@@ -35,7 +35,7 @@ EXPLORE_RETUNING = 2
 
 # Explorer robot (key-> ID, value -> Priority, lower higher priority)
 EXPLORER_IDs = {.1=1, .9=2}
-INIT_MOTIONS ={.1={.x=2.5, .y=1.0}, .9={.x=-1, .y = -1}}
+INIT_MOTIONS ={.1={.x=-2.5, .y=-1.0}, .9={.x=-1, .y = -1}}
 EXPLORE_STATE = 0
 
 
