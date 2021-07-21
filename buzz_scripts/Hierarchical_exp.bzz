@@ -324,6 +324,11 @@ function rc_cmd_listen() {
 		BVMSTATE = "HIRACHIAL_BEHAVIORS"
 		neighbors.broadcast("cmd",888)
 	} 
+	if(flight.rc_cmd == 811){
+		# restart planning
+		CUR_PATH = nil
+ 		CUR_WP_IDX=0
+	}
 }
 
 # listens to neighbors broadcasting commands
