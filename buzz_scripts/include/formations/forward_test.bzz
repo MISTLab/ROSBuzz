@@ -3,14 +3,16 @@ target_pos = nil
 function forward_test(){
 	if(isnil(target_pos)){
 		#target_pos = {.x = pose.position.x+10, .y = pose.position.y}
-		target_pos = {.x = 0.24, .y = 0.25}
+		target_pos = {.x =-2.407, .y = 0.0}
 	}
 	else{
 		var l_tar=math.vec2.sub(target_pos,pose.position)
-		if(math.vec2.length(l_tar) > 0.2){
+		l_tar = math.vec2.rotate(l_tar, -pose.orientation.yaw)
+		if(math.vec2.length(l_tar) > 0.1){
 			goto(l_tar.x*100,l_tar.y*100)
 		}
 		else{
+			goto(0.0,0.0)
 			log("Target reached !!")
 		}
 	}
