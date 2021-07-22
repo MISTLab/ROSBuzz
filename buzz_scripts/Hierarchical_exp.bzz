@@ -313,12 +313,14 @@ function rc_cmd_listen() {
 	} 
 	if(flight.rc_cmd == 911){
 		flight.rc_cmd = 0
-		radiation_source_located = 1
-		EXPLORE_STATE = EXPLORE_RETUNING
- 		BVMSTATE ="EXPLORE"
-		CUR_PATH = nil
- 		CUR_WP_IDX=0
-		log("RADIATION DETECTED!!!")
+		if(radiation_source_located == 0){
+			radiation_source_located = 1
+			EXPLORE_STATE = EXPLORE_RETUNING
+ 			BVMSTATE ="EXPLORE"
+			CUR_PATH = nil
+ 			CUR_WP_IDX=0
+			log("RADIATION DETECTED!!!")
+		}
 	}
 	else if(flight.rc_cmd == 888){
 		BVMSTATE = "HIRACHIAL_BEHAVIORS"
