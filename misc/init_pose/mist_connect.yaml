@@ -3,26 +3,42 @@ R0:
   pose_y: 0.0
   ori_theta: 0.0
 R1:
-  pose_x: 0.0
+  pose_x: -1.401
   pose_y: 0.0
   ori_theta: 0.0 
-R2:
-  pose_x: 0.0
-  pose_y: 2.0
-  ori_theta: 0.0 
+R9:
+  pose_x: -1.386
+  pose_y: 1.002
+  ori_theta: 0.0
 R3:
-  pose_x: 0.0
-  pose_y: 4.0
-  ori_theta: 0.0 
+  pose_x: 0.486
+  pose_y: 0.0
+  ori_theta: 0.0
 R4: 
-  pose_x: 0.0
-  pose_y: 6.0
+  pose_x: 0.487
+  pose_y: 0.522
   ori_theta: 0.0 
 R5:
   pose_x: 0.0
-  pose_y: 0.0
+  pose_y: 0.522
   ori_theta: 0.0
 R6:
+  pose_x: -0.401
+  pose_y: 0.0
+  ori_theta: 0.0
+R2:
   pose_x: 0.0
   pose_y: 0.0
-  ori_theta: 0.0 
+  ori_theta: 0.0
+R7:
+  pose_x: -0.405
+  pose_y: 0.522
+  ori_theta: 0.0
+R8:
+  pose_x: 0.0
+  pose_y: 0.973
+  ori_theta: 0.0
+R10:
+  pose_x: 0.0
+  pose_y: -0.524
+  ori_theta: 0.0
