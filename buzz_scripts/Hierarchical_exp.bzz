@@ -4,6 +4,7 @@
 include "update.bzz"
 include "utils/vec2.bzz"
 include "utils/takeoff_heights.bzz"
+include "utils/nav_table.bzz"
 # include "formations/circling_experiment.bzz"
 include "formations/Object_movement_test.bzz"
 include "formations/forward_test.bzz"
