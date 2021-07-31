@@ -154,8 +154,9 @@ function hierarchical_init() {
   	})
   	epsilon_stig = stigmergy.create(5)
 	load_target()
-	if(id <= 2){
-        print("I am dog ", id)
+	#if(id <= 2){
+        if(not (isnil(EXPLORER_IDs[id]))){
+                print("I am dog ", id)
 		ROLE=DOG
 		Mode=TASK_ALLOCATION
 	}
@@ -652,9 +653,9 @@ function hierarchical_step(){
 		# compute_error_broadcast(Accum.error)
 	} # dog robots 
 	else if(ROLE == DOG){
-		# log("target size of shapes ", size(target[0].shape_angle), ", ",size(target[0].shape_distance), ",", size(target[0].goal),"x",target[0].goal.x,",",target[0].goal.y  )
+		#log("target size of shapes ", size(target[0].shape_angle), ", ",size(target[0].shape_distance), ",", size(target[0].goal),"x",target[0].goal.x,",",target[0].goal.y  )
 		# log("Dogs ", NUM_OF_DOGS_TO_USE)
-		# debug.print("Dog state: ", Mode, " shaping_time ", shaping_time, " size ", bidding_stig.size()," time ",  time, " nei ",neighbors.count())
+		#log("Dog state: ", Mode, " shaping_time ", shaping_time, " size ", bidding_stig.size()," time ",  time, " nei ",neighbors.count()," shape task ", shape_task_num, " proposed choice ", bidding_stig.get(shape_task_num))
 		var c_target = target[0]
 		# Step 1 Bidding/distributing tasks
 		#print("Density stig ",density_stig.get("M"))
@@ -675,6 +676,7 @@ function hierarchical_step(){
 						if(c_task_Status == -1){
 							# bidding for the current task complete, move on to next
 							shape_task_num = bidding_stig.size()+1
+							bidding_stig.put(shape_task_num, id)
 						}
 						else{
 							# bidding in progress, wait for your assignment time and update bidding if needed.
@@ -710,9 +712,10 @@ function hierarchical_step(){
 					Mode = SHAPE_GOAL
 					Old_error=0
 					shaping_time = 0
-					log("$$$$$[", id,"] I won task ", shape_task_num)
+					# log("$$$$$[", id,"] I won task ", shape_task_num)
 				}
 				else{
+					log("Winner ", bidding_stig.get(shape_task_num))
 					# If there are more tasks then go for the next task. # TODO Change allocation source/variable
 					if(bidding_stig.size() < size(c_target.shape_angle)){
 						shaping_time = 0

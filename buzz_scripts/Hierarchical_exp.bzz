@@ -71,7 +71,8 @@ function init() {
 
 	# Determine your role.
 	if(not (isnil(EXPLORER_IDs[id]))){
-		ROLE = DOG
+		log("I am a Dog")
+        	ROLE = DOG
 		setup_velocity_callbacks_from_table(EXPLORER_IDs)
 	}
     # Starting state: TURNEDOFF to wait for user input.
