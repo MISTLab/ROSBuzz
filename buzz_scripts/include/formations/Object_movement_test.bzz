@@ -509,7 +509,9 @@ function hierarchical_step(){
 							var ind = 1 
 							# log("[",id,"] epsilon ", v, " key ", k)
 							while(ind < 3){
-								var local_p = math.vec2.sub(v[ind],pose.position)
+								var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+								var NedPos = math.vec2.sub(pose.position,home_offset)
+								var local_p = math.vec2.sub(v[ind],NedPos)
 						    	local_p = math.vec2.rotate(local_p,-pose.orientation.yaw)
 						    	local_p = math.vec2.scale(local_p, 100)
 						    	var data = {.distance = math.vec2.length(local_p), .azimuth =math.vec2.angle(local_p)}
@@ -1173,7 +1175,9 @@ function hierarchical_step(){
 
 
 				var path_tracking_point=GLOBAL_TEST_PATH[TEST_PATH_PTR]
-				var m_target = math.vec2.sub(path_tracking_point, pose.position)					
+				var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+				var NedPos = math.vec2.sub(pose.position,home_offset)
+				var m_target = math.vec2.sub(path_tracking_point, NedPos)					
 				m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
 				var Dist_to_target = math.vec2.length(m_target)
 				# if(math.abs(c_target.shape_angle[shape_task_num] - math.pi) < 0.1)
