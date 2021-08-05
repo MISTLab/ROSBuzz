@@ -88,6 +88,8 @@ structuring_time=0
 applied_proximity=0
 old_prox={}
 closest_control_point={.id=-1,.dis=999999}
+velocity_factor =1
+control_point_distance_to_maintain_thresh = 30
 
 # Global test path. 
 # GLOBAL_TEST_PATH={.1={.x=-1.408,.y=0.0}, .2={.x=-2.49,.y=-1.0}, .3={.x=-3.5,.y=-1.1},
@@ -632,11 +634,13 @@ function hierarchical_step(){
 						var safety_weight = 0.9
 						safety_vec.x = (safety_weight * safety_vec.x) + ((1-safety_weight)*Accum.x)
 						safety_vec.y = (safety_weight*safety_vec.y) + ((1-safety_weight)*Accum.y)
-
+						safety_vec = math.vec2.scale(safety_vec, velocity_factor)
 						goto(safety_vec.x,safety_vec.y)
 					}
 					else{
+						Accum = math.vec2.scale(Accum, velocity_factor)
 						goto(Accum.x*10,Accum.y*10)
+
 					}
 
 					neighbors.broadcast("E",(Old_error - Accum.error))
@@ -976,7 +980,7 @@ function hierarchical_step(){
 					})
 
 					control_point_id = cnt_point_deter.val
-
+					closest_control_point = cnt_point_deter
 				}
 					
 			}
@@ -1222,7 +1226,14 @@ function hierarchical_step(){
 				accum.x = accum.x/accum.cnt
 			    accum.y = accum.y/accum.cnt
 			    Old_error = math.vec2.length(accum)
+			    if(math.vec2.length(cm_tension) < closest_control_point.dis - control_point_distance_to_maintain_thresh ){
+                   log("applying zero mag distance to control point small")
+                   accum.x=0.0
+                   accum.y=0.0
+	            }
+
 			    # debug.rays.add(255,255,0,(accum.x+40)/100,(accum.y+40)/100,0.0) 
+			    accum = math.vec2.scale(accum, velocity_factor)
 				goto(accum.x,accum.y)
 				
 			}
