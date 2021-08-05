@@ -117,6 +117,9 @@ function step() {
     else if(BVMSTATE == "FORWARD_TEST"){
     	statef=forward_test
     }
+    else if(BVMSTATE == "NAV_TEST"){
+    	statef=nav_table_test
+    }
     # else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
     #     statef=circling_experiment		
     # }
