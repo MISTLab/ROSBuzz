@@ -277,7 +277,16 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "get_hierarchial_nav_tube", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_hierarchial_nav_tube));
   buzzvm_gstore(VM);
-  
+  // Move base hooks
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "set_navigation_goal", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_set_navigation_goal));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "get_local_trajectory_goal", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_local_trajectory_goal));
+  buzzvm_gstore(VM);
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "get_goal_status", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_move_base_goal_status));
+  buzzvm_gstore(VM);
 
   #if OMPL_FOUND
   buzzvm_pushs(VM, buzzvm_string_register(VM, "InitializePathPlanner", 1));

@@ -24,6 +24,10 @@
 #include "mavros_msgs/StreamRate.h"
 #include "mavros_msgs/ParamGet.h"
 #include "geometry_msgs/PoseStamped.h"
+#include <move_base_msgs/MoveBaseActionGoal.h>
+#include <actionlib_msgs/GoalStatusArray.h>
+#include <actionlib_msgs/GoalStatus.h>
+#include <nav_msgs/Path.h>
 #include "std_msgs/Float64.h"
 #include "std_msgs/String.h"
 #include "rosbuzz/bool_srv.h"
@@ -186,6 +190,7 @@ private:
   ros::Publisher hierarchical_status_pub;
   ros::Publisher path_pub;
   ros::Publisher localsetpoint_nonraw_pub;
+  ros::Publisher move_base_goal_pub;
   ros::ServiceServer service;
   ros::ServiceServer beacon_service;
   ros::Subscriber current_position_sub;
@@ -202,6 +207,8 @@ private:
   ros::Subscriber explore_path_sub;
   ros::Subscriber home_path_sub;
   ros::Subscriber home_nav_path_sub;
+  ros::Subscriber move_base_local_trajectory_sub;
+  ros::Subscriber move_base_goal_status_sub;
   std::map<std::string, std::string> m_smTopic_infos;
 
   int setpoint_counter;
@@ -276,6 +283,10 @@ private:
 
   /*Set the current homing path*/
   void path_home_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
+
+  void move_base_trajectory_cb(const nav_msgs::PathConstPtr& msg);
+
+  void move_base_goal_status_cb(const actionlib_msgs::GoalStatusArrayConstPtr& msg);
 
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);

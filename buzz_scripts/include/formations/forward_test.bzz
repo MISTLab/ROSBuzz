@@ -2,7 +2,7 @@ include "utils/nav_table.bzz"
 include "utils/vec2.bzz"
 
 target_pos = nil
-TEST_PATH_PTR =0 
+TEST_PATH_PTR =1
 FORWARDING = 1
 function forward_test(){
 	if(isnil(target_pos)){

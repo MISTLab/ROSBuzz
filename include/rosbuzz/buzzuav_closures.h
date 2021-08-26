@@ -17,6 +17,7 @@
 #define GLOBAL_HOME 50002
 #define RADIATION_DETECTED 911
 #define EXPLORE 50003
+#define MOVE_BASE_GOAL 50004
 static std::string log_path;
 /* Path Planner using ompl libs definition of namespaces and CONSTANST */
 #if OMPL_FOUND
@@ -341,6 +342,18 @@ int buzzuav_get_local_planner_path(buzzvm_t vm);
  * Fetch the global planner path
  */
 int buzzuav_get_global_planner_path(buzzvm_t vm);
+
+int buzzuav_set_navigation_goal(buzzvm_t vm);
+
+int buzzuav_get_local_trajectory_goal(buzzvm_t vm);
+
+float* buzzuav_get_navigation_goal();
+
+void set_move_base_local_trajectory_goal(float* move_base_goal);
+
+void set_move_base_status(int status);
+
+int buzzuav_get_move_base_goal_status(buzzvm_t vm);
 
 /*
  * returns the current FC command

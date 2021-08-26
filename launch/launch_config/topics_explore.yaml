@@ -20,6 +20,9 @@ topics:
   explorer_path: /kh4/command/trajectory
   global_homing_navs_path: /pci_rosbuzz/global_homing_navs_path_set
   global_homing_path: /pci_rosbuzz/global_homing_path
+  move_base_goal: /move_base/goal
+  move_base_local_trajectory_goal: /move_base/TrajectoryPlannerROS/local_plan
+  move_base_goal_status: /move_base/status
 services:
   fcclient:   cmd/command
   armclient:  cmd/arming

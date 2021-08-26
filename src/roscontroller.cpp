@@ -424,6 +424,12 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   node_handle.getParam("topics/global_homing_path", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs::MultiDOFJointTrajectory::home"));  
 
+  node_handle.getParam("topics/move_base_local_trajectory_goal", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "nav_msgs::Path"));  
+
+  node_handle.getParam("topics/move_base_goal_status", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "actionlib_msgs::GoalStatusArray"));
+
   node_handle.getParam("topics/yolobox", yolobox_sub_name);
 }
 
@@ -553,13 +559,19 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     hierarchical_status_pub = n_c.advertise<rosbuzz::hierarchical_status>(topic, 5);
   else
   {
-    ROS_ERROR("Provide a hierarchical swarm status topic name in YAML file");
+    ROS_WARN("Provide a hierarchical swarm status topic name in YAML file, when using Hirarchial status");
   }
   if (node_handle.getParam("topics/path", topic))
     path_pub = n_c.advertise<nav_msgs::Path>(topic, 5);
   else
   {
-    ROS_ERROR("Provide a path topic name in YAML file");
+    ROS_WARN("Provide a path topic name in YAML file, when using OMPL path planner");
+  }
+  if(node_handle.getParam("topics/move_base_goal", topic))
+    move_base_goal_pub = n_c.advertise<move_base_msgs::MoveBaseActionGoal>(topic, 1);
+  else
+  {
+    ROS_WARN("Provide a move base topic, when using Move Base for navigation");
   }
 }
 
@@ -634,7 +646,14 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     {
       home_nav_path_sub = n_c.subscribe(it->first, 5, &roscontroller::path_home_nav_cb, this);
     }
-
+    else if(it->second == "nav_msgs::Path")
+    {
+      move_base_local_trajectory_sub = n_c.subscribe(it->first, 1, &roscontroller::move_base_trajectory_cb, this);
+    }
+    else if(it->second == "actionlib_msgs::GoalStatusArray"){
+      move_base_goal_status_sub = n_c.subscribe(it->first, 1, &roscontroller::move_base_goal_status_cb, this);
+    }
+    
 
     std::cout << "Subscribed to: " << it->first << endl;
   }
@@ -1176,6 +1195,25 @@ script
     }
       break;
 
+    case MOVE_BASE_GOAL:{
+      float* goal = buzzuav_closures::buzzuav_get_navigation_goal();
+      move_base_msgs::MoveBaseActionGoal move_goal;
+      move_goal.goal_id.id = message_number;
+      move_goal.goal_id.stamp = ros::Time::now();
+      move_goal.goal.target_pose.header.stamp = move_goal.goal_id.stamp;
+      move_goal.goal.target_pose.header.frame_id = "map";
+      move_goal.goal.target_pose.pose.position.x = goal[0];
+      move_goal.goal.target_pose.pose.position.y = goal[1];
+      tf::Quaternion q;
+      q.setRPY(0.0, 0.0, 0.0);
+      move_goal.goal.target_pose.pose.orientation.x = q[0];
+      move_goal.goal.target_pose.pose.orientation.y = q[1];
+      move_goal.goal.target_pose.pose.orientation.z = q[2];
+      move_goal.goal.target_pose.pose.orientation.w = q[3];
+      move_base_goal_pub.publish(move_goal);
+    }
+      break;
+
     case IMAGE_START_CAPTURE:{
       ROS_INFO("TAKING A PICTURE HERE!! --------------");
       mavros_msgs::CommandBool capture_command;
@@ -1296,6 +1334,29 @@ void roscontroller::path_home_nav_cb(const rosbuzz::homing_path_setConstPtr& msg
   planner_service_called = false;
 }
 
+void roscontroller::move_base_trajectory_cb(const nav_msgs::PathConstPtr& msg)
+/*
+/Set the movebase path callback
+/--------------------------------------------------------*/
+{
+  float trajectory_goal[2];
+  trajectory_goal[0] = msg->poses[msg->poses.size()-1].pose.position.x;
+  trajectory_goal[1] = msg->poses[msg->poses.size()-1].pose.position.y;
+  buzzuav_closures::set_move_base_local_trajectory_goal(trajectory_goal);
+}
+
+void roscontroller::move_base_goal_status_cb(const actionlib_msgs::GoalStatusArrayConstPtr& msg)
+/*
+/Set the movebase goal status callback
+/--------------------------------------------------------*/
+{
+  int goal_status = 0;
+  if(msg->status_list[ msg->status_list.size() - 1].status == actionlib_msgs::GoalStatus::SUCCEEDED){
+    goal_status = 1;
+  }
+  buzzuav_closures::set_move_base_status(goal_status);
+
+}
 
 float roscontroller::constrainAngle(float x)
 /*

@@ -19,8 +19,11 @@ static double goto_gpsgoal[3];
 static double cur_pos[4];
 static double cur_offset[2];
 static double cur_NEDpos[4];
+static float navigation_goal[2];
+static float move_base_local_goal[2]; 
 static int hierarchical_status[7]={-1,-1,-1,-1,-1,-1,-1};
 
+static int goal_status = 0;
 static int rc_id = -1;
 static int rc_cmd = 0;
 static double rc_gpsgoal[3];
@@ -1990,6 +1993,47 @@ int buzzuav_get_hierarchial_nav_tube(buzzvm_t vm){
   printf("Transfering nav tube with %i points idx: %i \n",nav_tube.size(), idx);
   nav_tube.clear();
   buzzvm_push(vm, path_Pose);
+  return buzzvm_ret1(vm);
+}
+
+int buzzuav_set_navigation_goal(buzzvm_t vm){
+  buzzvm_lnum_assert(vm, 2);
+  buzzvm_lload(vm, 1);  // x
+  buzzvm_lload(vm, 2);  // y
+  buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+  buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+  
+  navigation_goal[0] = buzzvm_stack_at(vm, 2)->f.value;
+  navigation_goal[1] = buzzvm_stack_at(vm, 1)->f.value;
+  buzz_cmd = MOVE_BASE_GOAL;
+  return buzzvm_ret0(vm);
+}
+
+int buzzuav_get_local_trajectory_goal(buzzvm_t vm){
+  buzzobj_t tVecTable = buzzvm_stack_at(vm, 1);
+  TablePut_str_fval(tVecTable, "x", move_base_local_goal[0], vm);
+  TablePut_str_fval(tVecTable, "y", move_base_local_goal[1], vm);
+  move_base_local_goal[0] = 0.0;
+  move_base_local_goal[1] = 0.0;
+  return buzzvm_ret1(vm);
+}
+
+
+float* buzzuav_get_navigation_goal(){
+  return navigation_goal;
+}
+
+void set_move_base_local_trajectory_goal(float* move_base_goal){
+  move_base_local_goal[0] = move_base_goal[0];
+  move_base_local_goal[1] = move_base_goal[1];
+}
+
+void set_move_base_status(int status){
+  goal_status = status;
+}
+
+int buzzuav_get_move_base_goal_status(buzzvm_t vm){
+  buzzvm_pushi(vm, goal_status);
   return buzzvm_ret1(vm);
 }
 
