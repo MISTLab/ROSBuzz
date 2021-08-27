@@ -193,6 +193,7 @@ function explore(){
 					# init motion complete
 					goto(0.0,0.0)
 					init_motion = 1
+					log("!!!!INIT MOTION DONE")
 				}
 			}
 			else{
@@ -392,24 +393,35 @@ function goto(x, y) {
 # This function takes goal in the /map frame. Using any other frame will create unexpexted behavior. 
 # This function assumes get_local_trajectory_goal returns the origin when the goal is reached.
 function goto_point(goal, last_wp){
-	if(get_goal_status()){
+	var goal_status =get_goal_status()
+	log("GOAL STATUS ", goal_status)
+	if(goal_status and Move_base_tracking_goal){
 		goto(0,0)
 		Move_base_tracking_goal = 0
 		return 0
 	}
 	if(not Move_base_tracking_goal){
+		Move_base_tracking_goal = 1
 		set_navigation_goal(goal.x, goal.y)
 	}
 	var local_goal_vec = get_local_trajectory_goal() # goal from the movebase planner.
-	var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
-	var NedPos = math.vec2.sub(pose.position,home_offset)
-	var local_vec = math.vec2.sub(local_goal_vec,NedPos)
-	local_vec_len = math.vec2.length(local_vec)
-	# scale to desired vel
-	local_vec = math.vec2.scale(local_vec,100)
-	# Limit speed
-	local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
-	goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
+        log("Goal received ", local_goal_vec.x," , ", local_goal_vec.y)	
+        if(math.vec2.length(local_goal_vec) > 0){
+		var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+		var NedPos = math.vec2.sub(pose.position,home_offset)
+		var local_vec = math.vec2.sub(local_goal_vec,NedPos)
+		local_vec_len = math.vec2.length(local_vec)
+		local_vec = math.vec2.rotate(local_vec, -1*pose.orientation.yaw)
+                log("local vec len ", local_vec_len, " vec ", local_goal_vec.x, ", ",local_goal_vec.y)
+ 		# scale to desired vel
+		local_vec = math.vec2.scale(local_vec,2)
+		# Limit speed
+		# local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
+		goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
+	}
+	else{
+		goto(0.0,0.0)
+	}
 	return 1	
 }
 

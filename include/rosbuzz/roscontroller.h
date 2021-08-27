@@ -27,6 +27,8 @@
 #include <move_base_msgs/MoveBaseActionGoal.h>
 #include <actionlib_msgs/GoalStatusArray.h>
 #include <actionlib_msgs/GoalStatus.h>
+#include <move_base_msgs/MoveBaseAction.h>
+#include <actionlib/client/simple_action_client.h>
 #include <nav_msgs/Path.h>
 #include "std_msgs/Float64.h"
 #include "std_msgs/String.h"
@@ -77,6 +79,8 @@ typedef enum {
 #define BUZZRATE 10
 
 using namespace std;
+
+typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 namespace rosbuzz_node
 {
@@ -223,6 +227,9 @@ private:
 
   mavros_msgs::SetMode m_cmdSetMode;
   ros::ServiceClient mode_client;
+
+  /*Update Movebase goal*/
+  void update_move_base_goal();
 
   // CSV log management functions
   void initcsvlog();

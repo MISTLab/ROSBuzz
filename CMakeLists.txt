@@ -36,6 +36,9 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   geometry_msgs
   nav_msgs
+  actionlib
+  move_base_msgs
+  
   message_generation
 )
 

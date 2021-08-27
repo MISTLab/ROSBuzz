@@ -347,13 +347,17 @@ int buzzuav_set_navigation_goal(buzzvm_t vm);
 
 int buzzuav_get_local_trajectory_goal(buzzvm_t vm);
 
-float* buzzuav_get_navigation_goal();
+float* buzzuav_get_setpoint_goal();
 
 void set_move_base_local_trajectory_goal(float* move_base_goal);
+
+int is_new_move_goal_available();
 
 void set_move_base_status(int status);
 
 int buzzuav_get_move_base_goal_status(buzzvm_t vm);
+
+void clear_move_base_goal();
 
 /*
  * returns the current FC command

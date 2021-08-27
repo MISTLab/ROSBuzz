@@ -144,6 +144,7 @@ void roscontroller::RosControllerRun()
     // check for BVMSTATE variable
     if (buzz_utility::get_bvmstate() == "Not Available")
       ROS_ERROR("BVMSTATE undeclared in .bzz file, please set BVMSTATE.");
+    
     //  DEBUG
     // ROS_WARN("[%i] -----------------------STARTING MAIN LOOP!", robot_id);
     buzzuav_closures::setVorlog(bzzfile_name.substr(0, bzzfile_name.find_last_of("\\/")));
@@ -192,6 +193,10 @@ void roscontroller::RosControllerRun()
         timer_step++;
       //  Prepare messages and publish them
       prepare_msg_and_publish();
+      if(pose_type == LOCAL_POSE){
+	  // update move base goals
+      	  update_move_base_goal();
+      }
       // Call the flight controler service
       flight_controller_service_call();
       // Broadcast local position to FCU
@@ -218,6 +223,28 @@ void roscontroller::RosControllerRun()
       //  DEBUG*/
       // std::cout<< "HOME: " << home.latitude << ", " << home.longitude;
     }
+  }
+}
+
+void roscontroller::update_move_base_goal(){
+  int is_new_goal = buzzuav_closures::is_new_move_goal_available();
+  if(is_new_goal){
+     float* goal = buzzuav_closures::buzzuav_get_setpoint_goal();
+      move_base_msgs::MoveBaseActionGoal move_goal;
+      move_goal.goal_id.id = message_number;
+      move_goal.goal_id.stamp = ros::Time::now();
+      move_goal.goal.target_pose.header.stamp = move_goal.goal_id.stamp;
+      move_goal.goal.target_pose.header.frame_id = "map";
+      move_goal.goal.target_pose.pose.position.x = goal[0];
+      move_goal.goal.target_pose.pose.position.y = goal[1];
+      tf::Quaternion q;
+      q.setRPY(0.0, 0.0, 0.0);
+      move_goal.goal.target_pose.pose.orientation.x = q[0];
+      move_goal.goal.target_pose.pose.orientation.y = q[1];
+      move_goal.goal.target_pose.pose.orientation.z = q[2];
+      move_goal.goal.target_pose.pose.orientation.w = q[3];
+      move_base_goal_pub.publish(move_goal);
+      buzzuav_closures::clear_move_base_goal();
   }
 }
 
@@ -1195,25 +1222,6 @@ script
     }
       break;
 
-    case MOVE_BASE_GOAL:{
-      float* goal = buzzuav_closures::buzzuav_get_navigation_goal();
-      move_base_msgs::MoveBaseActionGoal move_goal;
-      move_goal.goal_id.id = message_number;
-      move_goal.goal_id.stamp = ros::Time::now();
-      move_goal.goal.target_pose.header.stamp = move_goal.goal_id.stamp;
-      move_goal.goal.target_pose.header.frame_id = "map";
-      move_goal.goal.target_pose.pose.position.x = goal[0];
-      move_goal.goal.target_pose.pose.position.y = goal[1];
-      tf::Quaternion q;
-      q.setRPY(0.0, 0.0, 0.0);
-      move_goal.goal.target_pose.pose.orientation.x = q[0];
-      move_goal.goal.target_pose.pose.orientation.y = q[1];
-      move_goal.goal.target_pose.pose.orientation.z = q[2];
-      move_goal.goal.target_pose.pose.orientation.w = q[3];
-      move_base_goal_pub.publish(move_goal);
-    }
-      break;
-
     case IMAGE_START_CAPTURE:{
       ROS_INFO("TAKING A PICTURE HERE!! --------------");
       mavros_msgs::CommandBool capture_command;
@@ -1340,9 +1348,11 @@ void roscontroller::move_base_trajectory_cb(const nav_msgs::PathConstPtr& msg)
 /--------------------------------------------------------*/
 {
   float trajectory_goal[2];
-  trajectory_goal[0] = msg->poses[msg->poses.size()-1].pose.position.x;
-  trajectory_goal[1] = msg->poses[msg->poses.size()-1].pose.position.y;
-  buzzuav_closures::set_move_base_local_trajectory_goal(trajectory_goal);
+  if(msg->poses.size() > 0){
+     trajectory_goal[0] = msg->poses[msg->poses.size()-1].pose.position.x;
+     trajectory_goal[1] = msg->poses[msg->poses.size()-1].pose.position.y;
+     buzzuav_closures::set_move_base_local_trajectory_goal(trajectory_goal);
+  }
 }
 
 void roscontroller::move_base_goal_status_cb(const actionlib_msgs::GoalStatusArrayConstPtr& msg)
@@ -1351,8 +1361,10 @@ void roscontroller::move_base_goal_status_cb(const actionlib_msgs::GoalStatusArr
 /--------------------------------------------------------*/
 {
   int goal_status = 0;
-  if(msg->status_list[ msg->status_list.size() - 1].status == actionlib_msgs::GoalStatus::SUCCEEDED){
-    goal_status = 1;
+  if( msg->status_list.size() > 0){
+    if(msg->status_list[ msg->status_list.size() - 1].status == actionlib_msgs::GoalStatus::SUCCEEDED){
+      goal_status = 1;
+    }
   }
   buzzuav_closures::set_move_base_status(goal_status);
 

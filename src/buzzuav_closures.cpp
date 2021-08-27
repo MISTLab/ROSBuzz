@@ -20,10 +20,12 @@ static double cur_pos[4];
 static double cur_offset[2];
 static double cur_NEDpos[4];
 static float navigation_goal[2];
-static float move_base_local_goal[2]; 
+static float move_base_local_goal[2]={0.0,0.0}; 
 static int hierarchical_status[7]={-1,-1,-1,-1,-1,-1,-1};
 
 static int goal_status = 0;
+static int new_move_goal_available=0;
+static int goal_read = 0;
 static int rc_id = -1;
 static int rc_cmd = 0;
 static double rc_gpsgoal[3];
@@ -2002,14 +2004,24 @@ int buzzuav_set_navigation_goal(buzzvm_t vm){
   buzzvm_lload(vm, 2);  // y
   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-  
+  printf("Setting movebase goal from rosbuzz  (%f,%f)", buzzvm_stack_at(vm, 2)->f.value, buzzvm_stack_at(vm, 1)->f.value); 
+  new_move_goal_available = 1;
   navigation_goal[0] = buzzvm_stack_at(vm, 2)->f.value;
   navigation_goal[1] = buzzvm_stack_at(vm, 1)->f.value;
-  buzz_cmd = MOVE_BASE_GOAL;
   return buzzvm_ret0(vm);
 }
 
+float* buzzuav_get_setpoint_goal(){
+  return navigation_goal;
+}
+
+void clear_move_base_goal(){
+  new_move_goal_available = 0;
+
+}
+
 int buzzuav_get_local_trajectory_goal(buzzvm_t vm){
+  buzzvm_pusht(vm);
   buzzobj_t tVecTable = buzzvm_stack_at(vm, 1);
   TablePut_str_fval(tVecTable, "x", move_base_local_goal[0], vm);
   TablePut_str_fval(tVecTable, "y", move_base_local_goal[1], vm);
@@ -2018,14 +2030,14 @@ int buzzuav_get_local_trajectory_goal(buzzvm_t vm){
   return buzzvm_ret1(vm);
 }
 
-
-float* buzzuav_get_navigation_goal(){
-  return navigation_goal;
-}
-
 void set_move_base_local_trajectory_goal(float* move_base_goal){
   move_base_local_goal[0] = move_base_goal[0];
   move_base_local_goal[1] = move_base_goal[1];
+  printf("Movebase local vec received %f, %f", move_base_goal[0], move_base_goal[1]);
+}
+
+int is_new_move_goal_available(){
+  return new_move_goal_available;
 }
 
 void set_move_base_status(int status){
