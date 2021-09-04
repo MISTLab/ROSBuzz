@@ -1360,12 +1360,13 @@ void roscontroller::move_base_goal_status_cb(const actionlib_msgs::GoalStatusArr
 /Set the movebase goal status callback
 /--------------------------------------------------------*/
 {
+  bool bool_status = true;
   int goal_status = 0;
-  if( msg->status_list.size() > 0){
-    if(msg->status_list[ msg->status_list.size() - 1].status == actionlib_msgs::GoalStatus::SUCCEEDED){
-      goal_status = 1;
-    }
+  for(int i = 0; i <  msg->status_list.size(); ++i){
+    bool_status &= ((msg->status_list[i].status == actionlib_msgs::GoalStatus::SUCCEEDED)
+		    || (msg->status_list[i].status >= actionlib_msgs::GoalStatus::ABORTED));
   }
+  if(bool_status && msg->status_list.size() > 0) goal_status = 1;
   buzzuav_closures::set_move_base_status(goal_status);
 
 }
