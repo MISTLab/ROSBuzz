@@ -237,8 +237,10 @@ void roscontroller::update_move_base_goal(){
       move_goal.goal.target_pose.header.frame_id = "map";
       move_goal.goal.target_pose.pose.position.x = goal[0];
       move_goal.goal.target_pose.pose.position.y = goal[1];
+      // Compute current goal yaw
+      float c_goal_yaw = atan2(goal[1], goal[0]);
       tf::Quaternion q;
-      q.setRPY(0.0, 0.0, 0.0);
+      q.setRPY(0.0, 0.0, c_goal_yaw);
       move_goal.goal.target_pose.pose.orientation.x = q[0];
       move_goal.goal.target_pose.pose.orientation.y = q[1];
       move_goal.goal.target_pose.pose.orientation.z = q[2];
