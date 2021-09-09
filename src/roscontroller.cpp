@@ -231,7 +231,7 @@ void roscontroller::update_move_base_goal(){
   if(is_new_goal){
      float* goal = buzzuav_closures::buzzuav_get_setpoint_goal();
       move_base_msgs::MoveBaseActionGoal move_goal;
-      move_goal.goal_id.id = message_number;
+      move_goal.goal_id.id = std::to_string(message_number);
       move_goal.goal_id.stamp = ros::Time::now();
       move_goal.goal.target_pose.header.stamp = move_goal.goal_id.stamp;
       move_goal.goal.target_pose.header.frame_id = "map";

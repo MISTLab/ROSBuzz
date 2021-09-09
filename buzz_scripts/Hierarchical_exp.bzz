@@ -394,7 +394,7 @@ function goto(x, y) {
 # This function takes goal in the /map frame. Using any other frame will create unexpexted behavior. 
 # This function assumes get_local_trajectory_goal returns the origin when the goal is reached.
 function goto_point(goal, last_wp){
-	var goal_status =get_goal_status()
+	var goal_status = get_goal_status()
 	#log("GOAL STATUS ", goal_status)
 	if(goal_status){
 		Goal_reached_declare_timer = Goal_reached_declare_timer + 1
@@ -413,19 +413,18 @@ function goto_point(goal, last_wp){
 		Move_base_tracking_goal = 1
 		set_navigation_goal(goal.x, goal.y)
 		goto_abs(0.0, 0.0, takeoff_heights[id], 0.0)				
-
 	}
 	var local_goal_vec = get_local_trajectory_goal() # goal from the movebase planner.
-        log("Goal received ", local_goal_vec.x," , ", local_goal_vec.y)
+  #log("Goal received ", local_goal_vec.x," , ", local_goal_vec.y)
 		
-        if(math.vec2.length(local_goal_vec) > 0){
-		var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
-		var NedPos = math.vec2.sub(pose.position,home_offset)
-		var local_vec = math.vec2.sub(local_goal_vec,NedPos)
-		local_vec_len = math.vec2.length(local_vec)
-		local_vec = math.vec2.rotate(local_vec, -1*pose.orientation.yaw)
-                #log("local vec len ", local_vec_len, " vec ", local_goal_vec.x, ", ",local_goal_vec.y, " angle to goal ", math.abs( math.vec2.angle(local_vec)))
-	
+  if(math.vec2.length(local_goal_vec) > 0){
+	  var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+	  var NedPos = math.vec2.sub(pose.position,home_offset)
+	  var local_vec = math.vec2.sub(local_goal_vec,NedPos)
+	  local_vec_len = math.vec2.length(local_vec)
+	  local_vec = math.vec2.rotate(local_vec, -1*pose.orientation.yaw)
+    #log("local vec len ", local_vec_len, " vec ", local_goal_vec.x, ", ",local_goal_vec.y, " angle to goal ", math.abs( math.vec2.angle(local_vec)))
+
 		if(math.abs( math.vec2.angle(local_vec)) > 2.0 ){ # Goal is directly behind the robot, rotate.
 			goto_abs(-1.0, 0.0, takeoff_heights[id], 0.0)				
 		}
@@ -436,10 +435,8 @@ function goto_point(goal, last_wp){
 			local_vec = math.vec2.newp(math.vec2.length(local_vec)*10,math.vec2.angle(local_vec))
 			goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
 		}
-	}
-	#else{
-		#goto(0.0,0.0)
-	#}
+  }
+
 	return 1	
 }
 
