@@ -2004,7 +2004,7 @@ int buzzuav_set_navigation_goal(buzzvm_t vm){
   buzzvm_lload(vm, 2);  // y
   buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
   buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
-  printf("Setting movebase goal from rosbuzz  (%f,%f)", buzzvm_stack_at(vm, 2)->f.value, buzzvm_stack_at(vm, 1)->f.value); 
+  //printf("Setting movebase goal from rosbuzz  (%f,%f)", buzzvm_stack_at(vm, 2)->f.value, buzzvm_stack_at(vm, 1)->f.value); 
   new_move_goal_available = 1;
   navigation_goal[0] = buzzvm_stack_at(vm, 2)->f.value;
   navigation_goal[1] = buzzvm_stack_at(vm, 1)->f.value;
@@ -2033,7 +2033,7 @@ int buzzuav_get_local_trajectory_goal(buzzvm_t vm){
 void set_move_base_local_trajectory_goal(float* move_base_goal){
   move_base_local_goal[0] = move_base_goal[0];
   move_base_local_goal[1] = move_base_goal[1];
-  printf("Movebase local vec received %f, %f", move_base_goal[0], move_base_goal[1]);
+  //printf("Movebase local vec received %f, %f", move_base_goal[0], move_base_goal[1]);
 }
 
 int is_new_move_goal_available(){
