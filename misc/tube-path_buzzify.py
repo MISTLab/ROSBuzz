@@ -1,12 +1,12 @@
 import re
 
-filename = "/home/vivek/Vivek/Projects/Hierarchical_Swarm/KheperaIV/data_processing/Hirarchial_exp_log/2_Robot/3/RG1/log/nav_tube.txt"
-pathfname = "/home/vivek/Vivek/Projects/Hierarchical_Swarm/KheperaIV/data_processing/Hirarchial_exp_log/2_Robot/3/RG1/log/path.txt"
+tubefname = "/home/nvidia/output_tube.txt"
+pathfname = "/home/nvidia/output_path.txt"
 
-outputfilename ="/home/vivek/Vivek/Projects/Hierarchical_Swarm/KheperaIV/data_processing/nav_table.bzz"
+outputfilename = "/home/nvidia/gbplanner_ws/src/control/rosbuzz/buzz_scripts/include/utils/nav_table.bzz"
 
 points_list = []
-with open(filename) as f:
+with open(tubefname) as f:
     #content = f.readlines()
 # you may also want to remove whitespace characters like `\n` at the end of each line
 #content = [x.strip() for x in content] 
@@ -65,7 +65,7 @@ f.write(" \n")
 f.write("GLOBAL_TEST_PATH = {.1={.x=" + str(ppoints_list_x[0]) + ", .y=" + str(ppoints_list_y[0]) + " }")
 
 for i in range(1,len(ppoints_list_x)):
-    f.write(",."+str(i+1)+"={.x=" + str(ppoints_list_x[0]) + ", .y=" + str(ppoints_list_y[0]) + " }")
+    f.write(",."+str(i+1)+"={.x=" + str(ppoints_list_x[i]) + ", .y=" + str(ppoints_list_y[i]) + " }")
 f.write(" }")
 
 f.close()
