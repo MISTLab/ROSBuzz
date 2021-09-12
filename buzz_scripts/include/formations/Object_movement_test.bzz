@@ -1179,20 +1179,22 @@ function hierarchical_step(){
 
 
 				var path_tracking_point=GLOBAL_TEST_PATH[TEST_PATH_PTR]
-				var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
-				var NedPos = math.vec2.sub(pose.position,home_offset)
-				var m_target = math.vec2.sub(path_tracking_point, NedPos)					
-				m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
-				var Dist_to_target = math.vec2.length(m_target)
+				var movebase_goto = movebase_point(path_tracking_point)
+
+				#var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+				#var NedPos = math.vec2.sub(pose.position,home_offset)
+				#var m_target = math.vec2.sub(path_tracking_point, NedPos)					
+				#m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+				#var Dist_to_target = math.vec2.length(m_target)
 				# if(math.abs(c_target.shape_angle[shape_task_num] - math.pi) < 0.1)
-					# m_target = math.vec2.scale(m_target,100)
+					var m_target = math.vec2.scale(movebase_goto,100)
 					var tar_ang = math.vec2.angle(m_target)
 					m_target = math.vec2.newp(10,tar_ang)
 				# else{
 				# 	m_target = math.vec2.new(0.0,0.0)
 				# }					
 				
-				if(Dist_to_target > 0.1 and Old_error > 0.1){
+				if(math.vec2.length(m_target) > 0.0 and Old_error > 0.1){
 					
 					if(c_target.dog_dist > SAFETY_DISTANCE){
 						var target_pot = harmonMagnitude(math.vec2.length(m_target), 0.001, HARMON_A0, HARMON_K)
@@ -1207,7 +1209,7 @@ function hierarchical_step(){
 						
 				}
 				else{
-					if(Dist_to_target < 0.5 ){
+					if(Move_base_tracking_goal == 0 ){
 						if(TEST_PATH_PTR < size(GLOBAL_TEST_PATH)){
 							TEST_PATH_PTR = TEST_PATH_PTR + 1
 						}

@@ -440,6 +440,53 @@ function goto_point(goal, last_wp){
 	return 1	
 }
 
+# Function to use ROS move base node (ROS navigational stack) along with ROSBuzz and obtain a goto vec
+# This function takes goal in the /map frame. Using any other frame will create unexpexted behavior. 
+function movebase_point(goal){
+	var goal_status = get_goal_status()
+	var movebase_goto = math.vec2.new(0.0,0.0)
+	#log("GOAL STATUS ", goal_status)
+	if(goal_status){
+		Goal_reached_declare_timer = Goal_reached_declare_timer + 1				
+	}
+	else{
+		Goal_reached_declare_timer = 0
+	}
+	if(Goal_reached_declare_timer > TIME_TO_DECLARE_GOAL_REACHED and Move_base_tracking_goal){				
+		Move_base_tracking_goal = 0
+		return movebase_goto
+	}
+	if(not Move_base_tracking_goal){
+		Move_base_tracking_goal = 1
+		set_navigation_goal(goal.x, goal.y)				
+	}
+	var local_goal_vec = get_local_trajectory_goal() # goal from the movebase planner.
+  #log("Goal received ", local_goal_vec.x," , ", local_goal_vec.y)
+		
+  if(math.vec2.length(local_goal_vec) > 0){
+	  var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+	  var NedPos = math.vec2.sub(pose.position,home_offset)
+	  var local_vec = math.vec2.sub(local_goal_vec,NedPos)
+	  local_vec_len = math.vec2.length(local_vec)
+	  local_vec = math.vec2.rotate(local_vec, -1*pose.orientation.yaw)
+      #log("local vec len ", local_vec_len, " vec ", local_goal_vec.x, ", ",local_goal_vec.y, " angle to goal ", math.abs( math.vec2.angle(local_vec)))
+
+		if(math.abs( math.vec2.angle(local_vec)) > 2.0 ){ # Goal is directly behind the robot, rotate.
+			movebase_goto.x = -1.0
+			movebase_goto.y = 0.0
+		}
+		else{
+	 		# scale to desired vel
+			#local_vec = math.vec2.scale(local_vec,1)
+			# Limit speed
+			#local_vec = math.vec2.newp(math.vec2.length(local_vec)*10,math.vec2.angle(local_vec))
+			movebase_goto.x = local_vec.x
+			movebase_goto.y = local_vec.y
+		}
+  }
+
+	return movebase_goto	
+}
 
 function goto_point_naive(vec_to_target, last_wp){
 	var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
