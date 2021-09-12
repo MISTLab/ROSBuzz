@@ -818,7 +818,7 @@ function hierarchical_step(){
 				    }
 				    else{
 					    #goto(m_target.x,m_target.y)
-					    goto(((5*m_target.x)+Accum.x)*100,((5*m_target.y)+Accum.y)*100)
+					    goto(((5*m_target.x)+Accum.x)*25,((5*m_target.y)+Accum.y)*25)
 					}
 				    # debug.print("Shaping: task ",shape_task_num)
 				# }
@@ -839,7 +839,7 @@ function hierarchical_step(){
 						task_stig.put(id,PRE_SHAPE_MOVE)
 						move_vec=math.vec2.new(0.0,0.0)
 				}
-				goto(move_vec.x*100,move_vec.y*100)
+				goto(move_vec.x*25,move_vec.y*25)
 				# debug.rays.add(0,0,255,move_vec.x,move_vec.y,0.0)
 				
 			}
@@ -875,7 +875,7 @@ function hierarchical_step(){
 					task_stig.put(id,REACHED)
 				}	
 				
-				goto(m_target.x*100,m_target.y*100)
+				goto(m_target.x*25,m_target.y*25)
 			}
 		}
 		else if(Mode == SHAPING){
@@ -1057,7 +1057,7 @@ function hierarchical_step(){
 			    accum.x = accum.x/accum.cnt
 			    accum.y = accum.y/accum.cnt
 			    # debug.print("Center ",math.vec2.length(cm_tension), " mag ", cm_pot, " dog ",stopping.dis, " mag ",stopping.val, " accum ", math.vec2.length(accum) )
-			    goto(accum.x,accum.y)
+			    goto(accum.x/4,accum.y/4)
 			    if(math.vec2.length(accum) < 0.3){
 			    	shaping_time = 1
 			    	log("[",id,"] trans to movement")
@@ -1236,7 +1236,7 @@ function hierarchical_step(){
 
 			    # debug.rays.add(255,255,0,(accum.x+40)/100,(accum.y+40)/100,0.0) 
 			    accum = math.vec2.scale(accum, velocity_factor)
-				goto(accum.x,accum.y)
+				goto(accum.x/4,accum.y/4)
 				
 			}
 	    }
