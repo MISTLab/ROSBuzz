@@ -638,7 +638,7 @@ function hierarchical_step(){
 						goto(safety_vec.x,safety_vec.y)
 					}
 					else{
-						Accum = math.vec2.scale(Accum, velocity_factor)
+						math.vec2.scale_inplace(Accum, velocity_factor)
 						goto(Accum.x*10,Accum.y*10)
 
 					}

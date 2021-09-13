@@ -97,6 +97,17 @@ math.vec2.scale = function(v, s) {
 }
 
 #
+# Scales a vector by a numeric constant in place 
+# without making a copy.
+# PARAM v: A vector2.
+# PARAM s: A number (float or int).
+#
+math.vec2.scale_inplace = function(v, s) {
+    v.x = v.x * s
+    v.y = v.y * s
+}
+
+#
 # Calculates v1 . v2 (the dot product)
 # PARAM v1: A vector2.
 # PARAM v2: A vector2.
