@@ -386,6 +386,10 @@ function goto(x, y) {
 	# Convert cm to m
 	norm_goto.x = 1.0/100.0 * norm_goto.x
 	norm_goto.y = 1.0/100.0 * norm_goto.y
+  # Hack, reducing the speed.
+  norm_goto.x = 1.0/25.0 * norm_goto.x
+  norm_goto.y = 1.0/25.0 * norm_goto.y
+
 	log("GOTo ",norm_goto.x,",", norm_goto.y)
 	goto_abs(norm_goto.x, norm_goto.y, height, 0.0)
 }
