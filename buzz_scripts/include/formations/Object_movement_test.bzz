@@ -41,7 +41,7 @@ MAX_VEL = 5 #cm/step
 math.PI=3.14
 MAX_TIME_TO_FORGET=10
 TIME_TO_SHAPING_LOOSE = 50
-SAFETY_DISTANCE = 35
+SAFETY_DISTANCE = 45
 MAX_TARGET_DIST = 0.5 # this is in meters
 CONTROL_POINT_WEIGHT=30
 TARGET_MOVEMENT_WEIGHT=10
@@ -668,7 +668,7 @@ function hierarchical_step(){
 		#print("Density stig ",density_stig.get("M"))
 		if(Mode == TASK_ALLOCATION){
 			if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
-			if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
+			if(density_stig.get("F") != 60) density_stig.put("F", 60)
 			if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
 			if(density_stig.get("R") != 10) density_stig.put("R", 10)
 
