@@ -986,120 +986,17 @@ function hierarchical_step(){
 			}
 		}
 		else if(Mode == MISSION){
-			log("Transition of dog ", id, " to ", Mode)
-            
-			if(shaping_time == 0){
-				if(density_stig.get("M") != RIGID) density_stig.put("M",RIGID)	
+			# Current strategy: Preserve distances (using potential) with other dogs and sheep Center of Mass
+			if(shaping_time < TIME_TO_SHAPING_LOOSE){
+				if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
 				if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
 				if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
-				if(density_stig.get("R") != 200) density_stig.put("R", 200)
-				if(density_stig.get("P") != 1) density_stig.put("P", 1)
-				broadcast_reactor_control_point()
-				var nei_center_of_mass_vec = {}
-				if(Other_dog_infront == -1){
-				 nei_center_of_mass_vec = nei_center_of_mass()
-				}
-				else{
-					var nei_in_front = neighbors.get(Other_dog_infront)
-					nei_center_of_mass_vec = math.vec2.newp(nei_in_front.distance, nei_in_front.azimuth)
-				}
-				# debug.print(" mass_center dis ", math.vec2.length(nei_center_of_mass_vec),'pos (',pose.position.x,",",pose.position.y,")")
-				# debug.rays.add(0,0,255,nei_center_of_mass_vec.x/100,nei_center_of_mass_vec.y/100,0.0) # Blue
-				Center_of_mass.x=nei_center_of_mass_vec.x
-				Center_of_mass.y=nei_center_of_mass_vec.y
-
-				var stopping={.val=0, .dis = 0}
-				var accum={.x=0, .y=0, .cnt = 0 }
-				var cur_tension = c_target.movement_tension[shape_task_num]
-				
-				neighbors.foreach(function(rid,data){
-					if( (not (Collective_nei_error_table[rid] !=nil))){
-						
-						# log("[",id,"] rid ",rid, " dist ",data.distance, " ang ", data.azimuth, " target_ang ", target_ang)
-						# stopping.val = 1
-						var generalPotential = harmonMagnitude(data.distance, cur_tension, HARMON_A0, HARMON_K)
-						stopping.val = generalPotential
-						# Initialize vector
-					    var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
-						accum.x = accum.x + pot_vec.x
-						accum.y = accum.y + pot_vec.y
-						accum.cnt = accum.cnt + 1
-						# debug.rays.add(0,255,0,accum.x/100,accum.y/100,0.0) # Blue
-						# if(data.distance > stopping.dis)
-						stopping.dis = data.distance
-					}
-					if(control_point_id == rid){
-						cm_tension = math.vec2.newp(data.distance, data.azimuth)
-
-					}
-				})
-
-				
-				# Center of mass contribution. 
-				# var cm_tension = 100
-				# if(movement_tension_step == 1){
-				# 	cm_tension =150
-				# }
-				var cm_pot = harmonMagnitude(math.vec2.length(cm_tension), c_target.dog_dist, HARMON_A0, HARMON_K)
-				# Initialize vector
-			    var cm_pot_vec = math.vec2.newp(cm_pot, math.vec2.angle(cm_tension))
-				# debug.rays.add(255, 0,0,cm_pot_vec.x/100,cm_pot_vec.y/100,0.0) # Blue
-
-			    accum.x = accum.x + cm_pot_vec.x
-			    accum.y = accum.y + cm_pot_vec.y
-			    accum.cnt = accum.cnt + 1
-			    # if(math.vec2.length(accum) < 0.5 and movement_tension_step == 0){
-
-			    # 	cm_tension = cm_tension+50
-			    # 	c_target.movement_tension[shape_task_num] = c_target.movement_tension[shape_task_num] + 50
-			    # 	movement_tension_step = 1
-			    # }
-			    accum.x = accum.x/accum.cnt
-			    accum.y = accum.y/accum.cnt
-			    # debug.print("Center ",math.vec2.length(cm_tension), " mag ", cm_pot, " dog ",stopping.dis, " mag ",stopping.val, " accum ", math.vec2.length(accum) )
-			    goto(accum.x/4,accum.y/4)
-			    if(math.vec2.length(accum) < 0.3){
-			    	shaping_time = 1
-			    	log("[",id,"] trans to movement")
-			    	if(shape_task_num == 2){
-			    		TEST_PATH_PTR = TEST_PATH_PTR +1
-			    	}
-					task_stig.put(id,MOVING)
-					Old_error = 1
-			    }
-
-			}
-            # Current strategy: Preserve distances (using potential) with other dogs and sheep Center of Mass
-			# else if(shaping_time < TIME_TO_SHAPING_LOOSE){
-			# 	if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
-			# 	if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
-			# 	if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
-			# 	if(density_stig.get("R") != 100) density_stig.put("R", 100)
-			# 	if(density_stig.get("P") != 1) density_stig.put("P", 1)
-
-			# 	shaping_time = shaping_time + 1
-			# 	# debug.print("Yaw: ", pose.orientation.yaw, " Pos (",pose.position.x,",",pose.position.y,")")
-			# }
-			else if(shaping_time == 1){
-				var dogs_in_position={.val=0}
-				task_stig.foreach(function(k,v){
-					if(v == MOVING){
-						dogs_in_position.val = dogs_in_position.val + 1
-					}
-				})
-				if(dogs_in_position.val == size(c_target.shape_distance)){
-					shaping_time = 2
-				}
+				if(density_stig.get("R") != 80) density_stig.put("R", 80)
+				shaping_time = shaping_time + 1
+				# debug.print("Yaw: ", pose.orientation.yaw, " Pos (",pose.position.x,",",pose.position.y,")")
 			}
 			else{
 				if(density_stig.get("M") != RIGID) density_stig.put("M",RIGID)	
-
-				if(shape_task_num == 2){
-					if(not ( epsilon_stig.get(TEST_PATH_PTR) != nil)){
-						epsilon_stig.put(TEST_PATH_PTR, Epsilon_tube[TEST_PATH_PTR])
-						log("[",id,"] epsilon ", Epsilon_tube[TEST_PATH_PTR])
-					}
-				}
 				var nei_center_of_mass_vec = {}
 				if(Other_dog_infront == -1){
 				 nei_center_of_mass_vec = nei_center_of_mass()
@@ -1108,138 +1005,163 @@ function hierarchical_step(){
 					var nei_in_front = neighbors.get(Other_dog_infront)
 					nei_center_of_mass_vec = math.vec2.newp(nei_in_front.distance, nei_in_front.azimuth)
 				}
-				# debug.print(" mass_center dis ", math.vec2.length(nei_center_of_mass_vec),'pos (',pose.position.x,",",pose.position.y,")")
+				# debug.print(" mass_center dis ", math.vec2.length(nei_center_of_mass_vec))
 				# debug.rays.add(0,0,255,nei_center_of_mass_vec.x/100,nei_center_of_mass_vec.y/100,0.0) # Blue
 				Center_of_mass.x=nei_center_of_mass_vec.x
 				Center_of_mass.y=nei_center_of_mass_vec.y
 				
-				# var move_vec = compute_edge_following_vector()
-				# var sheep_center_vec = math.vec2.sub(pose.position,c_target.sheep_location)
-				# var sheep_cluster_angle=math.vec2.angle(sheep_center_vec)
-				# debug.print(" Edge following !! (",move_vec.x,",",move_vec.y,") my ang to sheep: ", sheep_cluster_angle,"size last seen ",size(last_seen_edge))
-				# if(math.abs(sheep_cluster_angle - c_target.shape_angle[shape_task_num]) < ANGLE_TOLERENCE){
-				# 		shaping_time = 3 
-				# 		task_stig.put(id,PRE_SHAPE_MOVE)
-				# 		move_vec=math.vec2.new(0.0,0.0)
-				# }
-				# goto(move_vec.x*100,move_vec.y*100)
-
-				# Find the dogs and to make sure the tension parameter is maintained. 
-				var stopping={.val=0, .dis = 0}
-				var accum={.x=0, .y=0, .cnt = 0 }
-				var cur_tension = c_target.movement_tension[shape_task_num]
-				# if(movement_tension_step == 1){
-				# 	cur_tension = cur_tension + 50
-				# }
-
-				# Inter dog 
-				neighbors.foreach(function(rid,data){
-					if( (not (Collective_nei_error_table[rid] !=nil))){
-						
-						# log("[",id,"] rid ",rid, " dist ",data.distance, " ang ", data.azimuth, " target_ang ", target_ang)
-						# stopping.val = 1
-						var generalPotential = harmonMagnitude(data.distance, cur_tension, HARMON_A0, HARMON_K)
-						generalPotential = 10*generalPotential
-						stopping.val = generalPotential
-						# Initialize vector
-					    var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
-
-					    # debug.rays.add(0, 255,0,(pot_vec.x+40)/100,(pot_vec.y+40)/100,0.0) # Blue
-						accum.x = accum.x + pot_vec.x
-						accum.y = accum.y + pot_vec.y
-						accum.cnt = accum.cnt + 1
-						if(data.distance > stopping.dis)
-							stopping.dis = data.distance
-					}
-					if(control_point_id == rid){
-						cm_tension = math.vec2.newp(data.distance, data.azimuth)
-
-					}
-				})
-
-				
-				# Center of mass contribution. 
-				# var cm_tension = 100
-				# if(movement_tension_step == 1){
-				# 	cm_tension =150
-				# }
-
-
-				# Control point 
-				var cm_pot = harmonMagnitude(math.vec2.length(cm_tension), c_target.dog_dist, HARMON_A0, HARMON_K)
-				# cm_pot = 10*cm_pot
-				# Initialize vector
-			    var cm_pot_vec = math.vec2.newp(cm_pot, math.vec2.angle(cm_tension))
-				# debug.rays.add(255, 0,0,(cm_pot_vec.x+40)/100,(cm_pot_vec.y+40)/100,0.0) # Blue
-
-			    accum.x = accum.x + cm_pot_vec.x
-			    accum.y = accum.y + cm_pot_vec.y
-			    accum.cnt = accum.cnt + 1
-
-
-
-				var path_tracking_point=GLOBAL_TEST_PATH[TEST_PATH_PTR]
-				var movebase_goto = movebase_point(path_tracking_point)
-
-				#var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
-				#var NedPos = math.vec2.sub(pose.position,home_offset)
-				#var m_target = math.vec2.sub(path_tracking_point, NedPos)					
-				#m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
-				#var Dist_to_target = math.vec2.length(m_target)
-				# if(math.abs(c_target.shape_angle[shape_task_num] - math.pi) < 0.1)
-					var m_target = math.vec2.scale(movebase_goto,100)
-					var tar_ang = math.vec2.angle(m_target)
-					m_target = math.vec2.newp(10,tar_ang)
-				# else{
-				# 	m_target = math.vec2.new(0.0,0.0)
-				# }					
-				
-				if(math.vec2.length(m_target) > 0.0 and Old_error > 0.1){
+				if(size(Nei_look_up) == 0){
+					# This is only done once, when the robot enters this state. 
+					# Compute your target with respect to your current position and store it.
+					var sheepLoc = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)
+					sheepLoc = math.vec2.sub(sheepLoc,pose.position)
+					LocalTarget = math.vec2.sub(target[0].goal,sheepLoc)
+					m_target = math.vec2.sub(LocalTarget, pose.position)
+					m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+					var m_tar_ang = math.vec2.angle(m_target)
+					m_tar_ang = LimitAngle(m_tar_ang)
+					var  abs_tar_vec = math.vec2.newp(1.0,m_tar_ang)
+					abs_tar_vec = math.vec2.rotate(abs_tar_vec, pose.orientation.yaw)
 					
-					if(c_target.dog_dist > SAFETY_DISTANCE){
-						var target_pot = harmonMagnitude(math.vec2.length(m_target), 0.001, HARMON_A0, HARMON_K)
-						var tar_vec = math.vec2.newp(target_pot*TARGET_MOVEMENT_WEIGHT, math.vec2.angle(m_target))
-						accum.x = accum.x + tar_vec.x
-					    accum.y = accum.y + tar_vec.y
-					    # accum.x = accum.x + m_target.x
-					    # accum.y = accum.y + m_target.y
-					    accum.cnt = accum.cnt + 1
-						# debug.print("Moving towards target")
+					var m_cent_ang = math.vec2.angle(nei_center_of_mass_vec)
+					m_cent_ang = LimitAngle(m_cent_ang)
+					var abs_cent_vec = math.vec2.newp(1.0, m_cent_ang)
+					abs_cent_vec = math.vec2.rotate(abs_cent_vec, pose.orientation.yaw)
+
+					var m_ang_center = 0
+					if(math.vec2.angle(abs_tar_vec) > math.vec2.angle(abs_cent_vec)){
+						m_ang_center = (2*math.pi - math.vec2.angle(abs_tar_vec)) + math.vec2.angle(abs_cent_vec)
 					}
-						
+					else{
+						m_ang_center = math.abs(math.vec2.angle(abs_tar_vec) - math.vec2.angle(abs_cent_vec))
+					}
+					Nei_look_up["center"]={.x=nei_center_of_mass_vec.x, .y=nei_center_of_mass_vec.y, .ang_diff = m_ang_center}
 				}
-				else{
-					if(Move_base_tracking_goal == 0 ){
-						if(TEST_PATH_PTR < size(GLOBAL_TEST_PATH)){
-							TEST_PATH_PTR = TEST_PATH_PTR + 1
+					
+				var m_target = math.vec2.sub(LocalTarget, pose.position)	
+				m_target_positive_rot = math.vec2.rotate(m_target,pose.orientation.yaw)				
+				m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+				var Dist_to_target = math.vec2.length(m_target)
+				if(Dist_to_target > 0.1){
+					# debug.rays.add(255,0,0,m_target.x,m_target.y,0.0) # final red
+					var rotation_contribution = {.x=0.0, .y=0.0, .cnt = 0}
+					# Target angle with respect to your yaw
+					var m_tar_ang = math.vec2.angle(m_target)
+					m_tar_ang = LimitAngle(m_tar_ang)
+					var  abs_tar_vec = math.vec2.newp(1.0,m_tar_ang)
+					abs_tar_vec = math.vec2.rotate(abs_tar_vec, pose.orientation.yaw)
+					
+					# Center of mass angle with respect to your yaw
+					var m_cent_ang = math.vec2.angle(nei_center_of_mass_vec)
+					m_cent_ang = LimitAngle(m_cent_ang)
+					var abs_cent_vec = math.vec2.newp(1.0, m_cent_ang)
+					abs_cent_vec = math.vec2.rotate(abs_cent_vec, pose.orientation.yaw)
+
+					var m_ang_center = 0
+					if(math.vec2.angle(abs_tar_vec) > math.vec2.angle(abs_cent_vec)){
+						m_ang_center = (2*math.pi - math.vec2.angle(abs_tar_vec)) + math.vec2.angle(abs_cent_vec)
+					}
+					else{
+						m_ang_center = math.abs(math.vec2.angle(abs_tar_vec) - math.vec2.angle(abs_cent_vec))
+					}
+					var ang_diff_center = Nei_look_up.center.ang_diff - m_ang_center
+					var ang_vec = math.vec2.newp(100, ang_diff_center)
+					ang_diff_center = math.vec2.angle(ang_vec)
+							
+					# debug.print("m_tar ang ", LimitAngle((math.vec2.angle(math.vec2.rotate(m_target,pose.orientation.yaw))))," center of mass ang ", math.vec2.angle(math.vec2.rotate(nei_center_of_mass_vec,pose.orientation.yaw))," desired ",  Nei_look_up.center.ang_diff, " Current ", m_ang_center)
+					var c_go_vec = {.x=0.0,.y=0.0}
+					# Angular computation to keep the dog angle between the target, center of mass constant.
+					if( math.abs(ang_diff_center) > 0.1){
+						var m_ang_center_vec = math.vec2.newp(1.0,m_ang_center)
+						c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
+						if(Nei_look_up.center.ang_diff < math.pi){
+							if((m_ang_center < LimitAngle(Nei_look_up.center.ang_diff + math.pi) ) and (not m_ang_center < Nei_look_up.center.ang_diff)){
+								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, math.pi/2)
+								# log("[",id,"] Clockwise")
+							}
+							else{
+								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
+								# log("[",id,"] Counter Clockwise")
+							}
 						}
 						else{
-							log("Reached the final goal!!")
+							if((m_ang_center < LimitAngle(Nei_look_up.center.ang_diff + math.pi) ) or (m_ang_center > Nei_look_up.center.ang_diff)){
+								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, math.pi/2)
+								# log("[",id,"] Clockwise")
+							}
+							else{
+								c_go_vec = math.vec2.rotate(nei_center_of_mass_vec, -math.pi/2)
+								# log("[",id,"] Counter Clockwise")
+							}
 						}
+						c_go_vec = math.vec2.scale(c_go_vec, 0.01)
+
 					}
+
+					# Potential contribution for keeping the dogs close to sheeps
+					var centerpotential = 0
+					var centerpotVec ={.x=0, .y=0}
+					var DOGS_SHEEP_TOL = -5 # In cms
+					var dog_center_length_error = math.abs(math.vec2.length(nei_center_of_mass_vec)-math.vec2.length(Nei_look_up.center))
+					if(dog_center_length_error > 0){
+						centerpotential = harmonMagnitude(math.vec2.length(nei_center_of_mass_vec), math.vec2.length(Nei_look_up.center)-DOGS_SHEEP_TOL, HARMON_A0, HARMON_K)
+					}
+					centerpotVec = math.vec2.newp(centerpotential, math.vec2.angle(nei_center_of_mass_vec))
+					# debug.rays.add(255,255,0,centerpotVec.x/100,centerpotVec.y/100,0.0) # Yellow
+					
+					# Different Contributions.
+					rotation_contribution.x =  (0.05*centerpotVec.x)  + 0.05*c_go_vec.x
+					rotation_contribution.y =  (0.05*centerpotVec.y)  + 0.05*c_go_vec.y
+
+					if(math.vec2.length(m_target) > 0)
+						m_target = math.vec2.scale(m_target, (1/math.vec2.length(m_target)))
+
+					# var debug_old = m_target
+					# debug.rays.add(0,255,0,m_target.x,m_target.y,0.0) # Green
+					m_target.x = (rotation_contribution.x + 0.5*m_target.x)*2
+					m_target.y = (rotation_contribution.y + 0.5*m_target.y)*2
+					# debug.rays.add(0,255,128,m_target.x,m_target.y,0.0) # light red
+					# debug.print("angle contri ",0.1*math.vec2.length(c_go_vec)," length contri ",0.25*math.vec2.length(centerpotVec), "sheep total contri ", math.vec2.length(rotation_contribution)," targ contri ", math.vec2.length(debug_old) , " final contri ", math.vec2.length(m_target), "Tar Dist ", Dist_to_target )
+					######## Data Logging variables ###########
+					Center_of_mass.px=(0.05*centerpotVec.x)
+					Center_of_mass.py=(0.05*centerpotVec.y)
+
+					Center_of_mass.cx=(0.05*c_go_vec.x)
+					Center_of_mass.cy=(0.05*c_go_vec.y)
+
+					Center_of_mass.fx=m_target.x
+					Center_of_mass.fy=m_target.y
+
+					Center_of_mass.setpang=(Nei_look_up.center.ang_diff)
+					Center_of_mass.curang=(m_target.y)
+					if(math.vec2.length(nei_center_of_mass_vec) > 380 and Other_dog_infront != -1){
+						goto(nei_center_of_mass_vec.x,nei_center_of_mass_vec.y)
+					}
+					else{
+						###########################################
+						goto(m_target.x, m_target.y)
+					}
+				}
+				else{
+					######## Data Logging variables ###########
+					Center_of_mass.px=0.0
+					Center_of_mass.py=0.0
+
+					Center_of_mass.cx=0.05
+					Center_of_mass.cy=0.05
+
+					Center_of_mass.fx=0.0
+					Center_of_mass.fy=0.0
+
+					Center_of_mass.setpang=(Nei_look_up.center.ang_diff)
+					Center_of_mass.curang=(m_target.y)
+
+					###########################################
+					TAR_REACHED = 1
 					goto(0.0,0.0)
 				}
-				
-			    log("Center ",math.vec2.length(cm_tension), " mag ", cm_pot, " dog ",stopping.dis, " mag ",stopping.val, " target ", Dist_to_target, " accum ", math.vec2.length(accum), " WP ",TEST_PATH_PTR )
-
-				# if(math.vec2.length(accum) < 0.1 ){
-				# 	movement_tension_step = 1
-				# }
-				accum.x = accum.x/accum.cnt
-			    accum.y = accum.y/accum.cnt
-			    Old_error = math.vec2.length(accum)
-			    if(math.vec2.length(cm_tension) < closest_control_point.dis - control_point_distance_to_maintain_thresh ){
-                   log("applying zero mag distance to control point small")
-                   accum.x=0.0
-                   accum.y=0.0
-	            }
-
-			    # debug.rays.add(255,255,0,(accum.x+40)/100,(accum.y+40)/100,0.0) 
-			    accum = math.vec2.scale(accum, velocity_factor)
-				goto(accum.x/4,accum.y/4)
-				
 			}
-	    }
+		}
 	    neighbors.broadcast("DG",1)
     }
     else if(Mode == STAND_BY){
