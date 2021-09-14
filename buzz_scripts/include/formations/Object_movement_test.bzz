@@ -41,7 +41,7 @@ MAX_VEL = 5 #cm/step
 math.PI=3.14
 MAX_TIME_TO_FORGET=10
 TIME_TO_SHAPING_LOOSE = 50
-SAFETY_DISTANCE = 45
+SAFETY_DISTANCE = 35
 MAX_TARGET_DIST = 0.5 # this is in meters
 CONTROL_POINT_WEIGHT=30
 TARGET_MOVEMENT_WEIGHT=10
@@ -236,7 +236,7 @@ function hierarchical_step(){
 							var potential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
 							var my_vec = math.vec2.newp(data.distance, data.azimuth)
 							if(data.distance < SAFETY_DISTANCE){
-								if (rid == 5) print("Safety triggered for ", id)
+								log("Safety triggered for ", id)
 								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
 								# Initialize vector
 						        var myVec = math.vec2.newp(potential, data.azimuth)
@@ -256,7 +256,8 @@ function hierarchical_step(){
 						        Accum.cnt=Accum.cnt+1
 							}
 							else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
-								# potential = harmonMagnitude(data.distance, dog_rective_field, HARMON_A0, HARMON_K)
+								log("apply pot for dog ", rid," Reaction dist ", dog_rective_field, " dog dist ", data.distance)
+                # potential = harmonMagnitude(data.distance, dog_rective_field, HARMON_A0, HARMON_K)
 								potential = math.vec2.length(my_vec)
 								var myVec = math.vec2.newp(potential, data.azimuth)
 								if(potential > 0) myVec = math.vec2.scale(myVec,1/potential)
@@ -845,7 +846,7 @@ function hierarchical_step(){
 			}
 			else if(shaping_time == 3){
                                 log("dog to s-m", shaping_time)
-				if(density_stig.get("R") != 70) density_stig.put("R", 70)
+				if(density_stig.get("R") != 40) density_stig.put("R", 40)
 				var m_target = math.vec2.new(target[0].sheep_location.x,target[0].sheep_location.y)	
 				m_target = math.vec2.sub(m_target,pose.position)
 				m_target = math.vec2.rotate(m_target,-pose.orientation.yaw)
@@ -924,7 +925,7 @@ function hierarchical_step(){
 				# Check for angle distance of any dogs. 
 				var stopping={.val=0}
 				neighbors.foreach(function(rid,data){
-					if( (not (Collective_nei_error_table[rid] !=nil)) and data.distance < target[0].shaping_inter_dog_dist){
+					if( (not (Collective_nei_error_table[rid] !=nil)) and data.distance < 30){
 						if( data.azimuth < target_ang +target[0].dogs_max_inter_ang and data.azimuth > target_ang -target[0].dogs_max_inter_ang){
 							# log("[",id,"] rid ",rid, " dist ",data.distance, " ang ", data.azimuth, " target_ang ", target_ang)
 							stopping.val = 1
