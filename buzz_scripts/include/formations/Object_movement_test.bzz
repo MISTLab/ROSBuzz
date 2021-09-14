@@ -669,7 +669,7 @@ function hierarchical_step(){
 			if(density_stig.get("M") != LOOSE) density_stig.put("M",LOOSE)
 			if(density_stig.get("F") != c_target.strength) density_stig.put("F", c_target.strength)
 			if(density_stig.get("D") != c_target.density) density_stig.put("D",c_target.density)
-			if(density_stig.get("R") != 80) density_stig.put("R", 80)
+			if(density_stig.get("R") != 10) density_stig.put("R", 10)
 
 			var m_moveable_state = moveable()
 			if(shaping_time == 0){
