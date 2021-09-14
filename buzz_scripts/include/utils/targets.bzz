@@ -17,7 +17,7 @@ function load_target(){
 				.pre_shape_dist=70,
 				# Distance to move (inward), in shaping the sheep
 				.movement_tension={.1=390,.2=390},
-				.shape_distance={.1=2.0, .2=2.0},
+				.shape_distance={.1=0.4, .2=0.4},
 				# .shape_distance={.1=1.5,.2=1.5,.3=1.5,.4=1.5},
 				# .shape_distance={.1=1.0,.2=1.0,.3=1.0,.4=1.0},
 				# .shape_rotation={.1=0,.2=1.5708,.3=3.14159,.4=-1.5708},
@@ -29,7 +29,7 @@ function load_target(){
 				# .shape_angle={.1=0,.2=0.7853,.3=1.5708,.4=2.35619,.5=3.14154,.6=3.92699,.7=4.71239,.8=5.49779, .9=0, .10=0,.11=0, .12=0, .13=0, .14=0},
 				# .shape_operation={.1=0,.2=0,.3=0,.4=0,.5=0,.6=0,.7=0,.8=0,.9=0, .10=0,.11=0,.12=0,.13=0,.14=0},
 				# Absolute goal location, for where the swarm should end
-				.goal={.x=0.0,.y=1.0}
+				.goal={.x=−0.464856781,.y=−0.447856781}
 
 	}
 }

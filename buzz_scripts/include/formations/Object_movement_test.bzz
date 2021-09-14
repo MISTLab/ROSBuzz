@@ -1159,6 +1159,8 @@ function hierarchical_step(){
 					###########################################
 					TAR_REACHED = 1
 					goto(0.0,0.0)
+					log("TARGET REACHED")
+
 				}
 			}
 		}
