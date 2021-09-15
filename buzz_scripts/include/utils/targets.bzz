@@ -3,6 +3,7 @@ function load_target(){
 	target[0]={ .sheep_location={.x=0.24225,.y=0.25925},
 				.density=75,
 				.strength=100,
+				.edge_following_strength=60,
 				.shaping_inter_dog_dist=80,
 				.dog_dist=60,
 				.dogs_max_inter_ang = math.pi/8,
