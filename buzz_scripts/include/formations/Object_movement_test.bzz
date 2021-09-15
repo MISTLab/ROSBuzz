@@ -74,6 +74,7 @@ Accum ={.x=0,.y=0, .error=0, .cnt=0, .dogs_x=0, . dogs_y=0}
 Old_error=0
 # Desired_dist = 50;  # Desired inter-robot distance for sheep
 track_dist=20
+rigid_track_dist=200
 Desired_heard_dist = 70
 Edge_following_dist=95
 last_seen_edge = {}
@@ -139,7 +140,7 @@ TAR_REACHED=0
 
 
 function hierarchical_init() { 
-	Mode= LOOSE
+	Mode = LOOSE
 	mode_stig = stigmergy.create(1)
 	density_stig = stigmergy.create(2)
 	task_stig = stigmergy.create(3)
@@ -153,12 +154,12 @@ function hierarchical_init() {
 	bidding_stig.onconflict(function (k,local,remote) {
 	    if(remote.data <= local.data) return remote 
 	    else return local
-  	})
-  	epsilon_stig = stigmergy.create(5)
+	})
+	epsilon_stig = stigmergy.create(5)
 	load_target()
 	#if(id <= 2){
-        if(not (isnil(EXPLORER_IDs[id]))){
-                print("I am dog ", id)
+	if(not (isnil(EXPLORER_IDs[id]))){
+		print("I am dog ", id)
 		ROLE=DOG
 		Mode=TASK_ALLOCATION
 	}
@@ -211,7 +212,7 @@ function hierarchical_step(){
 				Mode = RIGID
 				var field_of_view = density_stig.get("F")
 				if(field_of_view != nil){
-					field_of_view = field_of_view + track_dist
+					field_of_view = field_of_view + rigid_track_dist
 					Nei_look_up = {}
 					neighbors.foreach(
 						function(rid,data){
@@ -221,14 +222,15 @@ function hierarchical_step(){
 					)
 				}
 			}
+
 			# Mode based behaviour
 			var field_of_view = density_stig.get("F")
 			if(field_of_view != nil){
 				field_of_view = field_of_view+track_dist
 				print("Mode ", m_mode)
-				var dog_rective_field=density_stig.get("R")
+				var dog_rective_field = density_stig.get("R")
 				var safety_vec = {.x=0, .y=0, .cnt=0}
-				var dog_weight=0.9
+				var dog_weight = 0.9
 				# We allow bond breakage and formation in loose
 				if(Mode == LOOSE){
 					neighbors.foreach(
@@ -239,8 +241,8 @@ function hierarchical_step(){
 								log("Safety triggered for ", id)
 								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
 								# Initialize vector
-						        var myVec = math.vec2.newp(potential, data.azimuth)
-						        safety_vec.x  = safety_vec.x + myVec.x
+								var myVec = math.vec2.newp(potential, data.azimuth)
+								safety_vec.x  = safety_vec.x + myVec.x
 								safety_vec.y  = safety_vec.y + myVec.y
 								safety_vec.cnt = safety_vec.cnt + 1
 							}		
@@ -249,11 +251,11 @@ function hierarchical_step(){
 								# potential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
 								Accum.error = Accum.error + potential
 								# debug.rays.add(35,100,52, my_vec.x/100, my_vec.y/100, 0.0)
-						        # Initialize vector
-						        var myVec = math.vec2.newp(potential, data.azimuth)
-						        Accum.x = Accum.x + myVec.x
-						        Accum.y = Accum.y + myVec.y
-						        Accum.cnt=Accum.cnt+1
+								# Initialize vector
+								var myVec = math.vec2.newp(potential, data.azimuth)
+								Accum.x = Accum.x + myVec.x
+								Accum.y = Accum.y + myVec.y
+								Accum.cnt=Accum.cnt+1
 							}
 							else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
 								log("apply pot for dog ", rid," Reaction dist ", dog_rective_field, " dog dist ", data.distance)
@@ -329,12 +331,12 @@ function hierarchical_step(){
 						function(rid, data){
 							var potential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
 							var my_vec = math.vec2.newp(data.distance, data.azimuth)
+
 							if(data.distance < SAFETY_DISTANCE){
-						
 								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
 								# Initialize vector
-						        var myVec = math.vec2.newp(potential, data.azimuth)
-						        safety_vec.x  = safety_vec.x + myVec.x
+								var myVec = math.vec2.newp(potential, data.azimuth)
+								safety_vec.x  = safety_vec.x + myVec.x
 								safety_vec.y  = safety_vec.y + myVec.y
 								safety_vec.cnt = safety_vec.cnt + 1
 							}		
@@ -343,11 +345,11 @@ function hierarchical_step(){
 								# potential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
 								Accum.error = Accum.error + potential
 								# debug.rays.add(35,100,52, my_vec.x/100, my_vec.y/100, 0.0)
-						        # Initialize vector
-						        var myVec = math.vec2.newp(potential, data.azimuth)
-						        Accum.x = Accum.x + myVec.x
-						        Accum.y = Accum.y + myVec.y
-						        Accum.cnt = Accum.cnt + 1
+								# Initialize vector
+								var myVec = math.vec2.newp(potential, data.azimuth)
+								Accum.x = Accum.x + myVec.x
+								Accum.y = Accum.y + myVec.y
+								Accum.cnt = Accum.cnt + 1
 							}
 							else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
 								# potential = harmonMagnitude(data.distance, dog_rective_field, HARMON_A0, HARMON_K)
@@ -380,6 +382,8 @@ function hierarchical_step(){
 							# }
 							# else if( Collective_nei_error_table[rid] != nil and dog_rective_field != nil  and data.distance < dog_rective_field){
 							# 	# Move in the opposite direction of this guy 
+								# 	# Move in the opposite direction of this guy 
+							# 	# Move in the opposite direction of this guy 
 							# 	Accum.dogs_x = Accum.dogs_x +  my_vec.x
 							# 	Accum.dogs_y = Accum.dogs_y +  my_vec.y
 								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
@@ -395,6 +399,7 @@ function hierarchical_step(){
 					# Accum.y = Accum.y - Accum.dogs_y
 					# }
 
+					# Take average across neighbours
 					if(Accum.cnt > 0){
 						Accum.x = Accum.x/Accum.cnt
 						Accum.y = Accum.y/Accum.cnt
@@ -466,8 +471,8 @@ function hierarchical_step(){
 								var generalPotential = harmonMagnitude(data.distance, density, HARMON_A0, HARMON_K)
 								# debug.rays.add(255,0,0, my_vec.x/100, my_vec.y/100, 0.0)
 								# Initialize vector
-						        var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
-						        safety_vec.x  = safety_vec.x + pot_vec.x
+								var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
+								safety_vec.x  = safety_vec.x + pot_vec.x
 								safety_vec.y  = safety_vec.y + pot_vec.y
 								safety_vec.cnt = safety_vec.cnt + 1
 							}		
@@ -478,13 +483,13 @@ function hierarchical_step(){
 								Accum.error = Accum.error + generalPotential
 								# debug.rays.add(35,100,52, my_vec.x/100, my_vec.y/100, 0.0)
 								if(rid == control_point_id){
-						        	generalPotential = CONTROL_POINT_WEIGHT*generalPotential
-						        }
-						        # Initialize vector
-						        var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
-						        Accum.x = Accum.x + pot_vec.x
-						        Accum.y = Accum.y + pot_vec.y
-						        Accum.cnt = Accum.cnt + 1
+										generalPotential = CONTROL_POINT_WEIGHT*generalPotential
+									}
+									# Initialize vector
+									var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
+									Accum.x = Accum.x + pot_vec.x
+									Accum.y = Accum.y + pot_vec.y
+									Accum.cnt = Accum.cnt + 1
 							# otherwise check if dog within reactive range # NOTE Using a different potential
 							} 
 							else{
@@ -515,32 +520,32 @@ function hierarchical_step(){
 								var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
 								var NedPos = math.vec2.sub(pose.position,home_offset)
 								var local_p = math.vec2.sub(v[ind],NedPos)
-						    	local_p = math.vec2.rotate(local_p,-pose.orientation.yaw)
-						    	local_p = math.vec2.scale(local_p, 100)
-						    	var data = {.distance = math.vec2.length(local_p), .azimuth =math.vec2.angle(local_p)}
-						    	if(data.distance < SAFETY_DISTANCE and data.distance > 30){
+								local_p = math.vec2.rotate(local_p,-pose.orientation.yaw)
+								local_p = math.vec2.scale(local_p, 100)
+								var data = {.distance = math.vec2.length(local_p), .azimuth =math.vec2.angle(local_p)}
+								if(data.distance < SAFETY_DISTANCE and data.distance > 30) { // FIXME Magic number
 									var generalPotential = harmonMagnitude(data.distance, SAFETY_DISTANCE*4 , HARMON_A0, HARMON_K)
 									# debug.rays.add(255,0,0, local_p.x/100, local_p.y/100, 0.0)
 									# if(k == 7) generalPotential = 40 * generalPotential
 									# Initialize vector
-							        var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
-							        safety_vec.x  = safety_vec.x + pot_vec.x
+									var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
+									safety_vec.x  = safety_vec.x + pot_vec.x
 									safety_vec.y  = safety_vec.y + pot_vec.y
 									safety_vec.cnt = safety_vec.cnt + 1
 								}
-								else if( data.distance < SAFETY_DISTANCE*2){
+								else if(data.distance < SAFETY_DISTANCE*2) {
 									var generalPotential = harmonMagnitude(data.distance, SAFETY_DISTANCE*4, HARMON_A0, HARMON_K)
 									# if(k == 7) generalPotential = 40 * generalPotential
 									Accum.error = Accum.error + generalPotential
 									# debug.rays.add(0,255,0, local_p.x/100, local_p.y/100, 0.0)
-							        # Initialize vector
-							        # if(rid == control_point_id){
-							        # 	generalPotential = CONTROL_POINT_WEIGHT*generalPotential
-							        # }
-							        var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
-							        Accum.x = Accum.x + pot_vec.x
-							        Accum.y = Accum.y + pot_vec.y
-							        Accum.cnt = Accum.cnt + 1
+									# Initialize vector
+									# if(rid == control_point_id){
+									# 	generalPotential = CONTROL_POINT_WEIGHT*generalPotential
+									# }
+									var pot_vec = math.vec2.newp(generalPotential, data.azimuth)
+									Accum.x = Accum.x + pot_vec.x
+									Accum.y = Accum.y + pot_vec.y
+									Accum.cnt = Accum.cnt + 1
 								}
 								ind = ind + 1		
 							}
