@@ -41,7 +41,7 @@ MAX_VEL = 5 #cm/step
 math.PI=3.14
 MAX_TIME_TO_FORGET=10
 TIME_TO_SHAPING_LOOSE = 50
-SAFETY_DISTANCE = 65
+SAFETY_DISTANCE = 45
 MAX_TARGET_DIST = 0.5 # this is in meters
 CONTROL_POINT_WEIGHT=30
 TARGET_MOVEMENT_WEIGHT=10
@@ -523,7 +523,7 @@ function hierarchical_step(){
 								local_p = math.vec2.rotate(local_p,-pose.orientation.yaw)
 								local_p = math.vec2.scale(local_p, 100)
 								var data = {.distance = math.vec2.length(local_p), .azimuth =math.vec2.angle(local_p)}
-								if(data.distance < SAFETY_DISTANCE and data.distance > 30) { // FIXME Magic number
+								if(data.distance < SAFETY_DISTANCE and data.distance > 30) { # FIXME Magic number
 									var generalPotential = harmonMagnitude(data.distance, SAFETY_DISTANCE*4 , HARMON_A0, HARMON_K)
 									# debug.rays.add(255,0,0, local_p.x/100, local_p.y/100, 0.0)
 									# if(k == 7) generalPotential = 40 * generalPotential
