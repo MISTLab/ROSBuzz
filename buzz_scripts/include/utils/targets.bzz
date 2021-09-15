@@ -10,7 +10,7 @@ function load_target(){
 				.pre_shape_dist=70,
 				.movement_tension={.1=390,.2=390},
 				.shape_distance={.1=0.4, .2=0.4},
-				.goal={.x=-0.464856781,.y=-0.447856781}
+				.goal={.x=-0.77.,.y=-0.24}
 
 	}
 }
