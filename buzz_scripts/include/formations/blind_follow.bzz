@@ -154,8 +154,10 @@ function step_blind(){
         }
 
         if(parent_check and child_check){
+            log("Path pointer: ", path_ptr)
             if(moving == 1){
                 var path_tracking_point= {}
+
                 if(ROLE == DOG){
                     path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
                     log("Forwarding (via movebase) to (", path_tracking_point.x,",",path_tracking_point.y,")")
@@ -402,6 +404,7 @@ function activate_listerners(){
                             LOCAL_WAYPOINT[responce_table.need] = goal_point
                         }
                     }
+                    log("Listener activated with path pointer: ", path_ptr)
                     var request = {.type = WAYPOINT_ACK, .receiver=rid, .responce = 0, .need = path_ptr, .cus = 0}
                     var packed_request = packenummessage(request)
                     neighbors.broadcast("1",packed_request)

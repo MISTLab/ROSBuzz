@@ -386,7 +386,7 @@ function nei_cmd_listen() {
 function goto(x, y) {
 	var height = takeoff_heights[id]
 	var g_vec = math.vec2.new(x,y)
-	var norm_fact= 10.0
+	var norm_fact= 0.4
 	var norm_goto = math.vec2.scale(g_vec, norm_fact)
 	if(math.vec2.length(norm_goto) < 0.737463127){
 	   norm_goto = math.vec2.scale(norm_goto, 0)
@@ -395,8 +395,8 @@ function goto(x, y) {
 	norm_goto.x = 1.0/100.0 * norm_goto.x
 	norm_goto.y = 1.0/100.0 * norm_goto.y
   # Hack, reducing the speed.
-  norm_goto.x = 1.0/25.0 * norm_goto.x
-  norm_goto.y = 1.0/25.0 * norm_goto.y
+  norm_goto.x = norm_goto.x
+  norm_goto.y = norm_goto.y
 
 	log("GOTo ",norm_goto.x,",", norm_goto.y)
 	goto_abs(norm_goto.x, norm_goto.y, height, 0.0)
