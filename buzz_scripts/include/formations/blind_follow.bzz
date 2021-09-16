@@ -9,6 +9,7 @@ ELECTION = 3
 PREMOVEMENT = 4
 FORMATION = 5
 MOVEMENT = 6
+FINISHED = 7
 
 # ELECTION STATE
 FREE = 1
@@ -19,9 +20,11 @@ BACKBONE_CHILD_REQUEST = 1
 BACKBONE_CHILD_RESPONCE = 2
 CHILD_SET = 3
 STATE_MSG = 4
+WAYPOINT_SET = 5
+WAYPOINT_ACK = 6
 
-DOG1 = 1
-DOG2 = 9
+DOG1 = 1 # RG1
+DOG2 = 9 # R9
 TIME_TO_FORGET_DECLINES = 100
 TIME_TO_SCAN = 20
 NUM_OF_ROBOTS = 6
@@ -38,11 +41,14 @@ PARENT = -1
 CHILD = -1
 Scan_timeer= 0
 path_ptr = 1
+moving = 0
 
 # Internal states
 MMode=PREELECTION
 Parent_state = PREELECTION
 election_state = FREE
+
+LOCAL_WAYPOINT={}
 
 function init_blind(){
     elect_stig = stigmergy.create(101)
@@ -108,8 +114,17 @@ function step_blind(){
             goto(m_target.x,m_target.y)
         }
         else{
-            path_ptr = path_ptr + 1
-            MMode = MOVEMENT
+            if(moving == 1 or PARENT == -1){
+                MMode = MOVEMENT
+                if(PARENT == -1){
+                    moving = 1
+                }
+            }
+            else{
+                var request = {.type = WAYPOINT_SET, .receiver=PARENT, .responce = 0, .need = path_ptr, .cus = 0}
+                var packed_request = packenummessage(request)
+                neighbors.broadcast("1",packed_request)
+            }
             goto(0.0,0.0)
         }
     }
@@ -118,8 +133,8 @@ function step_blind(){
         var child_check = 1
         var parent_pos = {}
         var child_pos = {}
+
         if(PARENT != -1){
-            
            parent_pos = neighbors.get(PARENT)
            if( not isnil(parent_pos)){
                parent_check = (parent_pos.distance < BREACKING_DISTANCE)
@@ -137,18 +152,39 @@ function step_blind(){
                 child_check = 0
             }
         }
-    
+
         if(parent_check and child_check){
-            var path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
+            if(moving == 1){
+                var path_tracking_point= {}
+                if(ROLE == DOG){
+                    path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
+                }
+                else{
+                    path_tracking_point=LOCAL_WAYPOINT[path_ptr]
+                }
+                var m_target = math.vec2.sub(path_tracking_point, pose.position)					
             var m_target = math.vec2.sub(path_tracking_point, pose.position)					
-            m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
-            var Dist_to_target = math.vec2.length(m_target)
-            if(Dist_to_target > move_tol){
-                m_target =  math.vec2.scale(m_target,100)
-                goto(m_target.x,m_target.y)
+                var m_target = math.vec2.sub(path_tracking_point, pose.position)					
+                m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+                var Dist_to_target = math.vec2.length(m_target)
+                if(Dist_to_target > move_tol){
+                    m_target =  math.vec2.scale(m_target,100)
+                    goto(m_target.x,m_target.y)
+                }
+                else{
+                    if(PARENT != -1){
+                        moving = 0
+                    }
+                    else{
+                        path_ptr = path_ptr + 1
+                        moving = 1
+                    }
+                }
             }
             else{
-                path_ptr = path_ptr + 1
+                var request = {.type = WAYPOINT_SET, .receiver=PARENT, .responce = 0, .need = path_ptr, .cus = 0}
+                var packed_request = packenummessage(request)
+                neighbors.broadcast("1",packed_request)
             }
         }
         else{
@@ -331,6 +367,32 @@ function activate_listerners(){
                 }
                 else if(responce_table.type == CHILD_SET){
                     CHILD = rid
+                }
+                else if(responce_table.type == WAYPOINT_SET){
+                    if(ROLE == SHEEP){
+                        if(isnil(LOCAL_WAYPOINT[responce_table.need])){
+                            var nei_pos = neighbors.get(rid)
+                            var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth)
+                            nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
+                            var goal_point = math.vec2.add(pose.position,nei_vec)
+
+                            # var debug_point = math.vec2.sub(goal_point, pose.position)
+                            # debug_point = math.vec2.rotate(nei_vec, -pose.orientation.yaw)
+                            # log("[",id,"] gaol set for point ", responce_table.need)
+                            # debug.rays.add(255,0,0,debug_point.x,debug_point.y,0.0)
+
+                            LOCAL_WAYPOINT[responce_table.need] = goal_point
+                        }
+                    }
+                    var request = {.type = WAYPOINT_ACK, .receiver=rid, .responce = 0, .need = path_ptr, .cus = 0}
+                    var packed_request = packenummessage(request)
+                    neighbors.broadcast("1",packed_request)
+                }
+                else if(responce_table.type == WAYPOINT_ACK){
+                    if(moving == 0){
+                        moving = 1
+                        path_ptr = path_ptr + 1
+                    }
                 }
             }
         }
