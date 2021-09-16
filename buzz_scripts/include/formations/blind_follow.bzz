@@ -1,4 +1,3 @@
-PARENT = -1
 # ROBOT TYPES
 SHEEP = 0
 DOG = 1
@@ -47,8 +46,7 @@ election_state = FREE
 
 function init_blind(){
     elect_stig = stigmergy.create(101)
-    if(id >= 10){
-        ROLE=DOG
+    if(ROLE == DOG){
         election_state = COMITTED
         if(id == DOG2){
             MMode=ELECTION

@@ -72,16 +72,17 @@ function init() {
 	# run the hierarchical movement init
 	hierarchical_init()
 
-	# init blid following.
-	init_blind()
-
 	# Determine your role.
 	if(not isnil(EXPLORER_IDs[id])) {
 		log("I am a Dog")
 		ROLE = DOG
 		# setup_velocity_callbacks_from_table(EXPLORER_IDs)
 	}
-    # Starting state: TURNEDOFF to wait for user input.
+	
+  # init blid following.
+	init_blind()
+
+  # Starting state: TURNEDOFF to wait for user input.
 	BVMSTATE = "TURNEDOFF"
 }
 
