@@ -7,8 +7,9 @@ include "utils/takeoff_heights.bzz"
 include "utils/nav_table.bzz"
 # include "formations/circling_experiment.bzz"
 include "formations/Object_movement_test.bzz"
+include "formations/blind_follow.bzz"
 include "formations/forward_test.bzz"
-include "act/CA.bzz"
+include "includes/LCA.bzz"
 
 
 #####
@@ -70,6 +71,9 @@ function init() {
 
 	# run the hierarchical movement init
 	hierarchical_init()
+
+	# init blid following.
+	init_blind()
 
 	# Determine your role.
 	if(not (isnil(EXPLORER_IDs[id]))){
@@ -506,7 +510,7 @@ function goto_point_naive(vec_to_target, last_wp){
 		local_vec = math.vec2.scale(local_vec,100)
 		# Limit speed
 		local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
-		local_vec = RVO(local_vec)
+		# local_vec = RVO(local_vec)
 		#local_vec = math.vec2.rotate(local_vec,YAW_OFFSET)
 		goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
 		return 1

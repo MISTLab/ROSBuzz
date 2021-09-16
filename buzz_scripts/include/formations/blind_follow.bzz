@@ -1,0 +1,360 @@
+PARENT = -1
+# ROBOT TYPES
+SHEEP = 0
+DOG = 1
+
+# MACHINE STATE
+PREELECTION = 0
+ELECTION_ELECTING = 2
+ELECTION = 3
+PREMOVEMENT = 4
+FORMATION = 5
+MOVEMENT = 6
+
+# ELECTION STATE
+FREE = 1
+COMITTED =2
+
+# Message Enum
+BACKBONE_CHILD_REQUEST = 1
+BACKBONE_CHILD_RESPONCE = 2
+CHILD_SET = 3
+STATE_MSG = 4
+
+DOG1 = 1
+DOG2 = 9
+TIME_TO_FORGET_DECLINES = 100
+TIME_TO_SCAN = 20
+NUM_OF_ROBOTS = 6
+SAFETY_DISTANCE = 50
+BREACKING_DISTANCE = 100
+move_tol = 0.1
+
+
+# Global variables 
+PARENT_REQUEST_DECLINED = {}
+m_free_robots ={}
+SELECTED_PARENT = {.0={.state = -1, .time=0}}
+PARENT = -1
+CHILD = -1
+Scan_timeer= 0
+path_ptr = 1
+
+# Internal states
+MMode=PREELECTION
+Parent_state = PREELECTION
+election_state = FREE
+
+function init_blind(){
+    elect_stig = stigmergy.create(101)
+    if(ROLE = DOG){
+        election_state = COMITTED
+        if(id == DOG2){
+            MMode=ELECTION
+        }
+        else if(id == DOG1){
+            MMode=ELECTION_ELECTING
+
+            PARENT = DOG2
+        }
+    }
+}
+
+function step_blind(){
+    if(MMode == ELECTION_ELECTING){
+        if(SELECTED_PARENT[0].state != -1){
+            log("Selected ", SELECTED_PARENT[0].state)
+            SELECTED_PARENT[0].time = SELECTED_PARENT[0].time + 1
+            var request = {.type = BACKBONE_CHILD_REQUEST, .receiver=SELECTED_PARENT[0].state, .responce = 0, .need = PARENT, .cus = 0}
+            var packed_request = packenummessage(request)
+            neighbors.broadcast("1",packed_request)
+        }
+        else{     
+            scan_for_new_parents()
+        }
+    }
+    else if(MMode == ELECTION){
+        if(isnil(elect_stig.get(id))){
+            elect_stig.put(id, 1)
+        }
+        num_in_election = {.val=0}
+        elect_stig.foreach(function(k,v){
+            num_in_election.val = num_in_election.val + 1
+        })
+
+        if(num_in_election.val == NUM_OF_ROBOTS){
+            MMode = PREMOVEMENT
+        }
+    }
+    else if(MMode == PREMOVEMENT){
+        if(CHILD == -1){
+            MMode = FORMATION
+        }
+        else if(Parent_state == MOVEMENT){
+            MMode = FORMATION
+        }
+    }
+    else if(MMode == FORMATION){
+        var path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
+        var m_target = math.vec2.sub(path_tracking_point, pose.position)					
+        m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+        var Dist_to_target = math.vec2.length(m_target)
+        if(Dist_to_target > move_tol){
+            m_target =  math.vec2.scale(m_target,100)
+            m_target = LCA(m_target)
+            goto(m_target.x,m_target.y)
+        }
+        else{
+            path_ptr = path_ptr + 1
+            MMode = MOVEMENT
+            goto(0.0,0.0)
+        }
+    }
+    else if(MMode == MOVEMENT){
+        var parent_check = 1
+        var child_check = 1
+        var parent_pos = {}
+        var child_pos = {}
+        if(PARENT != -1){
+           parent_pos = neighbors.get(PARENT)
+           parent_check = (parent_pos.distance < BREACKING_DISTANCE)
+        }
+        if(CHILD != -1){
+            child_pos = neighbors.get(CHILD)
+            child_check = (child_pos.distance > SAFETY_DISTANCE)
+        }
+    
+        if(parent_check and child_check){
+            var path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
+            var m_target = math.vec2.sub(path_tracking_point, pose.position)					
+            m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+            var Dist_to_target = math.vec2.length(m_target)
+            if(Dist_to_target > move_tol){
+                m_target =  math.vec2.scale(m_target,100)
+                goto(m_target.x,m_target.y)
+            }
+            else{
+                path_ptr = path_ptr + 1
+            }
+        }
+        else{
+            goto(0.0,0.0)
+        }
+
+    }
+
+    broadcast_current_state()
+
+    update_timeto_forget()
+
+    activate_listerners()
+
+}
+
+
+function update_timeto_forget(){
+    # forget a selected parent after the selection expiry time
+    if(SELECTED_PARENT[0].time > 20){
+        # if(id == 2) log("[2] removing selected parent becaue the time is ", SELECTED_PARENT[0].time, " robot ", SELECTED_PARENT[0].state)
+        SELECTED_PARENT[0].time = 0
+        PARENT_REQUEST_DECLINED[SELECTED_PARENT[0].state]={.rid = SELECTED_PARENT[0].state, .time=TIME_TO_FORGET_DECLINES}
+        SELECTED_PARENT[0].state = -1
+    }
+
+}
+
+function broadcast_current_state(){ 
+  var request = {.type = STATE_MSG, .receiver=election_state, .responce = 0, .need = MMode, .cus = 0}
+  var packed_request = packenummessage(request)
+  neighbors.broadcast("2",packed_request)
+}
+
+function scan_for_new_parents(){
+  # Are there more parents
+  #log("[",id,"] size of free robots",size(m_free_robots), " size of declines ", size(PARENT_REQUEST_DECLINED) )
+  # log(" selected parent : ", SELECTED_PARENT[0].state)
+  if( (size(m_free_robots) - size(PARENT_REQUEST_DECLINED)) > 0 ){
+    var pot_parents = find_potential_parents()
+    if(pot_parents.rid != -1){
+      # log("[",id,"] asking robot for parent: ",pot_parents.rid )
+      if(SELECTED_PARENT[0].state == -1){
+        # single parent selection
+        SELECTED_PARENT[0].state = pot_parents.rid
+        SELECTED_PARENT[0].time = 0
+        # log(" selected parent set : ", SELECTED_PARENT[0].state)
+      }
+
+      # if(id == 2)log("[",id,"] Child request sent to : ",pot_parents.rid, " SELECTED_PARENT ", SELECTED_PARENT[0].time, " rid ",SELECTED_PARENT[0].state)
+      # send a parent request
+      if(target ==10 ) cur_target = 0
+      var request = {.type = BACKBONE_CHILD_REQUEST, .receiver=pot_parents.rid, .responce = 0, .need = PARENT, .cus = 0}
+      var packed_request = packenummessage(request)
+      neighbors.broadcast("1",packed_request)
+    }
+    else{
+      log("[ERROR][",id, "] NO more FREE ROBOTS to ask to serve as parents")
+    }
+  }
+  else{
+        if(Scan_timeer < TIME_TO_SCAN){
+            Scan_timeer = Scan_timeer + 1
+        }
+        else{
+            log("[",id, "] NO more FREE ROBOTS to ask to serve as parents, terminating chain")
+            MMode = ELECTION
+            var request = {.type = CHILD_SET, .receiver=DOG2, .responce = 0, .need = 0, .cus = 0}
+            var packed_request = packenummessage(request)
+            neighbors.broadcast("1",packed_request)
+        }
+  }
+
+}
+
+function find_potential_parents(){
+    var tab = {.x = 0, .y=0, .rid = -1}
+    neighbors.foreach(function(rid, value) {
+        # log("[",id,"] looking for parent id ",rid," in set ",m_free_robots[rid]," already considered ",check_parent_already_considered(rid))
+        if(m_free_robots[rid] != NIL and check_parent_already_considered(rid) == 0){
+            var lowest_vec = math.vec2.new(tab.x,tab.y)
+            var lowest_dist = math.vec2.length(lowest_vec) 
+            # log("[",id,"] scanning  for parent: my dist: ", (value.distance*0.01), " lowest_dist: ", lowest_dist )
+            if(tab.rid == -1 or (value.distance*0.01) < lowest_dist){
+                var nei_data_vec = math.vec2.newp(value.distance, value.azimuth)
+                # convert to meters
+                nei_data_vec = math.vec2.scale(nei_data_vec,0.01)
+                tab.x = nei_data_vec.x
+                tab.y = nei_data_vec.y
+                tab.rid = rid
+            }
+        }
+    })
+    return tab
+}
+
+function check_parent_already_considered(rid){
+  var temp_count = 0
+  var ret_val = { .a=0 }
+  foreach(PARENT_REQUEST_DECLINED, function(key, value) {
+      if(value.rid == rid){ ret_val.a=1}
+  })
+  return ret_val.a
+}
+
+#
+#pack request responce message into 1 number
+#
+function packenummessage(send_table){
+    var send_value = 0.0
+    send_value=10000*send_table.receiver+1000*send_table.type+100*send_table.responce+send_table.need
+    # log("[",id,"] ",send_table.receiver," , ", send_table.type, " , ", send_table.responce, " , ", send_table.need, " , ", send_table.cus, "val ", send_value )
+    return send_value
+}
+
+#
+#unpack request responce message into a table
+#
+function unpackenummessage(value){
+    var out_table = {.receiver = 0, .type = 0, .responce =0, .need = 0, .cus = 0}
+    # receiver
+    out_table.receiver=(value-value%10000)/10000
+    value=value-out_table.receiver*10000
+    # type
+    out_table.type=(value-value%1000)/1000
+    value=value-out_table.type*1000
+    # responce
+    out_table.responce=(value-value%100)/100
+    value=value-out_table.responce*100
+    # need
+    out_table.need=value
+
+    # log("[",id,"] ",out_table.receiver," , ", out_table.type, " , ", out_table.responce, " , ", out_table.need, "val ", value )
+
+    return out_table
+}
+
+function table_print(out_table) {
+  foreach(out_table, function(key, value) {
+      log(key, " -> ", value)
+    })
+}
+
+function activate_listerners(){
+
+    # Request and responce closure
+    neighbors.listen("1",
+        function(vid, value, rid) {
+            var responce_table = {}
+            responce_table =  unpackenummessage(value)
+            if(responce_table.receiver == id){
+                if(responce_table.type == BACKBONE_CHILD_REQUEST){
+                    if( (ROLE == SHEEP and election_state == FREE) or CHILD == rid){
+                        var request = {.type = BACKBONE_CHILD_RESPONCE, .receiver=rid, .responce = 1, .need = 0, .cus =0}
+                        var packed_request = packenummessage(request)
+                        neighbors.broadcast("1",packed_request)
+                        PARENT = responce_table.need
+                        CHILD = rid
+                        MMode = ELECTION_ELECTING
+                        election_state = COMITTED
+                        # log("[",id,"] Backbone child request accept sent to", rid)
+                    }
+                    else{
+                        var request = {.type = BACKBONE_CHILD_RESPONCE, .receiver=rid, .responce = 0, .need = 0, .cus =0}
+                        var packed_request = packenummessage(request)
+                        neighbors.broadcast("1", packed_request)
+                        # log("[",id,"] Backbone child request rejected and sent to", rid)
+                    }
+                }
+                else if(responce_table.type == BACKBONE_CHILD_RESPONCE){
+                    if(responce_table.responce == 1){
+                        PARENT = rid
+                        MMode = ELECTION
+                    }
+                    else{
+                        PARENT_REQUEST_DECLINED[rid]={.rid = rid, .time = TIME_TO_FORGET_DECLINES} 
+                        SELECTED_PARENT[0].state = -1
+                        SELECTED_PARENT[0].time = 0
+                    }
+                }
+                else if(responce_table.type == CHILD_SET){
+                    CHILD = rid
+                }
+            }
+        }
+    )
+
+    neighbors.listen("2",
+       function(vid, value, rid) {
+            var status_table = {}
+            status_table =  unpackenummessage(value)
+           if(status_table.receiver == FREE){
+                if(isnil(m_free_robots[rid])){
+                    m_free_robots[rid]={.rid=rid}
+                }
+           }
+           else if(status_table.receiver == COMITTED){
+                if(m_free_robots[rid] != NIL){
+                    m_free_robots[rid] = NIL
+                }
+           }
+           if(CHILD == rid){
+               Parent_state = status_table.need
+           }
+       }
+    )
+
+}
+
+function find_robot_is_in_set(rid, r_set){
+  var sret_value = {.a = -1}
+  if(r_set != nil){
+	  foreach(r_set,
+	    function(key,value) {
+	      if(value.rid == rid){
+	        sret_value.a = value.rid
+	        return sret_value.a
+	      }
+	    }
+	  )
+  }
+  return sret_value.a
+}
