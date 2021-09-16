@@ -121,7 +121,7 @@ function step_blind(){
         if(PARENT != -1){
             
            parent_pos = neighbors.get(PARENT)
-           if(isnil(parent_pos)){
+           if( not isnil(parent_pos)){
                parent_check = (parent_pos.distance < BREACKING_DISTANCE)
            }
            else{
@@ -130,7 +130,7 @@ function step_blind(){
         }
         if(CHILD != -1){
             child_pos = neighbors.get(CHILD)
-            if(isnil(child_pos)){
+            if(not isnil(child_pos)){
                 child_check = (child_pos.distance > SAFETY_DISTANCE)
             }
             else{
