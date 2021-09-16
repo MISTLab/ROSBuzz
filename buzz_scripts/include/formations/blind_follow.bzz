@@ -164,22 +164,20 @@ function step_blind(){
                     var last_wp = 0
                     if(not (goto_point(path_tracking_point, last_wp))){
                         # WP reached
-                        if(path_ptr < size(GLOBAL_TEST_PATH)){
-                            path_ptr = path_ptr + 1
-                        }
-                        else{
-                            log("TARGET REACHED")
-                            goto(0.0,0.0)
-                        }
-                    } else {
-                        if(PARENT != -1){
+                         if(PARENT != -1){
                             moving = 0
                         }
                         else{
-                            path_ptr = path_ptr + 1
-                            moving = 1
+                            if(path_ptr < size(GLOBAL_TEST_PATH)){
+                                path_ptr = path_ptr + 1
+                                moving = 1
+                            }
+                            else{
+                                log("TARGET REACHED")
+                                goto(0.0,0.0)
+                            }
                         }
-                    }
+                    } 
                 }
                 else{
                     path_tracking_point=LOCAL_WAYPOINT[path_ptr]
@@ -195,8 +193,10 @@ function step_blind(){
                             moving = 0
                         }
                         else{
-                            path_ptr = path_ptr + 1
-                            moving = 1
+                            if(path_ptr < size(LOCAL_WAYPOINT)){
+                                path_ptr = path_ptr + 1
+                                moving = 1
+                            }
                         }
                     }
                 }				
