@@ -1,0 +1,77 @@
+# Lightweight collision avoidance
+function LCA( vel_vec ) {
+	var Collision_safety_radius = 30.0
+	var collision_z_range = {.min=-0.15,.max=0.15}
+	if(V_TYPE == 1){
+		Collision_safety_radius = 30.0
+	}
+	if(REAL){
+		if(V_TYPE){
+			Collision_safety_radius = 0.4	
+		}
+		else{
+			Collision_safety_radius = 0.35	
+		}
+	}
+	
+	var collide ={.a=0}
+
+	var k_v = 5   # x axis gain
+	var k_w = 5   # y axis gain
+	if(REAL){
+		k_v = 0.05   # x axis gain
+		k_w = 0.05   # y axis gain
+	}
+	cart = neighbors.map(
+		function(rid, data) {
+			var c = {}
+			c.distance = data.distance 
+			c.azimuth = data.azimuth
+			var height_diff = data.elevation - pose.position.z 
+			# if(id>20)log("[",id,"] RID: ",rid," -> z: ",data.elevation," m_height ",pose.position.z," diff ",height_diff)
+
+			if (c.distance < (Collision_safety_radius * 2.0) and (height_diff > collision_z_range.min and height_diff < collision_z_range.max)){
+				collide.a = 1
+			}
+			return c
+	})
+	if (collide.a == 1) {
+		# log("")
+		# log("[",id,"]------>  AVOIDING NEIGHBOR!  <------")
+		# log("")
+		result = cart.reduce(function(rid, data, accum) {
+			if(data.distance < accum.distance and data.distance > 0.0){
+				accum.distance = data.distance
+				accum.angle = data.azimuth
+				return accum
+			}
+				return accum
+			}, {.distance= Collision_safety_radius * 2.0, .angle= 0.0})
+
+
+		d_i = result.distance
+		data_alpha_i = result.angle
+
+		delta = math.vec2.new( d_i * math.cos(data_alpha_i), d_i * math.sin(data_alpha_i) )
+
+		p = math.exp(-(d_i - Collision_safety_radius))
+		if ( math.cos( math.vec2.angle(vel_vec) - data_alpha_i ) < 0.0 ) {
+			p = math.exp(d_i - Collision_safety_radius)
+		}
+
+		V = -1 * (p / d_i) * k_v * delta.x
+		W = -1 * (p / d_i) * k_w * delta.y
+
+		if(vel_vec.z){
+			Uavd = math.vec3.new( V, W, 0.0)
+
+			return math.vec3.add( vel_vec, Uavd )
+		}
+
+		Uavd = math.vec2.new( V, W )
+
+		return math.vec2.add( vel_vec, Uavd )
+
+	}	else
+		return vel_vec
+}

@@ -9,7 +9,7 @@ include "utils/nav_table.bzz"
 include "formations/Object_movement_test.bzz"
 include "formations/blind_follow.bzz"
 include "formations/forward_test.bzz"
-include "includes/LCA.bzz"
+include "act/LCA.bzz"
 
 
 #####
@@ -76,10 +76,10 @@ function init() {
 	init_blind()
 
 	# Determine your role.
-	if(not (isnil(EXPLORER_IDs[id]))){
+	if(not isnil(EXPLORER_IDs[id])) {
 		log("I am a Dog")
-        	ROLE = DOG
-		setup_velocity_callbacks_from_table(EXPLORER_IDs)
+		ROLE = DOG
+		# setup_velocity_callbacks_from_table(EXPLORER_IDs)
 	}
     # Starting state: TURNEDOFF to wait for user input.
 	BVMSTATE = "TURNEDOFF"
@@ -117,18 +117,21 @@ function step() {
 	else if(BVMSTATE=="RETURN_TO_BASE"){
 		statef=return_to_base
 	}
-    else if(BVMSTATE=="HIRACHIAL_BEHAVIORS"){
-        statef=hierarchical_step		
-    }
-    else if(BVMSTATE == "FORWARD_TEST"){
-    	statef=forward_test
-    }
-    else if(BVMSTATE == "NAV_TEST"){
-    	statef=nav_table_test
-    }
-    # else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
-    #     statef=circling_experiment		
-    # }
+	else if(BVMSTATE=="HIRACHIAL_BEHAVIORS"){
+			statef=hierarchical_step		
+	}
+	else if(BVMSTATE == "BLIND_FOLLOW"){
+		statef=step_blind
+	}
+	else if(BVMSTATE == "FORWARD_TEST"){
+		statef=forward_test
+	}
+	else if(BVMSTATE == "NAV_TEST"){
+		statef=nav_table_test
+	}
+	# else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
+	#     statef=circling_experiment		
+	# }
 
 	statef()
 

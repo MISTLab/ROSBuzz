@@ -47,7 +47,8 @@ election_state = FREE
 
 function init_blind(){
     elect_stig = stigmergy.create(101)
-    if(ROLE = DOG){
+    if(id >= 10){
+        ROLE=DOG
         election_state = COMITTED
         if(id == DOG2){
             MMode=ELECTION
@@ -58,6 +59,9 @@ function init_blind(){
             PARENT = DOG2
         }
     }
+    else{
+        ROLE = SHEEP
+    } 
 }
 
 function step_blind(){
@@ -323,38 +327,38 @@ function activate_listerners(){
     )
 
     neighbors.listen("2",
-       function(vid, value, rid) {
+        function(vid, value, rid) {
             var status_table = {}
             status_table =  unpackenummessage(value)
-           if(status_table.receiver == FREE){
+            if(status_table.receiver == FREE){
                 if(isnil(m_free_robots[rid])){
                     m_free_robots[rid]={.rid=rid}
                 }
-           }
-           else if(status_table.receiver == COMITTED){
+            }
+            else if(status_table.receiver == COMITTED){
                 if(m_free_robots[rid] != NIL){
                     m_free_robots[rid] = NIL
                 }
-           }
-           if(CHILD == rid){
-               Parent_state = status_table.need
-           }
-       }
+            }
+            if(CHILD == rid){
+                Parent_state = status_table.need
+            }
+        }
     )
 
 }
 
 function find_robot_is_in_set(rid, r_set){
-  var sret_value = {.a = -1}
-  if(r_set != nil){
-	  foreach(r_set,
-	    function(key,value) {
-	      if(value.rid == rid){
-	        sret_value.a = value.rid
-	        return sret_value.a
-	      }
-	    }
-	  )
-  }
-  return sret_value.a
+    var sret_value = {.a = -1}
+    if(r_set != nil){
+        foreach(r_set,
+            function(key,value) {
+                if(value.rid == rid){
+                sret_value.a = value.rid
+                return sret_value.a
+                }
+            }
+        )
+    }
+    return sret_value.a
 }
