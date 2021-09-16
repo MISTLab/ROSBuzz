@@ -119,12 +119,23 @@ function step_blind(){
         var parent_pos = {}
         var child_pos = {}
         if(PARENT != -1){
+            
            parent_pos = neighbors.get(PARENT)
-           parent_check = (parent_pos.distance < BREACKING_DISTANCE)
+           if(isnil(parent_pos)){
+               parent_check = (parent_pos.distance < BREACKING_DISTANCE)
+           }
+           else{
+               parent_check = 0
+           }
         }
         if(CHILD != -1){
             child_pos = neighbors.get(CHILD)
-            child_check = (child_pos.distance > SAFETY_DISTANCE)
+            if(isnil(child_pos)){
+                child_check = (child_pos.distance > SAFETY_DISTANCE)
+            }
+            else{
+                child_check = 0
+            }
         }
     
         if(parent_check and child_check){
