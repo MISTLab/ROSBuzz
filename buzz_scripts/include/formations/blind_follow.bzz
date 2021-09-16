@@ -398,10 +398,11 @@ function activate_listerners(){
 
                             # var debug_point = math.vec2.sub(goal_point, pose.position)
                             # debug_point = math.vec2.rotate(nei_vec, -pose.orientation.yaw)
-                            # log("[",id,"] gaol set for point ", responce_table.need)
                             # debug.rays.add(255,0,0,debug_point.x,debug_point.y,0.0)
 
                             LOCAL_WAYPOINT[responce_table.need] = goal_point
+                            log("[",id,"] goal set for point ", responce_table.need, " point in table ", LOCAL_WAYPOINT[responce_table.need])
+
                         }
                     }
                     log("Listener activated with path pointer: ", path_ptr)
