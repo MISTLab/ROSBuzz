@@ -162,13 +162,12 @@ function step_blind(){
                     var last_wp = 0
                     if(not (goto_point(path_tracking_point, last_wp))){
                         # WP reached
-                        if(TEST_PATH_PTR < size(GLOBAL_TEST_PATH)){
-                        TEST_PATH_PTR = TEST_PATH_PTR + 1
+                        if(path_ptr < size(GLOBAL_TEST_PATH)){
+                            path_ptr = path_ptr + 1
                         }
                         else{
-                        TEST_PATH_PTR = TEST_PATH_PTR - 1
-                        FORWARDING = 0
-                        goto(0.0,0.0)
+                            log("TARGET REACHED")
+                            goto(0.0,0.0)
                         }
                     } else {
                         if(PARENT != -1){
