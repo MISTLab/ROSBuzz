@@ -65,6 +65,7 @@ function init_blind(){
 }
 
 function step_blind(){
+    log("Mode ", MMode, " Parent: ", PARENT, " Child: ", CHILD)
     if(MMode == ELECTION_ELECTING){
         if(SELECTED_PARENT[0].state != -1){
             log("Selected ", SELECTED_PARENT[0].state)
