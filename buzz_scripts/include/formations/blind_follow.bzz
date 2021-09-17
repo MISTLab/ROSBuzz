@@ -28,8 +28,8 @@ DOG2 = 9 # R9
 TIME_TO_FORGET_DECLINES = 100
 TIME_TO_SCAN = 20
 NUM_OF_ROBOTS = 6
-SAFETY_DISTANCE = 50
-BREACKING_DISTANCE = 150
+SAFETY_DISTANCE = 40
+BREACKING_DISTANCE = 70
 move_tol = 0.1
 
 
@@ -205,7 +205,12 @@ function step_blind(){
                         }
                     }
                     else{
-                        log("Waiting for waypoint sample!!! Local_waypoint table is")
+                        log("Sampling the waypoint sample without DOG's msg")
+                        var nei_pos = neighbors.get(rid)
+                        var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
+                        nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
+                        var goal_point = math.vec2.add(pose.position,nei_vec)
+                        LOCAL_WAYPOINT[path_ptr] = goal_point
                         table_print(LOCAL_WAYPOINT)
                     }
                 }				
