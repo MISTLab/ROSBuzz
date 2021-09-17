@@ -161,7 +161,7 @@ function step_blind(){
             if(moving == 1){
                 var path_tracking_point= {}
 
-                if(ROLE == DOG){
+                if(id == DOG1){
                     path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
                     log("Forwarding (via movebase) to (", path_tracking_point.x,",",path_tracking_point.y,")")
                     var last_wp = 0
