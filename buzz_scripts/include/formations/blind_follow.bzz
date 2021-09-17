@@ -207,10 +207,12 @@ function step_blind(){
                     else{
                         log("Sampling the waypoint sample without DOG's msg")
                         var nei_pos = neighbors.get(rid)
-                        var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
-                        nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
-                        var goal_point = math.vec2.add(pose.position,nei_vec)
-                        LOCAL_WAYPOINT[path_ptr] = goal_point
+                        if(not isnil(nei_pos)){
+                            var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
+                            nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
+                            var goal_point = math.vec2.add(pose.position,nei_vec)
+                            LOCAL_WAYPOINT[path_ptr] = goal_point
+                        }
                         table_print(LOCAL_WAYPOINT)
                     }
                 }				
