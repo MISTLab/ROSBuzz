@@ -180,24 +180,29 @@ function step_blind(){
                     } 
                 }
                 else{
-                    path_tracking_point=LOCAL_WAYPOINT[path_ptr]
-                    var m_target = math.vec2.sub(path_tracking_point, pose.position)					
-                    m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
-                    var Dist_to_target = math.vec2.length(m_target)
-                    if(Dist_to_target > move_tol){
-                        m_target =  math.vec2.scale(m_target,100)
-                        goto(m_target.x,m_target.y)
-                    }
-                    else{
-                        if(PARENT != -1){
-                            moving = 0
+                    if(LOCAL_WAYPOINT[path_ptr] != nil){
+                        path_tracking_point=LOCAL_WAYPOINT[path_ptr]
+                        var m_target = math.vec2.sub(path_tracking_point, pose.position)					
+                        m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+                        var Dist_to_target = math.vec2.length(m_target)
+                        if(Dist_to_target > move_tol){
+                            m_target =  math.vec2.scale(m_target,100)
+                            goto(m_target.x,m_target.y)
                         }
                         else{
-                            if(path_ptr < size(LOCAL_WAYPOINT)){
-                                path_ptr = path_ptr + 1
-                                moving = 1
+                            if(PARENT != -1){
+                                moving = 0
+                            }
+                            else{
+                                if(path_ptr < size(LOCAL_WAYPOINT)){
+                                    path_ptr = path_ptr + 1
+                                    moving = 1
+                                }
                             }
                         }
+                    }
+                    else{
+                        log("Waiting for waypoint sample!!!")
                     }
                 }				
             }
