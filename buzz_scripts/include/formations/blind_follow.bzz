@@ -138,6 +138,7 @@ function step_blind(){
            parent_pos = neighbors.get(PARENT)
            if( not isnil(parent_pos)){
                parent_check = (parent_pos.distance < BREACKING_DISTANCE)
+               log("PARENT Dist: ", parent_pos.distance)
            }
            else{
                parent_check = 0
@@ -147,13 +148,14 @@ function step_blind(){
             child_pos = neighbors.get(CHILD)
             if(not isnil(child_pos)){
                 child_check = (child_pos.distance > SAFETY_DISTANCE)
+                log("CHILD Dist: ", child_pos.distance)
             }
             else{
                 child_check = 0
             }
         }
         
-        log("Parent and child check: ", parent_check, " child_check", child_check)
+        log("Parent, child checks: ", parent_check, " , ", child_check)
         if(parent_check and child_check){
             log("Path pointer: ", path_ptr)
             if(moving == 1){
@@ -351,8 +353,8 @@ function unpackenummessage(value){
 }
 
 function table_print(out_table) {
-  foreach(out_table, function(key, value) {
-      log(key, " -> ", value)
+    foreach(out_table, function(key, value) {
+        log(key, " -> ", value)
     })
 }
 
