@@ -69,7 +69,7 @@ function init_blind(){
 }
 
 function step_blind(){
-    log("Mode ", MMode, " Parent: ", PARENT, " Child: ", CHILD)
+    log("Mode: ", MMode, " Parent: ", PARENT, " Child: ", CHILD)
     if(MMode == ELECTION_ELECTING){
         if(SELECTED_PARENT[0].state != -1){
             log("Selected ", SELECTED_PARENT[0].state)
@@ -152,7 +152,8 @@ function step_blind(){
                 child_check = 0
             }
         }
-
+        
+        log("Parent and child check: ", parent_check, " child_check", child_check)
         if(parent_check and child_check){
             log("Path pointer: ", path_ptr)
             if(moving == 1){
@@ -164,7 +165,7 @@ function step_blind(){
                     var last_wp = 0
                     if(not (goto_point(path_tracking_point, last_wp))){
                         # WP reached
-                         if(PARENT != -1){
+                        if(PARENT != -1){
                             moving = 0
                         }
                         else{
@@ -202,11 +203,13 @@ function step_blind(){
                         }
                     }
                     else{
-                        log("Waiting for waypoint sample!!!")
+                        log("Waiting for waypoint sample!!! Local_waypoint table is")
+                        table_print(LOCAL_WAYPOINT)
                     }
                 }				
             }
             else{
+                log("Sending waypoint and waiting for ack from parent")
                 var request = {.type = WAYPOINT_SET, .receiver=PARENT, .responce = 0, .need = path_ptr, .cus = 0}
                 var packed_request = packenummessage(request)
                 neighbors.broadcast("1",packed_request)
@@ -397,7 +400,7 @@ function activate_listerners(){
                     if(ROLE == SHEEP){
                         if(isnil(LOCAL_WAYPOINT[responce_table.need])){
                             var nei_pos = neighbors.get(rid)
-                            var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth)
+                            var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
                             nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
                             var goal_point = math.vec2.add(pose.position,nei_vec)
 
@@ -416,6 +419,7 @@ function activate_listerners(){
                     neighbors.broadcast("1",packed_request)
                 }
                 else if(responce_table.type == WAYPOINT_ACK){
+                    log("Receieved waypoint ACK from ", rid)
                     if(moving == 0){
                         moving = 1
                         path_ptr = path_ptr + 1
