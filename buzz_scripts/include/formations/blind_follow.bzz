@@ -27,7 +27,7 @@ DOG1 = 1 # RG1
 DOG2 = 9 # R9
 TIME_TO_FORGET_DECLINES = 100
 TIME_TO_SCAN = 20
-NUM_OF_ROBOTS = 2
+NUM_OF_ROBOTS = 3
 SAFETY_DISTANCE = 40
 BREACKING_DISTANCE = 70
 move_tol = 0.1
@@ -78,12 +78,14 @@ function step_blind(){
       )
 
     if(size(fiducial_tags) > 0){
-        if(not isnil(fiducial_tags[PARENT])){
+        if(fiducial_tags[PARENT] != nil){
             log("PARENT Marker found at (",fiducial_tags[PARENT].x,",",fiducial_tags[PARENT].y,")")
             var parent_marker_pos = math.vec2.new(fiducial_tags[PARENT].x,fiducial_tags[PARENT].y)
             var parent_pos = neighbors.get(PARENT)
-            if(not isnil(parent_pos)){
-                estimated_drift = math.vec2.sub(parent_pos,parent_marker_pos)
+            if(parent_pos != nil){
+                var parent_pos_vec = math.vec2.newp(parent_pos.distance, parent_pos.azimuth)
+                parent_pos_vec = math.vec2.scale(parent_pos_vec, 100)
+                estimated_drift = math.vec2.sub(parent_pos_vec,parent_marker_pos)
                 log("Estimated drift in cam frame: (",estimated_drift.x,",",estimated_drift.y,")")
                 estimated_drift = math.vec2.rotate(estimated_drift, pose.orientation.yaw)
                 log("Estimated drift in base_link: (",estimated_drift.x,",",estimated_drift.y,")")
@@ -180,9 +182,9 @@ function step_blind(){
             }
         }
         
-        log("Parent, child checks: ", parent_check, " , ", child_check)
+        log("Parent, child checks: ", parent_check, " , ", child_check, " , moving ", moving)
         if(parent_check and child_check){
-            log("Path pointer: ", path_ptr)
+            #log("Path pointer: ", path_ptr)
             if(moving == 1){
                 var path_tracking_point= {}
 
@@ -214,6 +216,7 @@ function step_blind(){
                         var m_target = math.vec2.sub(path_tracking_point, corrected_pos)					
                         m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
                         var Dist_to_target = math.vec2.length(m_target)
+                        log("Path pointer: ", path_ptr, ", dist", Dist_to_target, " , going to (",m_target.x,",",m_target.y,")")
                         if(Dist_to_target > move_tol){
                             # m_target =  math.vec2.scale(m_target,1/100)
                             # goto(m_target.x,m_target.y)
