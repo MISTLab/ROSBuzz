@@ -42,6 +42,7 @@ CHILD = -1
 Scan_timeer= 0
 path_ptr = 1
 moving = 0
+estimated_drift = {.x=0.0,.y=0.0}
 
 # Internal states
 MMode=PREELECTION
@@ -69,7 +70,19 @@ function init_blind(){
 }
 
 function step_blind(){
-    log("Mode: ", MMode, " Parent: ", PARENT, " Child: ", CHILD)
+    log("Mode: ", MMode, " Parent: ", PARENT, " Child: ", CHILD, "size of tags ", size(fiducial_tags))
+    # check for fiducial tag pos of the parent and compute the odom drift.
+    if(size(fiducial_tags) > 0){
+        if(not isnil(fiducial_tags[PARENT])){
+            log("PARENT Marker found at (",fiducial_tags[PARENT].x,",",fiducial_tags[PARENT].y,")")
+            var parent_marker_pos = math.vec2.new(fiducial_tags[PARENT].x,fiducial_tags[PARENT].y)
+            var parent_pos = neighbors.get(PARENT)
+            if(not isnil(parent_pos)){
+                estimated_drift = math.vec2.sub(parent_pos,parent_marker_pos)
+                log("Estimated drift: (",estimated_drift.x,",",estimated_drift.y,")")
+            }
+        }
+    }
     if(MMode == ELECTION_ELECTING){
         if(SELECTED_PARENT[0].state != -1){
             log("Selected ", SELECTED_PARENT[0].state)
@@ -406,7 +419,7 @@ function activate_listerners(){
                     CHILD = rid
                 }
                 else if(responce_table.type == WAYPOINT_SET){
-                    if(ROLE == SHEEP){
+                    if(id != DOG1){ # NOTE 
                         if(isnil(LOCAL_WAYPOINT[responce_table.need])){
                             var nei_pos = neighbors.get(rid)
                             var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
