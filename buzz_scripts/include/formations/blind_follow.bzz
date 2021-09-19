@@ -38,11 +38,12 @@ PARENT_REQUEST_DECLINED = {}
 m_free_robots ={}
 SELECTED_PARENT = {.0={.state = -1, .time=0}}
 PARENT = -1
-CHILD = -1
+CHILD = 1
 Scan_timeer= 0
 path_ptr = 1
 moving = 0
 estimated_drift = {.x=0.0,.y=0.0}
+corrected_pose = {}
 
 # Internal states
 MMode=PREELECTION
@@ -67,6 +68,8 @@ function init_blind(){
     else{
         ROLE = SHEEP
     } 
+    corrected_pose = math.vec2.add(pose.position, estimated_drift)
+
 }
 
 function step_blind(){
@@ -76,7 +79,6 @@ function step_blind(){
           log("Tag received id", k," POS(",v.x,",",v.y,")")
       }  
       )
-
     if(size(fiducial_tags) > 0){
         if(fiducial_tags[CHILD] != nil){
             log("CHILD Marker found at (",fiducial_tags[CHILD].x,",",fiducial_tags[CHILD].y,")")
@@ -92,6 +94,8 @@ function step_blind(){
             }
         }
     }
+    corrected_pose = math.vec2.add(pose.position, estimated_drift)
+    log("Drift corrected pose (", corrected_pose.x,",",corrected_pose.y,")")
     if(MMode == ELECTION_ELECTING){
         if(SELECTED_PARENT[0].state != -1){
             log("Selected ", SELECTED_PARENT[0].state)
@@ -127,7 +131,7 @@ function step_blind(){
     }
     else if(MMode == FORMATION){
         var path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
-        var m_target = math.vec2.sub(path_tracking_point, pose.position)					
+        var m_target = math.vec2.sub(path_tracking_point, corrected_pose)					
         m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
         var Dist_to_target = math.vec2.length(m_target)
         if(Dist_to_target > move_tol){
@@ -212,8 +216,7 @@ function step_blind(){
                 else{
                     if(LOCAL_WAYPOINT[path_ptr] != nil){
                         path_tracking_point=LOCAL_WAYPOINT[path_ptr]
-                        var corrected_pos = math.vec2.add(pose.position, estimated_drift)
-                        var m_target = math.vec2.sub(path_tracking_point, corrected_pos)					
+                        var m_target = math.vec2.sub(path_tracking_point, corrected_pose)					
                         m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
                         var Dist_to_target = math.vec2.length(m_target)
                         log("Path pointer: ", path_ptr, ", dist", Dist_to_target, " , going to (",m_target.x,",",m_target.y,")")
@@ -242,7 +245,8 @@ function step_blind(){
                         if(not isnil(nei_pos)){
                             var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
                             nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
-                            var goal_point = math.vec2.add(pose.position,nei_vec)
+                            var nei_corrected_pos = math.vec2.add(nei_vec, estimated_drift)
+                            var goal_point = math.vec2.add(corrected_pose,nei_corrected_pos)
                             LOCAL_WAYPOINT[path_ptr] = goal_point
                         }
                         table_print(LOCAL_WAYPOINT)
@@ -443,7 +447,8 @@ function activate_listerners(){
                             var nei_pos = neighbors.get(rid)
                             var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
                             nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
-                            var goal_point = math.vec2.add(pose.position,nei_vec)
+                            var nei_corrected_pos = math.vec2.add(nei_vec, estimated_drift)
+                            var goal_point = math.vec2.add(corrected_pose,nei_corrected_pos)
 
                             # var debug_point = math.vec2.sub(goal_point, pose.position)
                             # debug_point = math.vec2.rotate(nei_vec, -pose.orientation.yaw)
@@ -489,6 +494,11 @@ function activate_listerners(){
             }
         }
     )
+
+}
+
+function get_nei_corrected_pose(id){
+
 
 }
 
