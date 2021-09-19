@@ -79,7 +79,9 @@ function step_blind(){
             var parent_pos = neighbors.get(PARENT)
             if(not isnil(parent_pos)){
                 estimated_drift = math.vec2.sub(parent_pos,parent_marker_pos)
-                log("Estimated drift: (",estimated_drift.x,",",estimated_drift.y,")")
+                log("Estimated drift in cam frame: (",estimated_drift.x,",",estimated_drift.y,")")
+                estimated_drift = math.vec2.rotate(estimated_drift, pose.orientation.yaw)
+                log("Estimated drift in base_link: (",estimated_drift.x,",",estimated_drift.y,")")
             }
         }
     }
@@ -203,7 +205,8 @@ function step_blind(){
                 else{
                     if(LOCAL_WAYPOINT[path_ptr] != nil){
                         path_tracking_point=LOCAL_WAYPOINT[path_ptr]
-                        var m_target = math.vec2.sub(path_tracking_point, pose.position)					
+                        var corrected_pos = math.vec2.add(pose.position, estimated_drift)
+                        var m_target = math.vec2.sub(path_tracking_point, corrected_pos)					
                         m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
                         var Dist_to_target = math.vec2.length(m_target)
                         if(Dist_to_target > move_tol){

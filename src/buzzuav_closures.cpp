@@ -51,6 +51,7 @@ static std::vector<bounding_box> yolo_boxes;
 std::vector<std::vector<float>> exploration_path;
 std::vector<std::vector<float>> homing_path;
 std::vector<std::vector<float>> nav_tube;
+std::map<int, buzz_utility::Pos_with_ori_struct> fiducial_tags_map;
 
 std::ofstream voronoicsv;
 
@@ -2062,6 +2063,42 @@ void set_log_path(std::string path){
 }
 
 
+void put_fiducial_tag_pose(int id, float x, float y, float z, float pitch, float roll, float yaw){
+  map<int, buzz_utility::pos_ori_struct>::iterator itp = fiducial_tags_map.find(id);
+  if (itp != fiducial_tags_map.end()){
+    fiducial_tags_map.erase(itp);
+  }  
+  buzz_utility::Pos_with_ori_struct tag_pos(x, y, z,
+      pitch, roll, yaw);
+  fiducial_tags_map.insert(make_pair(id, tag_pos));
+}
+
+int buzzuav_update_fiducial_tags(buzzvm_t vm)
+{
+
+  buzzvm_pushs(vm, buzzvm_string_register(vm, "fiducial_tags", 1));
+  buzzvm_pusht(vm);
+  buzzobj_t tPoseTable = buzzvm_stack_at(vm, 1);
+  buzzvm_gstore(vm);
+
+  for (std::map<int, buzz_utility::pos_ori_struct>::iterator it=fiducial_tags_map.begin();
+      it!=fiducial_tags_map.end(); ++it)
+  {
+    buzzvm_push(vm, tPoseTable);
+    buzzvm_pushi(vm,  it->first);
+    buzzvm_pusht(vm);
+    buzzobj_t tVecTable = buzzvm_stack_at(vm, 1);
+    buzzvm_tput(vm);
+    TablePut_str_fval(tVecTable, "x", (it->second).x, vm);
+    TablePut_str_fval(tVecTable, "y", (it->second).y, vm);
+    TablePut_str_fval(tVecTable, "z", (it->second).z, vm);
+    TablePut_str_fval(tVecTable, "pitch", (it->second).pitch, vm);
+    TablePut_str_fval(tVecTable, "roll", (it->second).roll, vm);
+    TablePut_str_fval(tVecTable, "yaw", (it->second).yaw, vm);
+  }
+  fiducial_tags_map.clear();
+  return vm->state;
+}
 
 /****************************************/
 /****************************************/

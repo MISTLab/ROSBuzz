@@ -368,6 +368,10 @@ int dummy_closure(buzzvm_t vm);
 
 void set_log_path(std::string path);
 
+void put_fiducial_tag_pose(int id, float x, float y, float z, float pitch, float roll,float yaw);
+
+int buzzuav_update_fiducial_tags(buzzvm_t vm);
+
 #if OMPL_FOUND
 
 int C_InitializePathPlanner(buzzvm_t vm);

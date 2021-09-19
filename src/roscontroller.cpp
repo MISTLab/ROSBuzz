@@ -459,6 +459,9 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   node_handle.getParam("topics/move_base_goal_status", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "actionlib_msgs::GoalStatusArray"));
 
+  node_handle.getParam("topics/fiducial_tags", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "geometry_msgs::PoseWithCovarianceStamped"));
+
   node_handle.getParam("topics/yolobox", yolobox_sub_name);
 }
 
@@ -681,6 +684,9 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     }
     else if(it->second == "actionlib_msgs::GoalStatusArray"){
       move_base_goal_status_sub = n_c.subscribe(it->first, 1, &roscontroller::move_base_goal_status_cb, this);
+    }
+    else if(it->second == "geometry_msgs::PoseWithCovarianceStamped"){
+      fiducial_tags_sub = n_c.subscribe(it->first, 1, &roscontroller::fiducial_tags_cb, this);
     }
     
 
@@ -1282,6 +1288,25 @@ void roscontroller::set_cur_pos(double latitude, double longitude, double altitu
   cur_pos.latitude = latitude;
   cur_pos.longitude = longitude;
   cur_pos.altitude = altitude;
+}
+
+void roscontroller::fiducial_tags_cb(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg){
+  /*
+  / subscribes and sends the fiducial marker pose to buzzuav_closures.
+  /--------------------------------------------------------*/
+  //  ID is currently stored in covarience 
+  tf::Quaternion q(
+      msg->pose.pose.orientation.x,
+      msg->pose.pose.orientation.y,
+      msg->pose.pose.orientation.z,
+      msg->pose.pose.orientation.w);
+  tf::Matrix3x3 m(q);
+  double roll, pitch, yaw;
+  m.getRPY(roll, pitch, yaw);
+  buzzuav_closures::put_fiducial_tag_pose( (int)(msg->pose.covariance[0]), msg->pose.pose.position.x, 
+      msg->pose.pose.position.y, msg->pose.pose.position.z,
+      pitch, roll, yaw);
+
 }
 
 void roscontroller::path_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)

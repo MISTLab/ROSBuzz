@@ -43,6 +43,17 @@ struct neiStatus
 };
 typedef struct neiStatus neighbors_status;
 
+struct pos_ori_struct
+{
+  double x, y, z, pitch, roll, yaw;
+  pos_ori_struct(double x, double y, double z, double Pitch, double Roll, double Yaw) 
+  : x(x), y(y), z(z), pitch(Pitch), roll(Roll), yaw(Yaw){};
+  pos_ori_struct()
+  {
+  }
+};
+typedef struct pos_ori_struct Pos_with_ori_struct;
+
 struct neitime
 {
   uint64_t nei_hardware_time;

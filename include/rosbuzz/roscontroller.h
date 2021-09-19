@@ -5,33 +5,34 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Path.h>
 #include <std_msgs/UInt8.h>
-#include "mavros_msgs/GlobalPositionTarget.h"
-#include "mavros_msgs/CommandCode.h"
-#include "mavros_msgs/CommandLong.h"
-#include "mavros_msgs/CommandBool.h"
-#include "mavros_msgs/ExtendedState.h"
-#include "mavros_msgs/SetMode.h"
-#include "mavros_msgs/State.h"
+#include <mavros_msgs/GlobalPositionTarget.h>
+#include <mavros_msgs/CommandCode.h>
+#include <mavros_msgs/CommandLong.h>
+#include <mavros_msgs/CommandBool.h>
+#include <mavros_msgs/ExtendedState.h>
+#include <mavros_msgs/SetMode.h>
+#include <mavros_msgs/State.h>
 #include <trajectory_msgs/MultiDOFJointTrajectory.h>
-//#include "mavros_msgs/BatteryStatus.h"
-#include "sensor_msgs/BatteryState.h"
-#include "mavros_msgs/Mavlink.h"
-#include "mavros_msgs/PositionTarget.h"
-#include "sensor_msgs/NavSatStatus.h"
-#include "mavros_msgs/WaypointPush.h"
-#include "mavros_msgs/Waypoint.h"
-#include "mavros_msgs/PositionTarget.h"
-#include "mavros_msgs/StreamRate.h"
-#include "mavros_msgs/ParamGet.h"
-#include "geometry_msgs/PoseStamped.h"
+//#include "mavros_msgs/BatteryStatus.h>
+#include <sensor_msgs/BatteryState.h>
+#include <mavros_msgs/Mavlink.h>
+#include <mavros_msgs/PositionTarget.h>
+#include <sensor_msgs/NavSatStatus.h>
+#include <mavros_msgs/WaypointPush.h>
+#include <mavros_msgs/Waypoint.h>
+#include <mavros_msgs/PositionTarget.h>
+#include <mavros_msgs/StreamRate.h>
+#include <mavros_msgs/ParamGet.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <move_base_msgs/MoveBaseActionGoal.h>
 #include <actionlib_msgs/GoalStatusArray.h>
 #include <actionlib_msgs/GoalStatus.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 #include <nav_msgs/Path.h>
-#include "std_msgs/Float64.h"
-#include "std_msgs/String.h"
+#include <std_msgs/Float64.h>
+#include <std_msgs/String.h>
 #include "rosbuzz/bool_srv.h"
 #include <std_srvs/Trigger.h>
 #include <sensor_msgs/LaserScan.h>
@@ -213,6 +214,7 @@ private:
   ros::Subscriber home_nav_path_sub;
   ros::Subscriber move_base_local_trajectory_sub;
   ros::Subscriber move_base_goal_status_sub;
+  ros::Subscriber fiducial_tags_sub;
   std::map<std::string, std::string> m_smTopic_infos;
 
   int setpoint_counter;
@@ -281,6 +283,9 @@ private:
 
   /*Set the current position of the robot callback*/
   void set_cur_pos(double latitude, double longitude, double altitude);
+
+  /*Subcribes to fiducial tag pos and updates buzzuav_closures */
+  void fiducial_tags_cb(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg);
 
   /*Set the current exploration path*/
   void path_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg);
