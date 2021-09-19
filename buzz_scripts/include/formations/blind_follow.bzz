@@ -38,7 +38,7 @@ PARENT_REQUEST_DECLINED = {}
 m_free_robots ={}
 SELECTED_PARENT = {.0={.state = -1, .time=0}}
 PARENT = -1
-CHILD = 1
+CHILD = -1
 Scan_timeer= 0
 path_ptr = 1
 moving = 0
@@ -68,7 +68,7 @@ function init_blind(){
     else{
         ROLE = SHEEP
     } 
-    corrected_pose = math.vec2.add(pose.position, estimated_drift)
+#    corrected_pose = math.vec2.add(pose.position, estimated_drift)
 
 }
 
