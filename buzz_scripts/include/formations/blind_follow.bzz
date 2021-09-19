@@ -72,6 +72,11 @@ function init_blind(){
 function step_blind(){
     log("Mode: ", MMode, " Parent: ", PARENT, " Child: ", CHILD, "size of tags ", size(fiducial_tags))
     # check for fiducial tag pos of the parent and compute the odom drift.
+     foreach(fiducial_tags, function(k,v){
+          log("Tag received id", k," POS(",v.x,",",v.y,")")
+      }  
+      )
+
     if(size(fiducial_tags) > 0){
         if(not isnil(fiducial_tags[PARENT])){
             log("PARENT Marker found at (",fiducial_tags[PARENT].x,",",fiducial_tags[PARENT].y,")")

@@ -686,7 +686,7 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
       move_base_goal_status_sub = n_c.subscribe(it->first, 1, &roscontroller::move_base_goal_status_cb, this);
     }
     else if(it->second == "geometry_msgs::PoseWithCovarianceStamped"){
-      fiducial_tags_sub = n_c.subscribe(it->first, 1, &roscontroller::fiducial_tags_cb, this);
+      fiducial_tags_sub = n_c.subscribe(it->first, 10, &roscontroller::fiducial_tags_cb, this);
     }
     
 

@@ -23,7 +23,7 @@ topics:
   move_base_goal: /move_base/goal
   move_base_local_trajectory_goal: /move_base/TrajectoryPlannerROS/local_plan
   move_base_goal_status: /move_base/status
-  fiducial tags: fiducial_tags
+  fiducial_tags: fiducial_tags
 services:
   fcclient:   cmd/command
   armclient:  cmd/arming
