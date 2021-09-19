@@ -78,14 +78,14 @@ function step_blind(){
       )
 
     if(size(fiducial_tags) > 0){
-        if(fiducial_tags[PARENT] != nil){
-            log("PARENT Marker found at (",fiducial_tags[PARENT].x,",",fiducial_tags[PARENT].y,")")
-            var parent_marker_pos = math.vec2.new(fiducial_tags[PARENT].x,fiducial_tags[PARENT].y)
-            var parent_pos = neighbors.get(PARENT)
-            if(parent_pos != nil){
-                var parent_pos_vec = math.vec2.newp(parent_pos.distance, parent_pos.azimuth)
-                parent_pos_vec = math.vec2.scale(parent_pos_vec, 100)
-                estimated_drift = math.vec2.sub(parent_pos_vec,parent_marker_pos)
+        if(fiducial_tags[CHILD] != nil){
+            log("CHILD Marker found at (",fiducial_tags[CHILD].x,",",fiducial_tags[CHILD].y,")")
+            var child_marker_pos = math.vec2.new(fiducial_tags[CHILD].x,fiducial_tags[CHILD].y)
+            var child_pos = neighbors.get(CHILD)
+            if(child_pos != nil){
+                var child_pos_vec = math.vec2.newp(child_pos.distance, child_pos.azimuth)
+                child_pos_vec = math.vec2.scale(child_pos_vec, 0.01) # cm to meters
+                estimated_drift = math.vec2.sub(child_pos_vec, child_marker_pos)
                 log("Estimated drift in cam frame: (",estimated_drift.x,",",estimated_drift.y,")")
                 estimated_drift = math.vec2.rotate(estimated_drift, pose.orientation.yaw)
                 log("Estimated drift in base_link: (",estimated_drift.x,",",estimated_drift.y,")")
