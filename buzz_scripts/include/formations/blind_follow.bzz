@@ -27,7 +27,7 @@ DOG1 = 1 # RG1
 DOG2 = 9 # R9
 TIME_TO_FORGET_DECLINES = 100
 TIME_TO_SCAN = 20
-NUM_OF_ROBOTS = 6
+NUM_OF_ROBOTS = 2
 SAFETY_DISTANCE = 40
 BREACKING_DISTANCE = 70
 move_tol = 0.1
@@ -109,15 +109,20 @@ function step_blind(){
         m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
         var Dist_to_target = math.vec2.length(m_target)
         if(Dist_to_target > move_tol){
-            m_target =  math.vec2.scale(m_target,200)
+            m_target =  math.vec2.scale(m_target,100)
             m_target = LCA(m_target)
-            goto(m_target.x,m_target.y)
+            # goto(m_target.x,m_target.y)
+            # m_target =  math.vec2.scale(m_target,1/100)
+            log("GOTo ",m_target.x,",", m_target.y)
+            goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
+
         }
         else{
             if(moving == 1 or PARENT == -1){
                 MMode = MOVEMENT
                 if(PARENT == -1){
                     moving = 1
+                    path_ptr = path_ptr + 1
                 }
             }
             else{
@@ -189,8 +194,11 @@ function step_blind(){
                         m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
                         var Dist_to_target = math.vec2.length(m_target)
                         if(Dist_to_target > move_tol){
-                            m_target =  math.vec2.scale(m_target,200)
-                            goto(m_target.x,m_target.y)
+                            # m_target =  math.vec2.scale(m_target,1/100)
+                            # goto(m_target.x,m_target.y)
+                            m_target =  math.vec2.scale(m_target,100)
+                            log("GOTo ",m_target.x,",", m_target.y)
+                            goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
                         }
                         else{
                             if(PARENT != -1){
@@ -406,7 +414,7 @@ function activate_listerners(){
                     CHILD = rid
                 }
                 else if(responce_table.type == WAYPOINT_SET){
-                    if(ROLE == SHEEP){
+                    if(id != DOG1){
                         if(isnil(LOCAL_WAYPOINT[responce_table.need])){
                             var nei_pos = neighbors.get(rid)
                             var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
