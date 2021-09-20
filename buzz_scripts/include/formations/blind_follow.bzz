@@ -280,7 +280,6 @@ function step_blind(){
 
     update_timeto_forget()
 
-
 }
 
 
@@ -496,7 +495,6 @@ function activate_listerners(){
             }
         }
     )
-
 
 
 }
