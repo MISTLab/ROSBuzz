@@ -441,7 +441,8 @@ function goto_point(goal, last_wp){
 	 		# scale to desired vel
 			#local_vec = math.vec2.scale(local_vec,1)
 			# Limit speed
-			local_vec = math.vec2.newp(math.vec2.length(local_vec)*10,math.vec2.angle(local_vec))
+			# local_vec = math.vec2.newp(math.vec2.length(local_vec)*10,math.vec2.angle(local_vec)) # Original for exploration
+			local_vec = math.vec2.newp(math.vec2.length(local_vec)*5,math.vec2.angle(local_vec)) # altered for tag following
 			goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
 		}
   }

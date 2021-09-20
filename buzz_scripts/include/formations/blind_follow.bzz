@@ -20,17 +20,19 @@ BACKBONE_CHILD_REQUEST = 1
 BACKBONE_CHILD_RESPONCE = 2
 CHILD_SET = 3
 STATE_MSG = 4
-WAYPOINT_SET = 5
-WAYPOINT_ACK = 6
+CHILD_WAIT_REQUEST = 5
+CHILD_WAIT_RESUME = 6
+
 
 DOG1 = 1 # RG1
 DOG2 = 9 # R9
 TIME_TO_FORGET_DECLINES = 100
 TIME_TO_SCAN = 20
 NUM_OF_ROBOTS = 3
-SAFETY_DISTANCE = 40
-BREACKING_DISTANCE = 70
+SAFETY_DISTANCE = 70
+BREACKING_DISTANCE = 120
 move_tol = 0.1
+MA_FILTER_DECAY_CONSTANT = 0.2
 
 
 # Global variables 
@@ -41,10 +43,9 @@ PARENT = -1
 CHILD = -1
 Scan_timeer= 0
 path_ptr = 1
-moving = 0
-estimated_drift = {.x=0.0,.y=0.0}
-corrected_pose = {}
-neighbor_drifts = {}
+moving = 1
+child_tag_pos = nil
+MA_diff_child = {.x=0.0, .y=0.0}
 
 # Internal states
 MMode=PREELECTION
@@ -69,7 +70,6 @@ function init_blind(){
     else{
         ROLE = SHEEP
     } 
-#    corrected_pose = math.vec2.add(pose.position, estimated_drift)
     activate_listerners()
 
 }
@@ -84,20 +84,63 @@ function step_blind(){
     if(size(fiducial_tags) > 0){
         if(fiducial_tags[CHILD] != nil){
             log("CHILD Marker found at (",fiducial_tags[CHILD].x,",",fiducial_tags[CHILD].y,")")
-            var child_marker_pos = math.vec2.new(fiducial_tags[CHILD].x,fiducial_tags[CHILD].y)
-            var child_pos = neighbors.get(CHILD)
-            if(child_pos != nil){
-                var child_pos_vec = math.vec2.newp(child_pos.distance, child_pos.azimuth)
-                child_pos_vec = math.vec2.scale(child_pos_vec, 0.01) # cm to meters
-                estimated_drift = math.vec2.sub(child_pos_vec, child_marker_pos)
-                log("Estimated drift in cam frame: (",estimated_drift.x,",",estimated_drift.y,")")
-                estimated_drift = math.vec2.rotate(estimated_drift, pose.orientation.yaw)
-                log("Estimated drift in base_link: (",estimated_drift.x,",",estimated_drift.y,")")
+            child_tag_pos = math.vec2.new(fiducial_tags[CHILD].x,fiducial_tags[CHILD].y)
+        }
+    }
+    var parent_check = 1
+    var child_check = 1
+    var child_pos_vec = nil
+    var child_pos = neighbors.get(CHILD)
+    
+    if(CHILD != -1){
+        if( not isnil(child_tag_pos)){
+            child_pos_vec = math.vec2.new(child_tag_pos.x,child_tag_pos.y)
+            child_pos_vec = math.vec2.scale(child_pos_vec,100)
+            var tag_distance = math.vec2.length(child_pos_vec) 
+            if(tag_distance > BREACKING_DISTANCE and MMode == MOVEMENT){
+                child_check = 1
+                ask_child_to_wait()
+            }
+            else if(tag_distance < SAFETY_DISTANCE){
+                moving = 0
+                child_check = 0
+                resume_child()
+            }
+            else{
+                moving = 1
+            }
+            if(not isnil(child_pos)){
+                var nei_pos_vec = math.vec2.newp(child_pos.distance, child_pos.azimuth)
+                var diff_vec = math.vec2.sub(nei_pos_vec, child_pos_vec)
+                MA_diff_child.x = MA_FILTER_DECAY_CONSTANT * MA_diff_child.x + (1.0 - MA_FILTER_DECAY_CONSTANT)*diff_vec.x
+                MA_diff_child.y = MA_FILTER_DECAY_CONSTANT * MA_diff_child.y + (1.0 - MA_FILTER_DECAY_CONSTANT)*diff_vec.y
+                log(" MA child  (", MA_diff_child.x, ",", MA_diff_child.y,")")
+            }
+        }
+        else{
+            if(not isnil(child_pos)){
+                child_pos_vec = math.vec2.newp(child_pos.distance, child_pos.azimuth)
+                child_pos_vec = math.vec2.add(child_pos_vec, MA_diff_child)
+                var nei_distance = math.vec2.length(child_pos_vec)
+                if(nei_distance > BREACKING_DISTANCE and MMode == MOVEMENT){
+                    child_check = 1
+                    ask_child_to_wait()
+                }
+                else if(nei_distance < SAFETY_DISTANCE){
+                    child_check = 0
+                    moving = 0
+                    resume_child()
+                }
+                else{
+                    moving = 1
+                }
+            }
+            else{
+                child_check = 0
             }
         }
     }
-    corrected_pose = math.vec2.add(pose.position, estimated_drift)
-    log("Drift corrected pose (", corrected_pose.x,",",corrected_pose.y,")")
+    log("Parent, child checks: ", parent_check, " , ", child_check, " , moving ", moving)
     if(MMode == ELECTION_ELECTING){
         if(SELECTED_PARENT[0].state != -1){
             log("Selected ", SELECTED_PARENT[0].state)
@@ -133,149 +176,98 @@ function step_blind(){
     }
     else if(MMode == FORMATION){
         var path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
-        var m_target = math.vec2.sub(path_tracking_point, corrected_pose)					
+        var m_target = math.vec2.sub(path_tracking_point, pose.position)					
         m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
         var Dist_to_target = math.vec2.length(m_target)
-        if(Dist_to_target > move_tol){
-            m_target =  math.vec2.scale(m_target,100)
-            m_target = LCA(m_target)
-            # goto(m_target.x,m_target.y)
-            # m_target =  math.vec2.scale(m_target,1/100)
-            log("GOTo ",m_target.x,",", m_target.y)
-            goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
-
+        if(not isnil(child_pos_vec)){
+            if(math.vec2.length(child_pos_vec) < BREACKING_DISTANCE){
+                log("ASKING child to resume")
+                resume_child()
+            }
         }
-        else{
-            if(moving == 1 or PARENT == -1){
-                MMode = MOVEMENT
-                if(PARENT == -1){
-                    moving = 1
-                    path_ptr = path_ptr + 1
-                }
-                if( isnil(neighbor_drifts[PARENT]) ){
-                    neighbor_drifts[PARENT]=math.vec2.new(0.0,0.0)
-                }
-                if( isnil(neighbor_drifts[CHILD]) ){
-                    neighbor_drifts[CHILD]=math.vec2.new(0.0,0.0)
-                }
+        log("[FORMATION] Distance to target ", Dist_to_target)
+        if(Dist_to_target > move_tol){
+            if(child_check and moving){
+                m_target =  math.vec2.scale(m_target,100)
+                m_target = LCA(m_target)
+                # goto(m_target.x,m_target.y)
+                # m_target =  math.vec2.scale(m_target,1/100)
+                log("[Formation] GOTo ",m_target.x,",", m_target.y)
+                goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
             }
             else{
-                var request = {.type = WAYPOINT_SET, .receiver=PARENT, .responce = 0, .need = path_ptr, .cus = 0}
-                var packed_request = packenummessage(request)
-                neighbors.broadcast("1",packed_request)
+                goto(0.0,0.0)
             }
+        }
+        else{
+             MMode = MOVEMENT
             goto(0.0,0.0)
         }
     }
     else if(MMode == MOVEMENT){
-        var parent_check = 1
-        var child_check = 1
-        var parent_pos = {}
-        var child_pos = {}
-
-        if(PARENT != -1){
-           parent_pos = neighbors.get(PARENT)
-           if( not isnil(parent_pos)){
-               var nei_pos = get_nei_corrected_pose(PARENT)
-               var nei_pos_len = math.vec2.length(nei_pos)
-               parent_check = (nei_pos_len < BREACKING_DISTANCE)
-               log(" Actual PARENT Dist: ", parent_pos.distance, " Corrected parent distance ", nei_pos_len)
-           }
-           else{
-               parent_check = 0
-           }
-        }
-        if(CHILD != -1){
-            child_pos = neighbors.get(CHILD)
-            if(not isnil(child_pos)){
-               var nei_pos = get_nei_corrected_pose(CHILD)
-               var nei_pos_len = math.vec2.length(nei_pos)
-               child_check = (nei_pos_len > SAFETY_DISTANCE)
-               log(" Actual CHILD Dist: ", child_pos.distance, " Corrected parent distance ", nei_pos_len)
-            }
-            else{
-                child_check = 0
-            }
-        }
-        
-        log("Parent, child checks: ", parent_check, " , ", child_check, " , moving ", moving)
         if(parent_check and child_check){
             #log("Path pointer: ", path_ptr)
             if(moving == 1){
                 var path_tracking_point= {}
-
                 if(id == DOG1){
                     path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
                     log("Forwarding (via movebase) to (", path_tracking_point.x,",",path_tracking_point.y,")")
                     var last_wp = 0
                     if(not (goto_point(path_tracking_point, last_wp))){
                         # WP reached
-                        if(PARENT != -1){
-                            moving = 0
+                        if(path_ptr < size(GLOBAL_TEST_PATH)){
+                            path_ptr = path_ptr + 1
+                            moving = 1
                         }
                         else{
-                            if(path_ptr < size(GLOBAL_TEST_PATH)){
-                                path_ptr = path_ptr + 1
-                                moving = 1
-                            }
-                            else{
-                                log("TARGET REACHED")
-                                goto(0.0,0.0)
-                            }
+                            log("TARGET REACHED")
+                            goto(0.0,0.0)
                         }
-
-
                     } 
                 }
                 else{
-                    if(LOCAL_WAYPOINT[path_ptr] != nil){
-                        path_tracking_point=LOCAL_WAYPOINT[path_ptr]
-                        var m_target = math.vec2.sub(path_tracking_point, corrected_pose)					
-                        m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
-                        var Dist_to_target = math.vec2.length(m_target)
-                        log("Path pointer: ", path_ptr, ", dist", Dist_to_target, " , going to (",m_target.x,",",m_target.y,")")
-                        if(Dist_to_target > move_tol){
-                            # m_target =  math.vec2.scale(m_target,1/100)
-                            # goto(m_target.x,m_target.y)
-                            m_target =  math.vec2.scale(m_target,100)
-                            log("GOTo ",m_target.x,",", m_target.y)
-                            goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
-                        }
-                        else{
-                            if(PARENT != -1){
-                                moving = 0
-                            }
-                            else if(PARENT == -1){
-                                    moving = 1
-                                    path_ptr = path_ptr + 1
-                            }
-                            else{
-                                if(path_ptr < size(LOCAL_WAYPOINT)){
-                                    path_ptr = path_ptr + 1
-                                    moving = 1
-                                }
-                            }
-                        }
+                    if(not isnil(child_pos_vec)){
+                        goto_abs(child_pos_vec.x, child_pos_vec.y, takeoff_heights[id], 0.0)
                     }
-                    else{
-                        log("Sampling the waypoint sample without DOG's msg")
-                        var nei_pos = neighbors.get(CHILD)
-                        if(not isnil(nei_pos)){
-                            var nei_vec = get_nei_corrected_pose(CHILD)
-                            nei_vec = math.vec2.scale(nei_vec,0.01) # Convert to metres
-                            nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
-                            var goal_point = math.vec2.add(corrected_pose,nei_vec)
-                            LOCAL_WAYPOINT[path_ptr] = goal_point
-                        }
-                        table_print(LOCAL_WAYPOINT)
-                    }
+                    # if(LOCAL_WAYPOINT[path_ptr] != nil){
+                    #     path_tracking_point=LOCAL_WAYPOINT[path_ptr]
+                    #     var m_target = math.vec2.sub(path_tracking_point, pose.position)					
+                    #     m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+                    #     var Dist_to_target = math.vec2.length(m_target)
+                    #     log("Path pointer: ", path_ptr, ", dist", Dist_to_target, " , going to (",m_target.x,",",m_target.y,")")
+                    #     if(Dist_to_target > move_tol){
+                    #         log("Forwarding (via goto) to (", path_tracking_point.x,",",path_tracking_point.y,")")
+                            
+                    #         # m_target =  math.vec2.scale(m_target,1/100)
+                    #         # goto(m_target.x,m_target.y)
+                    #         m_target =  math.vec2.scale(m_target,100)
+                    #         log("GOTo ",m_target.x,",", m_target.y)
+                    #         goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
+                    #     }
+                    #     else{
+                    #         if(PARENT != -1){
+                    #             moving = 0
+                    #         }
+                    #         else if(PARENT == -1){
+                    #                 moving = 1
+                    #                 path_ptr = path_ptr + 1
+                    #         }
+                    #         else{
+                    #             if(path_ptr < size(LOCAL_WAYPOINT)){
+                    #                 path_ptr = path_ptr + 1
+                    #                 moving = 1
+                    #             }
+                    #         }
+                    #     }
+                    # }
+                    # else{
+                    #     log("Sampling the waypoint sample without DOG's msg")
+                        
+                    # }
                 }				
             }
             else{
-                log("Sending waypoint and waiting for ack from parent")
-                var request = {.type = WAYPOINT_SET, .receiver=PARENT, .responce = 0, .need = path_ptr, .cus = 0}
-                var packed_request = packenummessage(request)
-                neighbors.broadcast("1",packed_request)
+                goto(0.0,0.0)
             }
         }
         else{
@@ -288,12 +280,20 @@ function step_blind(){
 
     update_timeto_forget()
 
-    broadcast_current_drift()
 
 }
 
-function broadcast_current_drift(){
-    neighbors.broadcast("3",estimated_drift)
+
+function ask_child_to_wait(){
+    var request = {.type = CHILD_WAIT_REQUEST, .receiver=CHILD, .responce = 0, .need = 0, .cus = 0}
+    var packed_request = packenummessage(request)
+    neighbors.broadcast("1",packed_request)
+}
+
+function resume_child(){
+    var request = {.type = CHILD_WAIT_RESUME, .receiver=CHILD, .responce = 0, .need = 0, .cus = 0}
+    var packed_request = packenummessage(request)
+    neighbors.broadcast("1",packed_request)
 }
 
 
@@ -463,35 +463,15 @@ function activate_listerners(){
                 else if(responce_table.type == CHILD_SET){
                     CHILD = rid
                 }
-                else if(responce_table.type == WAYPOINT_SET){
-                    if(id != DOG1){
-                        if(isnil(LOCAL_WAYPOINT[responce_table.need])){
-                            var nei_pos = neighbors.get(rid)
-                            var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
-                            nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
-                            var nei_corrected_pos = math.vec2.add(nei_vec, estimated_drift)
-                            var goal_point = math.vec2.add(corrected_pose,nei_corrected_pos)
-
-                            # var debug_point = math.vec2.sub(goal_point, pose.position)
-                            # debug_point = math.vec2.rotate(nei_vec, -pose.orientation.yaw)
-                            # debug.rays.add(255,0,0,debug_point.x,debug_point.y,0.0)
-
-                            LOCAL_WAYPOINT[responce_table.need] = goal_point
-                            log("[",id,"] goal set for point ", responce_table.need, " point in table ", LOCAL_WAYPOINT[responce_table.need])
-
-                        }
-                    }
-                    log("Listener activated with path pointer: ", path_ptr)
-                    var request = {.type = WAYPOINT_ACK, .receiver=rid, .responce = 0, .need = path_ptr, .cus = 0}
-                    var packed_request = packenummessage(request)
-                    neighbors.broadcast("1",packed_request)
+                else if(responce_table.type == CHILD_WAIT_REQUEST){
+                        log(" Got a STOP request")
+                        moving = 0
+                    
                 }
-                else if(responce_table.type == WAYPOINT_ACK){
-                    log("Receieved waypoint ACK from ", rid)
-                    if(moving == 0){
+                else if(responce_table.type == CHILD_WAIT_RESUME){
+                        log(" Got a RESUME request")
                         moving = 1
-                        path_ptr = path_ptr + 1
-                    }
+
                 }
             }
         }
@@ -517,26 +497,11 @@ function activate_listerners(){
         }
     )
 
-    neighbors.listen("3",
-        function(vid, value, rid) {
-            neighbor_drifts[rid] = math.vec2.new(value.x,value.y)
-            neighbor_drifts[rid] = math.vec2.scale(neighbor_drifts[rid], 100) 
-            # to cms since all nei pos is in cms
-        }
-    )
+
 
 }
 
-function get_nei_corrected_pose(id){
-    var nei_pos = neighbors.get(CHILD)
-    var nei_pos_vec_base_link = math.vec2.newp(0.0,0.0)
-    if(not isnil(nei_pos)){
-        var base_link_nei_drift = math.vec2.rotate(neighbor_drifts[id], -pose.orientation.yaw)
-        nei_pos_vec_base_link = math.vec2.newp(nei_pos.distance, nei_pos.azimuth)
-        nei_pos_vec_base_link = math.vec2.add(nei_pos_vec_base_link, base_link_nei_drift)
-    }
-    return nei_pos_vec_base_link
-}
+
 
 function find_robot_is_in_set(rid, r_set){
     var sret_value = {.a = -1}
