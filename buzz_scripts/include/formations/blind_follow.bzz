@@ -235,6 +235,8 @@ function step_blind(){
                         var Dist_to_target = math.vec2.length(m_target)
                         log("Path pointer: ", path_ptr, ", dist", Dist_to_target, " , going to (",m_target.x,",",m_target.y,")")
                         if(Dist_to_target > move_tol){
+                            log("Forwarding (via goto) to (", path_tracking_point.x,",",path_tracking_point.y,")")
+                            
                             # m_target =  math.vec2.scale(m_target,1/100)
                             # goto(m_target.x,m_target.y)
                             m_target =  math.vec2.scale(m_target,100)
@@ -288,12 +290,12 @@ function step_blind(){
 
     update_timeto_forget()
 
-    broadcast_current_drift()
+    broadcast_current_drift(corrected_pose)
 
 }
 
-function broadcast_current_drift(){
-    neighbors.broadcast("3",estimated_drift)
+function broadcast_current_drift(pos_in){
+    neighbors.broadcast("3",pos_in)
 }
 
 
@@ -520,20 +522,21 @@ function activate_listerners(){
     neighbors.listen("3",
         function(vid, value, rid) {
             neighbor_drifts[rid] = math.vec2.new(value.x,value.y)
-            neighbor_drifts[rid] = math.vec2.scale(neighbor_drifts[rid], 100) 
             # to cms since all nei pos is in cms
         }
     )
 
 }
 
-function get_nei_corrected_pose(id){
-    var nei_pos = neighbors.get(CHILD)
+function get_nei_corrected_pose(nei_id){
     var nei_pos_vec_base_link = math.vec2.newp(0.0,0.0)
-    if(not isnil(nei_pos)){
-        var base_link_nei_drift = math.vec2.rotate(neighbor_drifts[id], -pose.orientation.yaw)
-        nei_pos_vec_base_link = math.vec2.newp(nei_pos.distance, nei_pos.azimuth)
-        nei_pos_vec_base_link = math.vec2.add(nei_pos_vec_base_link, base_link_nei_drift)
+    if(not isnil(neighbor_drifts[nei_id])){
+        nei_pos_vec_base_link = math.vec2.sub(neighbor_drifts[nei_id], corrected_pose)					
+        nei_pos_vec_base_link =  math.vec2.rotate(nei_pos_vec_base_link,-pose.orientation.yaw)
+        nei_pos_vec_base_link = math.vec2.scale(nei_pos_vec_base_link, 100)
+        # var base_link_nei_drift = math.vec2.rotate(neighbor_drifts[nei_id], -pose.orientation.yaw)
+        # nei_pos_vec_base_link = math.vec2.newp(nei_pos.distance, nei_pos.azimuth)
+        # nei_pos_vec_base_link = math.vec2.add(nei_pos_vec_base_link, base_link_nei_drift)
     }
     return nei_pos_vec_base_link
 }
