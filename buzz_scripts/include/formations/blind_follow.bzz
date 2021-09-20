@@ -529,10 +529,10 @@ function activate_listerners(){
 
 function get_nei_corrected_pose(id){
     var nei_pos = neighbors.get(CHILD)
-    var nei_pos_vec_base_link = math.vec2.newp{0.0,0.0}
+    var nei_pos_vec_base_link = math.vec2.newp(0.0,0.0)
     if(not isnil(nei_pos)){
         var base_link_nei_drift = math.vec2.rotate(neighbor_drifts[id], -pose.orientation.yaw)
-        var nei_pos_vec_base_link = math.vec2.newp(nei_pos.distance, nei_pos.azimuth)
+        nei_pos_vec_base_link = math.vec2.newp(nei_pos.distance, nei_pos.azimuth)
         nei_pos_vec_base_link = math.vec2.add(nei_pos_vec_base_link, base_link_nei_drift)
     }
     return nei_pos_vec_base_link
