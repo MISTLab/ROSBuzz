@@ -176,12 +176,10 @@ function step_blind(){
         if(PARENT != -1){
            parent_pos = neighbors.get(PARENT)
            if( not isnil(parent_pos)){
-               var base_link_nei_drift = math.vec2.rotate(neighbor_drifts[PARENT], -pose.orientation.yaw)
-               var nei_pos_vec_base_link = math.vec2.newp(parent_pos.distance, parent_pos.azimuth)
-               nei_pos_vec_base_link = math.vec2.add(nei_pos_vec_base_link, base_link_nei_drift)
-               var corrected_nei_distance = math.vec2.length(nei_pos_vec_base_link)
-               parent_check = (corrected_nei_distance < BREACKING_DISTANCE)
-               log(" Actual PARENT Dist: ", parent_pos.distance, " Corrected parent distance ", corrected_nei_distance)
+               var nei_pos = get_nei_corrected_pose(PARENT)
+               var nei_pos_len = math.vec2.length(nei_pos)
+               parent_check = (nei_pos_len < BREACKING_DISTANCE)
+               log(" Actual PARENT Dist: ", parent_pos.distance, " Corrected parent distance ", nei_pos_len)
            }
            else{
                parent_check = 0
@@ -190,12 +188,10 @@ function step_blind(){
         if(CHILD != -1){
             child_pos = neighbors.get(CHILD)
             if(not isnil(child_pos)){
-               var base_link_nei_drift = math.vec2.rotate(neighbor_drifts[CHILD], -pose.orientation.yaw)
-               var nei_pos_vec_base_link = math.vec2.newp(child_pos.distance, child_pos.azimuth)
-               nei_pos_vec_base_link = math.vec2.add(nei_pos_vec_base_link, base_link_nei_drift)
-               var corrected_nei_distance = math.vec2.length(nei_pos_vec_base_link)
-               child_check = (corrected_nei_distance > SAFETY_DISTANCE)
-               log(" Actual CHILD Dist: ", child_pos.distance, " Corrected parent distance ", corrected_nei_distance)
+               var nei_pos = get_nei_corrected_pose(CHILD)
+               var nei_pos_len = math.vec2.length(nei_pos)
+               child_check = (nei_pos_len > SAFETY_DISTANCE)
+               log(" Actual CHILD Dist: ", child_pos.distance, " Corrected parent distance ", nei_pos_len)
             }
             else{
                 child_check = 0
@@ -227,6 +223,8 @@ function step_blind(){
                                 goto(0.0,0.0)
                             }
                         }
+
+
                     } 
                 }
                 else{
@@ -247,6 +245,10 @@ function step_blind(){
                             if(PARENT != -1){
                                 moving = 0
                             }
+                            else if(PARENT == -1){
+                                    moving = 1
+                                    path_ptr = path_ptr + 1
+                            }
                             else{
                                 if(path_ptr < size(LOCAL_WAYPOINT)){
                                     path_ptr = path_ptr + 1
@@ -259,10 +261,10 @@ function step_blind(){
                         log("Sampling the waypoint sample without DOG's msg")
                         var nei_pos = neighbors.get(CHILD)
                         if(not isnil(nei_pos)){
-                            var nei_vec = math.vec2.newp(nei_pos.distance/100, nei_pos.azimuth) # Convert to metres
+                            var nei_vec = get_nei_corrected_pose(CHILD)
+                            nei_vec = math.vec2.scale(nei_vec,0.01) # Convert to metres
                             nei_vec = math.vec2.rotate(nei_vec, pose.orientation.yaw)
-                            var nei_corrected_pos = math.vec2.add(nei_vec, estimated_drift)
-                            var goal_point = math.vec2.add(corrected_pose,nei_corrected_pos)
+                            var goal_point = math.vec2.add(corrected_pose,nei_vec)
                             LOCAL_WAYPOINT[path_ptr] = goal_point
                         }
                         table_print(LOCAL_WAYPOINT)
@@ -518,14 +520,22 @@ function activate_listerners(){
     neighbors.listen("3",
         function(vid, value, rid) {
             neighbor_drifts[rid] = math.vec2.new(value.x,value.y)
+            neighbor_drifts[rid] = math.vec2.scale(neighbor_drifts[rid], 100) 
+            # to cms since all nei pos is in cms
         }
     )
 
 }
 
 function get_nei_corrected_pose(id){
-
-
+    var nei_pos = neighbors.get(CHILD)
+    var nei_pos_vec_base_link = math.vec2.newp{0.0,0.0}
+    if(not isnil(nei_pos)){
+        var base_link_nei_drift = math.vec2.rotate(neighbor_drifts[id], -pose.orientation.yaw)
+        var nei_pos_vec_base_link = math.vec2.newp(nei_pos.distance, nei_pos.azimuth)
+        nei_pos_vec_base_link = math.vec2.add(nei_pos_vec_base_link, base_link_nei_drift)
+    }
+    return nei_pos_vec_base_link
 }
 
 function find_robot_is_in_set(rid, r_set){
