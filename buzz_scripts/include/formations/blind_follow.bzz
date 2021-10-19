@@ -28,9 +28,10 @@ DOG1 = 1 # RG1
 DOG2 = 9 # R9
 TIME_TO_FORGET_DECLINES = 100
 TIME_TO_SCAN = 20
-NUM_OF_ROBOTS = 10
+NUM_OF_ROBOTS = 5
 SAFETY_DISTANCE = 70
 BREACKING_DISTANCE = 120
+BREAK_AWAY_DISTANCE = 220
 move_tol = 0.1
 MA_FILTER_DECAY_CONSTANT = 0.2
 
@@ -77,10 +78,10 @@ function init_blind(){
 function step_blind(){
     log("Mode: ", MMode, " Parent: ", PARENT, " Child: ", CHILD, "size of tags ", size(fiducial_tags))
     # check for fiducial tag pos of the parent and compute the odom drift.
-     foreach(fiducial_tags, function(k,v){
-          log("Tag received id", k," POS(",v.x,",",v.y,")")
-      }  
-      )
+    #  foreach(fiducial_tags, function(k,v){
+    #       log("Tag received id", k," POS(",v.x,",",v.y,")")
+    #   }  
+    #   )
     if(size(fiducial_tags) > 0){
         if(fiducial_tags[CHILD] != nil){
             log("CHILD Marker found at (",fiducial_tags[CHILD].x,",",fiducial_tags[CHILD].y,")")
@@ -97,49 +98,56 @@ function step_blind(){
             child_pos_vec = math.vec2.new(child_tag_pos.x,child_tag_pos.y)
             child_pos_vec = math.vec2.scale(child_pos_vec,100)
             var tag_distance = math.vec2.length(child_pos_vec) 
-            if(tag_distance > BREACKING_DISTANCE and MMode == MOVEMENT){
+            if(tag_distance > BREACKING_DISTANCE){
                 child_check = 1
                 ask_child_to_wait()
             }
             else if(tag_distance < SAFETY_DISTANCE){
-                moving = 0
                 child_check = 0
                 resume_child()
-            }
-            else{
-                moving = 1
             }
             if(not isnil(child_pos)){
                 var nei_pos_vec = math.vec2.newp(child_pos.distance, child_pos.azimuth)
                 var diff_vec = math.vec2.sub(nei_pos_vec, child_pos_vec)
                 MA_diff_child.x = MA_FILTER_DECAY_CONSTANT * MA_diff_child.x + (1.0 - MA_FILTER_DECAY_CONSTANT)*diff_vec.x
                 MA_diff_child.y = MA_FILTER_DECAY_CONSTANT * MA_diff_child.y + (1.0 - MA_FILTER_DECAY_CONSTANT)*diff_vec.y
-                log(" MA child  (", MA_diff_child.x, ",", MA_diff_child.y,")")
+                # for debug print
+                var child_tag_corrected_pos = math.vec2.add(child_pos_vec, MA_diff_child)
+                log("Tag diff estimated nei dist: ",math.vec2.length(child_tag_corrected_pos), " actual dist", child_pos.distance)
             }
         }
         else{
+            log("Tag not found. ")
             if(not isnil(child_pos)){
+                log("child nei not found")
                 child_pos_vec = math.vec2.newp(child_pos.distance, child_pos.azimuth)
                 child_pos_vec = math.vec2.add(child_pos_vec, MA_diff_child)
                 var nei_distance = math.vec2.length(child_pos_vec)
-                if(nei_distance > BREACKING_DISTANCE and MMode == MOVEMENT){
+                if(nei_distance > BREACKING_DISTANCE){
                     child_check = 1
                     ask_child_to_wait()
                 }
                 else if(nei_distance < SAFETY_DISTANCE){
                     child_check = 0
-                    moving = 0
                     resume_child()
-                }
-                else{
-                    moving = 1
                 }
             }
             else{
                 child_check = 0
+                ask_child_to_wait()
             }
         }
     }
+
+    # if(PARENT != -1 ){
+    #     var parent_pos = neighbors.get(PARENT)
+    #     if(not isnil(parent_pos)){
+    #         if(parent_pos.distance > BREAK_AWAY_DISTANCE){
+    #             log("Parent distance is greater than 2 meter cur dis: ", parent_pos.distance)
+    #             parent_check = 0
+    #         } 
+    #     }
+    # }
     log("Parent, child checks: ", parent_check, " , ", child_check, " , moving ", moving)
     if(MMode == ELECTION_ELECTING){
         if(SELECTED_PARENT[0].state != -1){
@@ -187,7 +195,7 @@ function step_blind(){
         }
         log("[FORMATION] Distance to target ", Dist_to_target)
         if(Dist_to_target > move_tol){
-            if(child_check and moving){
+            if(child_check){ # and moving){
                 m_target =  math.vec2.scale(m_target,100)
                 m_target = LCA(m_target)
                 # goto(m_target.x,m_target.y)
@@ -217,7 +225,7 @@ function step_blind(){
                         # WP reached
                         if(path_ptr < size(GLOBAL_TEST_PATH)){
                             path_ptr = path_ptr + 1
-                            moving = 1
+                            # moving = 1
                         }
                         else{
                             log("TARGET REACHED")
