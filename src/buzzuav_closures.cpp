@@ -32,8 +32,11 @@ static double rc_gpsgoal[3];
 static float rc_gimbal[4];
 
 static float batt[3];
-static float obst[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-static const int number_of_proximity=8;
+
+static float prox_init_val = 1000;
+static float obst[8] = { prox_init_val, prox_init_val, prox_init_val, prox_init_val,
+                         prox_init_val, prox_init_val, prox_init_val, prox_init_val };
+static const int number_of_proximity=4;
 static uint8_t status;
 
 static int cur_cmd = 0;
@@ -1872,7 +1875,7 @@ int buzzuav_update_kh4prox(buzzvm_t vm){
     buzzvm_push(vm, tProxRead);
     buzzvm_pushs(vm, buzzvm_string_register(vm, "value", 0));
     buzzvm_pushf(vm, obst[i]);
-    obst[i]=0.0;
+    obst[i]=prox_init_val;
     buzzvm_tput(vm);
     buzzvm_push(vm, tProxRead);
     buzzvm_pushs(vm, buzzvm_string_register(vm, "angle", 0));

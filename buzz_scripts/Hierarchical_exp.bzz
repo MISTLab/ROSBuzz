@@ -130,6 +130,9 @@ function step() {
 	else if(BVMSTATE == "NAV_TEST"){
 		statef=nav_table_test
 	}
+	else if(BVMSTATE == "OBSTACLE_TEST"){
+		statef=obs_test
+	}
 	# else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
 	#     statef=circling_experiment		
 	# }
@@ -548,4 +551,72 @@ function reverse_table(table_c){
 		f_idx = f_idx + 1 
 	}
 	return ret_table
+}
+
+function obs_test(){
+		var m_vec_to_go = math.vec2.newp(10,0)
+		m_vec_to_go = avoid_obs_using_potential(m_vec_to_go)
+		goto_abs(m_vec_to_go.x, m_vec_to_go.y, takeoff_heights[id], 0.0)
+}
+
+function avoid_obs_using_potential(m_goto_target){
+  var Accum = {.cnt=0,.x=0.0,.y=0.0}
+  var reaction_threshold = 30
+  var desired_safety_distance = 40
+  if(proximity[0].value < reaction_threshold){
+	var potential = harmonMagnitude(proximity[0].value, desired_safety_distance, HARMON_A0, HARMON_K)
+	if(potential < 0 ){ # Cutoff the negative side of the potential 
+		var pot_vec = math.vec2.newp(potential, math.pi/2)
+		Accum.x = Accum.x + pot_vec.x
+	        Accum.y = Accum.y + pot_vec.y
+        	Accum.cnt= Accum.cnt +1
+	}
+
+  }
+
+  if(proximity[1].value < reaction_threshold){
+        var potential = harmonMagnitude(proximity[1].value, desired_safety_distance, HARMON_A0, HARMON_K)
+        if(potential < 0 ){ # Cutoff the negative side of the potential 
+                var pot_vec = math.vec2.newp(potential, math.pi/4)
+                Accum.x = Accum.x + pot_vec.x
+                Accum.y = Accum.y + pot_vec.y
+                Accum.cnt= Accum.cnt +1
+        }
+
+  }
+
+  if(proximity[2].value < reaction_threshold){
+        var potential = harmonMagnitude(proximity[2].value, desired_safety_distance, HARMON_A0, HARMON_K)
+        if(potential < 0 ){ # Cutoff the negative side of the potential 
+                var pot_vec = math.vec2.newp(potential, -math.pi/2)
+                Accum.x = Accum.x + pot_vec.x
+                Accum.y = Accum.y + pot_vec.y
+                Accum.cnt= Accum.cnt +1
+        }
+
+  }
+
+  if(proximity[3].value < reaction_threshold){
+        var potential = harmonMagnitude(proximity[3].value, desired_safety_distance, HARMON_A0, HARMON_K)
+        if(potential < 0 ){ # Cutoff the negative side of the potential
+                var pot_vec = math.vec2.newp(potential, -math.pi/4)
+                Accum.x = Accum.x + pot_vec.x
+                Accum.y = Accum.y + pot_vec.y
+                Accum.cnt= Accum.cnt +1
+        }
+
+  }
+
+
+  if(Accum.cnt > 0){
+    Accum.x = Accum.x/Accum.cnt
+    Accum.y = Accum.y/Accum.cnt
+  }
+  var normalized_target_vec = math.vec2.new(m_goto_target.x,m_goto_target.y)
+  normalized_target_vec = math.vec2.scale(normalized_target_vec, 1/math.vec2.length(normalized_target_vec))
+  
+  var target_weight = 3.5
+  var return_vec = math.vec2.new((target_weight*normalized_target_vec.x)+ (Accum.x),(target_weight*normalized_target_vec.y)+(Accum.y))
+  # return_vec = math.vec2.scale(return_vec,10)
+  return return_vec
 }

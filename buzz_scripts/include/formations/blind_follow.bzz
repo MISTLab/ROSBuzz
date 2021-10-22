@@ -28,12 +28,13 @@ DOG1 = 1 # RG1
 DOG2 = 9 # R9
 TIME_TO_FORGET_DECLINES = 100
 TIME_TO_SCAN = 20
-NUM_OF_ROBOTS = 5
-SAFETY_DISTANCE = 70
-BREACKING_DISTANCE = 120
-BREAK_AWAY_DISTANCE = 220
+NUM_OF_ROBOTS = 6
+SAFETY_DISTANCE = 50
+BREACKING_DISTANCE = 90
 move_tol = 0.1
 MA_FILTER_DECAY_CONSTANT = 0.2
+PATH_DISCRITIZATION = 0.05
+TIME_TO_DECLARE_CHILD_TAG_POSE_OLD = 40
 
 
 # Global variables 
@@ -47,6 +48,12 @@ path_ptr = 1
 moving = 1
 child_tag_pos = nil
 MA_diff_child = {.x=0.0, .y=0.0}
+Cur_child_target ={.x=0.0,.y=0.0}
+pose_at_child_target_sample = {.x=0.0,.y=0.0}
+Cur_path_dis = 0.1
+child_pose_time = 0
+Recovery = 0
+
 
 # Internal states
 MMode=PREELECTION
@@ -82,60 +89,73 @@ function step_blind(){
     #       log("Tag received id", k," POS(",v.x,",",v.y,")")
     #   }  
     #   )
+    child_pose_time = child_pose_time + 1
+    if( child_pose_time > TIME_TO_DECLARE_CHILD_TAG_POSE_OLD and MMode == MOVEMENT){
+        child_tag_pos = nil
+    }
+
     if(size(fiducial_tags) > 0){
         if(fiducial_tags[CHILD] != nil){
             log("CHILD Marker found at (",fiducial_tags[CHILD].x,",",fiducial_tags[CHILD].y,")")
             child_tag_pos = math.vec2.new(fiducial_tags[CHILD].x,fiducial_tags[CHILD].y)
+            child_pose_time = 0 
         }
     }
     var parent_check = 1
     var child_check = 1
     var child_pos_vec = nil
     var child_pos = neighbors.get(CHILD)
-    
+    var Tag_pose = 0 
+
     if(CHILD != -1){
         if( not isnil(child_tag_pos)){
+            Recovery = 0
             child_pos_vec = math.vec2.new(child_tag_pos.x,child_tag_pos.y)
             child_pos_vec = math.vec2.scale(child_pos_vec,100)
             var tag_distance = math.vec2.length(child_pos_vec) 
+            Tag_pose = 1
             if(tag_distance > BREACKING_DISTANCE){
                 child_check = 1
                 ask_child_to_wait()
             }
             else if(tag_distance < SAFETY_DISTANCE){
                 child_check = 0
+                log("Child marker pose below safe")
                 resume_child()
             }
-            if(not isnil(child_pos)){
+            if( (not isnil(child_pos)) and  child_pose_time == 0){
                 var nei_pos_vec = math.vec2.newp(child_pos.distance, child_pos.azimuth)
                 var diff_vec = math.vec2.sub(nei_pos_vec, child_pos_vec)
                 MA_diff_child.x = MA_FILTER_DECAY_CONSTANT * MA_diff_child.x + (1.0 - MA_FILTER_DECAY_CONSTANT)*diff_vec.x
                 MA_diff_child.y = MA_FILTER_DECAY_CONSTANT * MA_diff_child.y + (1.0 - MA_FILTER_DECAY_CONSTANT)*diff_vec.y
                 # for debug print
-                var child_tag_corrected_pos = math.vec2.add(child_pos_vec, MA_diff_child)
-                log("Tag diff estimated nei dist: ",math.vec2.length(child_tag_corrected_pos), " actual dist", child_pos.distance)
+                # var child_tag_corrected_pos = math.vec2.add(child_pos_vec, MA_diff_child)
             }
         }
         else{
-            log("Tag not found. ")
-            if(not isnil(child_pos)){
-                log("child nei not found")
-                child_pos_vec = math.vec2.newp(child_pos.distance, child_pos.azimuth)
-                child_pos_vec = math.vec2.add(child_pos_vec, MA_diff_child)
-                var nei_distance = math.vec2.length(child_pos_vec)
-                if(nei_distance > BREACKING_DISTANCE){
-                    child_check = 1
-                    ask_child_to_wait()
-                }
-                else if(nei_distance < SAFETY_DISTANCE){
-                    child_check = 0
-                    resume_child()
-                }
-            }
-            else{
-                child_check = 0
-                ask_child_to_wait()
-            }
+            log("Tag not found for  ", TIME_TO_DECLARE_CHILD_TAG_POSE_OLD, " steps")
+            ask_child_to_wait()
+            # if(not isnil(child_pos)){
+            #     log("child nei not found")
+            #     child_pos_vec = math.vec2.newp(child_pos.distance, child_pos.azimuth)
+            #     # child_pos_vec = math.vec2.add(child_pos_vec, MA_diff_child)
+            #     log("Tag diff estimated nei dist: ",math.vec2.length(child_pos_vec), " actual dist", child_pos.distance)
+            #     var nei_distance = math.vec2.length(child_pos_vec)
+            #     if(nei_distance > BREACKING_DISTANCE){
+            #         child_check = 1
+            #         # ask_child_to_wait()
+            #     }
+            #     # else if(nei_distance < SAFETY_DISTANCE){
+            #     #     log("Child pose below safe")
+            #     #     child_check = 0
+            #     #     # resume_child()
+            #     # }
+            # }
+            # else{
+            #     log("CHILD not found in the neigh list !!!")
+            #     # child_check = 0
+            #     # ask_child_to_wait()
+            # }
         }
     }
 
@@ -208,14 +228,25 @@ function step_blind(){
             }
         }
         else{
-             MMode = MOVEMENT
+            child_pose_time = 0
+            if( (not isnil(child_pos_vec))){
+                MMode = MOVEMENT
+                Cur_child_target = math.vec2.scale(child_pos_vec, 0.01)
+                Cur_path_dis = math.vec2.length(Cur_child_target)
+                Cur_child_target = math.vec2.rotate(child_pos_vec,pose.orientation.yaw)
+                Cur_child_target = math.vec2.add(pose.position, Cur_child_target)
+                pose_at_child_target_sample = math.vec2.new(pose.position.x, pose.position.y)
+            }
+            else if(CHILD == -1){
+                MMode = MOVEMENT
+            }
             goto(0.0,0.0)
         }
     }
     else if(MMode == MOVEMENT){
         if(parent_check and child_check){
             #log("Path pointer: ", path_ptr)
-            if(moving == 1){
+            if(moving == 1 or Recovery == 1){
                 var path_tracking_point= {}
                 if(id == DOG1){
                     path_tracking_point=GLOBAL_TEST_PATH[path_ptr]
@@ -234,8 +265,28 @@ function step_blind(){
                     } 
                 }
                 else{
-                    if(not isnil(child_pos_vec)){
-                        goto_abs(child_pos_vec.x, child_pos_vec.y, takeoff_heights[id], 0.0)
+                    if(Tag_pose == 1){
+                        # goto_abs(child_pos_vec.x, child_pos_vec.y, takeoff_heights[id], 0.0)
+                        var pose_diff_vec = math.vec2.sub(pose.position, pose_at_child_target_sample)
+                        if(math.vec2.length(pose_diff_vec) >= PATH_DISCRITIZATION){
+                            pose_at_child_target_sample = math.vec2.new(pose.position.x, pose.position.y)
+                            Cur_child_target = math.vec2.scale(child_pos_vec, 0.01)
+                            Cur_path_dis = math.vec2.length(Cur_child_target)
+                            Cur_child_target = math.vec2.rotate(child_pos_vec,pose.orientation.yaw)
+                            Cur_child_target = math.vec2.add(pose.position, Cur_child_target)
+                        }
+
+                        var m_target = math.vec2.sub(Cur_child_target, pose.position)					
+                        m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+                        # var Dist_to_target = math.vec2.length(m_target)
+                        m_target =  math.vec2.scale(m_target,100)
+                        goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
+
+                    }
+                    else{
+                        Recovery = 1
+                        var rotate_vec = math.vec2.newp(10,3.14)
+                        goto_abs(rotate_vec.x, rotate_vec.y, takeoff_heights[id], 0.0)
                     }
                     # if(LOCAL_WAYPOINT[path_ptr] != nil){
                     #     path_tracking_point=LOCAL_WAYPOINT[path_ptr]
@@ -506,7 +557,6 @@ function activate_listerners(){
 
 
 }
-
 
 
 function find_robot_is_in_set(rid, r_set){
