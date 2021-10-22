@@ -109,11 +109,20 @@ function step_blind(){
 
     if(CHILD != -1){
         if( not isnil(child_tag_pos)){
-            Recovery = 0
+            
             child_pos_vec = math.vec2.new(child_tag_pos.x,child_tag_pos.y)
             child_pos_vec = math.vec2.scale(child_pos_vec,100)
             var tag_distance = math.vec2.length(child_pos_vec) 
-            Tag_pose = 1
+            if(Recovery == 1){
+                if(math.abs(math.vec2.angle(child_pos_vec)) <= math.pi/6){
+                    Recovery = 0
+                    Tag_pose = 1
+                }
+            }
+            else{
+                Tag_pose = 1
+            }
+            
             if(tag_distance > BREACKING_DISTANCE){
                 child_check = 1
                 ask_child_to_wait()
