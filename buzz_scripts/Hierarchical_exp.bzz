@@ -561,8 +561,8 @@ function obs_test(){
 
 function avoid_obs_using_potential(m_goto_target){
   var Accum = {.cnt=0,.x=0.0,.y=0.0}
-  var reaction_threshold = 45
-  var desired_safety_distance = 60
+  var reaction_threshold = 42
+  var desired_safety_distance = 50
   if(proximity[0].value < reaction_threshold){
 	var potential = harmonMagnitude(proximity[0].value, desired_safety_distance, HARMON_A0, HARMON_K)
 	if(potential < 0 ){ # Cutoff the negative side of the potential 
