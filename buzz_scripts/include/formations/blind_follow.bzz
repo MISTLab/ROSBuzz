@@ -266,7 +266,9 @@ function step_blind(){
                 }
                 else{
                     if(Tag_pose == 1){
-                        goto_abs(child_pos_vec.x, child_pos_vec.y, takeoff_heights[id], 0.0)
+                        var m_goto_target = math.vec2.new(child_pos_vec.x, child_pos_vec.y)
+                        m_goto_target =  avoid_obs_using_potential(m_goto_target)
+                        goto_abs(m_goto_target.x, m_goto_target.y, takeoff_heights[id], 0.0)
                         # var pose_diff_vec = math.vec2.sub(pose.position, pose_at_child_target_sample)
                         # if(math.vec2.length(pose_diff_vec) >= PATH_DISCRITIZATION){
                         #     pose_at_child_target_sample = math.vec2.new(pose.position.x, pose.position.y)
