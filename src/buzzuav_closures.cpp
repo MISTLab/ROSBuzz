@@ -32,7 +32,6 @@ static double rc_gpsgoal[3];
 static float rc_gimbal[4];
 
 static float batt[3];
-
 static float prox_init_val = 1000;
 static float obst[8] = { prox_init_val, prox_init_val, prox_init_val, prox_init_val,
                          prox_init_val, prox_init_val, prox_init_val, prox_init_val };

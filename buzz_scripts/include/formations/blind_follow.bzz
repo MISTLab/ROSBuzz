@@ -28,9 +28,9 @@ DOG1 = 1 # RG1
 DOG2 = 9 # R9
 TIME_TO_FORGET_DECLINES = 100
 TIME_TO_SCAN = 20
-NUM_OF_ROBOTS = 6
-SAFETY_DISTANCE = 50
-BREACKING_DISTANCE = 90
+NUM_OF_ROBOTS = 5
+SAFETY_DISTANCE = 70
+BREACKING_DISTANCE = 100
 move_tol = 0.1
 MA_FILTER_DECAY_CONSTANT = 0.2
 PATH_DISCRITIZATION = 0.05
@@ -266,26 +266,26 @@ function step_blind(){
                 }
                 else{
                     if(Tag_pose == 1){
-                        # goto_abs(child_pos_vec.x, child_pos_vec.y, takeoff_heights[id], 0.0)
-                        var pose_diff_vec = math.vec2.sub(pose.position, pose_at_child_target_sample)
-                        if(math.vec2.length(pose_diff_vec) >= PATH_DISCRITIZATION){
-                            pose_at_child_target_sample = math.vec2.new(pose.position.x, pose.position.y)
-                            Cur_child_target = math.vec2.scale(child_pos_vec, 0.01)
-                            Cur_path_dis = math.vec2.length(Cur_child_target)
-                            Cur_child_target = math.vec2.rotate(child_pos_vec,pose.orientation.yaw)
-                            Cur_child_target = math.vec2.add(pose.position, Cur_child_target)
-                        }
+                        goto_abs(child_pos_vec.x, child_pos_vec.y, takeoff_heights[id], 0.0)
+                        # var pose_diff_vec = math.vec2.sub(pose.position, pose_at_child_target_sample)
+                        # if(math.vec2.length(pose_diff_vec) >= PATH_DISCRITIZATION){
+                        #     pose_at_child_target_sample = math.vec2.new(pose.position.x, pose.position.y)
+                        #     Cur_child_target = math.vec2.scale(child_pos_vec, 0.01)
+                        #     Cur_path_dis = math.vec2.length(Cur_child_target)
+                        #     Cur_child_target = math.vec2.rotate(child_pos_vec,pose.orientation.yaw)
+                        #     Cur_child_target = math.vec2.add(pose.position, Cur_child_target)
+                        # }
 
-                        var m_target = math.vec2.sub(Cur_child_target, pose.position)					
-                        m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
-                        # var Dist_to_target = math.vec2.length(m_target)
-                        m_target =  math.vec2.scale(m_target,100)
-                        goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
+                        # var m_target = math.vec2.sub(Cur_child_target, pose.position)					
+                        # m_target =  math.vec2.rotate(m_target,-pose.orientation.yaw)
+                        # # var Dist_to_target = math.vec2.length(m_target)
+                        # m_target =  math.vec2.scale(m_target,100)
+                        # goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
 
                     }
                     else{
                         Recovery = 1
-                        var rotate_vec = math.vec2.newp(10,3.14)
+                        var rotate_vec = math.vec2.newp(0.1,3.14)
                         goto_abs(rotate_vec.x, rotate_vec.y, takeoff_heights[id], 0.0)
                     }
                     # if(LOCAL_WAYPOINT[path_ptr] != nil){
