@@ -25,7 +25,7 @@ CHILD_WAIT_RESUME = 6
 
 
 DOG1 = 1 # RG1
-DOG2 = 9 # R9
+DOG2 = 5 # R5,  R9
 TIME_TO_FORGET_DECLINES = 100
 TIME_TO_SCAN = 20
 NUM_OF_ROBOTS = 5
@@ -49,10 +49,11 @@ moving = 1
 child_tag_pos = nil
 MA_diff_child = {.x=0.0, .y=0.0}
 Cur_child_target ={.x=0.0,.y=0.0}
-pose_at_child_target_sample = {.x=0.0,.y=0.0}
 Cur_path_dis = 0.1
 child_pose_time = 0
 Recovery = 0
+distance_to_travel = 1
+pose_at_child_target_sample = {.x=0.0,.y=0.0}
 
 
 # Internal states
@@ -64,6 +65,9 @@ LOCAL_WAYPOINT={}
 
 function init_blind(){
     elect_stig = stigmergy.create(101)
+    if(id == 5 ){
+        ROLE = DOG
+    }
     if(ROLE == DOG){
         election_state = COMITTED
         if(id == DOG2){
@@ -209,6 +213,10 @@ function step_blind(){
         }
         else if(Parent_state == MOVEMENT){
             MMode = FORMATION
+            pose_at_child_target_sample = math.vec2.new(pose.position.x,pose.position.y)
+            if(not isnil(child_pos) ){
+                distance_to_travel = child_pos.distance/100
+            }
         }
     }
     else if(MMode == FORMATION){
@@ -238,23 +246,45 @@ function step_blind(){
                 }
             }
             else{
-                child_pose_time = 0
-                if( (not isnil(child_pos_vec))){
+                # child_pose_time = 0
+                # if( (not isnil(child_pos_vec))){
+                #     MMode = MOVEMENT
+                #     Cur_child_target = math.vec2.scale(child_pos_vec, 0.01)
+                #     Cur_path_dis = math.vec2.length(Cur_child_target)
+                #     Cur_child_target = math.vec2.rotate(child_pos_vec,pose.orientation.yaw)
+                #     Cur_child_target = math.vec2.add(pose.position, Cur_child_target)
+                #     pose_at_child_target_sample = math.vec2.new(pose.position.x, pose.position.y)
+                # }
+                # else if(CHILD == -1){
                     MMode = MOVEMENT
-                    Cur_child_target = math.vec2.scale(child_pos_vec, 0.01)
-                    Cur_path_dis = math.vec2.length(Cur_child_target)
-                    Cur_child_target = math.vec2.rotate(child_pos_vec,pose.orientation.yaw)
-                    Cur_child_target = math.vec2.add(pose.position, Cur_child_target)
-                    pose_at_child_target_sample = math.vec2.new(pose.position.x, pose.position.y)
-                }
-                else if(CHILD == -1){
-                    MMode = MOVEMENT
-                }
+                # }
                 goto(0.0,0.0)
             }
         }
         else{
-            MMode = MOVEMENT
+            var vec_diff_of_sampled_pose = math.vec2.sub(pose.position,pose_at_child_target_sample)
+            if(math.vec2.length(vec_diff_of_sampled_pose) < distance_to_travel){
+                if( (not isnil(child_pos_vec)) and child_check){
+                    var m_target = math.vec2.new(child_pos_vec.x, child_pos_vec.y)
+                    m_target = avoid_obs_using_potential(m_target)
+                    log("[Formation] GOTo ",m_target.x,",", m_target.y)
+                    goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
+                }
+                else if( (not isnil(child_pos)) and child_check){
+                    # Approach the child to acquire tag 
+                    var m_target = math.vec2.newp(child_pos.distance, child_pos.azimuth)
+                    m_target = avoid_obs_using_potential(m_target)
+                    log("[Formation] GOTo ",m_target.x,",", m_target.y)
+                    goto_abs(m_target.x, m_target.y, takeoff_heights[id], 0.0)
+                }
+                else{
+                    goto(0.0,0.0)
+                }
+            }
+            else{
+                # proceed to next state.
+                MMode = MOVEMENT
+            }
         }
     }
     else if(MMode == MOVEMENT){
