@@ -1,0 +1,39 @@
+topics:
+  gps     :   global_position/global
+  battery :   battery
+  status  :   state
+  estatus :   extended_state
+  setpoint:   setpoint_position/local
+  localpos: local_position/pose
+  altitude: global_position/rel_alt
+  obstacles: obstacles
+  inpayload:  inMavlink
+  outpayload: outMavlink
+  gridn  : grid
+  path   : path
+  bstate : bvmstate
+  npose  : neighbours_pos
+  fstatus: fleet_status
+  targetf: targets_found
+  yolobox: intermediator_ros/bounding_boxes
+  hierarchical_status: hierarchical_status
+  explorer_path: /kh4/command/trajectory
+  global_homing_navs_path: /pci_rosbuzz/global_homing_navs_path_set
+  global_homing_path: /pci_rosbuzz/global_homing_path
+  move_base_goal: /move_base/goal
+  move_base_local_trajectory_goal: /move_base/TrajectoryPlannerROS/local_plan
+  move_base_goal_status: /move_base/status
+  fiducial_tags: fiducial_tags
+services:
+  fcclient:   cmd/command
+  armclient:  cmd/arming
+  modeclient: set_mode
+  stream:  set_stream_rate
+  rcservice:  buzzcmd
+  netstatus:  network_status
+  explore_planner: /planner_control_interface/std_srvs/rosbuzz_planning
+  becon_trigger: trigger_beacon
+  global_home_navs_planner: /planner_control_interface/std_srvs/global_homing_navs_path_set
+  global_home_planner: /planner_control_interface/std_srvs/homing_trigger
+  local_planner_continue: /local_planner/continue
+  local_planner_stop: /local_planner/stop

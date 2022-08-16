@@ -48,6 +48,7 @@ static float raw_packet_loss = 0.0;
 static int filtered_packet_loss = 0;
 static float api_rssi = 0.0;
 static bool logVoronoi = false;
+static buzzvm_t cur_BuzzVM;
 static std::vector<bounding_box> yolo_boxes;
 
 std::vector<std::vector<float>> exploration_path;
@@ -204,6 +205,10 @@ int buzzros_print(buzzvm_t vm)
   }
   ROS_INFO("%s", buffer.str().c_str());
   return buzzvm_ret0(vm);
+}
+
+void setCurVm(buzzvm_t vm){
+  cur_BuzzVM = vm;
 }
 
 void setWPlist(string file)
@@ -1156,6 +1161,21 @@ mavros_msgs::Mavlink get_status()
   payload_out.sysid = (uint8_t)neighbors_status_map.size();
 
   return payload_out;
+}
+
+int planner_cmd(){
+  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "planner_cmd", 1));
+  buzzvm_gload(cur_BuzzVM);
+  buzzobj_t o = buzzvm_stack_at(cur_BuzzVM, 1);
+  buzzvm_pop(cur_BuzzVM);
+  int planner_cur_cmd = 0;
+  if(o->o.type == BUZZTYPE_INT){
+    planner_cur_cmd = o->i.value;
+  }
+  else if( o->o.type == BUZZTYPE_FLOAT){
+    planner_cur_cmd = o->f.value;  
+  }
+  return planner_cur_cmd;
 }
 
 int buzzuav_resetrc(buzzvm_t vm)

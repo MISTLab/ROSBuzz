@@ -84,6 +84,7 @@ typedef struct bounding_box_struct bounding_box;
  * The command to use in Buzz is buzzros_print takes any available datatype in Buzz
  */
 int buzzros_print(buzzvm_t vm);
+void setCurVm(buzzvm_t vm);
 void setWPlist(std::string file);
 void setVorlog(std::string path);
 void check_targets_sim(double lat, double lon, double* res);
@@ -226,6 +227,11 @@ int buzzuav_get_nei_alt(buzzvm_t vm);
  * returns the current array of neighbors status
  */
 mavros_msgs::Mavlink get_status();
+
+/*
+ * Obtains the planner_cmd from the buzz vm
+ */
+int planner_cmd();
 
 /*
  *Flight status
