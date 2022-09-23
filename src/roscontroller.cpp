@@ -311,11 +311,13 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
 /-------------------------------------------------------*/
 {
   // Obtain .bzz file name from launch file parameter
-  if (n_c.getParam("bzzfile_name", bzzfile_name))
-    ;
+  if (n_c.getParam("bzzfile_name", bzzfile_name)){
+    std::string ns = ros::this_node::getNamespace();
+    ROS_INFO("Namespace %s", ns.c_str());
+  }
   else
   {
-    ROS_ERROR("Provide a .bzz file to run in Launch file");
+    ROS_ERROR("Provide a .bzz file to run in Launch file name space");
     system("rosnode kill rosbuzz_node");
   }
   if (n_c.getParam("WPfile", WPfile))

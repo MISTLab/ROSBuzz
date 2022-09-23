@@ -1,10 +1,13 @@
 ##########
 # Includes
 #########
-include "includes/vec2.bzz"
+include "update.bzz"
+include "utils/vec2.bzz"
+include "utils/takeoff_heights.bzz"
+include "utils/nav_table.bzz"
+# include "formations/circling_experiment.bzz"
 include "formations/blind_follow.bzz"
 include "formations/forward_test.bzz"
-
 
 #####
 # Vehicule type:
@@ -13,6 +16,12 @@ include "formations/forward_test.bzz"
 # 2 -> outdoor wheeled vehicle
 # 3 -> indoor wheeled vehicle
 V_TYPE = 2
+
+
+#####
+# Simulation or real robot
+# 
+SIMULATION = 0
 
 
 #####
@@ -30,8 +39,8 @@ EXPLORE_RETUNING = 2
 # DOG = 1
 
 # Explorer robot (key-> ID, value -> Priority, lower higher priority)
-EXPLORER_IDs = {.50=1, .51=2, .52=3, .53=4, .54=5, .55=6, .56=7, .57=8, .58=9, .59=10, .60=11}
-INIT_MOTIONS ={.50={.x=2.5, .y=1.5}, .51={.x=-2.0, .y = -2.0}, .52={.x=-1.5, .y = 2.0},
+EXPLORER_IDs = {.3=3, .50=1, .51=2, .52=3, .53=4, .54=5, .55=6, .56=7, .57=8, .58=9, .59=10, .60=11}
+INIT_MOTIONS ={.3={.x=1.5, .y=0.0}, .50={.x=2.5, .y=1.5}, .51={.x=-2.0, .y = -2.0}, .52={.x=-1.5, .y = 2.0},
 			   .53={.x=-2.5, .y = -2.5}, .54={.x=0.5, .y = -2.5}, .55={.x=-1.0, .y = 2.0},
 			   .56={.x=2.0, .y = -2.5}, .57={.x=1.0, .y = -2.0}, .58={.x=1.0, .y = 2.5},
 			   .59={.x=-2.0, .y = -2.0}, .60={.x=-1.5, .y = 1.5}}
@@ -83,11 +92,11 @@ experiment_done = 0
 
 
 # Constants
-GOTODIST_TOL = 0.05
+GOTODIST_TOL = 0.3
 GOTO_MAXVEL = 3 #m/s 
 EXPLORATION_YEILD = 250 #cms
 PLANNER_TIME_OUT = 200 # 20 sec
-STUCK_TIME_OUT = 150 # 15 sec 
+STUCK_TIME_OUT = 300 # 30 sec 
 YAW_OFFSET=3.14
 TARGET_DETECTION_RANGE = 500 #cms Detect a target within this range
 TARGET_ID = 49 # 49 is the target.
@@ -134,7 +143,7 @@ function init() {
 	path_stig = stigmergy.create(104)
 
   	# Starting state: TURNEDOFF to wait for user input.
-	BVMSTATE = "LAUNCH"
+	BVMSTATE = "TURNEDOFF"
 	AUTO_LAUNCH_STATE = "EXPLORE"
 	# AUTO_LAUNCH_STATE = "OBSTACLE_TEST"
 
@@ -151,12 +160,12 @@ function init() {
 		AUTO_LAUNCH_STATE = "TURNEDOFF"
 	}
 	
-	if(id < TARGET_ID){
-		ROLE = SHEEP
-		init_blind()
-		BVMSTATE = "BUG_ALGORITHM"
-		old_pose = pose.position
-	}
+	# if(id < TARGET_ID){
+	# 	ROLE = SHEEP
+	# 	init_blind()
+	# 	BVMSTATE = "BUG_ALGORITHM"
+	# 	old_pose = pose.position
+	# }
 	log("my id ",id, "BVM STATE ", BVMSTATE)
 	# Initialize stuck detection 
 	Stuck_detection_goto1 = math.vec2.new(0.0,0.0)
@@ -232,7 +241,8 @@ function step() {
 	# else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
 	#     statef=circling_experiment		
 	# }
-	debug.print(BVMSTATE," , ",MMode)
+	# debug.
+	print(BVMSTATE," , ",MMode)
 
 	statef()
 
@@ -480,10 +490,12 @@ function explore(){
 				var last_wp = 0				
 				if(goto_point_naive(vec_to_target, last_wp) == 0){
 					# init motion complete
-					goto(0.0,0.0)
+					goto_abs(0.0,0.0, takeoff_heights[id], 0.0)
+					var clear_all_exsisting paths = get_local_planner_path()
 					init_motion = 1
 					log("[",id,"] INIT MOTION DONE")
 				}
+				log("Doing init")
 			}
 			else{
 				# Perform local planning to maximize the environmental information and coverage.
@@ -519,7 +531,7 @@ function explore(){
 					if(size(CUR_PATH) <= 0){
 						CUR_PATH = nil
 						CUR_WP_IDX=0
-						goto(0.0,0.0)
+						goto_abs(0.0,0.0, takeoff_heights[id], 0.0)
 					}
 					else{
 						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
@@ -541,7 +553,7 @@ function explore(){
 								var clearing_old_paths = get_local_planner_path()
 								CUR_WP_IDX=0
 								local_planner_called = 0
-								goto(0.0,0.0)
+								goto_abs(0.0,0.0, takeoff_heights[id], 0.0)
 							}
 						}
 					}
@@ -561,15 +573,19 @@ function explore(){
 				if(size(CUR_PATH) > 0 and radiation_source_located){ 
 					reverse_table(CUR_PATH)
 					save_map(map_path,map_name)
-					# Stop planner
-					stop_exploration_planner()
+					if(SIMULATION){
+						# Stop planner
+						stop_exploration_planner()
+					}
 					CUR_WP_IDX=0
-					goto(0.0,0.0)
+					goto_abs(0.0,0.0, takeoff_heights[id], 0.0)
 				}
 				else if(size(CUR_PATH) > 0){
 					save_map(map_path,map_name)
-					# Stop planner
-					stop_exploration_planner()
+					if(SIMULATION){
+						# Stop planner
+						stop_exploration_planner()
+					}
 				}
 				waypoint_set_time = time_step
 			}
@@ -578,23 +594,33 @@ function explore(){
 				if(size(CUR_PATH) > 0 and radiation_source_located){
 					reverse_table(CUR_PATH)
 					save_map(map_path,map_name)  
-					# Stop planner
-					stop_exploration_planner()
+					if(SIMULATION){
+						# Stop planner
+						stop_exploration_planner()
+					}
 					CUR_WP_IDX=0
 				}
 				else if(size(CUR_PATH) > 0){
 					save_map(map_path,map_name)
-					# Stop planner
-					stop_exploration_planner()
+					if(SIMULATION){
+						# Stop planner
+						stop_exploration_planner()
+					}
 				}
 				# return to base or Home
 				# Tell exploration planner to home using the global graph.
-				if(not global_planner_called){
+				if( (not global_planner_called) and (not local_planner_called)){
 					# Someother robot found the source, simply home.
 					call_global_planner() 
 					global_planner_called = 1
 				}
 				else{
+					if(local_planner_called){
+						var tmp_local_path = get_local_planner_path()
+						if(size(tmp_local_path) > 0){
+							local_planner_called = 0
+						}
+					}
 					# planner is working please wait.
 					goto(0.0,0.0)
 				}
@@ -671,16 +697,17 @@ function nei_cmd_listen() {
     neighbors.listen("cmd",
 		function(vid, value, rid) {
 			# print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
-			# if(BVMSTATE=="TURNEDOFF") {
-			# 	if(value==22) {
-			# 		BVMSTATE = "LAUNCH"
-			# 	}
-			# } else if(BVMSTATE != "STOP") {
-			# 	if(value==21 and BVMSTATE != "STOP") {
-			# 		BVMSTATE = "STOP"
-			# 		neighbors.broadcast("cmd", 21)
-			# 	}
-			# } 
+			if(BVMSTATE=="TURNEDOFF") {
+				if(value==22) {
+					BVMSTATE = "LAUNCH"
+				}
+			} 
+			else if(BVMSTATE != "STOP") {
+				if(value==21 and BVMSTATE != "STOP") {
+					BVMSTATE = "STOP"
+					neighbors.broadcast("cmd", 21)
+				}
+			} 
 
 			if(BVMSTATE == "EXPLORE"){
 				if(value == 999 and BVMSTATE != "RETURN_TO_BASE"){
@@ -699,7 +726,7 @@ function nei_cmd_listen() {
 			if(value == 911){
 				if(rid < TARGET_ID){ # It is another bug, so get to it if it is close enough.
 					var nei_pos = neighbors.get(rid)
-					if()
+					
 					Bugs_found_target[rid]=1
 					if(nei_pos.distance < 200){
 						nei_radiation = 1	
@@ -720,6 +747,15 @@ function nei_cmd_listen() {
     })
 }
 
+# TODO have to implement map save hook 
+function save_map(map_path, map_name){
+	log("TODO: save map called: Implement save map")
+}
+# simple goto wrapper 
+
+function goto(x_g,y_g){
+	goto_abs(x_g, y_g, takeoff_heights[id], 0.0)
+}
 # goto wrapper for argos based scripts
 # function goto(x, y) {
 # 	var height = takeoff_heights[id]
@@ -837,98 +873,6 @@ function movebase_point(goal){
 }
 
 function goto_point_naive(vec_to_target, last_wp){
-	var local_vec = math.vec2.sub(vec_to_target,pose.position)
-	local_vec = math.vec2.rotate(local_vec, -pose.orientation.yaw)
-	var last_wp_tol = 0.0
-	if(last_wp){
-		last_wp_tol = 0.2
-	}
-	if(math.vec2.length(local_vec) > GOTODIST_TOL+last_wp_tol){
-		# # Limit speed
-		# local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
-		# # scale to desired vel
-		# local_vec = math.vec2.scale(local_vec,100)
-		# # if(time_step - waypoint_set_time < STUCK_TIME_OUT ){
-		# 	local_vec = avoid_nei_using_potential(local_vec)
-		# 	local_vec = avoid_obs_using_potential(local_vec)
-		# # }
-		if(time_step - waypoint_set_time > STUCK_TIME_OUT){
-			if(BVMSTATE != BLIND_FOLLOW){
-				waypoint_set_time = time_step
-			}
-			log("[WARN] Waypoint is taking very long to reach, stuck detected")
-			if(EXPLORE_STATE == EXPLORE_EXPLORING and BVMSTATE == "EXPLORE"){
-				log("Explorer stuck while exploring !")
-				CUR_PATH = nil
-				local_planner_called = 0
-				return 1
-			}
-			else if(EXPLORE_STATE == EXPLORE_RETUNING and BVMSTATE == "EXPLORE"){
-				log("Explorer stuck while returning !")
-				if(CUR_WP_IDX < size(CUR_PATH)-1){
-					CUR_WP_IDX = CUR_WP_IDX + 1
-					waypoint_set_time = time_step
-					return 1
-				}
-				else if(CUR_WP_IDX >= size(CUR_PATH)-1){
-					# Home reached, TODO: trigger hierarchial behaviror.
-					log("[WARN] Premature declaration of HOME REACHED")
-					BVMSTATE = "EXPLORE_COOL_DOWN"
-					goto(0.0,0.0)
-					return 1
-				}
-			}
-			else if(BVMSTATE == "BLIND_FOLLOW" and ROLE != DOG){ #TODO: Check for sanity with rovers
-				log("[WARN] Follower stuck performing recovery routine")
-				if(stuck_recover_timer < STUCK_RECOVERY_TIME){
-					var recovery_goto = math.vec2.newp(1000,0)
-					local_vec = avoid_obs_using_potential(recovery_goto)
-					stuck_recover_timer = stuck_recover_timer + 1
-				}
-				else{
-					stuck_recover_timer = 0
-					waypoint_set_time = time_step
-				}
-			}
-			else if(BVMSTATE == "BLIND_FOLLOW" and ROLE == DOG){ #TODO: Check for sanity with rovers
-				if(id == DOG1){
-					log("[WARN] DOG1 stuck performing going to next point")
-					if(child_check == 1){
-						log("[WARN] DOG1 stuck going to next waypoint")
-						if(path_ptr <  size(GLOBAL_TEST_PATH) - 1){
-							path_ptr = path_ptr + 1
-						}
-						else{
-							experiment_done = 1
-                            log("STUCK AT LAST WAYPOINT: DECLARING PREMATURE TARGET REACHED !!!")
-                            goto(0.0,0.0)
-						}
-						waypoint_set_time = time_step
-
-						return 1
-					}
-					else{
-						waypoint_set_time = time_step
-					}
-				}			
-			}
-			
-		}
-		else{
-			stuck_recover_timer = 0
-		}
-		set_navigation_goal(vec_to_target.x, vec_to_target.y)
-		return 1
-	}
-	else{
-		set_navigation_goal(pose.position.x, pose.position.y)
-		# goto(0,0)
-		return 0
-	}
-
-}
-
-function goto_point_naive_sim(vec_to_target, last_wp){
 	# var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
 	# var NedPos = math.vec2.sub(pose.position,home_offset)
 	var local_vec = math.vec2.sub(vec_to_target,pose.position)
@@ -941,10 +885,10 @@ function goto_point_naive_sim(vec_to_target, last_wp){
 		# Limit speed
 		local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
 		# scale to desired vel
-		local_vec = math.vec2.scale(local_vec,100)
+		# local_vec = math.vec2.scale(local_vec,100)
 		# if(time_step - waypoint_set_time < STUCK_TIME_OUT ){
-			local_vec = avoid_nei_using_potential(local_vec)
-			local_vec = avoid_obs_using_potential(local_vec)
+			# local_vec = avoid_nei_using_potential(local_vec)
+			# local_vec = avoid_obs_using_potential(local_vec)
 		# }
 		if(time_step - waypoint_set_time > STUCK_TIME_OUT){
 			if(BVMSTATE != BLIND_FOLLOW){
@@ -1057,13 +1001,14 @@ function goto_point_naive_sim(vec_to_target, last_wp){
 		# Stuck_detection_goto1 = math.vec2.new(local_vec.x, local_vec.y)
 		# local_vec = RVO(local_vec)
 		#local_vec = math.vec2.rotate(local_vec,YAW_OFFSET)
-		# log("goto ",local_vec.x,",",local_vec.y )
-
-		goto(local_vec.x, local_vec.y)
+		log("goto ",local_vec.x,",",local_vec.y, "Pos (",pose.position.x,",",pose.position.y,") target (",vec_to_target.x,",",vec_to_target.y,")")
+		goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
+		
 		return 1
 	}
 	else{
-		goto(0,0)
+		goto_abs(0.0,0.0, takeoff_heights[id], 0.0)
+		
 		return 0
 	}
 }
