@@ -608,7 +608,6 @@ function explore(){
 					}
 				}
 				# return to base or Home
-				log("g called ", global_planner_called, " llocal ", local_planner_called)
 				# Tell exploration planner to home using the global graph.
 				if( (not global_planner_called) and (not local_planner_called)){
 					# Someother robot found the source, simply home.
