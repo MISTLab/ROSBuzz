@@ -339,6 +339,22 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
     ROS_ERROR("Provide a setmode mode in Launch file");
     system("rosnode kill rosbuzz_node");
   }
+  // Obtain setmode mode from launch file parameter
+  std::string adapter_str;
+  if (n_c.getParam("adapter_type", adapter_str)){
+    if(adapter_str == "cognifly"){
+      adapter = COGNIFLY;
+    }
+    else{
+      adapter = MAVROS;
+    }
+  }
+  else
+  {
+    ROS_ERROR("Provide a setmode mode in Launch file");
+    system("rosnode kill rosbuzz_node");
+  }
+  
   // Obtain the Pose Source method: Implemented: GPS, Local
   std::string poseSourceStr;
   n_c.getParam("pose_source", poseSourceStr);
@@ -1105,9 +1121,21 @@ script
       cmd_srv.request.command = buzzuav_closures::getcmd();
       if (current_mode != "LAND" && setmode)
       {
-        SetMode("LAND", 0);
-        armstate = 0;
-        Arm();
+        
+        // TODO to fix for both pixhawk and cognifly.
+        if (adapter == COGNIFLY){ 
+              ROS_INFO("In cognfily %f %f", cur_pos.z, cur_pos.altitude );
+              if (cur_pos.altitude <= 0.1) {
+                ROS_INFO("ready to disarm");
+                armstate = 0;
+                Arm();
+              }
+        }
+        else if(adapter == MAVROS){
+            SetMode("LAND", 0);
+            armstate = 0;
+            Arm();
+        }
       }
       else if (cur_pos.altitude < 0.4)  // disarm only when close to ground
       {
@@ -1122,7 +1150,7 @@ script
       {
         ROS_ERROR("Failed to call service from flight controller");
       }
-      armstate = 0;
+      // armstate = 0; NOT REQUIRED 
     }
       break;
 
@@ -1540,6 +1568,7 @@ void roscontroller::local_pos_callback(const geometry_msgs::PoseStamped::ConstPt
   cur_pos.yaw = yaw;
 
   if(pose_type == LOCAL_POSE){
+    cur_pos.altitude = msg->pose.position.z;
     buzzuav_closures::set_currentNEDpos(msg->pose.position.y+home_offset.x, msg->pose.position.x+home_offset.y, cur_pos.z,cur_pos.yaw, home_offset.x,
                                         home_offset.y);
   }

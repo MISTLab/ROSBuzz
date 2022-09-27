@@ -2,6 +2,7 @@
 # Create a new namespace for vector2 functions
 #
 math.vec2 = {}
+math.vec3 = {}
 
 #
 # Creates a new vector2.
@@ -11,6 +12,10 @@ math.vec2 = {}
 #
 math.vec2.new = function(x, y) {
   return { .x = x, .y = y }
+}
+
+math.vec3.new = function(x, y, z) {
+  return { .x = x, .y = y , .z = z }
 }
 
 #
@@ -33,6 +38,10 @@ math.vec2.newp = function(l, a) {
 #
 math.vec2.length = function(v) {
   return math.sqrt(v.x * v.x + v.y * v.y)
+}
+
+math.vec3.length = function(v) {
+  return math.sqrt(v.x * v.x + v.y * v.y + v.z*v.z )
 }
 
 #
@@ -80,6 +89,14 @@ math.vec2.sub = function(v1, v2) {
   return {
     .x = v1.x - v2.x,
     .y = v1.y - v2.y
+  }
+}
+
+math.vec3.sub = function(v1, v2) {
+  return {
+    .x = v1.x - v2.x,
+    .y = v1.y - v2.y,
+    .z = v1.z - v2.z
   }
 }
 
@@ -138,4 +155,11 @@ math.vec2.dis = function(a, b) {
   var p1 = b.x - a.x
   var p2 = b.y - a.y
   return math.sqrt(p1*p1 + p2*p2)
+}
+
+math.vec3.dis = function(a, b, c) {
+  var p1 = b.x - a.x
+  var p2 = b.y - a.y
+  var p3 = b.z - a.z
+  return math.sqrt(p1*p1 + p2*p2 + p3*p3)
 }

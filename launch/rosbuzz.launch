@@ -18,6 +18,7 @@
   <arg name="auto_state" default="WAYPOINT" />
   <arg name="pose_source" default="GPS" />
   <arg name="init_pose_file" default="mist_sim" />
+  <arg name="adapter_type" default="mavros" /> 
 
   <node name="rosbuzz_node" pkg="rosbuzz" type="rosbuzz_node" respawn="false" output="screen" >
     <rosparam file="$(find rosbuzz)/launch/launch_config/$(arg launch_config).yaml"/>
@@ -36,5 +37,6 @@
     <param name="ca_on" value="$(arg ca_on)"/>
     <param name="auto_state" value="$(arg auto_state)"/>
     <param name="pose_source" value="$(arg pose_source)"/>
+    <param name="adapter_type" value="$(arg adapter_type)"/>
   </node>
 </launch>

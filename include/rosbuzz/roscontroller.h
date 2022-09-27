@@ -69,6 +69,18 @@ typedef enum {
   LOCAL_POSE = 1
 } rosbuzz_posetype;
 
+/*
+ *  adapter types 
+ */
+
+
+typedef enum {
+  MAVROS = 0,
+  COGNIFLY = 1
+} adapter_type;
+
+
+
 // Time sync algo. constants
 #define COM_DELAY 100000000  // in nano seconds i.e 100 ms
 #define TIME_SYNC_JUMP_THR 500000000
@@ -218,6 +230,9 @@ private:
   std::map<std::string, std::string> m_smTopic_infos;
 
   int setpoint_counter;
+
+  // Stores the flight controller adapter type.
+  int adapter;
 
   std::ofstream log;
 

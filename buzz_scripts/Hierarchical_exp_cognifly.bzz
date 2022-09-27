@@ -1,0 +1,668 @@
+##########
+# Includes
+#########
+include "update.bzz"
+include "utils/vec2.bzz"
+include "utils/takeoff_heights.bzz"
+include "utils/nav_table.bzz"
+# include "formations/circling_experiment.bzz"
+include "formations/Object_movement_test.bzz"
+include "formations/blind_follow.bzz"
+include "formations/forward_test.bzz"
+include "act/LCA.bzz"
+
+
+#####
+# Vehicule type:
+# 0 -> outdoor flying vehicle
+# 1 -> indoor flying vehicle
+# 2 -> outdoor wheeled vehicle
+# 3 -> indoor wheeled vehicle
+V_TYPE = 1
+
+
+#####
+# Exploration sub-states:
+# 0 -> exploring the environment to maximize coverage.
+# 1 -> yeilding to one of the high priority robot.
+# 2 -> returning back home to fetch minion robots.
+# 3 -> 
+EXPLORE_EXPLORING = 0
+EXPLORE_YEILDING = 1
+EXPLORE_RETUNING = 2
+
+# ROBOT TYPES BASED ON SPECILIZATION
+# SHEEP = 0
+# DOG = 1
+
+# Explorer robot (key-> ID, value -> Priority, lower higher priority)
+EXPLORER_IDs = {.1=1, .9=2}
+INIT_MOTIONS ={.1={.x=-2.5, .y=-1.0}, .9={.x=-1.0, .y = -1.0}}
+EXPLORE_STATE = 0
+
+
+# Global variables
+init_motion = 0 # Varible to determine if initialization is done.
+radiation_source_located = 0
+homing_complete = 0
+CUR_PATH ={}
+CUR_WP_IDX =0
+global_planner_called=0
+hierarchial_path_to_source={}
+hierarchial_navigational_tube={}
+Move_base_tracking_goal = 0
+Goal_reached_declare_timer = 0
+
+# Constants
+GOTODIST_TOL = 0.3
+GOTO_MAXVEL = 3 #m/s 
+EXPLORATION_YEILD = 250 #cms
+YAW_OFFSET=3.14
+FILE_PATH = "/home/nvidia/gbplanner_ws/src/control/rosbuzz/buzz_scripts/log/"
+BEHAVIOR_FILE_NAME = string.concat(FILE_PATH, string.tostring(id), "-Behavior_bzz_log.csv")
+csv_file =""
+TIME_TO_DECLARE_GOAL_REACHED = 10
+# Executed once at init time.
+function init() {	
+	# Open csv file to record data
+    csv_file = io.fopen(BEHAVIOR_FILE_NAME, "w")
+	# start the swarm command listener
+	nei_cmd_listen()
+
+	# run the hierarchical movement init
+	hierarchical_init()
+
+	# Determine your role.
+	if(not isnil(EXPLORER_IDs[id])) {
+		log("I am a Dog")
+		ROLE = DOG
+		# setup_velocity_callbacks_from_table(EXPLORER_IDs)
+	}
+	
+  # init blid following.
+	init_blind()
+
+  # Starting state: TURNEDOFF to wait for user input.
+	BVMSTATE = "LAUNCH"
+}
+
+# Executed at each time step.
+function step() {
+	log("[",id,"] POS (",pose.position.x,",",pose.position.y,",",pose.position.z,") yaw: ", pose.orientation.yaw, " WP ",CUR_WP_IDX)
+	log("BVM state: ", BVMSTATE, " EXPLORE_STATE ", EXPLORE_STATE)
+        # listen to Remote Controller
+	rc_cmd_listen()
+
+	#
+	# Top level State machine for Radiation cleanup experiment.
+	# States: 
+	# 1. TURNEDOFF -> the robot does nothing, it ideals
+	# 2. STOP -> A state to transition to turnedoff.
+	# 3. LAUNCH -> Entry state that performs initlization for the robot to transition to the subsequent states.
+	# 4. EXPLORE -> Explores the environment until a target is detected. 
+	# 5. RETURN_TO_BASE -> TARGET found return to base to dump the map and pickup followers.
+	# 6. HIRACHIAL_BEHAVIORS -> Uses hirarchial control to perfrom a mission. 
+	#
+	if(BVMSTATE=="TURNEDOFF"){
+		statef=turnedoff
+	} 
+	else if(BVMSTATE=="STOP"){	# ends on turnedoff
+		statef=stop
+	}
+	else if(BVMSTATE=="LAUNCH"){ # ends on AUTO_LAUNCH_STATE
+		statef=launch
+	}
+	else if(BVMSTATE=="EXPLORE"){
+		statef=explore
+	}
+	else if(BVMSTATE=="RETURN_TO_BASE"){
+		statef=return_to_base
+	}
+	else if(BVMSTATE=="HIRACHIAL_BEHAVIORS"){
+			statef=hierarchical_step		
+	}
+	else if(BVMSTATE == "BLIND_FOLLOW"){
+		statef=step_blind
+	}
+	else if(BVMSTATE == "FORWARD_TEST"){
+		statef=forward_test
+	}
+	else if(BVMSTATE == "NAV_TEST"){
+		statef=nav_table_test
+	}
+	else if(BVMSTATE == "OBSTACLE_TEST"){
+		statef=obs_test
+	}
+	else if(BVMSTATE == "POSITION_CONTROL"){
+		statef=position_control
+	}
+	else if(BVMSTATE == "COGNIFLY_LAND"){
+		statef=cognifly_land
+	}
+	# else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
+	#     statef=circling_experiment		
+	# }
+
+	statef()
+
+	#log("Current state: ", BVMSTATE)
+}
+ 
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+ 
+# Executed once at the end of experiment.
+function destroy() {
+	io.fclose(csv_file)
+}
+
+# Implementation of Core States 
+# Core state function to launch the robot: takeoff and wait for others, or stop (land)
+function launch() {
+	BVMSTATE = "LAUNCH"
+	neighbors.broadcast("cmd", 22)
+	if(pose.position.z >= 0.4 or V_TYPE == 3) {
+		log("Auto state", AUTO_LAUNCH_STATE)
+		BVMSTATE=AUTO_LAUNCH_STATE
+		# goto(0.0,0.0,0.0)
+	} else {
+		log("Altitude: ", pose.position.z)
+		uav_takeoff(0.5)
+	
+	}
+	# BVMSTATE = "LAUNCH"
+	# uav_takeoff(0.5)
+
+	
+}
+
+function position_control() {
+	BVMSTATE="POSITION_CONTROL"
+	log("position: x ", pose.position.x , " y " , pose.position.y , " z ", pose.position.z)
+	local_vec = math.vec3.new(2,0.0,0.5)
+	local_vec.x = local_vec.x - pose.position.x
+	local_vec.y = local_vec.y - pose.position.y
+	local_vec.z = local_vec.z - pose.position.z
+	if (math.vec3.length(local_vec) > 0.15){
+		goto_abs(local_vec.x, local_vec.y, local_vec.z , 0.0)
+	}
+	else{
+		goto_abs(0.0, 0.0, 0.0 , 0.0)
+		BVMSTATE = "COGNIFLY_LAND"
+
+	}
+}
+
+function cognifly_land() {
+  BVMSTATE = "COGNIFLY_LAND"
+  log("position: x ", pose.position.x , " y " , pose.position.y , " z ", pose.position.z)
+  if(pose.position.z <= 0.1) {
+	    disarm()
+		BVMSTATE = "TURNEDOFF"
+		# goto(0.0,0.0)
+	} else{
+		uav_land()
+		# neighbors.broadcast("cmd", 21)
+	}
+
+
+} 
+
+
+
+# Core state function to stop and land.
+function stop() {
+  BVMSTATE = "STOP"
+  if(pose.position.z <= 0.5) {
+		BVMSTATE = "TURNEDOFF"
+		goto(0.0,0.0)
+	} else{
+		uav_land()
+		neighbors.broadcast("cmd", 21)
+	}
+}
+
+# Core state function when on the ground
+function turnedoff() {
+	disarm()
+    BVMSTATE = "TURNEDOFF"
+}
+
+# Core state to explore and map the environment. 
+function explore(){
+	BVMSTATE ="EXPLORE"
+	if(ROLE == DOG){
+		# Coordinate the exploration with other robots. 
+		if(EXPLORE_STATE == EXPLORE_EXPLORING){
+
+			if(high_priority_robot_in_field()){
+				EXPLORE_STATE = EXPLORE_YEILDING
+				goto(0,0)
+				return
+			}
+			
+			# Perform the initialization motion to determine the exploration direction. 
+			if(init_motion == 0){
+				# forward motion of 2 meters 
+				var vec_to_target = INIT_MOTIONS[id]
+				var last_wp = 0				
+				if(goto_point(vec_to_target, last_wp) == 0){
+					# init motion complete
+					goto(0.0,0.0)
+					init_motion = 1
+					log("!!!!INIT MOTION DONE")
+				}
+			}
+			else{
+				# Perform local planning to maximize the environmental information and coverage.
+				if( isnil(CUR_PATH)){
+					CUR_PATH = get_local_planner_path()
+					if(size(CUR_PATH) <= 0 ){
+						call_local_planner()
+					}			
+				}
+				else{
+					# Following a path, complete the path.
+					if(size(CUR_PATH) <= 0){
+						CUR_PATH = nil
+                        			CUR_WP_IDX=0
+                        			goto(0.0,0.0)
+					}
+					else{
+						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+						var last_wp = 0
+						if(not (goto_point(cur_wp, last_wp))){
+							# WP reached
+							if(CUR_WP_IDX < size(CUR_PATH)-1){
+								CUR_WP_IDX = CUR_WP_IDX + 1
+							}
+							else{
+								CUR_PATH = nil
+								CUR_WP_IDX=0
+								goto(0.0,0.0)
+							}
+						}
+					}
+				}
+			}
+		}
+	
+		else if(EXPLORE_STATE == EXPLORE_YEILDING){
+			if( not high_priority_robot_in_field()){
+				EXPLORE_STATE = EXPLORE_EXPLORING
+			}
+			log("Explorer Yeilding to a nearby robot.")
+		}
+		else if(EXPLORE_STATE == EXPLORE_RETUNING){
+			neighbors.broadcast("cmd", 911)
+			if(isnil(CUR_PATH)){
+				CUR_PATH = get_global_planner_path()
+				if(size(CUR_PATH) > 0 and radiation_source_located){ 
+					hierarchial_path_to_source = reverse_table(CUR_PATH)
+					log("Hirarchial path: ",size(hierarchial_path_to_source))
+					hierarchial_navigational_tube = get_hierarchial_nav_tube()
+					log("tube size ",size(hierarchial_navigational_tube)) 
+					CUR_WP_IDX=0
+				}
+				else{
+					goto(0.0,0.0)
+				}
+			}
+			else if(size(CUR_PATH) <= 0){
+				CUR_PATH = get_global_planner_path()
+				if(size(CUR_PATH) > 0 and radiation_source_located){
+					hierarchial_path_to_source = reverse_table(CUR_PATH) 
+					#hierarchial_navigational_tube = get_hierarchial_nav_tube() 
+					log("tube size ",size(hierarchial_navigational_tube)) 
+					CUR_WP_IDX=0
+				}
+				# return to base or Home
+				# Tell exploration planner to home using the global graph.
+				if(not global_planner_called){
+					if(radiation_source_located == 1){
+						# This robot found the source, compute path to source and nav tube.
+						call_global_planner_for_base_paths() 
+						global_planner_called = 1
+					}
+					else{
+						# Someother robot found the source, simply home.
+						call_global_planner() 
+						global_planner_called = 1
+					}
+				}
+				else{
+					# planner is working please wait.
+					goto(0.0,0.0)
+				}
+			}
+			else{
+				var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+				var last_wp = 0
+				if(not (goto_point(cur_wp, last_wp))){
+					# WP reached
+					if(CUR_WP_IDX < size(CUR_PATH)-1){
+						CUR_WP_IDX = CUR_WP_IDX + 1
+					}
+					else if(CUR_WP_IDX >= size(CUR_PATH)-1){
+						# Home reached, TODO: trigger hierarchial behaviror.
+						log("HOME REACHED")
+						BVMSTATE = "TURNEDOFF"
+						goto(0.0,0.0)
+					}
+				}
+			}
+		}
+	}
+	else{
+		# just ideal, if you are not capable of exploring.
+
+	}
+}
+
+
+# function to handle rc commands.
+function rc_cmd_listen() {
+	if(BVMSTATE=="TURNEDOFF") {
+		if(flight.rc_cmd==22) {	#TAKEOFF\LAUNCH
+			flight.rc_cmd=0
+			BVMSTATE = "LAUNCH"
+			neighbors.broadcast("cmd", 22)
+		} 
+	} else if(BVMSTATE != "STOP") {
+		if(flight.rc_cmd==21) {
+			flight.rc_cmd=0
+			BVMSTATE = "STOP"
+			neighbors.broadcast("cmd", 21)
+		} 
+	} 
+	if(flight.rc_cmd == 911){
+		flight.rc_cmd = 0
+		if(radiation_source_located == 0){
+			radiation_source_located = 1
+			EXPLORE_STATE = EXPLORE_RETUNING
+ 			BVMSTATE ="EXPLORE"
+			CUR_PATH = nil
+ 			CUR_WP_IDX=0
+		    Move_base_tracking_goal = 0
+			log("RADIATION DETECTED!!!")
+		}
+	}
+	else if(flight.rc_cmd == 888){
+		BVMSTATE = "HIRACHIAL_BEHAVIORS"
+		neighbors.broadcast("cmd",888)
+	} 
+	if(flight.rc_cmd == 811){
+		# restart planning
+		CUR_PATH = nil
+ 		CUR_WP_IDX=0
+		Move_base_tracking_goal = 0
+	}
+}
+
+# listens to neighbors broadcasting commands
+function nei_cmd_listen() {
+    neighbors.listen("cmd",
+		function(vid, value, rid) {
+			print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
+			if(BVMSTATE=="TURNEDOFF") {
+				if(value==22) {
+					BVMSTATE = "LAUNCH"
+				}
+			} else if(BVMSTATE != "STOP") {
+				if(value==21 and BVMSTATE != "STOP") {
+					BVMSTATE = "STOP"
+					neighbors.broadcast("cmd", 21)
+				}
+			} 
+			if(BVMSTATE == "EXPLORE"){
+				if(value == 999 and BVMSTATE != "RETURN_TO_BASE"){
+					BVMSTATE = "RETURN_TO_BASE"
+				}
+				if(value == 911 and EXPLORE_STATE != EXPLORE_RETUNING){
+                                        EXPLORE_STATE = EXPLORE_RETUNING
+                                        BVMSTATE ="EXPLORE"
+                                        CUR_PATH = nil
+										Move_base_tracking_goal = 0
+                                        log("RADIATION DETECTED!!!")
+                                }
+
+			}
+    })
+}
+
+# goto wrapper for argos based scripts
+function goto(x, y) {
+	var height = takeoff_heights[id]
+	var g_vec = math.vec2.new(x,y)
+	var norm_fact= 0.4
+	var norm_goto = math.vec2.scale(g_vec, norm_fact)
+	if(math.vec2.length(norm_goto) < 0.737463127){
+	   norm_goto = math.vec2.scale(norm_goto, 0)
+	}
+	# Convert cm to m
+	norm_goto.x = 1.0/100.0 * norm_goto.x
+	norm_goto.y = 1.0/100.0 * norm_goto.y
+
+	log("GOTo ",norm_goto.x,",", norm_goto.y)
+	goto_abs(norm_goto.x, norm_goto.y, height, 0.0)
+}
+
+# Function to use ROS move base node (ROS navigational stack) along with ROSBuzz 
+# This function takes goal in the /map frame. Using any other frame will create unexpexted behavior. 
+# This function assumes get_local_trajectory_goal returns the origin when the goal is reached.
+function goto_point(goal, last_wp){
+	var goal_status = get_goal_status()
+	#log("GOAL STATUS ", goal_status)
+	if(goal_status){
+		Goal_reached_declare_timer = Goal_reached_declare_timer + 1
+		goto_abs(0.0, 0.0, takeoff_heights[id], 0.0)				
+	}
+	else{
+		Goal_reached_declare_timer = 0
+		goto_abs(0.0, 0.0, takeoff_heights[id], 0.0)				
+	}
+	if(Goal_reached_declare_timer > TIME_TO_DECLARE_GOAL_REACHED and Move_base_tracking_goal){
+		goto_abs(0.0, 0.0, takeoff_heights[id], 0.0)				
+		Move_base_tracking_goal = 0
+		return 0
+	}
+	if(not Move_base_tracking_goal){
+		Move_base_tracking_goal = 1
+		set_navigation_goal(goal.x, goal.y)
+		goto_abs(0.0, 0.0, takeoff_heights[id], 0.0)				
+	}
+	var local_goal_vec = get_local_trajectory_goal() # goal from the movebase planner.
+  #log("Goal received ", local_goal_vec.x," , ", local_goal_vec.y)
+		
+  if(math.vec2.length(local_goal_vec) > 0){
+	  var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+	  var NedPos = math.vec2.sub(pose.position,home_offset)
+	  var local_vec = math.vec2.sub(local_goal_vec,NedPos)
+	  local_vec_len = math.vec2.length(local_vec)
+	  local_vec = math.vec2.rotate(local_vec, -1*pose.orientation.yaw)
+    #log("local vec len ", local_vec_len, " vec ", local_goal_vec.x, ", ",local_goal_vec.y, " angle to goal ", math.abs( math.vec2.angle(local_vec)))
+
+		if(math.abs( math.vec2.angle(local_vec)) > 2.0 ){ # Goal is directly behind the robot, rotate.
+			goto_abs(-1.0, 0.0, takeoff_heights[id], 0.0)				
+		}
+		else{
+	 		# scale to desired vel
+			#local_vec = math.vec2.scale(local_vec,1)
+			# Limit speed
+			# local_vec = math.vec2.newp(math.vec2.length(local_vec)*10,math.vec2.angle(local_vec)) # Original for exploration
+			local_vec = math.vec2.newp(math.vec2.length(local_vec)*5,math.vec2.angle(local_vec)) # altered for tag following
+			goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
+		}
+  }
+
+	return 1	
+}
+
+# Function to use ROS move base node (ROS navigational stack) along with ROSBuzz and obtain a goto vec
+# This function takes goal in the /map frame. Using any other frame will create unexpexted behavior. 
+function movebase_point(goal){
+	var goal_status = get_goal_status()
+	var movebase_goto = math.vec2.new(0.0,0.0)
+	#log("GOAL STATUS ", goal_status)
+	if(goal_status){
+		Goal_reached_declare_timer = Goal_reached_declare_timer + 1				
+	}
+	else{
+		Goal_reached_declare_timer = 0
+	}
+	if(Goal_reached_declare_timer > TIME_TO_DECLARE_GOAL_REACHED and Move_base_tracking_goal){				
+		Move_base_tracking_goal = 0
+		return movebase_goto
+	}
+	if(not Move_base_tracking_goal){
+		Move_base_tracking_goal = 1
+		set_navigation_goal(goal.x, goal.y)				
+	}
+	var local_goal_vec = get_local_trajectory_goal() # goal from the movebase planner.
+  #log("Goal received ", local_goal_vec.x," , ", local_goal_vec.y)
+		
+  if(math.vec2.length(local_goal_vec) > 0){
+	  var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+	  var NedPos = math.vec2.sub(pose.position,home_offset)
+	  var local_vec = math.vec2.sub(local_goal_vec,NedPos)
+	  local_vec_len = math.vec2.length(local_vec)
+	  local_vec = math.vec2.rotate(local_vec, -1*pose.orientation.yaw)
+      #log("local vec len ", local_vec_len, " vec ", local_goal_vec.x, ", ",local_goal_vec.y, " angle to goal ", math.abs( math.vec2.angle(local_vec)))
+
+		if(math.abs( math.vec2.angle(local_vec)) > 2.0 ){ # Goal is directly behind the robot, rotate.
+			movebase_goto.x = -1.0
+			movebase_goto.y = 0.0
+		}
+		else{
+	 		# scale to desired vel
+			#local_vec = math.vec2.scale(local_vec,1)
+			# Limit speed
+			#local_vec = math.vec2.newp(math.vec2.length(local_vec)*10,math.vec2.angle(local_vec))
+			movebase_goto.x = local_vec.x
+			movebase_goto.y = local_vec.y
+		}
+  }
+
+	return movebase_goto	
+}
+
+function goto_point_naive(vec_to_target, last_wp){
+	var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+	var NedPos = math.vec2.sub(pose.position,home_offset)
+	var local_vec = math.vec2.sub(vec_to_target,NedPos)
+	local_vec = math.vec2.rotate(local_vec, -pose.orientation.yaw)
+	var last_wp_tol = 0.0
+	if(last_wp){
+		last_wp_tol = 0.2
+	}
+	if(math.vec2.length(local_vec) > GOTODIST_TOL+last_wp_tol){
+		# scale to desired vel
+		local_vec = math.vec2.scale(local_vec,100)
+		# Limit speed
+		local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
+		# local_vec = RVO(local_vec)
+		#local_vec = math.vec2.rotate(local_vec,YAW_OFFSET)
+		goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
+		return 1
+	}
+	else{
+		goto(0,0)
+		return 0
+	}
+}
+
+function high_priority_robot_in_field(){
+	var found_robot ={.0=0}
+	neighbors.foreach(
+	  	function(rid, data) {
+			if(EXPLORER_IDs[rid]){
+	  			log("Explorer in range ",rid, "at distance ", data.distance)
+	  			if(EXPLORER_IDs[rid] < EXPLORER_IDs[id] and data.distance < EXPLORATION_YEILD){
+	    			found_robot[0] = 1
+	  			}
+	  		}
+		}
+	)
+	return found_robot[0]
+}
+
+function reverse_table(table_c){
+	var ret_table ={}
+	var idx = size(table_c) - 1
+	var f_idx = 0
+	while(idx >= 0){
+		ret_table[f_idx] = table_c[idx]
+		idx = idx - 1
+		f_idx = f_idx + 1 
+	}
+	return ret_table
+}
+
+function obs_test(){
+		var m_vec_to_go = math.vec2.newp(10,0)
+		m_vec_to_go = avoid_obs_using_potential(m_vec_to_go)
+		goto_abs(m_vec_to_go.x, m_vec_to_go.y, takeoff_heights[id], 0.0)
+}
+
+function avoid_obs_using_potential(m_goto_target){
+  var Accum = {.cnt=0,.x=0.0,.y=0.0}
+  var reaction_threshold = 42
+  var desired_safety_distance = 50
+  if(proximity[0].value < reaction_threshold){
+	var potential = harmonMagnitude(proximity[0].value, desired_safety_distance, HARMON_A0, HARMON_K)
+	if(potential < 0 ){ # Cutoff the negative side of the potential 
+		var pot_vec = math.vec2.newp(potential, math.pi/2)
+		Accum.x = Accum.x + pot_vec.x
+	        Accum.y = Accum.y + pot_vec.y
+        	Accum.cnt= Accum.cnt +1
+	}
+
+  }
+
+  if(proximity[1].value < reaction_threshold){
+        var potential = harmonMagnitude(proximity[1].value, desired_safety_distance, HARMON_A0, HARMON_K)
+        if(potential < 0 ){ # Cutoff the negative side of the potential 
+                var pot_vec = math.vec2.newp(potential, math.pi/4)
+                Accum.x = Accum.x + pot_vec.x
+                Accum.y = Accum.y + pot_vec.y
+                Accum.cnt= Accum.cnt +1
+        }
+
+  }
+
+  if(proximity[2].value < reaction_threshold){
+        var potential = harmonMagnitude(proximity[2].value, desired_safety_distance, HARMON_A0, HARMON_K)
+        if(potential < 0 ){ # Cutoff the negative side of the potential 
+                var pot_vec = math.vec2.newp(potential, -math.pi/2)
+                Accum.x = Accum.x + pot_vec.x
+                Accum.y = Accum.y + pot_vec.y
+                Accum.cnt= Accum.cnt +1
+        }
+
+  }
+
+  if(proximity[3].value < reaction_threshold){
+        var potential = harmonMagnitude(proximity[3].value, desired_safety_distance, HARMON_A0, HARMON_K)
+        if(potential < 0 ){ # Cutoff the negative side of the potential
+                var pot_vec = math.vec2.newp(potential, -math.pi/4)
+                Accum.x = Accum.x + pot_vec.x
+                Accum.y = Accum.y + pot_vec.y
+                Accum.cnt= Accum.cnt +1
+        }
+
+  }
+
+
+  if(Accum.cnt > 0){
+    Accum.x = Accum.x/Accum.cnt
+    Accum.y = Accum.y/Accum.cnt
+  }
+  var normalized_target_vec = math.vec2.new(m_goto_target.x,m_goto_target.y)
+  normalized_target_vec = math.vec2.scale(normalized_target_vec, 1/math.vec2.length(normalized_target_vec))
+  
+  var target_weight = 3.5
+  var return_vec = math.vec2.new((target_weight*normalized_target_vec.x)+ (Accum.x),(target_weight*normalized_target_vec.y)+(Accum.y))
+  # return_vec = math.vec2.scale(return_vec,10)
+  return return_vec
+}
