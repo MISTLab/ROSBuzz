@@ -198,6 +198,8 @@ private:
   ros::ServiceClient planner_client_start_planner;
   ros::ServiceClient global_homing_with_navs_client;
   ros::ServiceClient global_homing_client;
+  ros::ServiceClient local_planner_continue_client;
+  ros::ServiceClient local_planner_stop_client;
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
   ros::Publisher targetf_pub;
@@ -265,6 +267,9 @@ private:
 
   /*Flight controller service call*/
   void flight_controller_service_call();
+
+  /*Local Planner service calls*/
+  void planner_service_call();
 
   /*Neighbours pos publisher*/
   void neighbours_pos_publisher();

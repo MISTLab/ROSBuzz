@@ -7,12 +7,13 @@ FORWARDING = 1
 function forward_test(){
 	if(isnil(target_pos)){
 		#target_pos = {.x = pose.position.x+10, .y = pose.position.y}
-		target_pos = {.x =-2.407, .y = 0.0}
+		target_pos = {.x =1.507, .y = 0.0}
 	}
 	else{
 		var l_tar=math.vec2.sub(target_pos,pose.position)
 		l_tar = math.vec2.rotate(l_tar, -pose.orientation.yaw)
 		if(math.vec2.length(l_tar) > 0.1){
+      # goto(1.0*100,0.0)
 			goto(l_tar.x*100,l_tar.y*100)
 		}
 		else{

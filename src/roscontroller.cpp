@@ -199,6 +199,8 @@ void roscontroller::RosControllerRun()
       }
       // Call the flight controler service
       flight_controller_service_call();
+      // call planner services if required
+      planner_service_call();
       // Broadcast local position to FCU
       if (BClpose && !setmode)
         SetLocalPosition(goto_pos[0], goto_pos[1], goto_pos[2], goto_pos[3]);
@@ -309,11 +311,13 @@ void roscontroller::Rosparameters_get(ros::NodeHandle& n_c)
 /-------------------------------------------------------*/
 {
   // Obtain .bzz file name from launch file parameter
-  if (n_c.getParam("bzzfile_name", bzzfile_name))
-    ;
+  if (n_c.getParam("bzzfile_name", bzzfile_name)){
+    std::string ns = ros::this_node::getNamespace();
+    ROS_INFO("Namespace %s", ns.c_str());
+  }
   else
   {
-    ROS_ERROR("Provide a .bzz file to run in Launch file");
+    ROS_ERROR("Provide a .bzz file to run in Launch file name space");
     system("rosnode kill rosbuzz_node");
   }
   if (n_c.getParam("WPfile", WPfile))
@@ -560,6 +564,15 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     global_homing_client = n_c.serviceClient<std_srvs::Trigger>(topic);
   }
 
+  if(node_handle.getParam("services/local_planner_continue", topic))
+  {
+    local_planner_continue_client = n_c.serviceClient<std_srvs::Trigger>(topic);
+  }
+
+    if(node_handle.getParam("services/local_planner_stop", topic))
+  {
+    local_planner_stop_client = n_c.serviceClient<std_srvs::Trigger>(topic);
+  }
 
   if (node_handle.getParam("topics/outpayload", topic))
     payload_pub = n_c.advertise<mavros_msgs::Mavlink>(topic, 5);
@@ -1270,6 +1283,42 @@ script
     }
       break;
 
+  }
+}
+
+void roscontroller::planner_service_call(){
+  /* Local planner service calls. 
+     1-> Stop planner
+     2-> Continue Planner
+  */
+  switch (buzzuav_closures::planner_cmd())
+  {
+  case 1:{
+      /* Stop local planner */
+      std_srvs::Trigger srv;
+      if (local_planner_stop_client.call(srv)) {
+        ROS_INFO("[ROSBuzz] local Planner stop call successful");
+      }
+      else{
+        ROS_ERROR("[ROSBUZZ] local planner stop call failed: %s",
+                  local_planner_stop_client.getService().c_str());
+      }
+    }
+    break;
+  case 2:{ 
+      /* Continue local planner */
+      std_srvs::Trigger srv;
+      if (local_planner_continue_client.call(srv)) {
+        ROS_INFO("[ROSBuzz] local Planner continue call successful");
+      }
+      else{
+        ROS_ERROR("[ROSBUZZ] local planner continue call failed: %s",
+                  local_planner_continue_client.getService().c_str());
+      }
+    }
+    break;
+  default:
+    break;
   }
 }
 

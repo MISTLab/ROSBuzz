@@ -11,7 +11,8 @@ R9:
   pose_y: 1.002
   ori_theta: 0.0
 R3:
-  pose_x: 0.486
+  # pose_x: 0.486
+  pose_x: 0.0
   pose_y: 0.0
   ori_theta: 0.0
 R6: 

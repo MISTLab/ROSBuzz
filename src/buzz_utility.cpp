@@ -396,6 +396,7 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   if (VM)
     buzzvm_destroy(&VM);
   VM = buzzvm_new(Robot_id);
+  buzzuav_closures::setCurVm(VM);
   // Get rid of debug info
   if (DBG_INFO)
     buzzdebug_destroy(&DBG_INFO);
