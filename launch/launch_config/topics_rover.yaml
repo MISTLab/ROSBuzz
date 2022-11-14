@@ -1,6 +1,6 @@
 topics:
   gps     :   global_position/global
-  battery :   battery
+  battery :   robot_battery
   status  :   state
   estatus :   extended_state
   setpoint:   setpoint_position/local
@@ -18,6 +18,7 @@ topics:
   yolobox: intermediator_ros/bounding_boxes
   hierarchical_status: hierarchical_status
   explorer_path: rover/command/trajectory
+  interpolated_homing_path: gbplanner/intrapolated_path
   global_homing_navs_path: pci_rosbuzz/global_homing_navs_path_set
   global_homing_path: pci_rosbuzz/global_homing_path
   move_base_goal: move_base/goal
@@ -37,3 +38,5 @@ services:
   global_home_planner: planner_control_interface/std_srvs/homing_trigger
   local_planner_continue: local_planner/continue
   local_planner_stop: local_planner/stop
+  home_pose_set: planner_control_interface/set_homing_position_from_pose
+ 

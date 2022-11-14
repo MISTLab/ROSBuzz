@@ -467,6 +467,9 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   node_handle.getParam("topics/explorer_path", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "trajectory_msgs::MultiDOFJointTrajectory"));
 
+  node_handle.getParam("topics/interpolated_homing_path", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "geometry_msgs/PoseArray"));
+
   node_handle.getParam("topics/global_homing_navs_path", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "rosbuzz::homing_path_set"));  
 
@@ -634,6 +637,14 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
   {
     ROS_WARN("Provide a move base topic, when using Move Base for navigation");
   }
+
+  if(node_handle.getParam("services/home_pose_set", topic)){
+    ROS_WARN("Home pose set topic %s",topic.c_str());
+    homeLocationSetClient = n_c.serviceClient<planner_msgs::pci_set_homing_pos_from_pos>(topic);
+  }  
+  else{
+    ROS_WARN("Home pose topic not avaialble !!");
+  }
 }
 
 void roscontroller::Initialize_pub_sub(ros::NodeHandle& n_c, ros::NodeHandle& n_c_priv)
@@ -716,6 +727,9 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     }
     else if(it->second == "geometry_msgs::PoseWithCovarianceStamped"){
       fiducial_tags_sub = n_c.subscribe(it->first, 10, &roscontroller::fiducial_tags_cb, this);
+    }
+    else if(it->second == "geometry_msgs/PoseArray"){
+      interpolated_home_path_sub = n_c.subscribe(it->first, 10, &roscontroller::intrapolatedPathcb, this);
     }
     
 
@@ -1227,50 +1241,6 @@ script
     }
       break;
 
-    case EXPLORE:{
-      if(!planner_service_called){
-        std_srvs::Trigger srv;
-        if (planner_client_start_planner.call(srv)) {
-          planner_service_called = true;
-          ROS_INFO("[ROSBuzz] Planner call successful");
-        }
-        else{
-          ROS_ERROR("[ROSBUZZ] Planner Service call failed: %s",
-                    planner_client_start_planner.getService().c_str());
-        }
-      }
-      else{
-        ;
-      }
-    }
-      break;
-
-    case GLOBAL_HOME_WITH_TUB:{
-      std_srvs::Trigger srv;
-      if (global_homing_with_navs_client.call(srv)) {
-        ROS_INFO("[ROSBuzz] Global Plan (Homing) with nav tube call successful");
-      }
-      else{
-        ROS_ERROR("[ROSBUZZ] Global Plan (Homing) with nav tube call failed: %s",
-                  global_homing_with_navs_client.getService().c_str());
-      }
-    
-    }
-      break;
-
-    case GLOBAL_HOME:{
-      std_srvs::Trigger srv;
-      if (global_homing_client.call(srv)) {
-        ROS_INFO("[ROSBuzz] Global Plan (Homing) call successful");
-      }
-      else{
-        ROS_ERROR("[ROSBUZZ] Global Plan (Homing) call failed: %s",
-                  global_homing_client.getService().c_str());
-      }
-      
-    }
-      break;
-
     case IMAGE_START_CAPTURE:{
       ROS_INFO("TAKING A PICTURE HERE!! --------------");
       mavros_msgs::CommandBool capture_command;
@@ -1287,6 +1257,74 @@ script
 }
 
 void roscontroller::planner_service_call(){
+  // Check for set home location service call 
+  std::vector<float> planner_home_location = 
+    buzzuav_closures::get_home_location_setter_status();
+  if(planner_home_location[4] == 1){
+    planner_msgs::pci_set_homing_pos_from_pos srv;
+    geometry_msgs::Pose Home_location;
+    Home_location.position.x = planner_home_location[0];
+    Home_location.position.y = planner_home_location[1];
+    Home_location.position.z = planner_home_location[2];
+    tf2::Quaternion Home_orienation;
+    Home_orienation.setRPY( 0, 0, planner_home_location[3] );
+    Home_location.orientation = tf2::toMsg(Home_orienation);
+    srv.request.pose = Home_location;
+    if (homeLocationSetClient.call(srv)) {
+        ROS_INFO("Home location set Planner call successful");
+    }
+    else{
+        ROS_ERROR("Home location set Planner Service call failed: %s",
+                homeLocationSetClient.getService().c_str());
+    }
+  }
+
+  
+  int cur_cmd_exploration = buzzuav_closures::exploration_planner_cmd_get();
+  if(cur_cmd_exploration == GLOBAL_HOME){
+    if(!homing_planner_service_called){
+      std_srvs::Trigger srv;
+      if (global_homing_client.call(srv)) {
+        homing_planner_service_called = true;
+        ROS_INFO("[ROSBuzz] Global Plan (Homing) call successful");
+      }
+      else{
+        ROS_ERROR("[ROSBUZZ] Global Plan (Homing) call failed: %s",
+                  global_homing_client.getService().c_str());
+      }
+    }
+    else{
+      ;
+    }
+  }
+  else if(cur_cmd_exploration == EXPLORE ){
+    if(!explore_planner_service_called){
+      std_srvs::Trigger srv;
+      if (planner_client_start_planner.call(srv)) {
+        explore_planner_service_called = true;
+        ROS_INFO("[ROSBuzz] Planner call successful");
+      }
+      else{
+        ROS_ERROR("[ROSBUZZ] Planner Service call failed: %s",
+                  planner_client_start_planner.getService().c_str());
+      }
+    }
+    else{
+      ;
+    }
+  }
+  else if(cur_cmd_exploration == GLOBAL_HOME_WITH_TUB){
+      std_srvs::Trigger srv;
+      if (global_homing_with_navs_client.call(srv)) {
+        ROS_INFO("[ROSBuzz] Global Plan (Homing) with nav tube call successful");
+      }
+      else{
+        ROS_ERROR("[ROSBUZZ] Global Plan (Homing) with nav tube call failed: %s",
+                  global_homing_with_navs_client.getService().c_str());
+      }
+    
+  }
+
   /* Local planner service calls. 
      1-> Stop planner
      2-> Continue Planner
@@ -1320,6 +1358,19 @@ void roscontroller::planner_service_call(){
   default:
     break;
   }
+}
+
+void roscontroller::intrapolatedPathcb(const geometry_msgs::PoseArrayConstPtr& msg) {
+  std::vector<std::vector<float>> path;
+  for(int i=0; i<msg->poses.size(); ++i){
+    std::vector<float> path_point;
+    path_point.push_back(msg->poses[i].position.x);
+    path_point.push_back(msg->poses[i].position.y);
+    path_point.push_back(msg->poses[i].position.z);
+    path.push_back(path_point);
+  }
+  buzzuav_closures::update_interpolation_path(path);
+
 }
 
 void roscontroller::clear_pos()
@@ -1400,7 +1451,7 @@ void roscontroller::path_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstP
     path.push_back(path_point);
   }
   buzzuav_closures::update_explore_path(path);
-  planner_service_called = false;
+  explore_planner_service_called = false;
 }
 
 void roscontroller::path_home_cb(const trajectory_msgs::MultiDOFJointTrajectoryConstPtr& msg)
@@ -1417,7 +1468,7 @@ void roscontroller::path_home_cb(const trajectory_msgs::MultiDOFJointTrajectoryC
     path.push_back(path_point);
   }
   buzzuav_closures::update_home_path(path);
-  planner_service_called = false;
+  homing_planner_service_called = false;
 }
 
 void roscontroller::path_home_nav_cb(const rosbuzz::homing_path_setConstPtr& msg)
@@ -1443,7 +1494,7 @@ void roscontroller::path_home_nav_cb(const rosbuzz::homing_path_setConstPtr& msg
     path.push_back(path_point);
   }
   buzzuav_closures::update_nav_tube(path);
-  planner_service_called = false;
+  // planner_service_called = false;
 }
 
 void roscontroller::move_base_trajectory_cb(const nav_msgs::PathConstPtr& msg)
@@ -1544,8 +1595,7 @@ void roscontroller::battery(const sensor_msgs::BatteryState::ConstPtr& msg)
 {
   buzzuav_closures::set_battery(msg->voltage, msg->current, msg->percentage * 100.0);
   //  DEBUG
-  // ROS_INFO("voltage : %d  current : %d  remaining : %d",msg->voltage,
-  // msg->current, msg ->remaining);
+  // ROS_INFO("voltage : %f  current : %f",msg->voltage,msg->current);
 }
 
 void roscontroller::flight_status_update(const mavros_msgs::State::ConstPtr& msg)

@@ -1,0 +1,870 @@
+function energy_aware_mission(control_input){
+
+    k = 0.1
+
+    ###########
+    c = {}
+    # c[0] = 1.0 #this is to show how many values that have to be set for one constraints (the last value of c is the right hand side of the inequality)
+    # c[1] = 1.0
+    # c[2] = 2.0
+    # c[3] = 0.0
+    ############
+
+    u_max = 1.0
+    Emin_limit = 100.0
+    
+
+    #activation variable depending on the value of S (the progression variable along the curve)
+    # alpha_s = 1.0/(1.0+math.exp(-100*(S-0.001)))
+
+    if(S < 0.0001)alpha_s = 0.0
+    else alpha_s = 1.0
+    random()
+	x_pos = pose.position.x + random_val * 0.1
+	random()
+	y_pos = pose.position.y + random_val * 0.1
+
+    #control action for bezier curve headpoint
+    Kp_b = 10;
+    u_px = -Kp_b*(bezier_head_x - x_pos)*(1-alpha_s);
+    u_py = -Kp_b*(bezier_head_y - y_pos)*(1-alpha_s);
+
+    dcs = math.sqrt(x_pos^2 + y_pos^2)
+    #ensuring energy sufficiency
+    vr = 0.1
+	p = 5.1
+    # XB=bezier3(S,bezier_head_x,bezier_head_y,approximation_order,path)
+	XB=bezier4(tension_factor,u_px,u_py,S,bezier_head_x,bezier_head_y,approximation_order,path)
+	x_ref = XR
+	y_ref = YR
+	path_ = XB
+	merging_error = L2_error
+	# log("L_path:  ",L_path)
+    h = voltage - Emin - ke/vr*(L_path-dcs_th)
+	he_val = h
+	c[0] = ke/vr * L_d_psi
+    c[1] = 1.0
+	c[2] = (-ke -ke/vr*DL + p*h)
+    # c[2] = (-ke -ke/vr*(DL_x*u_px+DL_y*u_py) + p*h)
+    # c[2] = (F + p*h)
+
+	if(S > 0.001){
+		global_path_update_permitted = 0
+	}
+	else{
+		global_path_update_permitted = 1
+	}
+
+
+    #ensuring S doesn't fall below zero 
+    ps = 10.0;
+    h_s = S
+    c[3] = -1.0
+    c[4] = 0.0
+    c[5] = ps*h_s
+
+
+    #CBF for bounding ||Emin|| from below
+    priority_gain = 800.0
+    hb = (Emin - voltage_lower_bound)*priority_gain
+
+    starting_index = 6 #this is the index at which we will start from when we add coordination constraints in the next step
+
+
+
+
+    #CBF for coordination with other robots for proper CS use
+    alpha_i = (voltage - Emin)/ke #this is the arrival time of robot i
+    push_info()
+
+
+    #looping over all agents in table to coordinate with them
+    i = 0
+    counter = 0
+    hc = {}
+    indices = {}
+    alpha_j_tank = {}
+    agent_j_in_game_tank = {}
+    table_active = 1
+	
+	F = -ke
+    while(i < size(shared_table)){
+        
+		key = string.concat("msg",string.tostring(i))
+		retrieved_data = shared_table.get(key)
+		if(retrieved_data != nil){ 
+			ID = retrieved_data[2]   
+			if(id != ID and ID != 49){     
+				alpha_j = retrieved_data[0]
+				# if(id == 6){
+				#     log(alpha_j)
+				# }
+				agent_j_in_game = retrieved_data[1]
+
+				# log("i am ",id," my neighbor is ",ID," and alpha_j is ",alpha_j," my alpha is ",alpha_i)
+				table_active = table_active + 1
+				# log("table_active = ",table_active)
+
+				Fj = F   
+				hc[counter] = math.log(math.abs(alpha_i-alpha_j)/epsilon)
+				indices[counter] = i
+				alpha_j_tank[counter] = alpha_j
+				agent_j_in_game_tank[counter] = agent_j_in_game
+				counter = counter + 1
+			}
+		}       
+        
+        i = i + 1   
+    }
+    # log(counter)
+    if(table_active >= 2){
+        i = 0
+        min_hc = 10000
+        min_index = 0
+        #looking for the minimum value of hc here
+        while(i<counter){
+            if(hc[i]<min_hc){
+                min_hc = hc[i]
+                min_ID = indices[i] #this is the id with which I have min hc_ij
+                min_index = i
+            }
+            i = i + 1
+        }
+		
+        #now as I know the min value of hc, I should check the min(hc,hb)
+		if(math.abs(min_hc-hb) < 0.05)
+		{
+			c[starting_index] = 0.0
+            c[starting_index+1] = -1.0*priority_gain
+            # c[starting_index+2] = pb*(math.abs(hb)^(0.5))*(hb/math.abs(hb)) 
+			c[starting_index+2] = pb*hb
+		}
+		else{
+			if(min_hc < hb){
+
+				alpha_j = alpha_j_tank[min_index]
+				agent_j_in_game = agent_j_in_game_tank[min_index]
+				if(dcs > dcs_th and agent_j_in_game){
+				# if(dcs > dcs_th ){#
+					pc = 0.1
+				}
+				else{
+					pc = 0.0000
+				}
+
+				# log("alpha_j: ",alpha_j,"  ",alpha_i)
+				A1 = (alpha_i-alpha_j)/(ke*math.abs(alpha_i-alpha_j)^2)
+				B = (alpha_i-alpha_j)/(ke*math.abs(alpha_i-alpha_j)^2) * (F-Fj) #F is \dot{E}, and here we assume that all robots have the same discharge rate
+				B = B + pc*min_hc
+				# B = B + pc*(math.abs(min_hc)^(0.8))*(min_hc/math.abs(min_hc))
+				hc_val = min_hc
+
+				c[starting_index] = 0.0
+				c[starting_index+1] = A1
+				c[starting_index+2] = B
+				
+			}
+			else{
+				c[starting_index] = 0.0
+				c[starting_index+1] = -1.0*priority_gain
+				# c[starting_index+2] = pb*(math.abs(hb)^(0.5))*(hb/math.abs(hb)) 
+				c[starting_index+2] = pb*hb
+			}
+		}
+    }
+    
+	if(id==50 or id == 51)log("id: ",id," h=  ",h," S= ",S,"  Emin=  ",Emin,"  V=  ",voltage,"  L_d_psi=  ",L_d_psi,"  hc=  ",min_hc)
+
+    #solving the constructed Quadratic Program
+    aa = {}
+    aa[0] = 2.0
+    aa[1] = 0.0
+    aa[2] = 0.0
+    aa[3] = 2.0
+
+    bb = {}
+    bb[0] = 2.0
+    bb[1] = 0.0
+
+    sol = qp_solver(aa, bb, c)
+
+	# if(id == 50){
+	# 	i = 0
+	# 	log("for C id is:  ",id)
+	# 	while(i < size(c)){
+	# 		log(c[i],"  ")
+	# 		i = i + 1
+	# 	}
+	# 	log("  ")
+	# }
+
+    alpha = sol[0]
+
+    S = S + alpha * dt
+	s_val = S
+    Emin = Emin + sol[1] * dt * 0.0
+	# log("value of eta is:  ",sol[1])
+    
+    bezier_head_x = bezier_head_x + u_px * dt
+    bezier_head_y = bezier_head_y + u_py * dt
+
+    k_p = 2;
+    u_path_x = -k_p*(x_pos-XR);
+    u_path_y = -k_p*(y_pos-YR);
+	# log("at S= ",S," the ref point is:  ",XR,"  ",YR)
+	log("position: ",pose.position.x,"  ",pose.position.y)
+
+    DR = math.sqrt((x_pos-XR)*(x_pos-XR)+(y_pos-YR)*(y_pos-YR))
+
+    UX = control_input[0]*(1-alpha_s) + u_path_x*alpha_s
+    UY = control_input[1]*(1-alpha_s) + u_path_y*alpha_s
+
+	vel_out = {}
+    vel_out[0] = UX#*0.0
+    vel_out[1] = UY#*0.0
+
+	return vel_out
+}
+
+
+function energy_aware_mission2(control_input){
+
+    k = 0.1
+
+    ###########
+    c = {}
+    # c[0] = 1.0 #this is to show how many values that have to be set for one constraints (the last value of c is the right hand side of the inequality)
+    # c[1] = 1.0
+    # c[2] = 2.0
+    # c[3] = 0.0
+    ############
+
+    u_max = 1.0
+    Emin_limit = 100.0
+    
+
+    #activation variable depending on the value of S (the progression variable along the curve)
+    # alpha_s = 1.0/(1.0+math.exp(-100*(S-0.001)))
+
+    if(S < 0.0001)alpha_s = 0.0
+    else alpha_s = 1.0
+
+    random()
+	x_pos = pose.position.x + random_val * 0.0
+	random()
+	y_pos = pose.position.y + random_val * 0.0
+
+    #control action for bezier curve headpoint
+    Kp_b = 10;
+    u_px = -Kp_b*(bezier_head_x - x_pos)*(1-alpha_s);
+    u_py = -Kp_b*(bezier_head_y - y_pos)*(1-alpha_s);
+
+    dcs = math.sqrt(x_pos^2 + y_pos^2)
+    vr = 0.1
+	p = 5.1
+    # XB=bezier3(S,bezier_head_x,bezier_head_y,approximation_order,path)
+	XB=bezier4(tension_factor,u_px,u_py,S,bezier_head_x,bezier_head_y,approximation_order,path)
+	x_ref = XR
+	y_ref = YR
+	path_ = XB
+	merging_error = L2_error
+	
+	#ensuring energy sufficiency
+	# log("L_path:  ",L_path)
+    h = voltage - Emin - ke/vr*(L_path-dcs_th)
+	he_val = h
+	log(L_d_psi)
+	c[0] = ke/vr * L_d_psi
+    c[1] = 0.0
+	c[2] = 0.0
+	c[3] = 0.0
+	c[4] = (-ke -ke/vr*DL + p*h)
+    # c[2] = (-ke -ke/vr*(DL_x*u_px+DL_y*u_py) + p*h)
+    # c[2] = (F + p*h)
+
+	if(S > 0.001){
+		global_path_update_permitted = 0
+	}
+	else{
+		global_path_update_permitted = 1
+	}
+
+
+    #ensuring S doesn't fall below zero 
+    ps = 10.0;
+    h_s = S
+    c[5] = -1.0
+    c[6] = 0.0
+	c[7] = 0.0
+	c[8] = 0.0
+    c[9] = ps*h_s
+
+
+	#following the reference point
+	pr = 6.0
+	dx = x_pos-XR
+	dy = y_pos-YR
+	DR = math.sqrt(dx^2+dy^2)
+	hr = 0.1 - DR
+	tracking_error = DR
+	c[10] = -(dx*r1x+dy*r1y)/DR
+    c[11] = 0.0
+	c[12] = dx/DR
+	c[13] = dy/DR
+    c[14] = (dx*r2x+dy*r2y)/DR + pr * hr
+
+
+    #CBF for bounding ||Emin|| from below
+    priority_gain = 800.0
+    hb = (Emin - voltage_lower_bound)*priority_gain
+
+    starting_index = 15 #this is the index at which we will start from when we add coordination constraints in the next step
+
+
+
+
+    #CBF for coordination with other robots for proper CS use
+    alpha_i = (voltage - Emin)/ke #this is the arrival time of robot i
+    push_info()
+
+
+    #looping over all agents in table to coordinate with them
+    i = 0
+    counter = 0
+    hc = {}
+    indices = {}
+    alpha_j_tank = {}
+    agent_j_in_game_tank = {}
+    table_active = 1
+	
+	F = -ke
+    while(i < size(shared_table)){
+        
+		key = string.concat("msg",string.tostring(i))
+		retrieved_data = shared_table.get(key)
+		if(retrieved_data != nil){ 
+			ID = retrieved_data[2]   
+			if(id != ID and ID != 49){     
+				alpha_j = retrieved_data[0]
+				# if(id == 6){
+				#     log(alpha_j)
+				# }
+				agent_j_in_game = retrieved_data[1]
+
+				# log("i am ",id," my neighbor is ",ID," and alpha_j is ",alpha_j," my alpha is ",alpha_i)
+				table_active = table_active + 1
+				# log("table_active = ",table_active)
+
+				Fj = F   
+				hc[counter] = math.log(math.abs(alpha_i-alpha_j)/epsilon)
+				indices[counter] = i
+				alpha_j_tank[counter] = alpha_j
+				agent_j_in_game_tank[counter] = agent_j_in_game
+				counter = counter + 1
+			}
+		}       
+        
+        i = i + 1   
+    }
+    # log(counter)
+	min_hc = 100000
+    # if(table_active >= 2){
+    #     i = 0
+    #     min_hc = 10000
+    #     min_index = 0
+    #     #looking for the minimum value of hc here
+    #     while(i<counter){
+    #         if(hc[i]<min_hc){
+    #             min_hc = hc[i]
+    #             min_ID = indices[i] #this is the id with which I have min hc_ij
+    #             min_index = i
+    #         }
+    #         i = i + 1
+    #     }
+		
+    #     #now as I know the min value of hc, I should check the min(hc,hb)
+	# 	if(math.abs(min_hc-hb) < 0.05)
+	# 	{
+	# 		c[starting_index] = 0.0
+    #         c[starting_index+1] = -1.0*priority_gain
+    #         # c[starting_index+2] = pb*(math.abs(hb)^(0.5))*(hb/math.abs(hb)) 
+	# 		c[starting_index+2] = 0.0
+	# 		c[starting_index+3] = 0.0
+	# 		c[starting_index+4] = pb*hb
+	# 	}
+	# 	else{
+	# 		if(min_hc < hb){
+
+	# 			alpha_j = alpha_j_tank[min_index]
+	# 			agent_j_in_game = agent_j_in_game_tank[min_index]
+	# 			if(dcs > dcs_th and agent_j_in_game){
+	# 			# if(dcs > dcs_th ){#
+	# 				pc = 0.1
+	# 			}
+	# 			else{
+	# 				pc = 0.0000
+	# 			}
+
+	# 			# log("alpha_j: ",alpha_j,"  ",alpha_i)
+	# 			A1 = (alpha_i-alpha_j)/(ke*math.abs(alpha_i-alpha_j)^2)
+	# 			B = (alpha_i-alpha_j)/(ke*math.abs(alpha_i-alpha_j)^2) * (F-Fj) #F is \dot{E}, and here we assume that all robots have the same discharge rate
+	# 			B = B + pc*min_hc
+	# 			# B = B + pc*(math.abs(min_hc)^(0.8))*(min_hc/math.abs(min_hc))
+	# 			hc_val = min_hc
+
+	# 			c[starting_index] = 0.0
+	# 			c[starting_index+1] = A1
+	# 			c[starting_index+2] = 0.0
+	# 			c[starting_index+3] = 0.0
+	# 			c[starting_index+4] = B
+				
+	# 		}
+	# 		else{
+	# 			c[starting_index] = 0.0
+	# 			c[starting_index+1] = -1.0*priority_gain
+	# 			# c[starting_index+2] = pb*(math.abs(hb)^(0.5))*(hb/math.abs(hb)) 
+	# 			c[starting_index+2] = 0.0
+	# 			c[starting_index+3] = 0.0
+	# 			c[starting_index+4] = pb*hb
+	# 		}
+	# 	}
+    # }
+    
+	if(id==50 or id == 51)log("id: ",id," h=  ",h," S= ",S,"  Emin=  ",Emin,"  V=  ",voltage,"  L_d_psi=  ",L_d_psi,"  hc=  ",min_hc)
+
+    #solving the constructed Quadratic Program
+    aa = {}
+    aa[0] = 2.0
+    aa[1] = 0.0
+    aa[2] = 0.0
+    aa[3] = 0.0
+
+	aa[4] = 0.0
+    aa[5] = 2.0
+    aa[6] = 0.0
+    aa[7] = 0.0
+
+	aa[8] = 0.0
+    aa[9] = 0.0
+    aa[10] = 2.0
+    aa[11] = 0.0
+
+	aa[12] = 0.0
+    aa[13] = 0.0
+    aa[14] = 0.0
+    aa[15] = 2.0
+
+    bb = {}
+    bb[0] = 2.0
+    bb[1] = 0.0
+	bb[2] = -control_input[0]
+	bb[3] = -control_input[1]
+
+    
+
+	# if(id == 50){
+	# 	i = 0
+	# 	log("for C id is:  ",id)
+	# 	while(i < size(c)){
+	# 		log(c[i],"  ")
+	# 		i = i + 1
+	# 	}
+	# 	log("  ")
+	# }
+
+	sol = qp_solver(aa, bb, c)
+    alpha = sol[0]
+
+	if(dcs > dcs_th){
+		S = S + alpha * dt
+		s_val = S
+	}
+    
+    Emin = Emin + sol[1] * dt *0.0
+	# log("value of eta is:  ",sol[1])
+    
+    bezier_head_x = bezier_head_x + u_px * dt
+    bezier_head_y = bezier_head_y + u_py * dt
+
+    # k_p = 2;
+    # u_path_x = -k_p*(x_pos-XR);
+    # u_path_y = -k_p*(y_pos-YR);
+	# log("at S= ",S," the ref point is:  ",XR,"  ",YR)
+	log("position: ",pose.position.x,"  ",pose.position.y)
+
+    # UX = control_input[0]*(1-alpha_s) + u_path_x*alpha_s
+    # UY = control_input[1]*(1-alpha_s) + u_path_y*alpha_s
+
+	UX = sol[2]
+	UY = sol[3]
+
+	vel_out = {}
+    vel_out[0] = UX#*0.0
+    vel_out[1] = UY#*0.0
+
+	return vel_out
+}
+
+function avoid_station(u,x,y){
+	a = {}
+	b = {}
+	c = {}
+
+	a[0] = 2.0
+	a[1] = 0.0
+	a[2] = 0.0
+	a[3] = 2.0
+
+	b[0] = -u[0]
+	b[1] = -u[1]
+
+	p = 1.0
+	dcs = math.sqrt(x^2 + y^2)
+	h = dcs - dcs_th*1.1
+	c[0] = -x/dcs
+	c[1] = -y/dcs
+	c[2] = p*h
+	sol = qp_solver(a, b, c)
+	return sol
+}
+
+function energy_aware_mission_exponential_discharge(control_input){
+
+    k = 0.1
+
+    ###########
+    c = {}
+    # c[0] = 1.0 #this is to show how many values that have to be set for one constraints (the last value of c is the right hand side of the inequality)
+    # c[1] = 1.0
+    # c[2] = 2.0
+    # c[3] = 0.0
+    ############
+
+    u_max = 1.0
+    Emin_limit = 100.0
+    
+
+    #activation variable depending on the value of S (the progression variable along the curve)
+    alpha_s = 1.0/(1.0+math.exp(-100*(S-0.001)))
+
+    # if(S < 0.0001)alpha_s = 0.0
+    # else alpha_s = 1.0
+
+    random()
+	x_pos = pose.position.x + random_val * 0.0
+	random()
+	y_pos = pose.position.y + random_val * 0.0
+
+	if(time_step > 20) control_input = avoid_station(control_input,x_pos,y_pos)
+    #control action for bezier curve headpoint
+    Kp_b = 30;
+    u_px = -Kp_b*(bezier_head_x - x_pos)*(1-alpha_s);
+    u_py = -Kp_b*(bezier_head_y - y_pos)*(1-alpha_s);
+
+    dcs = math.sqrt(x_pos^2 + y_pos^2)
+    vr = 0.3
+	p = 2.1
+    # XB=bezier3(S,bezier_head_x,bezier_head_y,approximation_order,path)
+	XB=bezier4(tension_factor,u_px,u_py,S,bezier_head_x,bezier_head_y,approximation_order,path)
+	x_ref = XR
+	y_ref = YR
+	path_ = XB
+	merging_error = L2_error
+	
+	#ensuring energy sufficiency
+	# log("L_path:  ",L_path)
+    h = voltage - Emin * math.exp(ke/vr*(L_path-dcs_th))
+	he_val = h
+	c[0] = Emin * math.exp(ke/vr*(L_path-dcs_th))* ke/vr * L_d_psi
+    c[1] = math.exp(ke/vr*(L_path-dcs_th))
+	c[2] = 0.0
+	c[3] = 0.0
+	c[4] = (-ke*voltage -Emin * math.exp(ke/vr*(L_path-dcs_th))*ke/vr*DL + p*h)
+    # c[2] = (-ke -ke/vr*(DL_x*u_px+DL_y*u_py) + p*h)
+    # c[2] = (F + p*h)
+
+	if(S > 0.001){
+		global_path_update_permitted = 0
+	}
+	else{
+		global_path_update_permitted = 1
+		dumping_behaviour_flag = 0
+	}
+
+	if(DS_count < DS_size){
+		DS[DS_count] = S
+		DS_count = DS_count + 1
+	}
+	else{
+		j = 0
+		ds_sum = 0.0
+		while(j < DS_size-1){
+			DS[j] = DS[j+1]
+			ds_sum = ds_sum + DS[j]
+			j = j + 1
+		}
+		DS[DS_size - 1] = S
+		ds_sum = ds_sum + S
+		DS_avg = ds_sum/(DS_size*1.0)
+	}
+
+	if(global_path_update_permitted == 0){ #in case we have to return back to station
+		if( (DS[DS_size-1]-DS[0]) < 0.001){#the S is stagnant, start dumping energy
+			dumping_behaviour_flag = 1
+			log("we are dumping energy  $$$$$$$$$$$$$$$$$$$")
+		}
+		else{
+			dumping_behaviour_flag = 0
+		}
+	}
+
+
+
+    #ensuring S doesn't fall below zero 
+    ps = 1.0;
+    h_s = S
+    c[5] = -1.0
+    c[6] = 0.0
+	c[7] = 0.0
+	c[8] = 0.0
+    c[9] = ps*h_s
+
+	#following the reference point
+	pr = 1.1 #3.1
+	dx = x_pos-XR
+	dy = y_pos-YR
+	DR = math.sqrt(dx^2+dy^2)#+0.0001
+	tracking_error = DR
+
+	hr = (0.1^2 - DR^2)*0.5
+	c[10] = -(dx*r1x+dy*r1y)
+    c[11] = 0.0
+	c[12] = dx
+	c[13] = dy 
+    c[14] = (dx*r2x+dy*r2y) + pr * hr
+
+	# if(DR < 0.00001){
+	# 	DR = 0.00001
+	# }
+	# hr = 0.3 - DR
+	# c[10] = -(dx*r1x+dy*r1y)/DR
+    # c[11] = 0.0
+	# c[12] = dx/DR
+	# c[13] = dy/DR
+    # c[14] = (dx*r2x+dy*r2y)/DR + pr * hr
+
+
+    #CBF for bounding ||Emin|| from below
+    priority_gain = 1000.0
+    # hb = (Emin - voltage_lower_bound)*priority_gain
+	hb = priority_gain*math.log(Emin/voltage_lower_bound)
+	if(Emin == 0){
+		hb = priority_gain*math.log((Emin+0.00001)/voltage_lower_bound)
+	}
+    starting_index = 15 #this is the index at which we will start from when we add coordination constraints in the next step
+
+	log("he = ",he_val,"  hr  = ",hr)
+
+
+    #CBF for coordination with other robots for proper CS use
+    alpha_i = math.log(voltage/Emin)/ke #(voltage - Emin)/ke #this is the arrival time of robot i
+    push_info()
+
+
+    #looping over all agents in table to coordinate with them
+    i = 0
+    counter = 0
+    hc = {}
+    indices = {}
+    alpha_j_tank = {}
+    agent_j_in_game_tank = {}
+    table_active = 1
+	
+	F = -ke
+	
+	# log("the size of the shared table is:  ",size(shared_table))
+    while(i < 10){
+		key = string.concat("msg",string.tostring(i))
+		# log("id: ",id," key ",key)
+		retrieved_data = shared_table.get(key)
+		if(retrieved_data != nil){ 
+			ID = retrieved_data[2]  
+			# log("I am ",id," and my neighbour id ",ID) 
+			if(id != ID and ID != 49){     
+				alpha_j = retrieved_data[0]
+				# if(id == 6){
+				#     log(alpha_j)
+				# }
+				agent_j_in_game = retrieved_data[1]
+
+				# log("i am ",id," my neighbor is ",ID," and alpha_j is ",alpha_j," my alpha is ",alpha_i)
+				table_active = table_active + 1
+				# log("table_active = ",table_active)
+
+				Fj = F   
+				hc[counter] = math.log(math.abs(alpha_i-alpha_j)/epsilon)
+				indices[counter] = i
+				alpha_j_tank[counter] = alpha_j
+				agent_j_in_game_tank[counter] = agent_j_in_game
+				counter = counter + 1
+			}
+		}       
+        
+        i = i + 1   
+    }
+	# log("id ",id," hc size ",size(hc),"  ",hc[0],"  ",hc[1])
+    # log(counter)
+	min_hc = 100000
+    if(table_active >= 2 and 0){
+        i = 0
+        min_hc = 10000
+        min_index = 0
+        #looking for the minimum value of hc here
+        while(i<counter){
+            if(hc[i]<min_hc and agent_j_in_game_tank[i]){
+                min_hc = hc[i]
+                min_ID = indices[i] #this is the id with which I have min hc_ij
+                min_index = i
+            }
+            i = i + 1
+        }
+		
+        #now as I know the min value of hc, I should check the min(hc,hb)
+		# if(math.abs(min_hc-hb) < 0.05 )
+		if(math.abs(Emin-voltage_lower_bound) < 0.001 and 0)
+		{
+			c[starting_index] = 0.0
+            c[starting_index+1] = -1.0*priority_gain/Emin
+            # c[starting_index+2] = pb*(math.abs(hb)^(0.5))*(hb/math.abs(hb)) 
+			c[starting_index+2] = 0.0
+			c[starting_index+3] = 0.0
+			c[starting_index+4] = pb*hb
+		}
+		else{
+			if(min_hc < hb){
+
+				alpha_j = alpha_j_tank[min_index]
+				agent_j_in_game = agent_j_in_game_tank[min_index]
+				# if(dcs > dcs_th and agent_j_in_game){
+				if(dcs > dcs_th ){#
+					pc = 0.5
+				}
+				else{
+					pc = 0.0000
+				}
+
+				# log("alpha_j: ",alpha_j,"  ",alpha_i)
+				A1 = (alpha_i-alpha_j)/(ke*Emin*math.abs(alpha_i-alpha_j)^2+0.00001)
+				B = 0.0#(alpha_i-alpha_j)/(ke*math.abs(alpha_i-alpha_j)^2) * (F-Fj) #F is \dot{E}, and here we assume that all robots have the same discharge rate
+				B = B + pc*min_hc
+				# B = B + pc*(math.abs(min_hc)^(0.8))*(min_hc/math.abs(min_hc))
+				hc_val = min_hc
+				if(dcs <= dcs_th){
+					hc_val = 0.0
+				}
+
+				c[starting_index] = 0.0
+				c[starting_index+1] = A1
+				c[starting_index+2] = 0.0
+				c[starting_index+3] = 0.0
+				c[starting_index+4] = B
+				
+			}
+			else{
+				c[starting_index] = 0.0
+				c[starting_index+1] = -1.0*priority_gain/(Emin+0.0001)
+				# c[starting_index+2] = pb*(math.abs(hb)^(0.5))*(hb/math.abs(hb)) 
+				c[starting_index+2] = 0.0
+				c[starting_index+3] = 0.0
+				c[starting_index+4] = pb*hb
+			}
+		}
+    }
+    
+	# if(id==50 or id == 51)log("id: ",id," h=  ",h," S= ",S,"  Emin=  ",Emin,"  V=  ",voltage,"  L_d_psi=  ",L_d_psi,"  hc=  ",min_hc)
+
+    #solving the constructed Quadratic Program
+    aa = {}
+    aa[0] = 200.0
+    aa[1] = 0.0
+    aa[2] = 0.0
+    aa[3] = 0.0
+
+	aa[4] = 0.0
+    aa[5] = 50000.0
+    aa[6] = 0.0
+    aa[7] = 0.0
+
+	aa[8] = 0.0
+    aa[9] = 0.0
+    aa[10] = 2.0
+    aa[11] = 0.0
+
+	aa[12] = 0.0
+    aa[13] = 0.0
+    aa[14] = 0.0
+    aa[15] = 2.0
+
+	# i = 0
+	# while(i < 16){
+	# 	if(i < 8)
+	# 	{
+	# 		aa[i] = aa[i] * 100
+	# 	}
+	# 	i = i + 1
+	# }
+
+    bb = {}
+    bb[0] = 2.0
+    bb[1] = 0.0
+	bb[2] = -control_input[0]
+	bb[3] = -control_input[1]
+
+    
+
+	# if(1==1){
+	# 	i = 0
+	# 	log("for C id is:  ",id)
+	# 	while(i < size(c)){
+	# 		log(c[i],"  ")
+	# 		i = i + 1
+	# 	}
+	# 	log("  ")
+	# }
+
+	sol = qp_solver(aa, bb, c)
+    alpha = sol[0]
+
+	if(dcs > dcs_th){
+		S = S + alpha * dt
+		s_val = S
+		dS = S - old_S
+		old_S = S
+	}
+    
+    Emin = Emin + sol[1] * dt *0.0
+	# log("value of eta is:  ",sol[1])
+    
+    bezier_head_x = bezier_head_x + u_px * dt
+    bezier_head_y = bezier_head_y + u_py * dt
+
+    # k_p = 2;
+    # u_path_x = -k_p*(x_pos-XR);
+    # u_path_y = -k_p*(y_pos-YR);
+	# log("at S= ",S," the ref point is:  ",XR,"  ",YR)
+	# log("time: ",time_step,"  position: ",pose.position.x,"  ",pose.position.y)
+
+    # UX = control_input[0]*(1-alpha_s) + u_path_x*alpha_s
+    # UY = control_input[1]*(1-alpha_s) + u_path_y*alpha_s
+
+	UX = sol[2]
+	UY = sol[3]
+
+	vel_out = {}
+    vel_out[0] = UX#*0.0
+    vel_out[1] = UY#*0.0
+	safe_speed = vel_out
+	abs_speed = math.sqrt(UX^2+UY^2)
+	# log("I am ",id," my speed  ", abs_speed)
+	return vel_out
+}

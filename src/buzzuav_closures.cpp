@@ -22,6 +22,7 @@ static double cur_NEDpos[4];
 static float navigation_goal[2];
 static float move_base_local_goal[2]={0.0,0.0}; 
 static int hierarchical_status[7]={-1,-1,-1,-1,-1,-1,-1};
+static float planner_home_location[5]={0.0,0.0,0.0,0.0,0.0};
 
 static int goal_status = 0;
 static int new_move_goal_available=0;
@@ -40,6 +41,7 @@ static uint8_t status;
 
 static int cur_cmd = 0;
 static int buzz_cmd = 0;
+static int exploration_planner_cmd = 0;
 static float height = 0;
 
 static bool deque_full = false;
@@ -53,6 +55,7 @@ static std::vector<bounding_box> yolo_boxes;
 
 std::vector<std::vector<float>> exploration_path;
 std::vector<std::vector<float>> homing_path;
+std::vector<std::vector<float>> interpolation_homing_path;
 std::vector<std::vector<float>> nav_tube;
 std::map<int, buzz_utility::Pos_with_ori_struct> fiducial_tags_map;
 
@@ -1202,7 +1205,45 @@ int buzzuav_takepicture(buzzvm_t vm)
 int buzzuav_call_local_planner(buzzvm_t vm)
 
 {
-  buzz_cmd = EXPLORE;
+  exploration_planner_cmd = EXPLORE;
+  return buzzvm_ret0(vm);
+}
+
+std::vector<float> get_home_location_setter_status()
+{
+  std::vector<float> ret_val;
+  ret_val.push_back(planner_home_location[0]);
+  ret_val.push_back(planner_home_location[1]);
+  ret_val.push_back(planner_home_location[2]);
+  ret_val.push_back(planner_home_location[3]);
+  ret_val.push_back(planner_home_location[4]);
+
+  planner_home_location[0] = 0.0;
+  planner_home_location[1] = 0.0;
+  planner_home_location[2] = 0.0;
+  planner_home_location[3] = 0.0;
+  planner_home_location[4] = 0.0;
+
+  return ret_val;
+}
+
+int buzzuav_buzz_CallPlannerHomeLocation(buzzvm_t vm)
+{
+  buzzvm_lnum_assert(vm, 4);
+  /* Push the color components */
+  buzzvm_lload(vm, 1);
+  buzzvm_lload(vm, 2);
+  buzzvm_lload(vm, 3);
+  buzzvm_lload(vm, 4);
+  buzzvm_type_assert(vm, 4, BUZZTYPE_FLOAT);
+  buzzvm_type_assert(vm, 3, BUZZTYPE_FLOAT);
+  buzzvm_type_assert(vm, 2, BUZZTYPE_FLOAT);
+  buzzvm_type_assert(vm, 1, BUZZTYPE_FLOAT);
+  planner_home_location[0] = buzzvm_stack_at(vm, 4)->f.value;
+  planner_home_location[1] = buzzvm_stack_at(vm, 3)->f.value;
+  planner_home_location[2] = buzzvm_stack_at(vm, 2)->f.value;
+  planner_home_location[3] = buzzvm_stack_at(vm, 1)->f.value;
+  planner_home_location[4] = 1;
   return buzzvm_ret0(vm);
 }
 
@@ -1212,7 +1253,7 @@ int buzzuav_call_local_planner(buzzvm_t vm)
 int buzzuav_call_global_planner_for_base_paths(buzzvm_t vm)
 
 {
-  buzz_cmd = GLOBAL_HOME_WITH_TUB;
+  exploration_planner_cmd = GLOBAL_HOME_WITH_TUB;
   return buzzvm_ret0(vm);
 }
 
@@ -1223,7 +1264,7 @@ int buzzuav_call_global_planner_for_base_paths(buzzvm_t vm)
 int buzzuav_call_global_planner(buzzvm_t vm)
 
 {
-  buzz_cmd = GLOBAL_HOME;
+  exploration_planner_cmd = GLOBAL_HOME;
   return buzzvm_ret0(vm);
 }
 
@@ -1448,6 +1489,14 @@ int bzz_cmd()
   return cmd;
 }
 
+int exploration_planner_cmd_get()
+
+{
+  int cmd = exploration_planner_cmd;
+  exploration_planner_cmd=0;
+  return cmd;
+}
+
 void rc_set_goto(int id, double latitude, double longitude, double altitude)
 /*
 / update interface RC GPS goal input
@@ -1506,6 +1555,15 @@ void update_home_path(std::vector<std::vector<float>> path)
   printf("Updating Homing path with %i points\n",homing_path.size());
 }
 
+void update_interpolation_path(std::vector<std::vector<float>> path)
+/*
+/ update the interpolation homing path
+-----------------------------------*/
+{
+  interpolation_homing_path = path;
+  printf("Updating interpolation Homing path with %i points\n",homing_path.size());
+}
+
 void update_nav_tube(std::vector<std::vector<float>> tube)
 /*
 / update nav tube
@@ -1546,6 +1604,7 @@ int buzzuav_update_battery(buzzvm_t vm)
   buzzvm_dup(vm);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "voltage", 1));
   buzzvm_pushf(vm, batt[0]);
+  // printf("the voltage from c code is: %f\n",batt[0]);
   buzzvm_tput(vm);
   buzzvm_dup(vm);
   buzzvm_pushs(vm, buzzvm_string_register(vm, "current", 1));
@@ -1981,7 +2040,7 @@ int buzzuav_get_local_planner_path(buzzvm_t vm){
     TablePut_int_vec3d(path_Pose, i, exploration_path[i], vm);
   }
   
-  printf("Transfering Exploration path with %i points\n",exploration_path.size());
+  // printf("Transfering Exploration path with %i points\n",exploration_path.size());
   exploration_path.clear();
   return buzzvm_ret1(vm);
 }
@@ -1999,6 +2058,21 @@ int buzzuav_get_global_planner_path(buzzvm_t vm){
   homing_path.clear();
   return buzzvm_ret1(vm);
 }
+
+int buzzuav_get_interpolation_path(buzzvm_t vm){
+  /* Create empty positioning data table */
+  buzzvm_pusht(vm);
+  buzzobj_t path_Pose = buzzvm_stack_at(vm, 1);
+  for(uint32_t i=0; i< interpolation_homing_path.size();++i){ 
+    /* Store position data */
+    TablePut_int_vec3d(path_Pose, i, interpolation_homing_path[i], vm);
+  }
+  
+  // printf("Transfering interpolation path with %i points\n",interpolation_homing_path.size());
+  interpolation_homing_path.clear();
+  return buzzvm_ret1(vm);
+}
+
 
 int buzzuav_get_hierarchial_nav_tube(buzzvm_t vm){
   /* Create empty positioning data table */

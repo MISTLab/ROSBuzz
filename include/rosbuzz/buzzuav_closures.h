@@ -248,6 +248,11 @@ void update_explore_path(std::vector<std::vector<float>> path);
  */
 void update_home_path(std::vector<std::vector<float>> path);
 
+/* 
+ * Update interpolation homing path 
+ */
+void update_interpolation_path(std::vector<std::vector<float>> path);
+
 
 /*
  * Update nav tube
@@ -290,6 +295,18 @@ int buzzuav_call_local_planner(buzzvm_t vm);
 int buzzuav_call_global_planner_for_base_paths(buzzvm_t vm);
 
 /*
+ * Triggers the home location setter within the planner.
+ */
+
+int buzzuav_buzz_CallPlannerHomeLocation(buzzvm_t vm);
+
+/*
+ * Triggers interpolated path generation with the planner.
+ */
+
+int buzzuav_buzz_IntrapolatedPath(buzzvm_t vm);
+
+/*
  * Triggers the global planner only for path to base.
  */
 
@@ -300,6 +317,12 @@ int buzzuav_call_global_planner(buzzvm_t vm);
  */
 
 int buzzuav_get_global_planner_path(buzzvm_t vm);
+
+/*
+ * Updates the interpolation path.
+ */
+
+int buzzuav_get_interpolation_path(buzzvm_t vm);
 
 /*
  * Updates the hierarchial nav tube.
@@ -370,6 +393,8 @@ void clear_move_base_goal();
  */
 int bzz_cmd();
 
+int exploration_planner_cmd_get();
+
 int dummy_closure(buzzvm_t vm);
 
 void set_log_path(std::string path);
@@ -377,6 +402,10 @@ void set_log_path(std::string path);
 void put_fiducial_tag_pose(int id, float x, float y, float z, float pitch, float roll,float yaw);
 
 int buzzuav_update_fiducial_tags(buzzvm_t vm);
+
+void set_interpolation_path(std::vector<std::vector<float>> path);
+
+std::vector<float> get_home_location_setter_status();
 
 #if OMPL_FOUND
 

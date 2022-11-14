@@ -2,8 +2,9 @@ include "utils/nav_table.bzz"
 include "utils/vec2.bzz"
 
 target_pos = nil
-TEST_PATH_PTR =1
+TEST_PATH_PTR =0
 FORWARDING = 1
+WP_SEQ_LIST = {.0={.x=1.5, .y=0.0},.1={.x=2.5, .y=1.0}, .2={.x=2.5, .y=2.5}, .3={.x=0.0, .y = 2.5}, .4={.x=0.0, .y=0.0}}
 function forward_test(){
 	if(isnil(target_pos)){
 		#target_pos = {.x = pose.position.x+10, .y = pose.position.y}
@@ -21,6 +22,26 @@ function forward_test(){
 			log("Target reached !!")
 		}
 	}
+}
+
+function cyclic_wp_test(){
+  var path_tracking_point=WP_SEQ_LIST[TEST_PATH_PTR]
+
+  log("Path size ", size(WP_SEQ_LIST), " current wp ", TEST_PATH_PTR)
+    
+    log("FORwarding to (", path_tracking_point.x,",",path_tracking_point.y,")")
+    var last_wp = 0
+    if(not (goto_point_naive(path_tracking_point, last_wp))){
+      # WP reached
+      if(TEST_PATH_PTR < size(WP_SEQ_LIST) - 1 ){
+        TEST_PATH_PTR = TEST_PATH_PTR + 1
+      }
+      else{
+        TEST_PATH_PTR = 0
+        goto(0.0,0.0)
+      }
+    }
+    
 }
 
 function nav_table_test(){

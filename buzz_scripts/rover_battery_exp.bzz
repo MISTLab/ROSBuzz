@@ -1,0 +1,2209 @@
+##########
+# Includes
+#########
+include "utils/vec2.bzz"
+include "energy_maintanance/energy_cbf_functions.bzz"
+include "formations/blind_follow.bzz"
+include "formations/forward_test.bzz"
+
+
+#####
+# Vehicule type:
+# 0 -> outdoor flying vehicle
+# 1 -> indoor flying vehicle
+# 2 -> outdoor wheeled vehicle
+# 3 -> indoor wheeled vehicle
+V_TYPE = 3
+
+
+#####
+# Exploration sub-states:
+# 0 -> exploring the environment to maximize coverage.
+# 1 -> yeilding to one of the high priority robot.
+# 2 -> returning back home to fetch minion robots.
+# 3 -> 
+EXPLORE_EXPLORING = 0
+EXPLORE_YEILDING = 1
+EXPLORE_RETUNING = 2
+
+# ROBOT TYPES BASED ON SPECILIZATION
+# SHEEP = 0
+# DOG = 1
+
+# Explorer robot (key-> ID, value -> Priority, lower higher priority)
+EXPLORER_IDs = {.0=1, .3=3, .50=12, .51=2, .52=3, .53=4, .54=5, .55=6, .56=7, .57=8, .58=9, .59=10, .60=11}
+INIT_MOTIONS ={.0={.x=1.5, .y=0.0},.3={.x=1.5, .y=0.0}, .50={.x=2.5, .y=1.5}, .51={.x=-2.0, .y = -2.0}, .52={.x=-1.5, .y = 2.0},
+			   .53={.x=-2.5, .y = -2.5}, .54={.x=0.5, .y = -2.5}, .55={.x=-1.0, .y = 2.0},
+			   .56={.x=2.0, .y = -2.5}, .57={.x=1.0, .y = -2.0}, .58={.x=1.0, .y = 2.5},
+			   .59={.x=-2.0, .y = -2.0}, .60={.x=-1.5, .y = 1.5}}
+EXPLORE_STATE = 0
+
+
+
+# Global variables
+BVMSTATE = "LAUNCH"
+statef = turned_off
+init_motion = 0 # Varible to determine if initialization is done.
+radiation_source_located = 0
+homing_complete = 0
+CUR_PATH ={}
+CUR_PATH ={}
+OLD_PATH ={}
+CUR_WP_IDX =0
+planner_time = 0
+global_planner_called=0
+local_planner_called = 0
+hierarchial_path_to_source = {}
+hierarchial_navigational_tube = {}
+Move_base_tracking_goal = 0
+Goal_reached_declare_timer = 0
+flight = {.rc_cmd=0}
+cool_down_timer = 0 
+current_guide_id_decision = 1
+time_step = 0
+assgned_guide_role = 0
+waypoint_set_time = 0
+planner_stuck_trigger = 0
+Stuck_detection_goto1={}
+Stuck_detection_goto2={}
+stuck_recover_timer = 0
+# Bug algorithm global variables
+old_pose={}
+used_exploration_quota=0
+Home_reached=0
+inbound_travel = 0
+nei_radiation = 0
+nei_radiation_id = 0
+close_to_radiation = 0
+broadcast_inbound = 0
+Target_found = 0
+
+# Data logging special vairables
+close_to_radiation = 0
+path_distance_to_target = 0
+experiment_done = 0
+
+
+# Constants
+GOTODIST_TOL = 0.5
+GOTO_MAXVEL = 0.9 #m/s 
+EXPLORATION_YEILD = 250 #cms
+PLANNER_TIME_OUT = 200 # 20 sec
+STUCK_TIME_OUT = 500 # 50 sec 
+YAW_OFFSET=3.14
+TARGET_DETECTION_RANGE = 500 #cms Detect a target within this range
+TARGET_ID = 49 # 49 is the target.
+SAFETY_DISTANCE = 35
+HARMON_A0 = 0.0
+HARMON_K = 1.0/50.0
+COOL_DOWN_TIME = 250 # explorer cool down for 5 sec before any action.
+MIN_WORKERS_COUNT = 1
+REQUIRED_GUIDES = 2
+STUCK_RECOVERY_TIME=5
+MAX_EXPLORATION_QUOTA_WORKER=100 # Distance the worker robots can explore in m.
+map_path="/scratch/hafoua/battery/run_dir"
+map_name="BUZZ_SCRIPT_NAME"
+
+
+##################
+stop_time = 2000
+update_global_path = 0
+true_battery_flag = 1
+dumping_behaviour_flag = 0
+log_file_out = 1
+timer_counter = 0
+save_map_time = 0 
+save_map_flag = 1
+merging_error = 0.0
+local_path_ended = 0
+augmented_bezier_path = {}
+old_augmented_bezier_path = {}
+waypoint_list = {}
+exit_counter = 0
+called_global_planner = 0
+fit_path = {}
+bezier_head_x = 1.0
+bezier_head_y = 1.0
+S = 0.0
+dS = 0.0
+old_S = 0.0
+voltage = 12.0
+max_voltage = 12.0
+min_voltage = 25.7
+voltage_lower_bound = min_voltage
+# Emin = min_voltage+0.005*id
+Emin = 25.7*0.1
+ke = 0.00005#0.00062#0.004#0.01625#0.0190476#0.022857
+discharge_rate = -ke
+dt = 0.1                                                             
+recharge_rate = 0.5
+dcs_th = 0.7
+escape_flag = 0
+global_path_update_permitted = 1 #is equal to 1 when robot is not returning back on path to recharge
+approximation_order = 22
+alpha_i = 0.0
+epsilon = 100.0
+tension_factor = 200.0
+time_last_recharge = 0.0
+
+dt_charging = 0.0
+start_charging_time = 0.0
+battary_swap_flag = 1
+in_charging_station = 0
+
+voltage_buffer = {}
+voltage_buffer_full = 0
+voltage_buffer_size = 200
+voltage_buffer_counter = 0
+avg_voltage = 0.0
+safety_voltage_offset = 0.4
+
+DS = {}
+DS_count = 0
+DS_size = 10
+DS_avg = 0.0
+
+check_counter = 0
+p = 0.1
+pc = 0.8
+pb = 1.0
+
+x_ref = 0.0
+y_ref = 0.0
+s_val = 0.0
+he_val = 0.0
+hc_val = 0.0
+abs_speed = 0.0 
+
+voltage_initialized = 0
+voltage_sum = 0.0
+voltage_initialization_counter = 0.0
+V_ = 0.0
+
+tracking_error = 0.0
+FILE_PATH = "/ssd/battery_exp_logs/"
+BEHAVIOR_FILE_NAME = string.concat(FILE_PATH, string.tostring(id), "-Behavior_bzz_log.csv")
+# csv_file =""
+TIME_TO_DECLARE_GOAL_REACHED = 10
+# Executed once at init time.
+path = {}
+path_ = {}
+old_path = {}
+old_path_length = 1000.0
+terminal_point = {}
+terminal_point[0] = 0.0
+terminal_point[1] = 0.0
+safe_speed = {}
+
+path[0] = 0.0
+path[1] = 0.0
+path[2] = 1.0  
+path[3] = 0.0
+path[4] = 1.0   
+path[5] = 1.0
+
+# path[0] = 0.0
+# path[1] = 0.0
+# path[2] = -0.0602   
+# path[3] = 2.8159
+# path[4] = 0.5603   
+# path[5] = 1.9930
+# path[6] = -2.1818
+# path[7] = 2.1988
+# path[8] = -7.2204
+# path[9] = 2.1216
+# path[10] = -5.9906
+# path[11] = 0.6429
+# path[12] = -5.9934
+# path[13] = 4.9761
+
+path_original = path
+old_P = path
+
+function draw_path(Path,R,G,B){
+    #the first argument is the set of points along path, then RGB are the 
+    #RGB values of the path to be drawn
+    i = 0
+    while(i < size(Path)/2-1){
+        j = i + 1
+        THETA = -pose.orientation.yaw
+        # log(pose.position.x,"  ",pose.position.y)
+
+        xp = pose.position.x*math.cos(THETA) - pose.position.y*math.sin(THETA) #- pose.position.x
+        yp = pose.position.x*math.sin(THETA) + pose.position.y*math.cos(THETA) #- pose.position.y
+
+        x1 = Path[2*i]*math.cos(THETA) - Path[2*i+1]*math.sin(THETA) - xp
+        y1 = Path[2*i]*math.sin(THETA) + Path[2*i+1]*math.cos(THETA) - yp
+
+        x2 = Path[2*j]*math.cos(THETA) - Path[2*j+1]*math.sin(THETA) - xp
+        y2 = Path[2*j]*math.sin(THETA) + Path[2*j+1]*math.cos(THETA) - yp
+
+        # log(x1,"  ",y1,"  ",x2,"  ",y2)
+        debug.rays.add(R,G,B, x1, y1, 0.0, x2, y2, 0.0)
+        i = i + 1
+    }
+}
+
+function draw_marker(X,Y,R,G,B){
+    #the first argument is the set of points along path, then RGB are the 
+    #RGB values of the path to be drawn
+    i = 0
+	p = {}
+	r = 0.2
+	x1 = 0.0
+	y1 = 0.0
+	x2 = 0.0
+	y2 = 0.0
+	theta = 0.0
+	d_theta = 0.2
+	s = 10
+    while(theta < 3.14*2){
+		THETA = -pose.orientation.yaw*0.0
+        xp = pose.position.x*math.cos(THETA) - pose.position.y*math.sin(THETA) #- pose.position.x
+        yp = pose.position.x*math.sin(THETA) + pose.position.y*math.cos(THETA) #- pose.position.y
+
+        x1 = X + r*math.cos(theta)-xp
+		y1 = Y + r*math.sin(theta)-yp
+		theta = theta + d_theta
+		x2 = X + r*math.cos(theta)-xp
+		y2 = Y + r*math.sin(theta)-yp
+        # log(x1,"  ",y1,"  ",x2,"  ",y2)
+        debug.rays.add(R,G,B, x1, y1, 0.0, x2, y2, 0.0)
+        i = i + 1
+    }
+}
+
+function g2g(x_t,y_t){
+    #this function goal to a specified goal location in global axes
+    k = 0.25
+    x_t = target[0]
+    y_t = target[1]
+
+    x = pose.position.x
+    y = pose.position.y
+
+    u = {}
+    u[0] = -k*(x-x_t)
+    u[1] = -k*(y-y_t)
+
+    dft = math.sqrt((x-x_t)^2+(y-y_t)^2)
+    # log(dft)
+    if(dft < 0.006){
+        u[0] = 0.0
+        u[1] = 0.0
+    }
+	g2g_veloctiy = {}
+    g2g_veloctiy[0] = u[0]
+    g2g_veloctiy[1] = u[1]
+	return g2g_veloctiy
+    # set_velocity2(u)
+}
+
+# TODO have to implement map save hook 
+function save_map(map_path, map_name){
+	log("TODO: save map called: Implement save map")
+}
+
+function goto(x_g,y_g){
+
+	goto_abs(x_g*1.0, y_g*1.0, 0.0, 0.0)
+	# log(x_g, y_g, 0.0, 0.0)
+}
+
+function set_velocity2(u){
+    #this function makes a robot move towards a certain goal point
+    l = 0.05 #the smaller this value is, the more aggressive the robot is in turning
+    wactual_idth = 0.25
+    left = 0.0
+    right = 0.0
+    # log("u val ", u[0],u[1])
+    
+	phi = pose.orientation.yaw #the heading is in radians
+    var local_u_in = math.vec2.new(u[0],u[1])
+    var local_vec_goto = math.vec2.rotate(local_u_in,-phi)
+
+    goto(local_vec_goto.x,local_vec_goto.y)
+    # log("current heading",phi)
+    # v = math.cos(phi)*u[0]+math.sin(phi)*u[1];
+    # omega = 1/l*(-math.sin(phi)*u[0]+math.cos(phi)*u[1])
+    # left = v + omega*wactual_idth*0.5
+    # right = v - omega*wactual_idth*0.5
+    # goto(right*100.0, left*100.0) #notice, goto takes the velocity with cm/sec not m/sec, so we have to convert our result to cm/sec
+}
+
+function push_info(){
+    my_key = string.concat("msg",string.tostring(id-49)) #pushing my landing time to the shared table
+    my_info = {}
+    my_info[0] = alpha_i
+
+    dist_from_cs = math.sqrt( pose.position.x^2 + pose.position.y^2)
+    if(dist_from_cs > dcs_th){
+        my_info[1] = 1
+    }
+    else{
+        my_info[1] = 0
+    }
+	my_info[2] = id
+
+    my_pos = {}
+    my_pos[0] = pose.position.x
+    my_pos[1] = pose.position.y
+
+    shared_table.put(my_key,my_info)
+    shared_location.put(my_key,my_pos)
+}
+
+function moving_average_filter(volt){
+	if(voltage_buffer_full == 0){
+		voltage_buffer[voltage_buffer_counter] = volt
+		voltage_buffer_counter = voltage_buffer_counter + 1
+		if(voltage_buffer_counter >= voltage_buffer_size){
+			voltage_buffer_full = 1
+		}
+		return volt
+	}
+	else{
+		#shift all voltages back
+		i = 0
+		while(i < voltage_buffer_size-1){
+			voltage_buffer[i] = voltage_buffer[i+1]
+			i = i + 1
+		}
+		voltage_buffer[voltage_buffer_size - 1] = volt
+
+		#getting the average
+		sum = 0.0
+		i = 0
+		while(i < voltage_buffer_size){
+			sum = sum + voltage_buffer[i]
+			i = i + 1
+		}
+		volt = sum / (voltage_buffer_size*1.0)
+		avg_voltage = volt
+		return volt
+	}
+}
+
+function kalman_filter(volt){
+	k_kalman = 0.0000;
+	A = 1.0-k_kalman;
+	B = 1.0;
+	C = 1.0;
+	D = 0.0;
+	PP = 0.0;
+	uu = 0.0;
+	Q = 0.1;
+	RR = 180.0;
+
+	if(voltage_initialized == 1){
+		#prediction
+		x_hat = A*V_ + B*uu
+		P_hat = A * PP * A + Q;
+
+		#correction
+		y_tilde = volt - C * x_hat;
+		SS = C*P_hat*C + RR;
+		KK = P_hat * C / SS;
+		V_ = x_hat + KK * y_tilde;
+		PP = (1 - KK*C) * P_hat;
+		avg_voltage = V_
+		return V_
+		# return volt
+	}
+	else{
+		avg_voltage = volt
+		return volt
+	}
+	
+}
+
+escape_target = {}
+
+function init() {	
+	# XB=bezier(0.5,-5.9934,4.9761,10,path) /scratch/${ME}/battery/run_dir
+	# Open csv file to record data
+    # csv_file = io.fopen(BEHAVIOR_FILE_NAME, "w")
+	# file_name = string.concat("/home/docker/Hir/KheperaIV/ros_simulation/batch_scripts/output_data_battery/test",string.tostring(id),".csv")
+	# file_name = string.concat("/scratch/hafoua/battery/run_dir/test",string.tostring(id),".csv")
+	# log("file name is:: ",file_name)
+    data_log = io.fopen(BEHAVIOR_FILE_NAME,"w")
+
+	# start the swarm command listener
+	nei_cmd_listen()
+
+	# run the hierarchical movement init
+	# hierarchical_init()
+
+	# init blid following.
+	# init_blind()
+
+	# Stigmergy to advertise availabilty to transport. 
+	guide_available_stig = stigmergy.create(102)
+	# Stigmergy to advertise bugs requiring transport.
+	bug_require_transport_stig = stigmergy.create(201)
+	# Assigment stigmergy. 
+	assignment_guide_stig = stigmergy.create(103) 
+	assignment_guide_stig.onconflict(function (k, local, remote) {
+		if(remote.data <= local.data) return remote 
+		else return local
+	})
+	# Stigmery for sharing path.
+	path_stig = stigmergy.create(104)
+
+	shared_table = stigmergy.create(105)
+    shared_location = stigmergy.create(106)
+
+  	# Starting state: TURNEDOFF to wait for user input.
+	BVMSTATE = "TURNEDOFF"
+	AUTO_LAUNCH_STATE = "EXPLORE"
+	# AUTO_LAUNCH_STATE = "OBSTACLE_TEST"
+
+	# Determine your role.
+	if(not isnil(EXPLORER_IDs[id])) {
+		log("I am a Dog")
+		ROLE = DOG
+		# setup_velocity_callbacks_from_table(EXPLORER_IDs)
+	}
+	log("my id ",id)
+	if(id == TARGET_ID){
+		log("Set BVM state to target")
+		BVMSTATE = "TURNEDOFF"
+		AUTO_LAUNCH_STATE = "TURNEDOFF"
+	}
+	
+	# if(id < TARGET_ID){
+	# 	ROLE = SHEEP
+	# 	init_blind()
+	# 	BVMSTATE = "BUG_ALGORITHM"
+	# 	old_pose = pose.position
+	# }
+	log("my id ",id, "BVM STATE ", BVMSTATE)
+	# Initialize stuck detection 
+	Stuck_detection_goto1 = math.vec2.new(0.0,0.0)
+	Stuck_detection_goto2 = math.vec2.new(0.0,0.0)
+	
+
+	# XB=bezier3(S,bezier_head_x,bezier_head_y,approximation_order,path)
+	XB=bezier4(tension_factor,0.0,0.0,S,bezier_head_x,bezier_head_y,approximation_order,path)
+	random()
+
+	if(id == 50){
+		escape_target[0] = 1.0
+		escape_target[1] = 1.0
+	}
+	else if(id == 51){
+		escape_target[0] = -1.0
+		escape_target[1] = 1.0
+	}
+
+	j = 0
+	while(j < DS_size){
+		DS[j] = 0.0
+		j = j + 1
+	}
+}
+
+# Executed at each time step.
+function step() {
+
+	if(voltage_initialized == 0){
+		voltage_sum = voltage_sum + battery.voltage
+		voltage_initialization_counter = voltage_initialization_counter + 1
+		if(voltage_initialization_counter > 10){
+			V_ = voltage_sum / 11.0
+			voltage_initialized = 1
+			Emin = V_ - safety_voltage_offset - 0.2
+			log(":::::::::::::initialization voltage is::  ",V_)
+		}
+	}
+	# log("[",id,"] POS (",pose.position.x,",",pose.position.y,",",pose.position.z,") yaw: ", pose.orientation.yaw, " WP ",CUR_WP_IDX)
+	# log("BVM state: ", BVMSTATE, " EXPLORE_STATE ", EXPLORE_STATE)
+        # listen to Remote Controller
+	rc_cmd_listen()
+
+	# Look for radiation source
+	detect_target()
+
+
+	#
+	# Top level State machine for Radiation cleanup experiment.
+	# States: 
+	# 1. TURNEDOFF -> the robot does nothing, it ideals
+	# 2. STOP -> A state to transition to turnedoff.
+	# 3. LAUNCH -> Entry state that performs initlization for the robot to transition to the subsequent states.
+	# 4. EXPLORE -> Explores the environment until a target is detected. 
+	# 5. RETURN_TO_BASE -> TARGET found return to base to dump the map and pickup followers.
+	# 6. HIRACHIAL_BEHAVIORS -> Uses hirarchial control to perfrom a mission. 
+	#
+	if(BVMSTATE=="TURNEDOFF"){
+		statef=turnedoff
+	} 
+	else if(BVMSTATE=="STOP"){	# ends on turnedoff
+		statef=stop
+	}
+	else if(BVMSTATE=="LAUNCH"){ # ends on AUTO_LAUNCH_STATE
+		statef=launch
+	}
+	else if(BVMSTATE=="EXPLORE"){
+		statef=explore
+	}
+	else if(BVMSTATE=="RETURN_TO_BASE"){
+		statef=return_to_base
+	}
+	else if(BVMSTATE == "EXPLORE_COOL_DOWN"){
+		statef=explore_cool_down
+	}
+	else if(BVMSTATE == "WAITING_FOR_MIN_EXPLORER"){
+		statef=wait_for_explorer
+	}
+	else if(BVMSTATE=="HIRACHIAL_BEHAVIORS"){
+			statef=hierarchical_step		
+	}
+	else if(BVMSTATE == "BLIND_FOLLOW"){
+		statef=step_blind
+	}
+	else if(BVMSTATE == "BUG_ALGORITHM"){
+		statef=bug_algorithm
+	}
+	else if(BVMSTATE == "BUG_HOLD_AT_TARGET"){
+		statef=bug_hold_at_target
+	}
+
+	# else if(BVMSTATE == "FORWARD_TEST"){
+	# 	statef=forward_test
+	# }
+	# else if(BVMSTATE == "NAV_TEST"){
+	# 	statef=nav_table_test
+	# }
+	# else if(BVMSTATE == "OBSTACLE_TEST"){
+	# 	statef=obs_test
+	# }
+	# else if(BVMSTATE=="CIRCLING_EXPERIMENT"){
+	#     statef=circling_experiment		
+	# }
+	# debug.print(BVMSTATE," , ",MMode)
+	log("v= ",abs_speed," Emin = ",Emin," S= ",s_val," L_path= ",L_path," voltage ", voltage)
+	# debug.print("h = ",he_val)
+	if((time_step - save_map_time)*dt > 20.0 and save_map_flag == 1){
+		save_map(map_path,map_name)
+		save_map_time = time_step
+	}
+
+	if(start_charging_flag == 0){
+		update_homing_path_multiwise()
+		statef()
+	}
+	time_step = time_step + 1
+
+	# if(time_step > stop_time/dt){
+	# 	# io.fclose(data_log)
+	# 	exit()
+	# }
+	
+	log("the actual voltage value is:  ",battery.voltage,"  ",avg_voltage-safety_voltage_offset)
+	if(log_file_out == 1 and time_step > 2){
+		io.fwrite(data_log,time_step,",",L_path,",",voltage,",",Emin,",",merging_error,",",check_counter,",",s_val,",",tracking_error,",",abs_speed,",",he_val,",",hc_val,",",pose.position.x,",",pose.position.y,",",battery.voltage,",",avg_voltage)
+	}
+	######################
+	distance = math.sqrt(pose.position.x^2 + pose.position.y^2)
+	current_time = time_step * dt
+	if(true_battery_flag == 0){ #meaning we are using simulated battery for testing
+		##### !!!!!!!!!! note that the condition voltage < (max_voltage + min_voltage)*0.5 may not work when the coordination among robots is considered~~~~~~!!!!!!!!
+		if( (distance < dcs_th and time_step > 1000 and voltage < (max_voltage + min_voltage)*0.5) or in_charging_station == 1 ){
+			abs_speed = 0.0 #just for result convenience
+			if(battary_swap_flag == 1){
+				Emin = voltage_lower_bound
+				if(start_charging_flag == 0){
+					start_charging_time = current_time
+					start_charging_flag = 1
+				}
+				dt_charging = current_time-start_charging_time
+
+				if(dt_charging < 25){
+					in_charging_station = 1
+					if(dt_charging < 10){
+						#mimicing the docking process ... takes 5 sec
+						log("docking")
+						goto(0.0, 0.0)
+						# g2gv=g2g(0.0,0.0)
+						# set_velocity2(g2gv)
+					}
+					else if(dt_charging < 15){
+						# as if the battery has been taken away
+						log("retracting old battery")
+						voltage = 6.0
+						goto(0.0, 0.0)
+					}
+					else if(dt_charging < 20){
+						# a new battery has been placed
+						log("placing new battery")
+						voltage = max_voltage+id/20.0*0.0
+						goto(0.0, 0.0)
+					}
+					else{
+						# the robot escapes from the cs
+						log("escaping...")
+						# goto(1.0, 0.0)
+						S = 0.00001
+						in_charging_station = 0
+						escape_flag = 1
+						voltage = voltage + discharge_rate*voltage*dt
+						path = path_original
+						global_path_update_permitted = 1
+					}
+					log("dt_charging= ",dt_charging)
+				}
+			}
+			else{
+				if(voltage < max_voltage){
+					voltage = voltage + recharge_rate*dt
+					log("charging...  ",voltage)
+					goto(0.0,0.0)
+				}
+				else{
+					S = 0.00001
+					escape_flag = 1
+					time_last_recharge = time_step
+					voltage = voltage + discharge_rate*voltage*dt
+					path = path_original
+					global_path_update_permitted = 1
+					# goto(10.0,10.0)
+					# g2g(goal) 
+					# energy_aware_mission(g2g_veloctiy)
+					# set_velocity2(my_veloctiy)
+				}
+			}
+		}
+		else{
+			start_charging_flag = 0
+			voltage = voltage + discharge_rate*voltage*dt
+		}
+	}
+	else{#meaning we are using true voltage
+		#if charging
+		if( (distance <= dcs_th and time_step > 2000)){
+			goto(0.0,0.0)
+			log("arrived to charing station to recharge...")
+		}
+		else{
+			start_charging_flag = 0
+			voltage = battery.voltage
+			# voltage = moving_average_filter(voltage)
+			voltage = kalman_filter(voltage) - safety_voltage_offset
+		}
+	}
+
+	if(escape_flag == 1){
+		escape_vector = {}
+		escape_vector[0] = pose.position.x
+		escape_vector[1] = pose.position.y
+		escape_vector_mag = math.sqrt(escape_vector[0]^2 + escape_vector[1]^2)
+		escape_vector[0] = 2.0*escape_vector[0] / escape_vector_mag
+		escape_vector[1] = 2.0*escape_vector[1] / escape_vector_mag
+		set_velocity2(escape_vector)
+		# if(id == 50){
+		# 	goto(10.0,10.0)
+		# }
+		# else {
+		# 	goto(-10.0,-10.0)
+		# }
+		
+		if(distance > dcs_th + 1.1) {
+			escape_flag = 0
+			Emin = voltage_lower_bound
+			j = 0
+			while(j < 10){
+				goto(0.0,0.0)
+				call_local_planner()
+				j = j + 1
+			}
+		}
+	}
+
+	########################
+}
+ 
+# Executed once when the robot (or the simulator) is reset.
+function reset() {
+}
+ 
+# Executed once at the end of experiment.
+function destroy() {
+	io.fclose(data_log)
+	# io.fclose(csv_file)
+}
+
+# Exploration cool down state.
+function explore_cool_down(){
+	# Keep broadcasting msg if you or nei found the radiation source.
+	if(global_planner_called == 1){
+		neighbors.broadcast("cmd", 911)
+	}
+	BVMSTATE = "EXPLORE_COOL_DOWN"
+	if(cool_down_timer < COOL_DOWN_TIME){
+		cool_down_timer = cool_down_timer + 1
+	}
+	else{
+		BVMSTATE = "WAITING_FOR_MIN_EXPLORER"
+		cool_down_timer = 0
+	}
+}
+
+# Min explorers waiting state. 
+function wait_for_explorer(){
+	# log("[",id,"] waiting with ", neighbors.count(), " robots ", " guides ", guide_available_stig.size(), " assignments ", assignment_guide_stig.size(), " cur assignment ", current_guide_id_decision)
+	# Keep broadcasting msg if you or nei found the radiation source.
+	if(global_planner_called == 1){
+		neighbors.broadcast("cmd", 911)
+	}
+	if(isnil(guide_available_stig.get(id))){
+		guide_available_stig.put(id, guide_available_stig.size())
+	}
+	if(neighbors.count() >= MIN_WORKERS_COUNT + REQUIRED_GUIDES-1 and guide_available_stig.size() >= REQUIRED_GUIDES and assignment_guide_stig.size() <= REQUIRED_GUIDES*2){
+		
+		# Are you the lead who found the target?
+		if(radiation_source_located == 1 and current_guide_id_decision == 1){
+			var cur_id = assignment_guide_stig.get(current_guide_id_decision)
+			var decesion_pending = assignment_guide_stig.get(current_guide_id_decision+2)
+			if(isnil(decesion_pending)){
+				if(isnil(cur_id)){
+					assignment_guide_stig.put(current_guide_id_decision, id)
+				}
+				else if(id < cur_id){ 
+					assignment_guide_stig.put(current_guide_id_decision, id)
+				}
+			}
+		}
+		else if(current_guide_id_decision > 1 and assgned_guide_role == 0){
+			var cur_id = assignment_guide_stig.get(current_guide_id_decision)
+			var decesion_pending = assignment_guide_stig.get(current_guide_id_decision+2)
+			if(isnil(decesion_pending)){
+				if(isnil(cur_id)){
+					assignment_guide_stig.put(current_guide_id_decision, id)
+				}
+				else if(id < cur_id){ 
+					assignment_guide_stig.put(current_guide_id_decision, id)
+				}
+			}
+		}
+	
+
+		cool_down_timer = cool_down_timer + 1
+		if(cool_down_timer > COOL_DOWN_TIME){
+			if(current_guide_id_decision == 1){
+				DOG1 = assignment_guide_stig.get(current_guide_id_decision)
+				if(not isnil(DOG1)){
+					if(id == DOG1){
+						assgned_guide_role = 1
+						assignment_guide_stig.put(current_guide_id_decision+2, 1)
+					}
+					current_guide_id_decision = current_guide_id_decision + 1
+					cool_down_timer = 0
+					log("[",id,"] DOG1 ", DOG1, " DOG2 is ", DOG2)
+				}
+			}
+			else if(current_guide_id_decision == 2){
+				DOG2 = assignment_guide_stig.get(current_guide_id_decision)
+				if(not isnil(DOG2)){
+					if(id == DOG2){
+						assgned_guide_role = 1
+						assignment_guide_stig.put(current_guide_id_decision+2, 1)
+					}
+					current_guide_id_decision = current_guide_id_decision + 1
+					cool_down_timer = 0
+					log("[",id,"] DOG1 ", DOG1, " DOG2 is ", DOG2)
+					if(id == DOG1 or id == DOG2){
+						init_blind()
+						BVMSTATE = "BLIND_FOLLOW"
+						GLOBAL_TEST_PATH = hierarchial_path_to_source
+					}
+					else{
+						BVMSTATE = "TURNEDOFF"
+					}
+				}
+			}
+		}
+
+	}
+	else if(assignment_guide_stig.size() > REQUIRED_GUIDES*2){
+		BVMSTATE = "TURNEDOFF"
+		return
+	}
+}
+
+function bug_algorithm(){
+	detect_target()
+	compute_exploration_quota_used()
+	if(broadcast_inbound == 1){
+		neighbors.broadcast("cmd",55)
+	}
+	if(MAX_EXPLORATION_QUOTA_WORKER > 0){
+		if(used_exploration_quota > MAX_EXPLORATION_QUOTA_WORKER){
+			# log("[",id,"] Doing inbound ")
+			inbound_travel = 1
+			close_to_radiation = 0
+			nei_radiation = 0
+		}
+	}
+
+	if(inbound_travel == 1){
+		var dist_tower = math.vec2.length(pose.position)
+		if(dist_tower <  1.5){
+			Home_reached = 1
+			init_blind()
+			BVMSTATE = "BLIND_FOLLOW"
+			bug_require_transport_stig.put(id,1)
+			goto(0.0,0.0)
+			return
+		}
+	}
+
+	if(close_to_radiation == 0 and nei_radiation == 0){
+		var c_vel = bug_step(time_step, inbound_travel)
+		goto(c_vel[0].x,c_vel[0].y)
+	}
+	else if(nei_radiation == 1){
+		Target_found=1
+		# obs_in_range()
+		var nei_pos = neighbors.get(nei_radiation_id)
+		if(not isnil(nei_pos)){
+			if(nei_pos.distance > 100){
+				var nei_vec = math.vec2.newp(nei_pos.distance, nei_pos.azimuth)
+				nei_vec = avoid_obs_using_potential(nei_vec)
+				goto(nei_vec.x*100,nei_vec.y*100)
+			}
+			else{
+				BVMSTATE = "BUG_HOLD_AT_TARGET"
+				goto(0.0,0.0)
+			}
+		}
+		else{
+			goto(0.0,0.0)
+		}
+		nei_radiation = 0
+	}
+	else if(close_to_radiation == 1){
+		neighbors.broadcast("cmd",911)
+		Target_found=1
+		# obs_in_range()
+		var target_data = neighbors.get(TARGET_ID)
+		if(target_data.distance > 150){
+			var nei_vec = math.vec2.newp(target_data.distance, target_data.azimuth)
+			nei_vec = avoid_obs_using_potential(nei_vec)
+			goto(nei_vec.x*100,nei_vec.y*100)
+		}
+		else{
+			BVMSTATE = "BUG_HOLD_AT_TARGET"
+			goto(0.0,0.0)
+		}
+	}
+	else{
+		goto(0.0,0.0)
+	}
+	old_pose = pose.position
+
+}
+
+function bug_hold_at_target(){
+	neighbors.broadcast("cmd",911)
+	goto(0.0,0.0)
+}
+
+# Implementation of Core States 
+# Core state function to launch the robot: takeoff and wait for others, or stop (land)
+function launch() {
+	BVMSTATE = "LAUNCH"
+	# neighbors.broadcast("cmd", 22)
+	if(V_TYPE == 3) {
+		log("[",id,"] Auto state: ", AUTO_LAUNCH_STATE)
+		BVMSTATE=AUTO_LAUNCH_STATE
+	} else {
+		log("Altitude: ", pose.position.z)
+		uav_takeoff(takeoff_heights[id])
+	}
+	
+}
+
+# Core state function to stop and land.
+function stop() {
+  BVMSTATE = "STOP"
+  if(pose.position.z <= 0.5) {
+		BVMSTATE = "TURNEDOFF"
+		goto(0.0,0.0)
+	} else{
+		uav_land()
+		neighbors.broadcast("cmd", 21)
+	}
+}
+
+# Core state function when on the ground
+function turnedoff() {
+    BVMSTATE = "TURNEDOFF"
+}
+
+# Core state to explore and map the environment. 
+function explore(){
+	BVMSTATE ="EXPLORE"
+	if(ROLE == DOG){
+		# Keep broadcasting msg if you or nei found the radiation source.
+		if(global_planner_called == 1){
+			neighbors.broadcast("cmd", 911)
+		}
+		if(local_path_ended == 1){ 
+			# log("stopping everything exploration")
+			#stop the local planner until we update the global path in the next function
+			# return 
+		}
+
+		# Coordinate the exploration with other robots. 
+		if(EXPLORE_STATE == EXPLORE_EXPLORING){
+
+			# if(high_priority_robot_in_field()){
+			# 	EXPLORE_STATE = EXPLORE_YEILDING
+			# 	goto(0,0)
+			# 	return
+			# }
+			
+			# Perform the initialization motion to determine the exploration direction. 
+			if(init_motion == 0){
+				# forward motion of 2 meters 
+				var vec_to_target = INIT_MOTIONS[id]
+				var last_wp = 0				
+				if(goto_point_naive(vec_to_target, last_wp) == 0){
+					# init motion complete
+					goto(0.0,0.0)
+					set_planner_home_location(0.0,0.0,0.0,pose.orientation.yaw)
+					init_motion = 1
+					var clearing_old_paths = get_local_planner_path()
+					log("[",id,"] INIT MOTION DONE")
+				}
+			}
+			else{
+				# Perform local planning to maximize the environmental information and coverage.
+				if( isnil(CUR_PATH)){
+					CUR_PATH = get_local_planner_path()
+					# homing_path = get_global_planner_path()
+					# log(homing_path)
+					if(local_planner_called == 0 ){
+                        # call_global_planner()
+						call_local_planner()
+						local_planner_called = 1
+						planner_time = time_step
+						planner_stuck_trigger = 0
+						# log("we have called the local planner!!")
+					}	
+					# else if(time_step - planner_time > PLANNER_TIME_OUT){
+					# 	planner_stuck_trigger = 1
+					# 	var idx = size(OLD_PATH) - 3
+					# 	var f_idx = 0
+					# 	CUR_PATH = {}
+
+					# 	while(idx >= 0){
+					# 		CUR_PATH[f_idx] = {.x=OLD_PATH[idx].x, .y=OLD_PATH[idx].y}
+					# 		idx = idx - 1
+					# 		f_idx = f_idx + 1 
+					# 	}
+					# 	# log("[",id,"] cur path", size(CUR_PATH)," old ", size(OLD_PATH))
+
+					# 	planner_time = time_step
+					# 	OLD_PATH = {}
+					# 	CUR_WP_IDX = 0
+					# }		
+					waypoint_set_time = time_step
+				}
+				else{
+					# Following a path, complete the path.
+					if(size(CUR_PATH) <= 0){
+						CUR_PATH = nil
+						CUR_WP_IDX=0
+						goto(0.0,0.0)
+						maintain_energy_sufficiency()
+					}
+					else{
+						# log("yaaay we are in hereerere!")
+						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+						# log(" cur wp (",cur_wp.x,",",cur_wp.y,") wp idx ", CUR_WP_IDX)
+						var last_wp = 0
+						if(CUR_WP_IDX == size(CUR_PATH)-1){
+							last_wp = 1
+						}
+						if(not (goto_point_naive(cur_wp, last_wp))){
+							# WP reached
+							# if(CUR_WP_IDX < size(CUR_PATH)-2){
+							if(CUR_WP_IDX < size(CUR_PATH)-1){
+								CUR_WP_IDX = CUR_WP_IDX + 1
+								update_global_path = 1
+								waypoint_set_time = time_step
+							}
+							else{
+								if( planner_stuck_trigger == 0 ){
+									OLD_PATH = copy_table_vec2(CUR_PATH)
+								}
+								CUR_PATH = nil
+								if(global_path_update_permitted == 1)
+								{
+									var clearing_old_paths = get_local_planner_path()
+								}
+								var clearing_old_paths = get_local_planner_path()
+								CUR_WP_IDX=0
+								local_planner_called = 0
+								goto(0.0,0.0)
+								local_path_ended = 1
+								called_global_planner = 0
+								# log("the local path indeed ended")
+							}
+
+							# if((time_step-planner_time) > 20){
+							# 	local_planner_called = 0
+							# 	CUR_PATH = nil
+							# 	# call_local_planner()
+							# }
+					
+						}
+					}
+				}
+			}
+		}
+		else if(EXPLORE_STATE == EXPLORE_YEILDING){
+			if( not high_priority_robot_in_field()){
+				EXPLORE_STATE = EXPLORE_EXPLORING
+			}
+			log("Explorer Yeilding to a nearby robot.")
+		}
+		# else if(EXPLORE_STATE == EXPLORE_RETUNING){
+		# 	if(isnil(CUR_PATH)){
+		# 		CUR_PATH = get_global_planner_path()
+		# 		# log(CUR_PATH)
+		# 		if(size(CUR_PATH) > 0 and radiation_source_located){ 
+		# 			reverse_table(CUR_PATH)
+		# 			save_map(map_path,map_name)
+		# 			# Stop planner
+		# 			stop_exploration_planner()
+		# 			CUR_WP_IDX=0
+		# 			goto(0.0,0.0)
+		# 		}
+		# 		else if(size(CUR_PATH) > 0){
+		# 			save_map(map_path,map_name)
+		# 			# Stop planner
+		# 			stop_exploration_planner()
+		# 		}
+		# 		waypoint_set_time = time_step
+		# 	}
+		# 	else if(size(CUR_PATH) <= 0){
+		# 		CUR_PATH = get_global_planner_path()
+		# 		if(size(CUR_PATH) > 0 and radiation_source_located){
+		# 			reverse_table(CUR_PATH)
+		# 			save_map(map_path,map_name)  
+		# 			# Stop planner
+		# 			stop_exploration_planner()
+		# 			CUR_WP_IDX=0
+		# 		}
+		# 		else if(size(CUR_PATH) > 0){
+		# 			save_map(map_path,map_name)
+		# 			# Stop planner
+		# 			stop_exploration_planner()
+		# 		}
+		# 		# return to base or Home
+		# 		# Tell exploration planner to home using the global graph.
+		# 		if(not global_planner_called){
+		# 			# Someother robot found the source, simply home.
+		# 			call_global_planner() 
+		# 			# log("yaaaay!!")
+		# 			global_planner_called = 1
+		# 		}
+		# 		else{
+		# 			# planner is working please wait.
+		# 			goto(0.0,0.0)
+		# 		}
+		# 		waypoint_set_time = time_step
+		# 	}
+		# 	else{
+		# 		var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
+		# 		var last_wp = 0
+		# 		if(not (goto_point_naive(cur_wp, last_wp))){
+		# 			# WP reached
+		# 			if(CUR_WP_IDX < size(CUR_PATH)-1){
+		# 				CUR_WP_IDX = CUR_WP_IDX + 1
+		# 				waypoint_set_time = time_step
+		# 			}
+		# 			else if(CUR_WP_IDX >= size(CUR_PATH)-1){
+		# 				# Home reached, TODO: trigger hierarchial behaviror.
+		# 				log("HOME REACHED")
+		# 				BVMSTATE = "EXPLORE_COOL_DOWN"
+		# 				goto(0.0,0.0)
+		# 			}
+		# 		}
+		# 	}
+		# }
+	}
+	else{
+		# just ideal, if you are not capable of exploring.
+
+	}
+}
+
+function flip(a){
+	# i = 0
+	# log("table 1: ", size(a))
+	# log(pose.position.x,"  ",pose.position.y)
+	# while(i<size(a)){
+	# 	log(a[i])
+	# 	i = i + 1
+	# }
+
+	b = {}
+	n = size(a)
+	i = 0
+	while(i < n){
+		b[i] = a[n-1-i]
+		i = i + 1
+	}
+
+	i = 0
+	while(i < size(b)/2){
+		temp = b[2*i+1]
+		b[2*i+1] = b[2*i]
+		b[2*i] = temp
+		i = i + 1
+	}
+
+	# log("flipped table")
+	# i = 0
+	# while(i<size(b)){
+	# 	log(b[i])
+	# 	i = i + 1
+	# }
+
+	return b
+}
+function update_homing_path(){
+	P = {}
+	if(not isnil(augmented_bezier_path)){
+		if(size(augmented_bezier_path) > 1){
+			b = flip(augmented_bezier_path)
+			# XB=bezier3(0.0,bezier_head_x,bezier_head_y,approximation_order,path)
+			XB=bezier4(tension_factor,0.0,0.0,0.0,bezier_head_x,bezier_head_y,approximation_order,path)
+			# XB=bezier3(0.0,bezier_head_x,bezier_head_y,25,path_)
+			# draw_path(XB,255,0,0)
+			# draw_path(waypoint_list,0,255,0)
+		}
+	}
+	
+	P = get_global_planner_path()
+	# TODO: Hassan This is the intrapolated path function call. 
+	# all the algorithm that you implement and the path you return from mod_path in rrg.cpp
+	# will be available here. 
+	intrapolated_path = get_intrapolated_path()
+	log("[DEBUG ] intrapolated path size ", size(intrapolated_path))
+	#if the local planner has finished its local path
+	if(local_path_ended == 1 and global_path_update_permitted == 1){
+		#call and update the global path
+		if(called_global_planner == 0){
+			call_global_planner()	
+		}
+
+		#if the global planner gives back a path
+		if(not isnil(P)){
+			if(size(P)>0){
+				#re-enable the local exploration
+				# log("the global planner returned something")
+				# called_global_planner = 1
+				local_path_ended = 0
+				waypoint_list = {}
+				if(size(P)==2){
+					waypoint_list[0] = P[0].x
+					waypoint_list[1] = P[0].y
+					waypoint_list[2] = P[0].x * 0.666 + P[1].x * 0.333 + 0.1
+					waypoint_list[3] = P[0].y * 0.666 + P[1].y * 0.333 + 0.2
+					waypoint_list[4] = P[0].x * 0.333 + P[1].x * 0.666 - 0.1 
+					waypoint_list[5] = P[0].y * 0.333 + P[1].y * 0.666 - 0.2
+					waypoint_list[6] = P[1].x
+					waypoint_list[7] = P[1].y
+				}
+				else{
+					i = 0
+					if(size(P)>8 and id == 51)ff=1
+					else ff = 0
+					while(i < size(P)-ff){
+						waypoint_list[2*i] = P[i].x
+						waypoint_list[2*i+1] = P[i].y
+						i = i + 1
+					}
+					i = i - 1
+					waypoint_list[2*i] = 0.0
+					waypoint_list[2*i+1] = 0.0
+				}
+				receding_factor = 0.75
+				waypoint_list[0] = waypoint_list[0]*(1-receding_factor) + waypoint_list[2]*receding_factor
+				waypoint_list[1] = waypoint_list[1]*(1-receding_factor) + waypoint_list[3]*receding_factor
+				augmented_bezier_path = fit_bezier_compact(2,waypoint_list)
+				if(not isnil(augmented_bezier_path)){
+					old_augmented_bezier_path = augmented_bezier_path
+				}
+								
+				path = {}
+				# path = flip(path_)
+				path = flip(augmented_bezier_path)
+				# path[0] = 0.0
+				# path[1] = 0.0
+				
+				j = 0
+				# log("position:  ",pose.position.x,"  ",pose.position.y)
+				# while(j < size(augmented_bezier_path)/2){
+				# 	log(augmented_bezier_path[2*j],"  ",augmented_bezier_path[2*j+1])
+				# 	j = j + 1
+				# }
+
+				if(size(waypoint_list)>6){
+					fit_path = fitted_bezier()
+				}
+				log("id: ",id,"  best order= ",best_order,"  error= ",fitting_error,"  waypoint size= ",size(waypoint_list)/2)
+			}
+		}
+		else{
+			log("DAMN!!!")
+		}
+		exit_counter = exit_counter + 1
+	}
+}
+
+function check_charging_region_violation(w){
+	i = size(w)/2-2
+	p1 = {}
+	p2 = {}
+	xc = 0.0
+	yc = 0.0
+	
+
+	while(i > 0){
+		p1[0] = w[2*i]
+		p1[1] = w[2*i+1]
+		p2[0] = w[2*(i-1)]
+		p2[1] = w[2*(i-1)+1]
+
+		mx = 0.5*(p1[0] + p2[0])
+		my = 0.5*(p1[1] + p2[1])
+
+		d1 = math.sqrt(mx^2 + my^2)
+		d2 = math.sqrt((p1[0] - p2[0])^2 + (p1[1] - p2[1])^2)
+
+		if(d1 < d2){
+
+			a = p1[1] - p2[1] #delta_y
+			b = p2[0] - p1[0] #delta_x
+			c = -(b * p1[1] + a * p1[0])
+			d = math.sqrt(a^2+b^2)
+			I = math.abs(a*xc + b*yc + c)/d
+
+			if(I < dcs_th){#this means intersection happens
+				log("robot id: ",id, "  index with station violation: ",i)
+				v1x = p1[0] - xc
+				v1y = p1[1] - yc
+				v2x = p2[0] - xc
+				v2y = p2[1] - yc
+				vx = v1x + v2x
+				vy = v1y + v2y 
+				vx = 3 * dcs_th * vx / math.sqrt(vx^2 + vy^2)
+				vy = 3 * dcs_th * vy / math.sqrt(vx^2 + vy^2)
+				temp = {}
+				s = size(w)/2 
+				j = s
+				while(j > i){
+					w[2*j] = w[2*(j-1)]
+					w[2*j+1] = w[2*(j-1)+1]
+					j = j - 1
+				}
+				w[2*i] = vx
+				w[2*i+1] = vy
+			} 
+		}
+		i = i - 1
+	}
+	return w
+}
+
+function check_charging_region_violation2(w){
+	i = size(w)/2-2
+	p1 = {}
+	p2 = {}
+	P = {}
+	V = {}
+	a = {}
+	ap = {}
+	dPV = {}
+	xc = 0.0
+	yc = 0.0
+	
+
+	while(i > 0){
+		p1[0] = w[2*i]
+		p1[1] = w[2*i+1]
+		p2[0] = w[2*(i-1)]
+		p2[1] = w[2*(i-1)+1]
+		P[0] = p2[0] - p1[0]
+		P[1] = p2[1] - p1[1]
+		V[0] = xc - p1[0] 
+		V[1] = yc - p1[1] 
+		dPV[0] = p2[0] - xc 
+		dPV[1] = p2[1] - yc
+		norm_P = math.sqrt(P[0]^2 + P[1]^2)
+		norm_V = math.sqrt(V[0]^2 + V[1]^2)
+		norm_dPV = math.sqrt(dPV[0]^2 + dPV[1]^2)
+		P_dot_V = P[0]*V[0] + P[1]*V[1]
+		a[0] = P_dot_V * P[0] / norm_P
+		a[1] = P_dot_V * P[1] / norm_P
+
+		#check if projected point lies between p1 and p2
+		ap[0] = a[0] - p2[0]
+		ap[1] = a[1] - p2[1]
+		alpha = -(P[0]*ap[0]+P[1]*ap[1])/(norm_P^2)
+		
+		if(alpha >= 0 and alpha <= 1){
+			l = math.sqrt( (a[0]-xc)^2 + (a[1]-yc)^2 )
+			# #now we calculate the height of triangle from cs
+			# #first, calculate area using Hero's formula
+			# A = 0.25*math.sqrt(4*norm_P^2*norm_V^2 - (norm_P^2+norm_V^2-norm_dPV^2)^2)
+			# h = 2*A/norm_P
+
+			if(l < dcs_th) #in this case the line P cuts the charging region
+			{
+				log("robot id: ",id, "  index with station violation: ",i)
+				v1x = p1[0] - xc
+				v1y = p1[1] - yc
+				v2x = p2[0] - xc
+				v2y = p2[1] - yc
+				vx = v1x + v2x
+				vy = v1y + v2y 
+				vx = 3 * dcs_th * vx / math.sqrt(vx^2 + vy^2)
+				vy = 3 * dcs_th * vy / math.sqrt(vx^2 + vy^2)
+				s = size(w)/2 
+				j = s
+				while(j > i){
+					w[2*j] = w[2*(j-1)]
+					w[2*j+1] = w[2*(j-1)+1]
+					j = j - 1
+				}
+				w[2*i] = vx
+				w[2*i+1] = vy
+			}
+		}
+		i = i - 1
+	}
+	return w
+}
+
+function update_homing_path_multiwise(){
+	P = {}
+	rasterize = 0
+	# if(not isnil(path)){
+	# 	if(size(path) > 1){
+	# 		# path_=bezier4(tension_factor,0.0,0.0,0.0,bezier_head_x,bezier_head_y,approximation_order,path)
+	# 		# log("the path_ is  ", path_)
+	# 		# XB=bezier3(0.0,bezier_head_x,bezier_head_y,25,path_)
+	# 		# draw_path(XB,255,0,0)
+	# 		# draw_path(waypoint_list,0,255,0)
+	# 	}
+	# }
+	
+	# P = get_global_planner_path()
+
+	# TODO: Hassan This is the intrapolated path function call. 
+	# all the algorithm that you implement and the path you return from mod_path in rrg.cpp
+	# will be available here. 
+	# P = get_intrapolated_path()
+	P = get_intrapolated_path()
+
+
+	#if the local planner has finished its local path
+	if(update_global_path == 1 and global_path_update_permitted == 1){
+		#call and update the global path
+		if(called_global_planner == 0){
+			call_global_planner()	
+			# called_global_planner = 1
+			# log("##################################### Global planner called!!!!!!!!!!!!!!!!!!")
+		}
+
+		#if the global planner gives back a path
+		if(not isnil(P)){
+			if(size(P)>0){
+				log("[DEBUG ] intrapolated path size ", size(P))
+				i = 0
+				path_length = 0.0
+				while(i < size(P)-1){
+					dxx = P[i].x - P[i+1].x
+					dyy = P[i].y - P[i+1].y
+					path_length = path_length + math.sqrt(dxx^2+dyy^2)
+					i = i + 1
+				}
+				terminal_length = math.sqrt((pose.position.x-terminal_point[0])^2 + (pose.position.y-terminal_point[1])^2)
+
+				log("##################################### path published to buzz!!!!!!!!!!!!!!!!!!")
+
+				# if(path_length <= old_path_length + terminal_length){
+				# 	old_path = P
+				# 	old_path_length = path_length
+				# 	terminal_point[0] = P[0].x
+				# 	terminal_point[1] = P[0].y
+				# }
+				# else{
+				# 	old_path_length = old_path_length + terminal_length
+				# 	P = old_path
+				# 	#augment the old path with the robot's current point
+				# 	j = size(P)
+				# 	while(j > 0){
+				# 		P[j] = P[j-1]
+				# 		j = j - 1
+				# 	}
+				# 	P[0].x = pose.position.x
+				# 	P[0].y = pose.position.y
+				# 	terminal_point[0] = pose.position.x
+				# 	terminal_point[1] = pose.position.y
+				# }
+
+				#re-enable the local exploration
+				# log("the global planner returned something")
+				# called_global_planner = 0
+				# local_path_ended = 0
+				update_global_path = 0
+				waypoint_list = {}
+				if(size(P)==1){
+					waypoint_list[0] = P[0].x
+					waypoint_list[1] = P[0].y
+					waypoint_list[2] = P[0].x * 0.666 + P[1].x * 0.333 + 0.1
+					waypoint_list[3] = P[0].y * 0.666 + P[1].y * 0.333 + 0.2
+					waypoint_list[4] = P[0].x * 0.333 + P[1].x * 0.666 - 0.1 
+					waypoint_list[5] = P[0].y * 0.333 + P[1].y * 0.666 - 0.2
+					waypoint_list[6] = P[1].x
+					waypoint_list[7] = P[1].y
+				}
+				else{
+					i = 0
+					# if(size(P)>8 and id == 51)ff=1
+					# else ff = 0
+					if(size(P) > 2) offset = 1
+					else offset = 0
+					while(i < size(P)-offset){
+						waypoint_list[2*i] = P[i].x
+						waypoint_list[2*i+1] = P[i].y
+						i = i + 1
+					}
+					# i = i - 1
+					# waypoint_list[2*i] = 0.0
+					# waypoint_list[2*i+1] = 0.0
+
+					# if(i>3){
+					# 	waypoint_list[2*(i-1)] = 0.5*(waypoint_list[2*i] + waypoint_list[2*(i-2)]) + 0.1
+					# 	waypoint_list[2*(i-1)+1] = 0.5*(waypoint_list[2*i+1] + waypoint_list[2*(i-2)+1] ) +0.11
+					# }
+					
+
+					# waypoint_list = check_charging_region_violation2(waypoint_list)
+					# ii = i - 1
+					# iii = i - 2
+					# waypoint_list[2*ii] = (waypoint_list[2*iii]+waypoint_list[2*i])*0.5+0.1
+					# waypoint_list[2*ii+1] = (waypoint_list[2*iii+1]+waypoint_list[2*i+1])*0.5+0.15
+				}
+				receding_factor = 0.0
+				waypoint_list[0] = waypoint_list[0]*(1-receding_factor) + waypoint_list[2]*receding_factor
+				waypoint_list[1] = waypoint_list[1]*(1-receding_factor) + waypoint_list[3]*receding_factor
+
+				rasterized_path = {}
+				rcount = 0
+				if(rasterize == 1){
+					i = 1
+					discretization_size = 5.0
+					disc_step = 1.0/(discretization_size-1.0)
+					while(i < size(waypoint_list)/2-1){
+						j = 0
+						alpha = 0
+						f = 0.1
+						while(j < discretization_size - 1){
+							rasterized_path[2*rcount] = waypoint_list[2*i]*(1-alpha) + waypoint_list[2*(i+1)]*alpha + f 
+							rasterized_path[2*rcount+1] = waypoint_list[2*i+1]*(1-alpha) + waypoint_list[2*(i+1)+1]*alpha + f
+							alpha = alpha + disc_step
+							rcount = rcount + 1
+							j = j + 1
+							f = f * -1
+						}
+						i = i + 1
+					}
+				}		
+				path = {}
+				if(rasterize){
+					path = flip(rasterized_path)
+				}
+				else{
+					path = flip(waypoint_list)
+				}
+				# path = flip(waypoint_list)
+				
+				j = 0
+				# log("position:  ",pose.position.x,"  ",pose.position.y)
+				# while(j < size(augmented_bezier_path)/2){
+				# 	log(augmented_bezier_path[2*j],"  ",augmented_bezier_path[2*j+1])
+				# 	j = j + 1
+				# }
+
+				
+				log("id: ",id,"  best order= ",best_order,"  error= ",fitting_error,"  waypoint size= ",size(waypoint_list)/2)
+			}
+		}
+		else{
+			log("DAMN!!!")
+		}
+		exit_counter = exit_counter + 1
+	}
+}
+
+# function to handle rc commands.
+function rc_cmd_listen() {
+
+    if(BVMSTATE=="TURNEDOFF") {
+        if(flight.rc_cmd==22) {	#TAKEOFF\LAUNCH
+            flight.rc_cmd=0
+            BVMSTATE = "LAUNCH"
+            neighbors.broadcast("cmd", 22)
+        } 
+	} else if(BVMSTATE != "STOP") {
+		if(flight.rc_cmd==21) {
+			flight.rc_cmd=0
+			BVMSTATE = "STOP"
+			neighbors.broadcast("cmd", 21)
+		} 
+	} 
+
+	if(flight.rc_cmd == 911 and ROLE == DOG){
+		flight.rc_cmd = 0
+		if(radiation_source_located == 0){
+			# radiation_source_located = 1
+			# EXPLORE_STATE = EXPLORE_RETUNING
+ 			# BVMSTATE ="EXPLORE"
+			# CUR_PATH = nil
+ 			# CUR_WP_IDX=0
+		    # Move_base_tracking_goal = 0
+			# log("RADIATION DETECTED!!!")
+		}
+	}
+	else if(flight.rc_cmd == 888){
+		BVMSTATE = "HIRACHIAL_BEHAVIORS"
+		neighbors.broadcast("cmd",888)
+	} 
+	if(flight.rc_cmd == 811){
+		# restart planning
+		CUR_PATH = nil
+ 		CUR_WP_IDX=0
+		Move_base_tracking_goal = 0
+	}
+}
+
+# listens to neighbors broadcasting commands
+function nei_cmd_listen() {
+    neighbors.listen("cmd",
+		function(vid, value, rid) {
+			# print("Got (", vid, ",", value, ") #", rid, "(", BVMSTATE, ")")
+			# if(BVMSTATE=="TURNEDOFF") {
+			# 	if(value==22) {
+			# 		BVMSTATE = "LAUNCH"
+			# 	}
+			# } else if(BVMSTATE != "STOP") {
+			# 	if(value==21 and BVMSTATE != "STOP") {
+			# 		BVMSTATE = "STOP"
+			# 		neighbors.broadcast("cmd", 21)
+			# 	}
+			# } 
+
+			if(BVMSTATE == "EXPLORE"){
+				if(value == 999 and BVMSTATE != "RETURN_TO_BASE"){
+					BVMSTATE = "RETURN_TO_BASE"
+				}
+				if(value == 911 and EXPLORE_STATE != EXPLORE_RETUNING and rid > TARGET_ID){
+                                        EXPLORE_STATE = EXPLORE_RETUNING
+                                        BVMSTATE ="EXPLORE"
+                                        CUR_PATH = nil
+										CUR_WP_IDX = 0
+										Move_base_tracking_goal = 0
+                                        log(" Another Guide FOUND RADIATION !!!")
+                }
+			}
+			# Bug algorithm neighbour trigger.
+			if(value == 911){
+				if(rid < TARGET_ID){ # It is another bug, so get to it if it is close enough.
+					var nei_pos = neighbors.get(rid)
+					if(nei_pos.distance < 200){
+						nei_radiation = 1	
+						nei_radiation_id = rid
+						# log(" NEI FOUND RADIATION !!!")
+					}
+				}
+				else if(rid > TARGET_ID){
+					inbound_travel = 1
+					broadcast_inbound = 1
+				}
+			}
+			else if(value == 55 and id < TARGET_ID){
+				inbound_travel = 1
+				broadcast_inbound = 1
+			}
+
+    })
+}
+
+# goto wrapper for argos based scripts
+# function goto(x, y) {
+# 	var height = takeoff_heights[id]
+# 	var g_vec = math.vec2.new(x,y)
+# 	var norm_fact= 0.4
+# 	var norm_goto = math.vec2.scale(g_vec, norm_fact)
+# 	if(math.vec2.length(norm_goto) < 0.737463127){
+# 	   norm_goto = math.vec2.scale(norm_goto, 0)
+# 	}
+# 	# Convert cm to m
+# 	norm_goto.x = 1.0/100.0 * norm_goto.x
+# 	norm_goto.y = 1.0/100.0 * norm_goto.y
+
+# 	log("GOTo ",norm_goto.x,",", norm_goto.y)
+# 	goto_abs(norm_goto.x, norm_goto.y, height, 0.0)
+# }
+
+# Function to use ROS move base node (ROS navigational stack) along with ROSBuzz 
+# This function takes goal in the /map frame. Using any other frame will create unexpexted behavior. 
+# This function assumes get_local_trajectory_goal returns the origin when the goal is reached.
+function goto_point(goal, last_wp){
+	var goal_status = get_goal_status()
+	#log("GOAL STATUS ", goal_status)
+	if(goal_status){
+		Goal_reached_declare_timer = Goal_reached_declare_timer + 1
+		goto_abs(0.0, 0.0, takeoff_heights[id], 0.0)				
+	}
+	else{
+		Goal_reached_declare_timer = 0
+		goto_abs(0.0, 0.0, takeoff_heights[id], 0.0)				
+	}
+	if(Goal_reached_declare_timer > TIME_TO_DECLARE_GOAL_REACHED and Move_base_tracking_goal){
+		goto_abs(0.0, 0.0, takeoff_heights[id], 0.0)				
+		Move_base_tracking_goal = 0
+		return 0
+	}
+	if(not Move_base_tracking_goal){
+		Move_base_tracking_goal = 1
+		set_navigation_goal(goal.x, goal.y)
+		goto_abs(0.0, 0.0, takeoff_heights[id], 0.0)				
+	}
+	var local_goal_vec = get_local_trajectory_goal() # goal from the movebase planner.
+  #log("Goal received ", local_goal_vec.x," , ", local_goal_vec.y)
+		
+  if(math.vec2.length(local_goal_vec) > 0){
+	  var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+	  var NedPos = math.vec2.sub(pose.position,home_offset)
+	  var local_vec = math.vec2.sub(local_goal_vec,NedPos)
+	  local_vec_len = math.vec2.length(local_vec)
+	  local_vec = math.vec2.rotate(local_vec, -1*pose.orientation.yaw)
+    #log("local vec len ", local_vec_len, " vec ", local_goal_vec.x, ", ",local_goal_vec.y, " angle to goal ", math.abs( math.vec2.angle(local_vec)))
+
+		if(math.abs( math.vec2.angle(local_vec)) > 2.0 ){ # Goal is directly behind the robot, rotate.
+			goto_abs(-1.0, 0.0, takeoff_heights[id], 0.0)				
+		}
+		else{
+	 		# scale to desired vel
+			#local_vec = math.vec2.scale(local_vec,1)
+			# Limit speed
+			# local_vec = math.vec2.newp(math.vec2.length(local_vec)*10,math.vec2.angle(local_vec)) # Original for exploration
+			local_vec = math.vec2.newp(math.vec2.length(local_vec)*5,math.vec2.angle(local_vec)) # altered for tag following
+			goto_abs(local_vec.x, local_vec.y, takeoff_heights[id], 0.0)
+		}
+  }
+
+	return 1	
+}
+
+# Function to use ROS move base node (ROS navigational stack) along with ROSBuzz and obtain a goto vec
+# This function takes goal in the /map frame. Using any other frame will create unexpexted behavior. 
+function movebase_point(goal){
+	var goal_status = get_goal_status()
+	var movebase_goto = math.vec2.new(0.0,0.0)
+	#log("GOAL STATUS ", goal_status)
+	if(goal_status){
+		Goal_reached_declare_timer = Goal_reached_declare_timer + 1				
+	}
+	else{
+		Goal_reached_declare_timer = 0
+	}
+	if(Goal_reached_declare_timer > TIME_TO_DECLARE_GOAL_REACHED and Move_base_tracking_goal){				
+		Move_base_tracking_goal = 0
+		return movebase_goto
+	}
+	if(not Move_base_tracking_goal){
+		Move_base_tracking_goal = 1
+		set_navigation_goal(goal.x, goal.y)				
+	}
+	var local_goal_vec = get_local_trajectory_goal() # goal from the movebase planner.
+  #log("Goal received ", local_goal_vec.x," , ", local_goal_vec.y)
+		
+  if(math.vec2.length(local_goal_vec) > 0){
+	  var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+	  var NedPos = math.vec2.sub(pose.position,home_offset)
+	  var local_vec = math.vec2.sub(local_goal_vec,NedPos)
+	  local_vec_len = math.vec2.length(local_vec)
+	  local_vec = math.vec2.rotate(local_vec, -1*pose.orientation.yaw)
+      #log("local vec len ", local_vec_len, " vec ", local_goal_vec.x, ", ",local_goal_vec.y, " angle to goal ", math.abs( math.vec2.angle(local_vec)))
+
+		if(math.abs( math.vec2.angle(local_vec)) > 2.0 ){ # Goal is directly behind the robot, rotate.
+			movebase_goto.x = -1.0
+			movebase_goto.y = 0.0
+		}
+		else{
+	 		# scale to desired vel
+			#local_vec = math.vec2.scale(local_vec,1)
+			# Limit speed
+			#local_vec = math.vec2.newp(math.vec2.length(local_vec)*10,math.vec2.angle(local_vec))
+			movebase_goto.x = local_vec.x
+			movebase_goto.y = local_vec.y
+		}
+  }
+
+	return movebase_goto	
+}
+
+function goto_point_naive(vec_to_target, last_wp){
+	# var home_offset = math.vec2.new(pose.position.x_offset, pose.position.y_offset)
+	# var NedPos = math.vec2.sub(pose.position,home_offset)
+	check_counter = check_counter + 1
+	var local_vec = math.vec2.sub(vec_to_target,pose.position)
+	local_vec = math.vec2.rotate(local_vec, -pose.orientation.yaw)
+	var last_wp_tol = 0.0
+	if(last_wp){
+		last_wp_tol = 0.2
+	}
+	if(math.vec2.length(local_vec) > GOTODIST_TOL+last_wp_tol){
+		# Limit speed
+		local_vec = math.vec2.newp(math.min(GOTO_MAXVEL,math.vec2.length(local_vec)),math.vec2.angle(local_vec))
+		# scale to desired vel
+		# local_vec = math.vec2.scale(local_vec,200)
+		# if(time_step - waypoint_set_time < STUCK_TIME_OUT ){
+			# local_vec = avoid_nei_using_potential(local_vec)
+			# local_vec = avoid_obs_using_potential(local_vec)
+		# }
+		if(time_step - waypoint_set_time > STUCK_TIME_OUT){
+			if(BVMSTATE != BLIND_FOLLOW){
+				waypoint_set_time = time_step
+			}
+			log("[WARN] Waypoint is taking very long to reach, stuck detected")
+			if(EXPLORE_STATE == EXPLORE_EXPLORING and BVMSTATE == "EXPLORE"){
+				log("Explorer stuck while exploring !")
+				CUR_PATH = nil
+				local_planner_called = 0
+				# return 1
+			}
+			# else if(EXPLORE_STATE == EXPLORE_RETUNING and BVMSTATE == "EXPLORE"){
+			# 	log("Explorer stuck while returning !")
+			# 	if(CUR_WP_IDX < size(CUR_PATH)-1){
+			# 		CUR_WP_IDX = CUR_WP_IDX + 1
+			# 		waypoint_set_time = time_step
+			# 		return 1
+			# 	}
+			# 	else if(CUR_WP_IDX >= size(CUR_PATH)-1){
+			# 		# Home reached, TODO: trigger hierarchial behaviror.
+			# 		log("[WARN] Premature declaration of HOME REACHED")
+			# 		BVMSTATE = "EXPLORE_COOL_DOWN"
+			# 		goto(0.0,0.0)
+			# 		return 1
+			# 	}
+			# }
+			# else if(BVMSTATE == "BLIND_FOLLOW" and ROLE != DOG){
+			# 	log("[WARN] Follower stuck performing recovery routine")
+			# 	if(stuck_recover_timer < STUCK_RECOVERY_TIME){
+			# 		var recovery_goto = math.vec2.newp(1000,0)
+			# 		local_vec = avoid_obs_using_potential(recovery_goto)
+			# 		stuck_recover_timer = stuck_recover_timer + 1
+			# 	}
+			# 	else{
+			# 		stuck_recover_timer = 0
+			# 		waypoint_set_time = time_step
+			# 	}
+			# }
+			# else if(BVMSTATE == "BLIND_FOLLOW" and ROLE == DOG){
+			# 	if(id == DOG1){
+			# 		log("[WARN] DOG1 stuck performing going to next point")
+			# 		if(child_check == 1){
+			# 			log("[WARN] DOG1 stuck going to next waypoint")
+			# 			if(path_ptr <  size(GLOBAL_TEST_PATH) - 1){
+			# 				path_ptr = path_ptr + 1
+			# 			}
+			# 			else{
+			# 				experiment_done = 1
+            #                 log("STUCK AT LAST WAYPOINT: DECLARING PREMATURE TARGET REACHED !!!")
+            #                 goto(0.0,0.0)
+			# 			}
+			# 			waypoint_set_time = time_step
+
+			# 			return 1
+			# 		}
+			# 		else{
+			# 			waypoint_set_time = time_step
+			# 		}
+			# 	}
+
+			# 	# else{
+			# 	# 	log("[WARN] DOG2 stuck performing recovery routine")
+			# 	# 	if(stuck_recover_timer < STUCK_RECOVERY_TIME){
+			# 	# 		var recovery_goto = math.vec2.newp(1000,0)
+			# 	# 		local_vec = avoid_obs_using_potential(recovery_goto)
+			# 	# 		stuck_recover_timer = stuck_recover_timer + 1
+			# 	# 	}
+			# 	# 	else{
+			# 	# 		stuck_recover_timer = 0
+			# 	# 		waypoint_set_time = time_step
+			# 	# 	}
+					
+			# 	# }				
+			# }
+			
+		}
+		else{
+			stuck_recover_timer = 0
+		}
+		# if(math.vec2.length(local_vec) > 0){
+		# 	if(Stuck_detection_goto1.x == local_vec.x or Stuck_detection_goto2.x == local_vec.x){
+		# 		if(Stuck_detection_goto1.y == local_vec.y or Stuck_detection_goto2.y == local_vec.y){
+		# 			log("[Warn] Stuck detected, reset planner")
+		# 			if(EXPLORE_STATE == EXPLORE_EXPLORING){
+		# 				log("Explorer stuck while exploring !")
+		# 				CUR_PATH = nil
+		# 				local_planner_called = 0
+		# 				return 1
+		# 			}
+		# 			else if(EXPLORE_STATE == EXPLORE_RETUNING){
+		# 				log("Explorer stuck while returning !")
+		# 				if(CUR_WP_IDX < size(CUR_PATH)-1){
+		# 					CUR_WP_IDX = CUR_WP_IDX + 1
+		# 					waypoint_set_time = time_step
+		# 					return 1
+		# 				}
+		# 				else if(CUR_WP_IDX >= size(CUR_PATH)-1){
+		# 					# Home reached, TODO: trigger hierarchial behaviror.
+		# 					log("[WARN] Premature declaration of HOME REACHED")
+		# 					BVMSTATE = "EXPLORE_COOL_DOWN"
+		# 					goto(0.0,0.0)
+		# 					return 1
+		# 				}
+		# 			}
+		# 		}
+		# 	}
+		# }
+		# Stuck_detection_goto2 = math.vec2.new(Stuck_detection_goto1.x, Stuck_detection_goto1.y)
+		# Stuck_detection_goto1 = math.vec2.new(local_vec.x, local_vec.y)
+		# local_vec = RVO(local_vec)
+		#local_vec = math.vec2.rotate(local_vec,YAW_OFFSET)
+		# log("goto ",local_vec.x,",",local_vec.y )
+
+		# goto(local_vec.x, local_vec.y)
+		# if(id==51){
+		# 	log("local vector",local_vec.x,"  ",local_vec.y)
+		# 	# log("target",vec_to_target.x,"  ",vec_to_target.y)
+		# 	# log("position",pose.position.x,"  ",pose.position.y)
+		# }
+
+		# goto(local_vec.x,local_vec.y)
+
+		k = 10
+		global_vec = math.vec2.rotate(local_vec, pose.orientation.yaw)
+		ex = k*global_vec.x
+		ey = k*global_vec.y
+		u = {}
+		if(global_path_update_permitted==1)factor = 1.0
+		else factor = 0.0001
+		u[0] = ex*factor
+		u[1] = ey*factor
+		if(size(path)>2)u = energy_aware_mission_exponential_discharge(u)#energy_aware_mission2(u)
+		else log("size is not sufficient!!!!!!!!!!!!!!!!!!!")
+		# u = energy_aware_mission(u)
+
+		#if S increases (so we should move along the path) 
+		#but is stalling (due to the rover stopping and the 
+		#battery voltage not decreasing), start a maneuver 
+		#that dumps energy (by letting the robot spin in its place)
+		if(dumping_behaviour_flag == 1) {
+			goto(0.0,1.0)
+		}
+		else{
+			set_velocity2(u)
+		}
+		
+		# log("using goto ", local_vec.x, " , ",local_vec.y)
+        # goto(local_vec.x,local_vec.y)
+
+		return 1
+	}
+	else{
+		goto(0,0)
+		return 0
+	}
+}
+
+function maintain_energy_sufficiency(){
+	log("yaaaaaaaaaay energy sufficiency is maintaiiiiinnneeeed!!!!!!!!!!!!!")
+	u = {}
+	u[0] = 0.00001
+	u[1] = 0.00001
+	u = energy_aware_mission_exponential_discharge(u)#energy_aware_mission2(u)
+	if(dumping_behaviour_flag == 1) {
+		goto(0.0,1.0)
+	}
+	else{
+		set_velocity2(u)
+	}
+	
+	# set_velocity2(u)
+	# goto(0.0,0.0)
+}
+
+function high_priority_robot_in_field(){
+	var found_robot ={.0=0}
+	neighbors.foreach(
+	  	function(rid, data) {
+			if(EXPLORER_IDs[rid]){
+	  			# log("Explorer in range ",rid, "at distance ", data.distance)
+	  			if(EXPLORER_IDs[rid] < EXPLORER_IDs[id] and data.distance < EXPLORATION_YEILD){
+	    			found_robot[0] = 1
+	  			}
+	  		}
+		}
+	)
+	return found_robot[0]
+}
+
+function reverse_table(table_c){
+	var ret_table ={}
+	var idx = size(table_c) - 1
+	var f_idx = 0
+	while(idx >= 0){
+		# log("vec x ", table_c[idx].x, " y ", table_c[idx].y)
+		hierarchial_path_to_source[f_idx] = math.vec2.new(table_c[idx].x, table_c[idx].y)
+		# accumulate the path distance
+		if(f_idx != 0){
+			var diff_vec = math.vec2.sub(hierarchial_path_to_source[f_idx-1], hierarchial_path_to_source[f_idx])
+			path_distance_to_target = path_distance_to_target + math.vec2.length(diff_vec)
+		}
+		idx = idx - 1
+		f_idx = f_idx + 1 
+	}
+	# log("size ", size(hierarchial_path_to_source))
+}
+
+function obs_test(){
+		var tmp_tar = math.vec2.new(-5,0)
+		# tmp_tar = math.vec2.sub(tmp_tar, pose.position)
+		# tmp_tar = math.vec2.rotate(tmp_tar, pose.orientation.yaw)
+		# var m_vec_to_go = math.vec2.scale(tmp_tar,100)
+		# var m_vec_to_go = math.vec2.newp(1000,0)
+		# m_vec_to_go = avoid_obs_using_potential(m_vec_to_go)
+		if(time_step == 1000){
+			waypoint_set_time = time_step
+		}
+		var wp_Resilt = goto_point_naive(tmp_tar,0)
+		# goto(m_vec_to_go.x, m_vec_to_go.y)
+}
+
+
+function avoid_obs_using_potential(m_goto_target){
+	if(ROLE == SHEEP){
+		return avoid_obs_using_potential_footbot(m_goto_target)
+	}
+	else if(ROLE == DOG){
+		return avoid_obs_using_potential_kh4(m_goto_target)
+	}
+}
+
+function avoid_obs_using_potential_footbot(m_goto_target){
+  var Accum = {.cnt=0,.x=0.0,.y=0.0}
+  var reaction_threshold = 42
+  var desired_safety_distance = 10
+  var obs_present =0
+
+  var i = 0 
+  while(i < size(proximity)){
+	var l_prox = proximity[i].value * 100
+	
+	if(l_prox > 40){
+		l_prox = 0
+	} 
+	else{
+		obs_present = 1
+	} 
+	var potential = harmonMagnitude(l_prox, desired_safety_distance, HARMON_A0, HARMON_K)
+
+	var pot_vec = math.vec2.newp(potential, proximity[i].angle)
+	if(potential < 0 ){
+		Accum.x = Accum.x + pot_vec.x
+		Accum.y = Accum.y + pot_vec.y
+		Accum.cnt = Accum.cnt + 1
+	}
+	i = i + 1
+  }
+
+  if(Accum.cnt > 0){
+    Accum.x = Accum.x/Accum.cnt
+    Accum.y = Accum.y/Accum.cnt
+  }
+  else{
+	  obstacle_timer = 0
+  }
+
+  var normalized_target_vec = math.vec2.new(m_goto_target.x,m_goto_target.y)
+  var vec_mag = math.vec2.length(normalized_target_vec)
+  normalized_target_vec = math.vec2.scale(normalized_target_vec, 1/math.vec2.length(normalized_target_vec))
+  var target_weight = 0.6
+  var return_vec =  math.vec2.new((target_weight*normalized_target_vec.x)+ ((1-target_weight)*Accum.x),(target_weight*normalized_target_vec.y)+((1-target_weight)*Accum.y))
+  return_vec = math.vec2.newp(vec_mag, math.vec2.angle(return_vec))
+  if(obs_present == 1){
+	  return_vec = math.vec2.scale(return_vec,70)
+  }
+  return return_vec
+}
+
+function avoid_obs_using_potential_kh4(m_goto_target){
+  var Accum = {.cnt=0,.x=0.0,.y=0.0}
+  var reaction_threshold = 42
+  var desired_safety_distance = 20
+  var i = 0 
+  while(i < size(proximity)){
+	var potential = harmonMagnitude( (1.01 - proximity[i].value) *19, desired_safety_distance, HARMON_A0, HARMON_K)
+	var pot_vec = math.vec2.newp(potential, proximity[i].angle)
+	if(proximity[i].value > 0){
+		Accum.x = Accum.x + pot_vec.x
+		Accum.y = Accum.y + pot_vec.y
+		Accum.cnt = Accum.cnt + 1
+	}
+	i = i + 1
+  }
+
+  if(Accum.cnt > 0){
+    Accum.x = Accum.x/Accum.cnt
+    Accum.y = Accum.y/Accum.cnt
+  }
+  var normalized_target_vec = math.vec2.new(m_goto_target.x,m_goto_target.y)
+  var vec_mag = math.vec2.length(normalized_target_vec)
+  normalized_target_vec = math.vec2.scale(normalized_target_vec, 1/math.vec2.length(normalized_target_vec))
+  var target_weight = 0.2
+  var return_vec = math.vec2.new((target_weight*normalized_target_vec.x)+ (Accum.x),(target_weight*normalized_target_vec.y)+(Accum.y))
+  return_vec = math.vec2.newp(vec_mag, math.vec2.angle(return_vec))
+  # return_vec = math.vec2.scale(return_vec,10)
+  return return_vec
+}
+
+function ultrasound_obs_potential(){
+  var Accum = {.cnt=0,.x=0.0,.y=0.0}
+  var reaction_threshold = 42
+  var desired_safety_distance = 45
+  var i = 0 
+  while(i < size(ultrasound)){
+	var potential = harmonMagnitude( (ultrasound[i].value*200)+25, desired_safety_distance, HARMON_A0, HARMON_K)
+	if(ultrasound[i].value == 0) potential = 0
+	var pot_vec = math.vec2.newp(potential, ultrasound[i].angle)
+	log("us ", i ," -> ", ultrasound[i].value, " pot ", potential, " dis ", (ultrasound[i].value*200)+25)
+	if((ultrasound[i].value*200)+25 < reaction_threshold and potential < 0){
+		Accum.x = Accum.x + pot_vec.x
+		Accum.y = Accum.y + pot_vec.y
+		Accum.cnt = Accum.cnt + 1
+	}
+	i = i + 1
+  }
+}
+
+function detect_target(){
+	var target_data = neighbors.get(TARGET_ID)
+	if(not isnil(target_data)){
+		if(target_data.distance < TARGET_DETECTION_RANGE){
+			flight.rc_cmd = 911
+			close_to_radiation = 1
+		} 
+		else{
+			close_to_radiation = 0
+		}
+	}
+	else{
+		close_to_radiation = 0
+	}
+}
+
+function avoid_nei_using_potential(m_target){
+  var Accum = {.cnt=0,.x=0.0,.y=0.0}
+  neighbors.foreach(
+    function(rid, data){
+      var potential = harmonMagnitude(data.distance, SAFETY_DISTANCE+10, HARMON_A0, HARMON_K)
+      if(data.distance < SAFETY_DISTANCE+50 and potential < 0){
+        var my_vec = math.vec2.newp(data.distance, data.azimuth)
+        # debug.rays.add(0,100,0, my_vec.x/100, my_vec.y/100, 0.0)
+        var pot_vec = math.vec2.newp(potential, data.azimuth)
+        Accum.x = Accum.x + pot_vec.x
+        Accum.y = Accum.y + pot_vec.y
+        Accum.cnt= Accum.cnt +1
+      }
+    }
+  )
+  if(Accum.cnt > 0){
+    Accum.x = Accum.x/Accum.cnt
+    Accum.y = Accum.y/Accum.cnt
+  }
+  var normalized_target_vec = math.vec2.new(m_target.x,m_target.y)
+  var vec_mag = math.vec2.length(normalized_target_vec)
+  normalized_target_vec = math.vec2.scale(normalized_target_vec, 1/math.vec2.length(normalized_target_vec))
+  
+  # if(math.vec2.length(Accum) > 0) Accum = math.vec2.scale(Accum, 1/math.vec2.length(Accum))
+  var target_weight = 3.5
+  var return_vec = math.vec2.new((target_weight*normalized_target_vec.x)+ (Accum.x),(target_weight*normalized_target_vec.y)+(Accum.y))
+  return_vec = math.vec2.newp(vec_mag, math.vec2.angle(return_vec))
+#   return_vec = math.vec2.scale(return_vec,500)
+
+  return return_vec
+}
+
+
+function avoid_nei_using_potential_normal_prox(m_target){
+  var Accum = {.cnt=0,.x=0.0,.y=0.0}
+  neighbors.foreach(
+    function(rid, data){
+      var potential = harmonMagnitude(data.distance, SAFETY_DISTANCE+10, HARMON_A0, HARMON_K)
+      if(data.distance < SAFETY_DISTANCE+50 and potential < 0){
+        var my_vec = math.vec2.newp(data.distance, data.azimuth)
+        # debug.rays.add(0,100,0, my_vec.x/100, my_vec.y/100, 0.0)
+        var pot_vec = math.vec2.newp(potential, data.azimuth)
+        Accum.x = Accum.x + pot_vec.x
+        Accum.y = Accum.y + pot_vec.y
+        Accum.cnt= Accum.cnt +1
+      }
+    }
+  )
+  if(Accum.cnt > 0){
+    Accum.x = Accum.x/Accum.cnt
+    Accum.y = Accum.y/Accum.cnt
+  }
+  var normalized_target_vec = math.vec2.new(m_target.x,m_target.y)
+  var vec_mag = math.vec2.length(normalized_target_vec)
+  normalized_target_vec = math.vec2.scale(normalized_target_vec, 1/math.vec2.length(normalized_target_vec))
+  
+  # if(math.vec2.length(Accum) > 0) Accum = math.vec2.scale(Accum, 1/math.vec2.length(Accum))
+  var target_weight = 3.5
+  var return_vec = math.vec2.new((target_weight*normalized_target_vec.x)+ (Accum.x),(target_weight*normalized_target_vec.y)+(Accum.y))
+  return_vec = math.vec2.newp(vec_mag, math.vec2.angle(return_vec))
+  # return_vec = math.vec2.scale(return_vec,500)
+
+  return return_vec
+}
+
+function harmonMagnitude(dist, desiredDist, a0, k) {
+  return a0 + ((dist - desiredDist)/math.abs(dist - desiredDist)) * 1.0/2.0 * k * (dist - desiredDist)^2
+}
+
+function copy_table_vec2(t){
+	var t2 = {}
+	foreach(t, function(key, value) {
+		t2[key] = math.vec2.new(value.x, value.y)
+		})
+	return t2
+}
+
+function compute_exploration_quota_used(){
+	var c_dist_vec = math.vec2.sub(pose.position, old_pose)
+	used_exploration_quota = used_exploration_quota + math.vec2.length(c_dist_vec)
+}

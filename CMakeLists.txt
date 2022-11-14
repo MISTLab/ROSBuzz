@@ -38,6 +38,8 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   actionlib
   move_base_msgs
+  planner_msgs
+  tf2
   
   message_generation
 )
@@ -90,7 +92,7 @@ sensor_msgs
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES xbee_ros_node
-  CATKIN_DEPENDS roscpp std_msgs mavros_msgs sensor_msgs message_runtime
+  CATKIN_DEPENDS roscpp std_msgs mavros_msgs sensor_msgs planner_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -116,7 +118,17 @@ else()
   set(PATH_PLANNER_UTIL_SRC)
 endif()
 
-# Executables 
+# Executables for bezier utils
+set(BEZIER_UTILS_SRC  src/bezier_utils/bezier_hooks.cpp
+                      src/bezier_utils/QPSolver.cpp
+                      src/bezier_utils/alglib/alglibinternal.cpp 
+                      src/bezier_utils/alglib/alglibmisc.cpp     
+                      src/bezier_utils/alglib/ap.cpp             
+                      src/bezier_utils/alglib/linalg.cpp         
+                      src/bezier_utils/alglib/optimization.cpp   
+                      src/bezier_utils/alglib/solvers.cpp)
+
+# Executables
 add_executable(rosbuzz_node src/rosbuzz.cpp
   src/roscontroller.cpp
   src/buzz_utility.cpp
@@ -124,6 +136,7 @@ add_executable(rosbuzz_node src/rosbuzz.cpp
   src/VoronoiDiagramGenerator.cpp
   src/buzz_update.cpp
   ${PATH_PLANNER_UTIL_SRC}
+  ${BEZIER_UTILS_SRC}
   )
 target_link_libraries(rosbuzz_node ${catkin_LIBRARIES} buzz buzzdbg pthread)
 add_dependencies(rosbuzz_node rosbuzz_generate_messages_cpp)

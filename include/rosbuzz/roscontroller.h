@@ -24,6 +24,7 @@
 #include <mavros_msgs/StreamRate.h>
 #include <mavros_msgs/ParamGet.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <move_base_msgs/MoveBaseActionGoal.h>
 #include <actionlib_msgs/GoalStatusArray.h>
@@ -50,6 +51,9 @@
 #include <map>
 #include <rosbuzz/buzzuav_closures.h>
 #include <rosbuzz/mavrosCC.h>
+#include <planner_msgs/pci_set_homing_pos_from_pos.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 /*
 * ROSBuzz message types
@@ -62,7 +66,7 @@ typedef enum {
 } rosbuzz_msgtype;
 
 /*
- *  ROSBuzz Pose source types
+ *  ROSBuzz Pose source typeshomeLocationSetClient
  */
 typedef enum {
   GPS = 0,
@@ -183,7 +187,8 @@ private:
   bool BClpose = false;
   int pose_type = 0;
   int pose_received = 0;
-  bool planner_service_called=false;
+  bool explore_planner_service_called=false;
+  bool homing_planner_service_called=false;
   std::string bzzfile_name, WPfile;
   std::string bcfname, dbgfname;
   std::string stand_by;
@@ -200,6 +205,7 @@ private:
   ros::ServiceClient global_homing_client;
   ros::ServiceClient local_planner_continue_client;
   ros::ServiceClient local_planner_stop_client;
+  ros::ServiceClient homeLocationSetClient;
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
   ros::Publisher targetf_pub;
@@ -229,6 +235,7 @@ private:
   ros::Subscriber move_base_local_trajectory_sub;
   ros::Subscriber move_base_goal_status_sub;
   ros::Subscriber fiducial_tags_sub;
+  ros::Subscriber interpolated_home_path_sub;
   std::map<std::string, std::string> m_smTopic_infos;
 
   int setpoint_counter;
@@ -319,6 +326,8 @@ private:
   void move_base_trajectory_cb(const nav_msgs::PathConstPtr& msg);
 
   void move_base_goal_status_cb(const actionlib_msgs::GoalStatusArrayConstPtr& msg);
+
+  void intrapolatedPathcb(const geometry_msgs::PoseArrayConstPtr& msg);
 
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);
