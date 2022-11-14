@@ -448,7 +448,7 @@ int buzz_update_set(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t bcode_
   }
   // Remove useless return value from the stack
   buzzvm_pop(VM);
-
+  // All OK
   return 1;
 }
 
@@ -512,7 +512,7 @@ int buzz_update_init_test(uint8_t* UP_BO_BUF, const char* bdbg_filename, size_t 
   }
   // Remove useless return value from the stack
   buzzvm_pop(VM);
-
+  // All OK
   return 1;
 }
 

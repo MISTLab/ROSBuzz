@@ -1005,7 +1005,7 @@ with size.........  |   /
   // header variables
   uint16_t tmphead[4];
   tmphead[1] = (uint16_t)message_number;
-  // uint32_t stime = (uint32_t)(ros::Time::now().toSec());   //(uint32_t)(logical_clock.toSec() * 100000);
+  uint32_t stime = (uint32_t)(ros::Time::now().toSec());   //(uint32_t)(logical_clock.toSec() * 100000);
   memcpy((void*)(tmphead + 2), (void*)&stime, sizeof(uint32_t));
   uint64_t rheader[1];
   rheader[0] = 0;
