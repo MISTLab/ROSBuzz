@@ -92,7 +92,7 @@ experiment_done = 0
 
 
 # Constants
-GOTODIST_TOL = 0.3
+GOTODIST_TOL = 0.6
 GOTO_MAXVEL = 3 #m/s 
 EXPLORATION_YEILD = 250 #cms
 PLANNER_TIME_OUT = 200 # 20 sec
@@ -227,6 +227,9 @@ function step() {
 	}
 	else if(BVMSTATE == "BUG_HOLD_AT_TARGET"){
 		statef=bug_hold_at_target
+	}
+	else if(BVMSTATE == "CYCLIC_WP_TEST"){
+		statef=cyclic_wp_test
 	}
 
 	# else if(BVMSTATE == "FORWARD_TEST"){
@@ -493,13 +496,14 @@ function explore(){
 					goto_abs(0.0,0.0, takeoff_heights[id], 0.0)
 					var clear_all_exsisting paths = get_local_planner_path()
 					init_motion = 1
+					set_planner_home_location(0.0,0.0,0.0,pose.orientation.yaw)
 					log("[",id,"] INIT MOTION DONE")
 				}
 				log("Doing init")
 			}
 			else{
 				# Perform local planning to maximize the environmental information and coverage.
-				if( isnil(CUR_PATH)){
+				if( isnil(CUR_PATH) ){
 					CUR_PATH = get_local_planner_path()
 					if(local_planner_called == 0 ){
 						call_local_planner()
@@ -536,12 +540,17 @@ function explore(){
 					else{
 						var cur_wp = math.vec2.new(CUR_PATH[CUR_WP_IDX].x, CUR_PATH[CUR_WP_IDX].y)
 						var last_wp = 0
-						if(CUR_WP_IDX == size(CUR_PATH)-2){
-							last_wp = 1
-						}
+						# if(CUR_WP_IDX == size(CUR_PATH)-1 and local_planner_called == 0){
+						# 	# last_wp = 1
+						# 	call_local_planner()
+						# 	local_planner_called = 1
+						# }
+						# else{
+						# 	local_planner_called = 0
+						# }
 						if(not (goto_point_naive(cur_wp, last_wp))){
 							# WP reached
-							if(CUR_WP_IDX < size(CUR_PATH)-2){
+							if(CUR_WP_IDX < size(CUR_PATH)-1){
 								CUR_WP_IDX = CUR_WP_IDX + 1
 								waypoint_set_time = time_step
 							}
@@ -571,6 +580,8 @@ function explore(){
 			if(isnil(CUR_PATH)){
 				CUR_PATH = get_global_planner_path()
 				if(size(CUR_PATH) > 0 and radiation_source_located){ 
+					interpolated_path = get_intrapolated_path()
+					log(" global path size ", size(CUR_PATH)," size of interpolated ", size(interpolated_path))
 					reverse_table(CUR_PATH)
 					save_map(map_path,map_name)
 					if(SIMULATION){
@@ -581,6 +592,9 @@ function explore(){
 					goto_abs(0.0,0.0, takeoff_heights[id], 0.0)
 				}
 				else if(size(CUR_PATH) > 0){
+					interpolated_path = get_intrapolated_path()
+					log(" global path size ", size(CUR_PATH)," size of interpolated ", size(interpolated_path))
+					
 					save_map(map_path,map_name)
 					if(SIMULATION){
 						# Stop planner
@@ -594,6 +608,9 @@ function explore(){
 				if(size(CUR_PATH) > 0 and radiation_source_located){
 					reverse_table(CUR_PATH)
 					save_map(map_path,map_name)  
+					interpolated_path = get_intrapolated_path()
+					log(" global path size ", size(CUR_PATH)," size of interpolated ", size(interpolated_path))
+					
 					if(SIMULATION){
 						# Stop planner
 						stop_exploration_planner()
@@ -601,6 +618,9 @@ function explore(){
 					CUR_WP_IDX=0
 				}
 				else if(size(CUR_PATH) > 0){
+					interpolated_path = get_intrapolated_path()
+					log(" global path size ", size(CUR_PATH)," size of interpolated ", size(interpolated_path))
+					
 					save_map(map_path,map_name)
 					if(SIMULATION){
 						# Stop planner

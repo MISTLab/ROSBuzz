@@ -1,0 +1,11 @@
+function init(){
+log("just init")
+}
+
+function step(){
+log("just a step")
+
+}
+
+function destroy(){
+}

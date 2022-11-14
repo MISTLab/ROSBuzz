@@ -7,6 +7,8 @@
  */
 
 #include <rosbuzz/buzz_utility.h>
+#include "rosbuzz/bezier_utils/QPSolver.h"
+#include "rosbuzz/bezier_utils/bezier_hooks.h"
 
 namespace buzz_utility
 {
@@ -277,6 +279,14 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "get_hierarchial_nav_tube", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_hierarchial_nav_tube));
   buzzvm_gstore(VM);
+  /* global intrapolated homing path getter */
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "get_intrapolated_path", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_interpolation_path));
+  buzzvm_gstore(VM);
+  /* Set home location from the given pose */
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "set_planner_home_location", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_buzz_CallPlannerHomeLocation));
+  buzzvm_gstore(VM);
   // Move base hooks
   buzzvm_pushs(VM, buzzvm_string_register(VM, "set_navigation_goal", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_set_navigation_goal));
@@ -287,6 +297,52 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "get_goal_status", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_move_base_goal_status));
   buzzvm_gstore(VM);
+
+  /*QP solver*/
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "qp_solver", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, qp_solver));
+   buzzvm_gstore(VM);
+
+   /*Bezier*/
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "bezier", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, Bezier_calc));
+   buzzvm_gstore(VM); 
+
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "bezier2", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, Bezier_calc_smooth_junction));
+   buzzvm_gstore(VM); 
+
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "bezier3", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, Bezier_calc_frequent));
+   buzzvm_gstore(VM);
+
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "bezier4", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, Bezier_calc_frequent_multiwise));
+   buzzvm_gstore(VM);
+
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "mw_merge_test", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, merge_multiwise_explicit_test));
+   buzzvm_gstore(VM);
+
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "original_bezier", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, get_original_bezier_path));
+   buzzvm_gstore(VM);
+
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "fit_bezier", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, Fit_Bezier));
+   buzzvm_gstore(VM);
+
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "fit_bezier_compact", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, Fit_Bezier_least_order));
+   buzzvm_gstore(VM);
+
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "fitted_bezier", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, get_fitted_bezier_path));
+   buzzvm_gstore(VM);
+
+   buzzvm_pushs(VM, buzzvm_string_register(VM, "random", 1));
+   buzzvm_pushcc(VM, buzzvm_function_register(VM, random_number_generator));
+   buzzvm_gstore(VM);
 
   #if OMPL_FOUND
   buzzvm_pushs(VM, buzzvm_string_register(VM, "InitializePathPlanner", 1));

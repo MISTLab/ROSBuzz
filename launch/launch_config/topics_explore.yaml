@@ -1,6 +1,6 @@
 topics:
   gps     :   global_position/global
-  battery :   battery
+  battery :   robot_battery
   status  :   state
   estatus :   extended_state
   setpoint:   setpoint_position/local
