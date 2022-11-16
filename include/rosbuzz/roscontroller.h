@@ -34,6 +34,7 @@
 #include <nav_msgs/Path.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/String.h>
+#include <sensor_msgs/Range.h>
 #include "rosbuzz/bool_srv.h"
 #include <std_srvs/Trigger.h>
 #include <sensor_msgs/LaserScan.h>
@@ -236,6 +237,7 @@ private:
   ros::Subscriber move_base_goal_status_sub;
   ros::Subscriber fiducial_tags_sub;
   ros::Subscriber interpolated_home_path_sub;
+  ros::Subscriber uwb_range_sub;
   std::map<std::string, std::string> m_smTopic_infos;
 
   int setpoint_counter;
@@ -328,6 +330,8 @@ private:
   void move_base_goal_status_cb(const actionlib_msgs::GoalStatusArrayConstPtr& msg);
 
   void intrapolatedPathcb(const geometry_msgs::PoseArrayConstPtr& msg);
+
+  void uwbrangecb(const sensor_msgs::RangeConstPtr& msg);
 
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);

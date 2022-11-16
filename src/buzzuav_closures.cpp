@@ -1181,6 +1181,30 @@ int planner_cmd(){
   return planner_cur_cmd;
 }
 
+void update_uwb_anchor(int tag_id, float range){
+  if(cur_BuzzVM){
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "uwb", 1));
+    buzzvm_pusht(cur_BuzzVM);
+    buzzobj_t tuwbTable = buzzvm_stack_at(cur_BuzzVM, 1);
+    buzzvm_gstore(cur_BuzzVM);
+
+    buzzvm_pusht(cur_BuzzVM);
+    buzzobj_t tuwbRead = buzzvm_stack_at(cur_BuzzVM, 1);
+    buzzvm_pop(cur_BuzzVM);
+    //  Fill in the read
+    buzzvm_push(cur_BuzzVM, tuwbRead);
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "range", 0));
+    buzzvm_pushf(cur_BuzzVM, range);
+    buzzvm_tput(cur_BuzzVM);
+  
+    //  Store read table in the proximity table
+    buzzvm_push(cur_BuzzVM, tuwbTable);
+    buzzvm_pushi(cur_BuzzVM, tag_id);
+    buzzvm_push(cur_BuzzVM, tuwbRead);
+    buzzvm_tput(cur_BuzzVM);
+  }
+}
+
 int buzzuav_resetrc(buzzvm_t vm)
 /*
 / Buzz closure to reset the RC input.

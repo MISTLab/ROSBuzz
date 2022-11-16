@@ -126,6 +126,10 @@ int buzz_exportGuideState(buzzvm_t vm);
  */
 int buzzuav_takepicture(buzzvm_t vm);
 /*
+ * Updates uwb range into the VM
+ */
+void update_uwb_anchor(int tag_id, float range);
+/*
  * closure to reset RC input
  */
 int buzzuav_resetrc(buzzvm_t vm);
