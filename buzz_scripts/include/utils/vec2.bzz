@@ -1,4 +1,11 @@
 #
+# creates a radians2deg 
+#
+math.radians2deg = function(rad){
+  return rad * 180/math.PI
+} 
+
+#
 # Create a new namespace for vector2 functions
 #
 math.vec2 = {}

@@ -24,6 +24,7 @@ topics:
   move_base_local_trajectory_goal: /move_base/TrajectoryPlannerROS/local_plan
   move_base_goal_status: /move_base/status
   fiducial_tags: fiducial_tags
+  rosbuzz_wp: rosbuzz_wp
 services:
   fcclient:   cmd/command
   armclient:  cmd/arming

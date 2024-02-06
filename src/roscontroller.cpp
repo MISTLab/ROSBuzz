@@ -488,6 +488,9 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   node_handle.getParam("topics/uwb_range", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "sensor_msgs::Range"));
 
+  node_handle.getParam("topics/rosbuzz_wp", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "geometry_msgs::PoseStamped"));
+
   node_handle.getParam("topics/yolobox", yolobox_sub_name);
 }
 
@@ -737,7 +740,9 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     else if(it->second == "sensor_msgs::Range"){
       uwb_range_sub = n_c.subscribe(it->first, 10, &roscontroller::uwbrangecb, this);
     }
-    
+    else if(it->second == "geometry_msgs::PoseStamped"){
+      wp_sub = n_c.subscribe(it->first, 10, &roscontroller::wpcb, this);
+    }
 
     std::cout << "Subscribed to: " << it->first << endl;
   }
@@ -1377,6 +1382,10 @@ void roscontroller::intrapolatedPathcb(const geometry_msgs::PoseArrayConstPtr& m
   }
   buzzuav_closures::update_interpolation_path(path);
 
+}
+
+void roscontroller::wpcb(const geometry_msgs::PoseStampedConstPtr& msg){
+  buzzuav_closures::update_wp(msg->pose.position.x, msg->pose.position.y);
 }
 
 void roscontroller::uwbrangecb(const sensor_msgs::RangeConstPtr& msg){

@@ -129,6 +129,8 @@ int buzzuav_takepicture(buzzvm_t vm);
  * Updates uwb range into the VM
  */
 void update_uwb_anchor(int tag_id, float range);
+
+void update_wp(float set_x, float set_y);
 /*
  * closure to reset RC input
  */

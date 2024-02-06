@@ -39,8 +39,8 @@ EXPLORE_RETUNING = 2
 # DOG = 1
 
 # Explorer robot (key-> ID, value -> Priority, lower higher priority)
-EXPLORER_IDs = {.0=1, .3=3, .50=12, .51=2, .52=3, .53=4, .54=5, .55=6, .56=7, .57=8, .58=9, .59=10, .60=11}
-INIT_MOTIONS ={.0={.x=1.5, .y=0.0},.3={.x=1.5, .y=0.0}, .50={.x=2.5, .y=1.5}, .51={.x=-2.0, .y = -2.0}, .52={.x=-1.5, .y = 2.0},
+EXPLORER_IDs = {.0=1, .1=2, .3=3, .50=12, .51=2, .52=3, .53=4, .54=5, .55=6, .56=7, .57=8, .58=9, .59=10, .60=11}
+INIT_MOTIONS ={.0={.x=1.5, .y=0.0}, .1={.x=1.5, .y=0.0},.3={.x=1.5, .y=0.0}, .50={.x=2.5, .y=1.5}, .51={.x=-2.0, .y = -2.0}, .52={.x=-1.5, .y = 2.0},
 			   .53={.x=-2.5, .y = -2.5}, .54={.x=0.5, .y = -2.5}, .55={.x=-1.0, .y = 2.0},
 			   .56={.x=2.0, .y = -2.5}, .57={.x=1.0, .y = -2.0}, .58={.x=1.0, .y = 2.5},
 			   .59={.x=-2.0, .y = -2.0}, .60={.x=-1.5, .y = 1.5}}
@@ -85,15 +85,24 @@ broadcast_inbound = 0
 Target_found = 0
 Bugs_found_target = {}
 
+# uwb tag following 
+pose_at_uwb_update={}
+uwb_dist_to_source_map={}
+uwb_dist_diff=0
+
 # Data logging special vairables
 close_to_radiation = 0
 path_distance_to_target = 0
 experiment_done = 0
 
+# WP following state
+CUR_WP_FROM_VIZ = {}
+cur_wp = {}
+
 
 # Constants
 GOTODIST_TOL = 0.6
-GOTO_MAXVEL = 3 #m/s 
+GOTO_MAXVEL = 0.5 #m/s 
 EXPLORATION_YEILD = 250 #cms
 PLANNER_TIME_OUT = 200 # 20 sec
 STUCK_TIME_OUT = 300 # 30 sec 
@@ -144,7 +153,7 @@ function init() {
 
   	# Starting state: TURNEDOFF to wait for user input.
 	BVMSTATE = "TURNEDOFF"
-	AUTO_LAUNCH_STATE = "EXPLORE"
+	# AUTO_LAUNCH_STATE = "EXPLORE"
 	# AUTO_LAUNCH_STATE = "OBSTACLE_TEST"
 
 	# Determine your role.
@@ -170,6 +179,11 @@ function init() {
 	# Initialize stuck detection 
 	Stuck_detection_goto1 = math.vec2.new(0.0,0.0)
 	Stuck_detection_goto2 = math.vec2.new(0.0,0.0)
+
+	# Init uwb tag seeking variables.
+	pose_at_uwb_update = math.vec2.new(0.0,0.0)
+	uwb_dist_to_source_map = {.0=0,.1=0,.2=0,.3=0,.4=0,.5=0,.6=0,.7=0}
+
 	# set moving exploration quota
 	EVOLVED_EXPLORATION_QUOTA_WORKER=MAX_EXPLORATION_QUOTA_WORKER
 }
@@ -231,6 +245,12 @@ function step() {
 	else if(BVMSTATE == "CYCLIC_WP_TEST"){
 		statef=cyclic_wp_test
 	}
+	else if(BVMSTATE == "UWB_ANCHOR_FOLLOW"){
+		statef=uwb_anchor_follow
+	}
+	else if(BVMSTATE == "WAYPOINT_GOTO"){
+		statef=waypoint_goto
+	}
 
 	# else if(BVMSTATE == "FORWARD_TEST"){
 	# 	statef=forward_test
@@ -246,6 +266,12 @@ function step() {
 	# }
 	# debug.
 	print(BVMSTATE," , ",MMode)
+	# if(uwb){
+	# 	log(" uwb range of 0 is ", uwb)
+	# 	if(not isnil(uwb[0])){
+	# 		log(" uwb range of 0 ",uwb[0].range)
+	# 	}
+	# }
 
 	statef()
 
@@ -432,6 +458,21 @@ function bug_algorithm(){
 
 }
 
+function waypoint_goto(){
+	BVMSTATE = "WAYPOINT_GOTO"
+	if(size(CUR_WP_FROM_VIZ) > 0){
+		# forward motion of 2 meters 
+		var vec_to_target = CUR_WP_FROM_VIZ
+		var last_wp = 0				
+		if(goto_point_naive(vec_to_target, last_wp) == 0){
+			# init motion complete
+			goto_abs(0.0,0.0, takeoff_heights[id], 0.0)
+			log("[",id,"] WP REACHED ")
+			CUR_WP_FROM_VIZ ={}
+		}
+	}
+}
+
 function bug_hold_at_target(){
 	neighbors.broadcast("cmd",911)
 	set_wheels(0.0,0.0)
@@ -467,6 +508,52 @@ function stop() {
 # Core state function when on the ground
 function turnedoff() {
     BVMSTATE = "TURNEDOFF"
+}
+
+function uwb_anchor_follow(){
+	BVMSTATE ="UWB_ANCHOR_FOLLOW"
+	var uwb_distance_angles = {.0=-135.0, .1= -90.0, .2=-45.0, .3=0.0, .4=45.0, .5=90.0, .6=135.0, .7=180.0}
+	print(" orientation ", pose.orientation.yaw)
+	# log(" uwb ", uwb[0].range)
+	# if(uwb_dist_diff == 0){
+	# 	uwb_dist_diff = 
+	# }
+	var cur_heading = math.radians2deg(pose.orientation.yaw)
+	# Measure the tag distance to compute the gradient and prefered direction.
+	if(math.vec2.length(math.vec2.sub(pose.position, pose_at_uwb_update)) > 0.2){
+		# pose_at_uwb_update = math.vec2.new(pose.position.x,pose.position.y)
+		# # uwb_dist_diff = 
+		# var ind = 0 
+
+		# while(ind < 8){
+
+		# 	# if ((cur_heading >= uwb_distance_angles[ind]-22.5 and cur_heading < uwb_distance_angles[ind]+22.5) and ind != 7) or \
+		# 	# (ind == 7 and (cur_heading >= 157.5 or cur_heading < -157.5)){
+
+		# 	# }
+
+		# 	ind = ind +1
+		# }
+	} 
+
+	
+	# Perform the initialization motion to determine the direction of motion. 
+	if(init_motion == 0){
+		# forward motion of 2 meters 
+		var vec_to_target = INIT_MOTIONS[id]
+		var last_wp = 0				
+		if(goto_point_naive(vec_to_target, last_wp) == 0){
+			# init motion complete
+			goto_abs(0.0,0.0, takeoff_heights[id], 0.0)
+			init_motion = 1
+			log("[",id,"] INIT MOTION DONE")
+		}
+		log("Doing init")
+	}
+	else{
+
+
+	}
 }
 
 # Core state to explore and map the environment. 
@@ -718,6 +805,23 @@ function rc_cmd_listen() {
 		CUR_PATH = nil
  		CUR_WP_IDX=0
 		Move_base_tracking_goal = 0
+	}
+
+	if(flight.rc_cmd == 812){
+		# continue exploration 
+		BVMSTATE = "EXPLORE"
+		CUR_PATH = nil
+ 		CUR_WP_IDX=0
+		Move_base_tracking_goal = 0
+	}
+
+
+	# check for new waypoints
+	if(size(cur_wp) > 0){
+		BVMSTATE = "WAYPOINT_GOTO"
+		CUR_WP_FROM_VIZ = math.vec2.new(cur_wp.position.x,cur_wp.position.y)
+		log("New wp received ", cur_wp.position.x, " , ",cur_wp.position.y)
+		cur_wp = {}
 	}
 }
 
