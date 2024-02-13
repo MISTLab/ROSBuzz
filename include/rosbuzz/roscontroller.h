@@ -207,6 +207,8 @@ private:
   ros::ServiceClient local_planner_continue_client;
   ros::ServiceClient local_planner_stop_client;
   ros::ServiceClient homeLocationSetClient;
+  ros::ServiceClient spot_sit_client;
+  ros::ServiceClient spot_stand_client;
   ros::Publisher payload_pub;
   ros::Publisher MPpayload_pub;
   ros::Publisher targetf_pub;
@@ -239,6 +241,7 @@ private:
   ros::Subscriber interpolated_home_path_sub;
   ros::Subscriber uwb_range_sub;
   ros::Subscriber wp_sub;
+  ros::Subscriber spotstatus_sub;
   std::map<std::string, std::string> m_smTopic_infos;
 
   int setpoint_counter;
@@ -335,6 +338,8 @@ private:
   void uwbrangecb(const sensor_msgs::RangeConstPtr& msg);
 
   void wpcb(const geometry_msgs::PoseStampedConstPtr& msg);
+
+  void spotstatus(const mavros_msgs::StateConstPtr& msg);
 
   /*convert from spherical to cartesian coordinate system callback */
   float constrainAngle(float x);

@@ -131,6 +131,14 @@ int buzzuav_takepicture(buzzvm_t vm);
 void update_uwb_anchor(int tag_id, float range);
 
 void update_wp(float set_x, float set_y);
+
+void update_spot_state(bool standing, bool sitting,bool  moving);
+
+int buzzuav_call_spot_sit(buzzvm_t vm);
+
+int buzzuav_call_spot_stand(buzzvm_t vm);
+
+int spot_service_cmd_get();
 /*
  * closure to reset RC input
  */

@@ -42,6 +42,7 @@ static uint8_t status;
 static int cur_cmd = 0;
 static int buzz_cmd = 0;
 static int exploration_planner_cmd = 0;
+static int spot_service_cmd = 0;
 static float height = 0;
 
 static bool deque_full = false;
@@ -1232,6 +1233,44 @@ void update_wp(float set_x, float set_y){
   buzzvm_tput(cur_BuzzVM);
 }
 
+void update_spot_state(bool standing, bool sitting,bool  moving){
+  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "spot", 1));
+  buzzvm_pusht(cur_BuzzVM);
+  buzzobj_t tPoseTable = buzzvm_stack_at(cur_BuzzVM, 1);
+  buzzvm_gstore(cur_BuzzVM);
+
+  //  Create table for i-th read
+  buzzvm_pusht(cur_BuzzVM);
+  buzzobj_t tPosition = buzzvm_stack_at(cur_BuzzVM, 1);
+  buzzvm_pop(cur_BuzzVM);
+  //  Fill in the read
+  buzzvm_push(cur_BuzzVM, tPosition);
+  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "standing", 0));
+  if(standing)
+    buzzvm_pushi(cur_BuzzVM, 1);
+  else
+    buzzvm_pushi(cur_BuzzVM, 0);
+  buzzvm_tput(cur_BuzzVM);
+  buzzvm_push(cur_BuzzVM, tPosition);
+  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "sitting", 0));
+  if(sitting)
+    buzzvm_pushi(cur_BuzzVM, 1);
+  else
+    buzzvm_pushi(cur_BuzzVM, 0);
+  buzzvm_tput(cur_BuzzVM);
+  buzzvm_push(cur_BuzzVM, tPosition);
+  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "moving", 0));
+  if(moving)
+    buzzvm_pushi(cur_BuzzVM, 1);
+  else
+    buzzvm_pushi(cur_BuzzVM, 0);
+  buzzvm_tput(cur_BuzzVM);
+  //  Store read table in the proximity table
+  buzzvm_push(cur_BuzzVM, tPoseTable);
+  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "state", 0));
+  buzzvm_push(cur_BuzzVM, tPosition);
+  buzzvm_tput(cur_BuzzVM);
+}
 int buzzuav_resetrc(buzzvm_t vm)
 /*
 / Buzz closure to reset the RC input.
@@ -1319,7 +1358,19 @@ int buzzuav_call_global_planner(buzzvm_t vm)
   return buzzvm_ret0(vm);
 }
 
+int buzzuav_call_spot_sit(buzzvm_t vm)
 
+{
+  spot_service_cmd = 1;
+  return buzzvm_ret0(vm);
+}
+
+int buzzuav_call_spot_stand(buzzvm_t vm)
+
+{
+  spot_service_cmd = 2;
+  return buzzvm_ret0(vm);
+}
 
 int buzzuav_setgimbal(buzzvm_t vm)
 /*
@@ -1545,6 +1596,14 @@ int exploration_planner_cmd_get()
 {
   int cmd = exploration_planner_cmd;
   exploration_planner_cmd=0;
+  return cmd;
+}
+
+int spot_service_cmd_get()
+
+{
+  int cmd = spot_service_cmd;
+  spot_service_cmd = 0;
   return cmd;
 }
 

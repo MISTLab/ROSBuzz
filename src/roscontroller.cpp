@@ -491,6 +491,9 @@ void roscontroller::GetSubscriptionParameters(ros::NodeHandle& node_handle)
   node_handle.getParam("topics/rosbuzz_wp", topic);
   m_smTopic_infos.insert(pair<std::string, std::string>(topic, "geometry_msgs::PoseStamped"));
 
+  node_handle.getParam("topics/spot_status", topic);
+  m_smTopic_infos.insert(pair<std::string, std::string>(topic, "StateSpot"));
+
   node_handle.getParam("topics/yolobox", yolobox_sub_name);
 }
 
@@ -578,11 +581,20 @@ void roscontroller::PubandServ(ros::NodeHandle& n_c, ros::NodeHandle& node_handl
     local_planner_continue_client = n_c.serviceClient<std_srvs::Trigger>(topic);
   }
 
-    if(node_handle.getParam("services/local_planner_stop", topic))
+  if(node_handle.getParam("services/local_planner_stop", topic))
   {
     local_planner_stop_client = n_c.serviceClient<std_srvs::Trigger>(topic);
   }
 
+  if(node_handle.getParam("services/spot_sit", topic))
+  {
+    spot_sit_client = n_c.serviceClient<std_srvs::Trigger>(topic);
+  }
+
+  if(node_handle.getParam("services/spot_stand", topic))
+  {
+    spot_stand_client = n_c.serviceClient<std_srvs::Trigger>(topic);
+  }
   if (node_handle.getParam("topics/outpayload", topic))
     payload_pub = n_c.advertise<mavros_msgs::Mavlink>(topic, 5);
   else
@@ -742,6 +754,9 @@ void roscontroller::Subscribe(ros::NodeHandle& n_c)
     }
     else if(it->second == "geometry_msgs::PoseStamped"){
       wp_sub = n_c.subscribe(it->first, 10, &roscontroller::wpcb, this);
+    }
+    else if(it->second == "StateSpot"){
+      spotstatus_sub = n_c.subscribe(it->first, 10, &roscontroller::spotstatus, this);
     }
 
     std::cout << "Subscribed to: " << it->first << endl;
@@ -1290,6 +1305,20 @@ void roscontroller::planner_service_call(){
     }
   }
 
+  int cur_spot_cmd = buzzuav_closures::spot_service_cmd_get();
+  if(cur_spot_cmd == 1){
+    //sit
+    std_srvs::Trigger srv;
+    if(spot_sit_client.call(srv)){
+      ROS_INFO("[ROSBuzz] Spot sit called");
+    }
+  }
+  else if(cur_spot_cmd == 2){
+     std_srvs::Trigger srv;
+    if(spot_stand_client.call(srv)){
+      ROS_INFO("[ROSBuzz] Spot stand called");
+    }
+  }
   
   int cur_cmd_exploration = buzzuav_closures::exploration_planner_cmd_get();
   if(cur_cmd_exploration == GLOBAL_HOME){
@@ -1382,6 +1411,10 @@ void roscontroller::intrapolatedPathcb(const geometry_msgs::PoseArrayConstPtr& m
   }
   buzzuav_closures::update_interpolation_path(path);
 
+}
+
+void roscontroller::spotstatus(const mavros_msgs::StateConstPtr& msg){
+  buzzuav_closures::update_spot_state(msg->armed, msg->connected, msg->guided);
 }
 
 void roscontroller::wpcb(const geometry_msgs::PoseStampedConstPtr& msg){
@@ -1975,80 +2008,82 @@ bool roscontroller::rc_callback(mavros_msgs::CommandLong::Request& req, mavros_m
 / and send the requested commands to Buzz
 ----------------------------------------------------------- */
 {
-  int rc_cmd;
-  switch (req.command)
-  {
-    case NAV_TAKEOFF:
-      ROS_INFO("RC_call: TAKE OFF!!!!");
-      rc_cmd = NAV_TAKEOFF;
-      buzzuav_closures::rc_call(rc_cmd);
-      res.success = true;
-      break;
-    case NAV_LAND:
-      ROS_INFO("RC_Call: LAND!!!!");
-      rc_cmd = NAV_LAND;
-      buzzuav_closures::rc_call(rc_cmd);
-      res.success = true;
-      break;
-    case COMPONENT_ARM_DISARM:
-      rc_cmd = COMPONENT_ARM_DISARM;
-      armstate = req.param1;
-      if (armstate)
-      {
-        ROS_INFO("RC_Call: ARM!!!!");
-        buzzuav_closures::rc_call(rc_cmd);
-        res.success = true;
-      }
-      else
-      {
-        ROS_INFO("RC_Call: DISARM!!!!");
-        buzzuav_closures::rc_call(rc_cmd + 1);
-        res.success = true;
-      }
-      break;
-    case NAV_RETURN_TO_LAUNCH:
-      ROS_INFO("RC_Call: GO HOME!!!!");
-      rc_cmd = NAV_RETURN_TO_LAUNCH;
-      buzzuav_closures::rc_call(rc_cmd);
-      res.success = true;
-      break;
-    case NAV_WAYPOINT:
-      ROS_INFO("RC_Call: GO TO!!!! ");
-      buzzuav_closures::rc_set_goto(req.param1, req.param5, req.param6, req.param7);
-      rc_cmd = NAV_WAYPOINT;
-      buzzuav_closures::rc_call(rc_cmd);
-      res.success = true;
-      break;
-    case DO_MOUNT_CONTROL:
-      ROS_INFO("RC_Call: Gimbal!!!! ");
-      buzzuav_closures::rc_set_gimbal(req.param1, req.param2, req.param3, req.param4, req.param5);
-      rc_cmd = DO_MOUNT_CONTROL;
-      buzzuav_closures::rc_call(rc_cmd);
-      res.success = true;
-      break;
-    case CMD_REQUEST_UPDATE:
-      rc_cmd = CMD_REQUEST_UPDATE;
-      buzzuav_closures::rc_call(rc_cmd);
-      res.success = true;
-      break;
-    case CMD_SYNC_CLOCK:
-      rc_cmd = CMD_SYNC_CLOCK;
-      buzzuav_closures::rc_call(rc_cmd);
-      ROS_INFO("<---------------- Time Sync requested ----------->");
-      res.success = true;
-      break;
-    case RADIATION_DETECTED:
-      rc_cmd = RADIATION_DETECTED;
-      buzzuav_closures::rc_call(rc_cmd);
-      ROS_INFO("[ROSBuzz ]<---------------- RADIATION Detected ----------->");
-      res.success = true;
-      break;
-    default:
-      buzzuav_closures::rc_call(req.command);
-      ROS_ERROR("----> Received unregistered command: ", req.command);
-      res.success = true;
-      break;
-  }
+  buzzuav_closures::rc_call(req.command);
+  res.success = true;
+  // ROS_INFO("RC Call received %d ", req.command);
+  // switch (req.command)
+  // {
+  //   case NAV_TAKEOFF:
+  //     ROS_INFO("RC_call: TAKE OFF!!!!");
+  //     rc_cmd = NAV_TAKEOFF;
+  //     buzzuav_closures::rc_call(rc_cmd);
+  //     res.success = true;
+  //     break;
+  //   case NAV_LAND:
+  //     ROS_INFO("RC_Call: LAND!!!!");
+  //     rc_cmd = NAV_LAND;
+  //     buzzuav_closures::rc_call(rc_cmd);
+  //     res.success = true;
+  //     break;
+  //   case COMPONENT_ARM_DISARM:
+  //     rc_cmd = COMPONENT_ARM_DISARM;
+  //     armstate = req.param1;
+  //     if (armstate)
+  //     {
+  //       ROS_INFO("RC_Call: ARM!!!!");
+  //       buzzuav_closures::rc_call(rc_cmd);
+  //       res.success = true;
+  //     }
+  //     else
+  //     {
+  //       ROS_INFO("RC_Call: DISARM!!!!");
+  //       buzzuav_closures::rc_call(rc_cmd + 1);
+  //       res.success = true;
+  //     }
+  //     break;
+  //   case NAV_RETURN_TO_LAUNCH:
+  //     ROS_INFO("RC_Call: GO HOME!!!!");
+  //     rc_cmd = NAV_RETURN_TO_LAUNCH;
+  //     buzzuav_closures::rc_call(rc_cmd);
+  //     res.success = true;
+  //     break;
+  //   case NAV_WAYPOINT:
+  //     ROS_INFO("RC_Call: GO TO!!!! ");
+  //     buzzuav_closures::rc_set_goto(req.param1, req.param5, req.param6, req.param7);
+  //     rc_cmd = NAV_WAYPOINT;
+  //     buzzuav_closures::rc_call(rc_cmd);
+  //     res.success = true;
+  //     break;
+  //   case DO_MOUNT_CONTROL:
+  //     ROS_INFO("RC_Call: Gimbal!!!! ");
+  //     buzzuav_closures::rc_set_gimbal(req.param1, req.param2, req.param3, req.param4, req.param5);
+  //     rc_cmd = DO_MOUNT_CONTROL;
+  //     buzzuav_closures::rc_call(rc_cmd);
+  //     res.success = true;
+  //     break;
+  //   case CMD_REQUEST_UPDATE:
+  //     rc_cmd = CMD_REQUEST_UPDATE;
+  //     buzzuav_closures::rc_call(rc_cmd);
+  //     res.success = true;
+  //     break;
+  //   case CMD_SYNC_CLOCK:
+  //     rc_cmd = CMD_SYNC_CLOCK;
+  //     buzzuav_closures::rc_call(rc_cmd);
+  //     ROS_INFO("<---------------- Time Sync requested ----------->");
+  //     res.success = true;
+  //     break;
+  //   case RADIATION_DETECTED:
+  //     rc_cmd = RADIATION_DETECTED;
+  //     buzzuav_closures::rc_call(rc_cmd);
+  //     ROS_INFO("[ROSBuzz ]<---------------- RADIATION Detected ----------->");
+  //     res.success = true;
+  //     break;
+  //   default:
+  //     buzzuav_closures::rc_call(req.command);
+  //     ROS_ERROR("----> Received unregistered command: ", req.command);
+  //     res.success = true;
+  //     break;
+  // }
   return true;
 }
 

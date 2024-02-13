@@ -297,6 +297,15 @@ static int buzz_register_hooks()
   buzzvm_pushs(VM, buzzvm_string_register(VM, "get_goal_status", 1));
   buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_get_move_base_goal_status));
   buzzvm_gstore(VM);
+  // Spot legged robot calls
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "call_sit_service", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_call_spot_sit));
+  buzzvm_gstore(VM);
+  // spot stand
+  buzzvm_pushs(VM, buzzvm_string_register(VM, "call_stand_service", 1));
+  buzzvm_pushcc(VM, buzzvm_function_register(VM, buzzuav_closures::buzzuav_call_spot_stand));
+  buzzvm_gstore(VM);
+
 
   /*QP solver*/
    buzzvm_pushs(VM, buzzvm_string_register(VM, "qp_solver", 1));

@@ -27,6 +27,7 @@ topics:
   fiducial_tags: fiducial_tags
   uwb_range: uwbrange
   rosbuzz_wp: rosbuzz_wp
+  spot_status: /spot/status
 services:
   fcclient:   cmd/command
   armclient:  cmd/arming
@@ -41,4 +42,6 @@ services:
   local_planner_continue: local_planner/continue
   local_planner_stop: local_planner/stop
   home_pose_set: planner_control_interface/set_homing_position_from_pose
+  spot_sit: /spot/sit
+  spot_stand: /spot/stand
  
