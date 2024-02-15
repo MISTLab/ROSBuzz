@@ -1208,68 +1208,72 @@ void update_uwb_anchor(int tag_id, float range){
 
 
 void update_wp(float set_x, float set_y){
-  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "cur_wp", 1));
-  buzzvm_pusht(cur_BuzzVM);
-  buzzobj_t tPoseTable = buzzvm_stack_at(cur_BuzzVM, 1);
-  buzzvm_gstore(cur_BuzzVM);
+  if(cur_BuzzVM){
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "cur_wp", 1));
+    buzzvm_pusht(cur_BuzzVM);
+    buzzobj_t tPoseTable = buzzvm_stack_at(cur_BuzzVM, 1);
+    buzzvm_gstore(cur_BuzzVM);
 
-  //  Create table for i-th read
-  buzzvm_pusht(cur_BuzzVM);
-  buzzobj_t tPosition = buzzvm_stack_at(cur_BuzzVM, 1);
-  buzzvm_pop(cur_BuzzVM);
-  //  Fill in the read
-  buzzvm_push(cur_BuzzVM, tPosition);
-  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "x", 0));
-  buzzvm_pushf(cur_BuzzVM, set_x);
-  buzzvm_tput(cur_BuzzVM);
-  buzzvm_push(cur_BuzzVM, tPosition);
-  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "y", 0));
-  buzzvm_pushf(cur_BuzzVM, set_y);
-  buzzvm_tput(cur_BuzzVM);
-  //  Store read table in the proximity table
-  buzzvm_push(cur_BuzzVM, tPoseTable);
-  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "position", 0));
-  buzzvm_push(cur_BuzzVM, tPosition);
-  buzzvm_tput(cur_BuzzVM);
+    //  Create table for i-th read
+    buzzvm_pusht(cur_BuzzVM);
+    buzzobj_t tPosition = buzzvm_stack_at(cur_BuzzVM, 1);
+    buzzvm_pop(cur_BuzzVM);
+    //  Fill in the read
+    buzzvm_push(cur_BuzzVM, tPosition);
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "x", 0));
+    buzzvm_pushf(cur_BuzzVM, set_x);
+    buzzvm_tput(cur_BuzzVM);
+    buzzvm_push(cur_BuzzVM, tPosition);
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "y", 0));
+    buzzvm_pushf(cur_BuzzVM, set_y);
+    buzzvm_tput(cur_BuzzVM);
+    //  Store read table in the proximity table
+    buzzvm_push(cur_BuzzVM, tPoseTable);
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "position", 0));
+    buzzvm_push(cur_BuzzVM, tPosition);
+    buzzvm_tput(cur_BuzzVM);
+  }
 }
 
 void update_spot_state(bool standing, bool sitting,bool  moving){
-  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "spot", 1));
-  buzzvm_pusht(cur_BuzzVM);
-  buzzobj_t tPoseTable = buzzvm_stack_at(cur_BuzzVM, 1);
-  buzzvm_gstore(cur_BuzzVM);
+  if(cur_BuzzVM){
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "spot", 1));
+    buzzvm_pusht(cur_BuzzVM);
+    buzzobj_t tPoseTable = buzzvm_stack_at(cur_BuzzVM, 1);
+    buzzvm_gstore(cur_BuzzVM);
 
-  //  Create table for i-th read
-  buzzvm_pusht(cur_BuzzVM);
-  buzzobj_t tPosition = buzzvm_stack_at(cur_BuzzVM, 1);
-  buzzvm_pop(cur_BuzzVM);
-  //  Fill in the read
-  buzzvm_push(cur_BuzzVM, tPosition);
-  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "standing", 0));
-  if(standing)
-    buzzvm_pushi(cur_BuzzVM, 1);
-  else
-    buzzvm_pushi(cur_BuzzVM, 0);
-  buzzvm_tput(cur_BuzzVM);
-  buzzvm_push(cur_BuzzVM, tPosition);
-  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "sitting", 0));
-  if(sitting)
-    buzzvm_pushi(cur_BuzzVM, 1);
-  else
-    buzzvm_pushi(cur_BuzzVM, 0);
-  buzzvm_tput(cur_BuzzVM);
-  buzzvm_push(cur_BuzzVM, tPosition);
-  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "moving", 0));
-  if(moving)
-    buzzvm_pushi(cur_BuzzVM, 1);
-  else
-    buzzvm_pushi(cur_BuzzVM, 0);
-  buzzvm_tput(cur_BuzzVM);
-  //  Store read table in the proximity table
-  buzzvm_push(cur_BuzzVM, tPoseTable);
-  buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "state", 0));
-  buzzvm_push(cur_BuzzVM, tPosition);
-  buzzvm_tput(cur_BuzzVM);
+    //  Create table for i-th read
+    buzzvm_pusht(cur_BuzzVM);
+    buzzobj_t tPosition = buzzvm_stack_at(cur_BuzzVM, 1);
+    buzzvm_pop(cur_BuzzVM);
+    //  Fill in the read
+    buzzvm_push(cur_BuzzVM, tPosition);
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "standing", 0));
+    if(standing)
+      buzzvm_pushi(cur_BuzzVM, 1);
+    else
+      buzzvm_pushi(cur_BuzzVM, 0);
+    buzzvm_tput(cur_BuzzVM);
+    buzzvm_push(cur_BuzzVM, tPosition);
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "sitting", 0));
+    if(sitting)
+      buzzvm_pushi(cur_BuzzVM, 1);
+    else
+      buzzvm_pushi(cur_BuzzVM, 0);
+    buzzvm_tput(cur_BuzzVM);
+    buzzvm_push(cur_BuzzVM, tPosition);
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "moving", 0));
+    if(moving)
+      buzzvm_pushi(cur_BuzzVM, 1);
+    else
+      buzzvm_pushi(cur_BuzzVM, 0);
+    buzzvm_tput(cur_BuzzVM);
+    //  Store read table in the proximity table
+    buzzvm_push(cur_BuzzVM, tPoseTable);
+    buzzvm_pushs(cur_BuzzVM, buzzvm_string_register(cur_BuzzVM, "state", 0));
+    buzzvm_push(cur_BuzzVM, tPosition);
+    buzzvm_tput(cur_BuzzVM);
+  }
 }
 int buzzuav_resetrc(buzzvm_t vm)
 /*
